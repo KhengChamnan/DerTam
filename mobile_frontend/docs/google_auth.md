@@ -160,14 +160,25 @@ The service uses `SharedPreferences` to store:
    ```
 
 ### 2. Android Configuration
-Add to `android/app/build.gradle`:
+**android/app/build.gradle:**
 ```gradle
 android {
+    compileSdkVersion 34
+    
     defaultConfig {
-        // Add your OAuth client ID
+        applicationId "com.example.your_app"
+        minSdkVersion 21
+        targetSdkVersion 34
+        // ... other config
     }
 }
 ```
+
+**Additional Android Setup:**
+- Ensure your `compileSdkVersion` is set to 34 for compatibility
+- Set `minSdkVersion` to 21 (Android 5.0) as minimum requirement
+- Configure `targetSdkVersion` to 34 for latest Android features
+- Replace `"com.example.your_app"` with your actual application ID
 
 ### 3. iOS Configuration
 Add to `ios/Runner/Info.plist`:
