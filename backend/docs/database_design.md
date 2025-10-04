@@ -2,7 +2,7 @@
 
 ## Database Overview
 - **Database Name**: **dertam**
-- **Database Type**: SQLite (Default)
+- **Database Type**: MYSQL (Default)
 - **Framework**: Laravel 11
 
 ## Core Tables
