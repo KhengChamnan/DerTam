@@ -29,3 +29,16 @@ Route::middleware('auth:sanctum')->group( function () {
         Route::post('auth/logout', 'logout');
     });
 });
+
+Route::post(
+    '/forgot-password', 
+    [App\Http\Controllers\API\ForgotPasswordController::class, 'forgotPassword']
+);
+Route::post(
+    '/verify/pin', 
+    [App\Http\Controllers\API\ForgotPasswordController::class, 'verifyPin']
+);
+Route::post(
+    '/reset-password', 
+    [App\Http\Controllers\API\ResetPasswordController::class, 'resetPassword']
+);
