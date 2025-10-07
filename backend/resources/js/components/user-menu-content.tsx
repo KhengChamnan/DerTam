@@ -3,14 +3,13 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { UserInfo } from '@/components/user-info';
-import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
-import { type User } from '@/types';
-import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+} from "@/components/ui/dropdown-menu";
+import { UserInfo } from "@/components/user-info";
+import { useMobileNavigation } from "@/hooks/use-mobile-navigation";
+import { type User } from "@/types";
+import { Link, router } from "@inertiajs/react";
+import { LogOut, Settings } from "lucide-react";
+import { route } from "ziggy-js";
 
 interface UserMenuContentProps {
     user: User;
@@ -21,7 +20,13 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
 
     const handleLogout = () => {
         cleanup();
-        router.flushAll();
+        router.post(
+            route("logout"),
+            {},
+            {
+                onFinish: () => router.flushAll(),
+            }
+        );
     };
 
     return (
@@ -36,7 +41,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full"
-                        href={edit()}
+                        href={route("user-profile-information.update")}
                         as="button"
                         prefetch
                         onClick={cleanup}
@@ -48,16 +53,14 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-                <Link
-                    className="block w-full"
-                    href={logout()}
-                    as="button"
+                <button
+                    className="flex w-full items-center"
                     onClick={handleLogout}
                     data-test="logout-button"
                 >
                     <LogOut className="mr-2" />
                     Log out
-                </Link>
+                </button>
             </DropdownMenuItem>
         </>
     );

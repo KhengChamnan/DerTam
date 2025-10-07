@@ -22,7 +22,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route("login")); // <- Laravel route (AuthenticatedSessionController@store)
+        post(route("login"));
     };
 
     return (
@@ -32,10 +32,18 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         >
             <Head title="Log in" />
 
-            <form onSubmit={submit} className="flex flex-col gap-6">
-                <div className="grid gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email address</Label>
+            {status && (
+                <div className="mb-4 rounded-lg bg-green-50 p-4 text-center text-sm font-medium text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                    {status}
+                </div>
+            )}
+
+            <form onSubmit={submit} className="space-y-6">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm font-medium">
+                            Email address
+                        </Label>
                         <Input
                             id="email"
                             type="email"
@@ -46,17 +54,23 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             autoFocus
                             autoComplete="email"
                             placeholder="email@example.com"
+                            className="h-10"
                         />
                         <InputError message={errors.email} />
                     </div>
 
-                    <div className="grid gap-2">
-                        <div className="flex items-center">
-                            <Label htmlFor="password">Password</Label>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label
+                                htmlFor="password"
+                                className="text-sm font-medium"
+                            >
+                                Password
+                            </Label>
                             {canResetPassword && (
                                 <TextLink
                                     href={route("password.request")}
-                                    className="ml-auto text-sm"
+                                    className="text-sm font-medium text-primary hover:text-primary/80"
                                 >
                                     Forgot password?
                                 </TextLink>
@@ -72,12 +86,13 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             }
                             required
                             autoComplete="current-password"
-                            placeholder="Password"
+                            placeholder="Enter your password"
+                            className="h-10"
                         />
                         <InputError message={errors.password} />
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
                         <Checkbox
                             id="remember"
                             checked={data.remember}
@@ -85,32 +100,36 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 setData("remember", !!val)
                             }
                         />
-                        <Label htmlFor="remember">Remember me</Label>
+                        <Label
+                            htmlFor="remember"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            Remember me
+                        </Label>
                     </div>
-
-                    <Button
-                        type="submit"
-                        className="mt-4 w-full"
-                        disabled={processing}
-                    >
-                        {processing && (
-                            <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
-                        )}
-                        Log in
-                    </Button>
                 </div>
+
+                <Button
+                    type="submit"
+                    className="w-full h-10"
+                    disabled={processing}
+                >
+                    {processing && (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Log in
+                </Button>
 
                 <div className="text-center text-sm text-muted-foreground">
-                    Don’t have an account?{" "}
-                    <TextLink href={route("register")}>Sign up</TextLink>
+                    Don't have an account?{" "}
+                    <TextLink
+                        href={route("register")}
+                        className="font-medium text-primary hover:text-primary/80"
+                    >
+                        Sign up
+                    </TextLink>
                 </div>
             </form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </AuthLayout>
     );
 }

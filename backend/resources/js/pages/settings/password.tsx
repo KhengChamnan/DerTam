@@ -5,9 +5,8 @@ import { type BreadcrumbItem } from "@/types";
 import { Transition } from "@headlessui/react";
 import { useForm, Head } from "@inertiajs/react";
 import { useRef, FormEventHandler } from "react";
-import { route } from "ziggy-js";
-
 import HeadingSmall from "@/components/heading-small";
+import { route } from "ziggy-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
