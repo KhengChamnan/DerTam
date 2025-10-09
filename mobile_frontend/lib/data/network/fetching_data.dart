@@ -2,65 +2,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 class FetchingData {
-  static const String baseUrl = "palm.moh-dhs.com";
-
-  static Future<http.Response> postData(String provideUrl,
-      Map<String, dynamic> param, Map<String, String> headers) async {
-    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
-    dynamic body;
-    if (headers['Content-Type'] == 'application/x-www-form-urlencoded') {
-      body = param;
-    } else {
-      body = json.encode(param);
-    }
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: body,
-    );
-    return response;
-  }
+  static const String baseUrl = "elegant-many-oyster.ngrok-free.app";
   
-  static Future<http.Response> postHeader(String provideUrl,
-      Map<String, String> param, Map<String, dynamic> parBody) async {
-    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
-    dynamic requestBody;
-    if (param.containsKey('Content-Type') &&
-        param['Content-Type'] == 'application/json') {
-      requestBody = json.encode(parBody);
-    } else {
-      requestBody = parBody;
-    }
-    try {
-      final response = await http
-          .post(url, headers: param, body: requestBody)
-          .timeout(const Duration(seconds: 30));
-      return response;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  static Future<http.Response> getDate(
-      String provideUrl, Map<String, String> param) async {
-    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
-    try {
-      final response = await http.get(url, headers: param);
-      if (response.statusCode != 200) {}
-      return response;
-    } catch (e) {
-      rethrow;
-    }
-  }
-  static Future<http.Response> updateDate(String provideUrl,
-      Map<String, String> param, Map<String, dynamic> parBody) async {
-    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
-    dynamic requestBody = parBody;
-    if (param.containsKey('Content-Type') &&
-        param['Content-Type'] == 'application/json') {
-      requestBody = json.encode(parBody);
-    }
-    final response = await http.post(url, headers: param, body: requestBody);
-    return response;
-  }
 }

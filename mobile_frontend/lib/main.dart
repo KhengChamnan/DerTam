@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/ui/screen/login/login.dart';
+import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const LoginScreen(),
+      home: const DertamLoginScreen(),
     );
   }
 }
