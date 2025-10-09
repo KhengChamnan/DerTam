@@ -14,19 +14,18 @@ import 'package:mobile_frontend/data/network/api_constant.dart';
 class LaravelAuthApiRepository extends AuthRepository {
   // Secure storage for tokens
   final _storage = const FlutterSecureStorage();
-  
+
   // Token key for secure storage
   static const String _tokenKey = 'auth_token';
 
   // Google Sign-In scopes
- final GoogleSignIn _googleSignIn = GoogleSignIn(
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     // Add your Google OAuth Client ID here (from Google Cloud Console)
     // clientId: 'your-client-id-here.apps.googleusercontent.com', // Uncomment and add your client ID
   );
 
   // Google Sign-In instance with server client ID
-
 
   /// Get stored authentication token
   Future<String?> getToken() async {
@@ -63,7 +62,7 @@ class LaravelAuthApiRepository extends AuthRepository {
   /// Handle HTTP response and return parsed JSON
   Map<String, dynamic> _handleResponse(http.Response response) {
     final responseBody = json.decode(response.body);
-    
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       // Success response
       return {
@@ -89,7 +88,7 @@ class LaravelAuthApiRepository extends AuthRepository {
     try {
       // 1 - Prepare request body
       final body = AuthDto.loginToJson(email, password);
-      
+
       // 2 - Send POST request
       final response = await http.post(
         Uri.parse(ApiEndpoint.login),
@@ -131,7 +130,7 @@ class LaravelAuthApiRepository extends AuthRepository {
       // 1 - Prepare request body
       final body = AuthDto.registerToJson(name, email, password);
       body['password_confirmation'] = confirmPassword;
-      
+
       // 2 - Send POST request
       final response = await http.post(
         Uri.parse(ApiEndpoint.register),
@@ -163,14 +162,11 @@ class LaravelAuthApiRepository extends AuthRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> sendPasswordResetEmail(
-    String email,
-
-  ) async {
+  Future<Map<String, dynamic>> sendPasswordResetEmail(String email) async {
     try {
       // 1 - Prepare request body
       final body = AuthDto.resetPasswordToJson(email);
-      
+
       // 2 - Send POST request
       final response = await http.post(
         Uri.parse(ApiEndpoint.forgotPassword),
@@ -196,7 +192,7 @@ class LaravelAuthApiRepository extends AuthRepository {
     try {
       // 1 - Prepare request body
       final body = AuthDto.verifyPinToJson(email, pin);
-      
+
       // 2 - Send POST request
       final response = await http.post(
         Uri.parse(ApiEndpoint.verifyPin),
@@ -225,7 +221,7 @@ class LaravelAuthApiRepository extends AuthRepository {
     try {
       // 1 - Prepare request body
       final body = AuthDto.newPasswordToJson(email, newPassword);
-      
+
       // 2 - Send POST request
       final response = await http.post(
         Uri.parse(ApiEndpoint.resetPassword),
@@ -258,12 +254,22 @@ class LaravelAuthApiRepository extends AuthRepository {
       // 2 - Delete token from storage regardless of response
       await deleteToken();
 
-      // 3 - Handle response
+      // 3 - Sign out from Google to clear cached account
+      await _googleSignIn.signOut();
+
+      // 4 - Handle response
       return _handleResponse(response);
     } catch (e) {
       // Delete token even if request fails
       await deleteToken();
-      
+
+      // Also try to sign out from Google even if request fails
+      try {
+        await _googleSignIn.signOut();
+      } catch (googleError) {
+        print('Google sign out error: $googleError');
+      }
+
       return {
         'success': false,
         'statusCode': 500,
@@ -272,13 +278,15 @@ class LaravelAuthApiRepository extends AuthRepository {
       };
     }
   }
+
   @override
   Future<Map<String, dynamic>> googleSignIn() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
-      
+      final GoogleSignInAuthentication? googleAuth =
+          await googleUser?.authentication;
+
       // Send access token to your Laravel backend (simplified approach)
       final response = await http.post(
         Uri.parse(ApiEndpoint.googleSignIn),
@@ -286,20 +294,18 @@ class LaravelAuthApiRepository extends AuthRepository {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode({
-          'access_token': googleAuth?.accessToken,
-        }),
+        body: jsonEncode({'access_token': googleAuth?.accessToken}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         // Save token locally using saveToken function
         final token = data['token'];
         if (token != null) {
           await saveToken(token);
         }
-        
+
         return {
           'success': true,
           'statusCode': 200,
@@ -325,5 +331,4 @@ class LaravelAuthApiRepository extends AuthRepository {
       };
     }
   }
-
 }
