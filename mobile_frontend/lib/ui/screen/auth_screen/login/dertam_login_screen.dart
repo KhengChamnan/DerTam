@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/forgot_password/forgot_password_screen.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/register/dertam_register_screen.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_screen.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import '../../../theme/dertam_apptheme.dart';
 import '../../../widgets/inputs/dertam_text_field.dart';
 import '../../../widgets/actions/dertam_button.dart';
@@ -27,7 +31,6 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -37,19 +40,45 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
   }
 
   /// Handles sign in button press
-  void _handleSignIn() {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+  Future<void> _handleSignIn() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Get auth provider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Call login method
+    await authProvider.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    // Check result after login
+    if (!mounted) return;
+
+    final loginValue = authProvider.loginValue;
+    
+    if (loginValue?.state == AsyncValueState.success) {
+      // Success - Show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loginValue!.data!['message'] ?? 'Login successful'),
+          backgroundColor: Colors.green,
+        ),
+      );
       
-      // TODO: Implement actual sign in logic
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-        });
-        // Navigate to home screen or show error
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+      
+    } else if (loginValue?.state == AsyncValueState.error) {
+      // Error - Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loginValue!.error.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -63,11 +92,41 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
   }
 
   /// Handles Google sign in
-  void _handleGoogleSignIn() {
-    // TODO: Implement Google sign in
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Google sign in coming soon')),
-    );
+  Future<void> _handleGoogleSignIn() async {
+    // Get auth provider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Call Google sign in method
+    await authProvider.googleSignIn();
+
+    // Check result after Google sign in
+    if (!mounted) return;
+
+    final googleSignInValue = authProvider.googleSignInValue;
+    
+    if (googleSignInValue?.state == AsyncValueState.success) {
+      // Success - Show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(googleSignInValue!.data!['message'] ?? 'Google sign in successful'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+      
+    } else if (googleSignInValue?.state == AsyncValueState.error) {
+      // Error - Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(googleSignInValue!.error.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   /// Handles navigation to register screen
@@ -147,11 +206,17 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
                   SizedBox(height: DertamSpacings.s),
                   
                   // Sign in button
-                  DertamButton(
-                    text: 'Sign in',
-                    onPressed: _handleSignIn,
-                    backgroundColor: DertamColors.primaryDark,
-                    isLoading: _isLoading,
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      final isLoading = authProvider.loginValue?.state == AsyncValueState.loading;
+                      
+                      return DertamButton(
+                        text: 'Sign in',
+                        onPressed: () => _handleSignIn(),
+                        backgroundColor: DertamColors.primaryDark,
+                        isLoading: isLoading,
+                      );
+                    },
                   ),
                   
                   SizedBox(height: DertamSpacings.l),
@@ -168,7 +233,15 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
                   SizedBox(height: DertamSpacings.m),
                   
                   // Google sign in button
-                  LoginGoogleButton(onTap: _handleGoogleSignIn),
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      final isGoogleLoading = authProvider.googleSignInValue?.state == AsyncValueState.loading;
+                      
+                      return LoginGoogleButton(
+                        onTap: isGoogleLoading ? () {} : _handleGoogleSignIn,
+                      );
+                    },
+                  ),
                   
                   SizedBox(height: DertamSpacings.l),
                   

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_screen.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/utils/validation.dart';
 import '../../../theme/dertam_apptheme.dart';
 import '../../../widgets/inputs/dertam_text_field.dart';
 import '../../../widgets/actions/dertam_button.dart';
 
+///
+/// Register screen that allows users to:
+/// - Create a new account with name, email, and password
+/// - Navigate back to login screen if already have an account
+///
 class DertamRegisterScreen extends StatefulWidget {
   const DertamRegisterScreen({super.key});
 
@@ -19,7 +28,6 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -31,20 +39,80 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
   }
 
   /// Handles sign up button press
-  void _handleSignup() {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // TODO: Implement actual sign in logic
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-        });
-        // Navigate to home screen or show error
-      });
+  Future<void> _handleSignup() async {
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('Form validation failed');
+      return;
     }
+
+    // Debug: Print form values
+    debugPrint('Name: ${_nameController.text.trim()}');
+    debugPrint('Email: ${_emailController.text.trim()}');
+    debugPrint('Password: ${_passwordController.text}');
+    debugPrint('Confirm Password: ${_confirmPasswordController.text}');
+
+    // Get auth provider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Call register method
+    await authProvider.register(
+      _nameController.text.trim(),
+      _emailController.text.trim(),
+      _passwordController.text,
+      _confirmPasswordController.text,
+    );
+
+    // Check result after registration
+    if (!mounted) return;
+
+    final registerValue = authProvider.registerValue;
+    
+    // Debug: Print register value state
+    debugPrint('Register state: ${registerValue?.state}');
+    debugPrint('Register data: ${registerValue?.data}');
+    debugPrint('Register error: ${registerValue?.error}');
+    
+    if (registerValue?.state == AsyncValueState.success) {
+      // Success - Show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(registerValue!.data!['message'] ?? 'Registration successful'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Navigate to home screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        (route) => false,
+      );
+      
+    } else if (registerValue?.state == AsyncValueState.error) {
+      // Error - Show detailed error message
+      String errorMessage;
+      
+      // Check if error is a string or object
+      if (registerValue!.error is String) {
+        errorMessage = registerValue.error as String;
+      } else {
+        errorMessage = 'Registration failed. Please try again.';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  /// Handle navigation back to login screen
+  void _handleAccountExist() {
+    Navigator.pop(context);
   }
 
   @override
@@ -77,16 +145,25 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
 
                   SizedBox(height: DertamSpacings.l),
 
-                  // Email field
+                  // Name field
                   DertamTextField(
                     hintText: 'Name',
                     controller: _nameController,
                     keyboardType: TextInputType.name,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      if (value.trim().length < 2) {
+                        return 'Name must be at least 2 characters';
+                      }
+                      return null;
+                    },
                   ),
 
                   SizedBox(height: DertamSpacings.m),
 
-                  // Password field
+                  // Email field
                   DertamTextField(
                     hintText: 'Email',
                     controller: _emailController,
@@ -120,12 +197,18 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
 
                   SizedBox(height: DertamSpacings.xl),
 
-                  // Sign in button
-                  DertamButton(
-                    text: 'Sign up',
-                    onPressed: _handleSignup,
-                    backgroundColor: DertamColors.primaryDark,
-                    isLoading: _isLoading,
+                  // Sign up button
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      final isLoading = authProvider.registerValue?.state == AsyncValueState.loading;
+                      
+                      return DertamButton(
+                        text: 'Sign up',
+                        onPressed: () => _handleSignup(),
+                        backgroundColor: DertamColors.primaryDark,
+                        isLoading: isLoading,
+                      );
+                    },
                   ),
 
                   SizedBox(height: DertamSpacings.l),
@@ -164,9 +247,5 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
         ),
       ),
     );
-  }
-
-  void _handleAccountExist() {
-    Navigator.pop(context);
   }
 }

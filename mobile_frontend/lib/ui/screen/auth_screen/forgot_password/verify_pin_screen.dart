@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/forgot_password/reset_password_screen.dart';
+import 'package:provider/provider.dart';
 import '../../../theme/dertam_apptheme.dart';
 
 ///
@@ -10,7 +13,8 @@ import '../../../theme/dertam_apptheme.dart';
 /// - Request a new code if they didn't receive it
 ///
 class VerifyPinScreen extends StatefulWidget {
-  const VerifyPinScreen({super.key});
+  final String email;
+  const VerifyPinScreen({super.key, required this.email});
 
   @override
   State<VerifyPinScreen> createState() => _VerifyPinScreenState();
@@ -51,23 +55,86 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     return pin.length == 6;
   }
 
-  /// Handle PIN confirmation
-  void _handleConfirm() {
-    if (isPinComplete) {
-      // TODO: Implement PIN verification logic
-      print('PIN entered: $pin');
-      // Navigate to next screen or verify PIN
-        Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ResetPasswordScreen()),
+Future<void> _handleConfirm() async {
+    if (!isPinComplete) return;
+
+    // Get auth provider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Call login method
+    await authProvider.verifyPin(
+      widget.email,
+      pin,
     );
+
+    // Check result after login
+    if (!mounted) return;
+
+    final response = authProvider.verifyPinValue;
+    
+    if (response?.state == AsyncValueState.success) {
+      // Success - Show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response!.data!['message'] ?? 'Login successful'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => ResetPasswordScreen(email: widget.email)),
+      );
+
+    } else if (response?.state == AsyncValueState.error) {
+      // Error - Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response!.error.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+
   /// Handle resending the PIN
-  void _handleResendPin() {
-    // TODO: Implement resend PIN logic
-    print('Resending PIN...');
+  Future<void> _handleResendPin() async {
+    // Get auth provider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Call send password reset email again
+    await authProvider.sendPasswordResetEmail(widget.email);
+
+    // Check result
+    if (!mounted) return;
+
+    final response = authProvider.forgotPasswordValue;
+    
+    if (response?.state == AsyncValueState.success) {
+      // Success - Show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response!.data!['message'] ?? 'PIN sent successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Clear PIN fields
+      for (var controller in _controllers) {
+        controller.clear();
+      }
+      _focusNodes[0].requestFocus();
+      
+    } else if (response?.state == AsyncValueState.error) {
+      // Error - Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response!.error.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   /// Handle text change in a PIN field
@@ -161,29 +228,44 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
               const SizedBox(height: DertamSpacings.xxl),
               
               // Confirm button
-              Container(
-                width: double.infinity,
-                height: 53,
-                decoration: BoxDecoration(
-                  color: DertamColors.primaryDark,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: TextButton(
-                  onPressed: isPinComplete ? _handleConfirm : null,
-                  style: TextButton.styleFrom(
-                    foregroundColor: DertamColors.white,
-                    shape: RoundedRectangleBorder(
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final isLoading = authProvider.verifyPinValue?.state == AsyncValueState.loading;
+                  
+                  return Container(
+                    width: double.infinity,
+                    height: 53,
+                    decoration: BoxDecoration(
+                      color: DertamColors.primaryDark,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                  ),
-                  child: Text(
-                    'Confirm',
-                    style: DertamTextStyles.subtitle.copyWith(
-                      color: DertamColors.white,
-                      fontWeight: FontWeight.w500,
+                    child: TextButton(
+                      onPressed: (isPinComplete && !isLoading) ? _handleConfirm : null,
+                      style: TextButton.styleFrom(
+                        foregroundColor: DertamColors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              'Confirm',
+                              style: DertamTextStyles.subtitle.copyWith(
+                                color: DertamColors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
               
               const SizedBox(height: DertamSpacings.l),
