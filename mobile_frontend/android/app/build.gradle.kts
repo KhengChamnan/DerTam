@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.mobile_frontend"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -23,7 +23,7 @@ android {
         // Application ID - Unique identifier for your app
         applicationId = "com.example.mobile_frontend"
         // Minimum SDK version - Android 5.0 (Lollipop)
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         // Target SDK version - Android 14
         targetSdk = 34
         versionCode = flutter.versionCode

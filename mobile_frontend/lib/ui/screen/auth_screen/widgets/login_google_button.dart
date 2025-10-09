@@ -10,11 +10,7 @@ class LoginGoogleButton extends StatelessWidget {
   final VoidCallback onTap;
   final double size;
 
-  const LoginGoogleButton({
-    super.key,
-    required this.onTap,
-    this.size = 50,
-  });
+  const LoginGoogleButton({super.key, required this.onTap, this.size = 50});
 
   @override
   Widget build(BuildContext context) {
@@ -36,14 +32,14 @@ class LoginGoogleButton extends StatelessWidget {
         ),
         child: Center(
           child: Image.asset(
-            'images/google_logo.png',
-            width: size * 0.6,                            // 60% of button size
+            'assets/images/google_logo.png',
+            width: size * 0.6, // 60% of button size
             height: size * 0.6,
             errorBuilder: (context, error, stackTrace) {
               // Fallback Google icon
               return Icon(
                 Icons.g_mobiledata,
-                size: size * 0.7,                         // 70% of button size
+                size: size * 0.7, // 70% of button size
                 color: DertamColors.primaryDark,
               );
             },

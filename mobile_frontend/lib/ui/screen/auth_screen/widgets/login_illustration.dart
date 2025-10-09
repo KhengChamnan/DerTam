@@ -9,17 +9,14 @@ import '../../../theme/dertam_apptheme.dart';
 class LoginIllustration extends StatelessWidget {
   final double height;
 
-  const LoginIllustration({
-    super.key,
-    this.height = 200,
-  });
+  const LoginIllustration({super.key, this.height = 200});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: height,
       child: Image.asset(
-        'images/login_welcome.png',
+        'assets/images/login_welcome.png',
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           // Fallback if image not found
