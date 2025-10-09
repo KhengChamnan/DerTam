@@ -16,7 +16,7 @@ import SettingsLayout from "@/layouts/settings/layout";
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: "Profile settings",
-        href: "/profile",
+        href: "/settings/profile",
     },
 ];
 
@@ -29,7 +29,7 @@ export default function Profile({
 }) {
     const { auth } = usePage<SharedData>().props;
 
-    const { data, setData, patch, processing, errors, recentlySuccessful } =
+    const { data, setData, put, processing, errors, recentlySuccessful } =
         useForm({
             name: auth.user.name,
             email: auth.user.email,
@@ -37,7 +37,7 @@ export default function Profile({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        patch(route("profile.update"), {
+        put(route("user-profile-information.update"), {
             preserveScroll: true,
         });
     };
@@ -103,15 +103,7 @@ export default function Profile({
                             auth.user.email_verified_at === null && (
                                 <div>
                                     <p className="-mt-4 text-sm text-muted-foreground">
-                                        Your email address is unverified.{" "}
-                                        <Link
-                                            href={route("verification.send")}
-                                            as="button"
-                                            className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                        >
-                                            Click here to resend the
-                                            verification email.
-                                        </Link>
+                                        Your email address is unverified.
                                     </p>
 
                                     {status === "verification-link-sent" && (

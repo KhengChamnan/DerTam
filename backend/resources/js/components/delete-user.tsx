@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "@inertiajs/react";
 import { useRef, FormEventHandler } from "react";
-import { route } from "ziggy-js";
 
 export default function DeleteUser() {
     const passwordInput = useRef<HTMLInputElement>(null);
@@ -33,7 +32,7 @@ export default function DeleteUser() {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        destroy(route("profile.destroy"), {
+        destroy(route("current-user-photo.destroy"), {
             preserveScroll: true,
             onError: () => passwordInput.current?.focus(),
             onSuccess: () => reset(),

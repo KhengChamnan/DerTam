@@ -18,7 +18,7 @@ export default function Register() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route("register")); // calls Laravel's RegisteredUserController@store
+        post(route("register"));
     };
 
     return (
@@ -28,10 +28,12 @@ export default function Register() {
         >
             <Head title="Register" />
 
-            <form onSubmit={submit} className="flex flex-col gap-6">
-                <div className="grid gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="name">Name</Label>
+            <form onSubmit={submit} className="space-y-6">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name" className="text-sm font-medium">
+                            Full name
+                        </Label>
                         <Input
                             id="name"
                             type="text"
@@ -41,13 +43,16 @@ export default function Register() {
                             required
                             autoFocus
                             autoComplete="name"
-                            placeholder="Full name"
+                            placeholder="Enter your full name"
+                            className="h-10"
                         />
                         <InputError message={errors.name} />
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email address</Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm font-medium">
+                            Email address
+                        </Label>
                         <Input
                             id="email"
                             type="email"
@@ -57,12 +62,18 @@ export default function Register() {
                             required
                             autoComplete="email"
                             placeholder="email@example.com"
+                            className="h-10"
                         />
                         <InputError message={errors.email} />
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
+                    <div className="space-y-2">
+                        <Label
+                            htmlFor="password"
+                            className="text-sm font-medium"
+                        >
+                            Password
+                        </Label>
                         <Input
                             id="password"
                             type="password"
@@ -73,13 +84,17 @@ export default function Register() {
                             }
                             required
                             autoComplete="new-password"
-                            placeholder="Password"
+                            placeholder="Create a password"
+                            className="h-10"
                         />
                         <InputError message={errors.password} />
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="password_confirmation">
+                    <div className="space-y-2">
+                        <Label
+                            htmlFor="password_confirmation"
+                            className="text-sm font-medium"
+                        >
                             Confirm password
                         </Label>
                         <Input
@@ -92,26 +107,32 @@ export default function Register() {
                             }
                             required
                             autoComplete="new-password"
-                            placeholder="Confirm password"
+                            placeholder="Confirm your password"
+                            className="h-10"
                         />
                         <InputError message={errors.password_confirmation} />
                     </div>
-
-                    <Button
-                        type="submit"
-                        className="mt-2 w-full"
-                        disabled={processing}
-                    >
-                        {processing && (
-                            <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
-                        )}
-                        Create account
-                    </Button>
                 </div>
+
+                <Button
+                    type="submit"
+                    className="w-full h-10"
+                    disabled={processing}
+                >
+                    {processing && (
+                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create account
+                </Button>
 
                 <div className="text-center text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <TextLink href={route("login")}>Log in</TextLink>
+                    <TextLink
+                        href={route("login")}
+                        className="font-medium text-primary hover:text-primary/80"
+                    >
+                        Log in
+                    </TextLink>
                 </div>
             </form>
         </AuthLayout>

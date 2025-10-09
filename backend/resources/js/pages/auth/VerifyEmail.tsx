@@ -1,11 +1,8 @@
-// Components
-import { logout } from "@/routes";
-import { useForm, Head } from "@inertiajs/react";
+//import { useForm, Head } from '@inertiajs/react';
 import { LoaderCircle } from "lucide-react";
 import { FormEventHandler } from "react";
-import { route } from "ziggy-js";
-
 import TextLink from "@/components/text-link";
+import { useForm, Head } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import AuthLayout from "@/layouts/auth-layout";
 
