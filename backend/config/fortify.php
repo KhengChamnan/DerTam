@@ -149,11 +149,10 @@ return [
         // Features::emailVerification(),  // Comment out if you don't need email verification
         Features::updateProfileInformation(),
         Features::updatePasswords(),
-        // Comment out two-factor auth to remove those routes
-        // Features::twoFactorAuthentication([
-        //     'confirm' => true,
-        //     'confirmPassword' => true,
-        // ]),
+        Features::twoFactorAuthentication([
+            'confirm' => true,
+            'confirmPassword' => true,
+        ]),
     ],
 
 ];

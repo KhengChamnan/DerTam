@@ -46,10 +46,10 @@ class Place extends Model
         'images_url' => 'array',
         'operating_hours' => 'array',
         'entry_free' => 'boolean',
-        'ratings' => 'decimal:2',
+        'ratings' => 'float',
         'reviews_count' => 'integer',
-        'latitude' => 'decimal:7',
-        'longitude' => 'decimal:7',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     /**
