@@ -111,8 +111,7 @@
         "paths": {
             "@/*": ["./resources/js/*"]
         },
-        "jsx": "react-jsx",
-        "types": ["ziggy-js"]
+        "jsx": "react-jsx"
     },
     "include": ["resources/js/**/*.ts", "resources/js/**/*.d.ts", "resources/js/**/*.tsx"]
 }

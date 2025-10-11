@@ -13,6 +13,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
+use Inertia\Inertia;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -40,6 +41,9 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
+
+        Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
+        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
 
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
