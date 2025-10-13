@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 class FetchingData {
-  static const String baseUrl = "palm.moh-dhs.com";
+  static const String baseUrl = "https://elegant-many-oyster.ngrok-free.app/api";
 
   static Future<http.Response> postData(String provideUrl,
       Map<String, dynamic> param, Map<String, String> headers) async {
