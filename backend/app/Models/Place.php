@@ -29,6 +29,7 @@ class Place extends Model
         'ratings',
         'reviews_count',
         'images_url',
+        'image_public_ids',
         'entry_free',
         'operating_hours',
         'best_season_to_visit',
@@ -44,6 +45,7 @@ class Place extends Model
      */
     protected $casts = [
         'images_url' => 'array',
+        'image_public_ids' => 'array',
         'operating_hours' => 'array',
         'entry_free' => 'boolean',
         'ratings' => 'float',
