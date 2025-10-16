@@ -144,16 +144,10 @@ Reference: Figma home layout [`DER-TAM-CAP-II`](https://www.figma.com/design/9ur
 - [ ] Implement GET /api/places/by-category (DB query builder, pagination)
 - [ ] Implement GET /api/places/recommended (DB query builder)
 - [ ] Implement GET /api/events/upcoming (DB query builder)
-- [ ] Wire routes in routes/api.php and add validation
-- [ ] Add simple caching (60s) for lists
-- [ ] Create Postman collection JSON to test all endpoints
-
-### To-dos
-
-- [ ] Create events table, model, and relations to places/provinces
-- [ ] Add Eloquent scopes: popular, inProvince, inCategoryName on Place
 - [ ] Implement GET /api/home returning tabs, recommended, events
 - [ ] Implement GET /api/places, /api/places/recommended, /api/events/upcoming
+- [ ] Add Eloquent scopes: popular, inProvince, inCategoryName on Place
 - [ ] Create PlaceResource and EventResource with minimal fields
 - [ ] Wire routes in routes/api.php and add validation
 - [ ] Add simple caching (60s) for home and lists
+- [ ] Create Postman collection JSON to test all endpoints
