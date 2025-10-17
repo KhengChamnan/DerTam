@@ -62,6 +62,7 @@ Main table for managing tourist places and locations.
 | ratings | DECIMAL(3,2) | NULLABLE | Average rating (0.00-5.00) |
 | reviews_count | INTEGER | NULLABLE | Number of reviews |
 | images_url | JSON | NULLABLE | Array of image URLs |
+| image_public_ids | JSON | NULLABLE | Array of Cloudinary public IDs matching images_url |
 | entry_free | BOOLEAN | NULLABLE | Whether entry is free |
 | operating_hours | JSON | NULLABLE | Operating hours data |
 | best_season_to_visit | ENUM('Winter','Spring','Summer','Autumn') | NULLABLE | Best season to visit |
