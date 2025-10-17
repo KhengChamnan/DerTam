@@ -48,7 +48,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import PlaceDetailsDialog from "@/components/place-details-dialog";
 import { type BreadcrumbItem } from "@/types";
 
@@ -112,7 +111,6 @@ export default function PlacesIndex({
     const [provinceFilter, setProvinceFilter] = useState(
         filters.province_id || "all"
     );
-    const [selectedPlaces, setSelectedPlaces] = useState<number[]>([]);
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -157,22 +155,6 @@ export default function PlacesIndex({
         setCategoryFilter("all");
         setProvinceFilter("all");
         router.get("/places");
-    };
-
-    const toggleSelectPlace = (placeId: number) => {
-        setSelectedPlaces((prev) =>
-            prev.includes(placeId)
-                ? prev.filter((id) => id !== placeId)
-                : [...prev, placeId]
-        );
-    };
-
-    const toggleSelectAll = () => {
-        if (selectedPlaces.length === places.data.length) {
-            setSelectedPlaces([]);
-        } else {
-            setSelectedPlaces(places.data.map((place) => place.placeID));
-        }
     };
 
     const getStatusBadge = (place: Place) => {
@@ -311,17 +293,7 @@ export default function PlacesIndex({
                     <div className="min-w-[1400px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
-                            <div className="grid grid-cols-16 gap-4 items-center">
-                                <div className="col-span-1 text-sm font-medium">
-                                    <Checkbox
-                                        checked={
-                                            selectedPlaces.length ===
-                                                places.data.length &&
-                                            places.data.length > 0
-                                        }
-                                        onCheckedChange={toggleSelectAll}
-                                    />
-                                </div>
+                            <div className="grid grid-cols-15 gap-4 items-center">
                                 <div className="col-span-1 text-sm font-medium">
                                     ID
                                 </div>
@@ -359,19 +331,7 @@ export default function PlacesIndex({
                                     key={place.placeID}
                                     className="p-4 hover:bg-muted/50"
                                 >
-                                    <div className="grid grid-cols-16 gap-4 items-center">
-                                        <div className="col-span-1">
-                                            <Checkbox
-                                                checked={selectedPlaces.includes(
-                                                    place.placeID
-                                                )}
-                                                onCheckedChange={() =>
-                                                    toggleSelectPlace(
-                                                        place.placeID
-                                                    )
-                                                }
-                                            />
-                                        </div>
+                                    <div className="grid grid-cols-15 gap-4 items-center">
                                         <div className="col-span-1">
                                             <Link
                                                 href={`/places/${place.placeID}`}
@@ -554,69 +514,165 @@ export default function PlacesIndex({
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        {selectedPlaces.length} of {places.total} row(s)
-                        selected.
+                        Showing{" "}
+                        {(places.current_page - 1) * places.per_page + 1} to{" "}
+                        {Math.min(
+                            places.current_page * places.per_page,
+                            places.total
+                        )}{" "}
+                        of {places.total} row(s).
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Rows per page</span>
+                    <div className="flex items-center space-x-6 lg:space-x-8">
+                        <div className="flex items-center space-x-2">
+                            <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={places.per_page.toString()}
+                                value={String(places.per_page)}
                                 onValueChange={(value) => {
                                     router.get("/places", {
                                         ...filters,
                                         per_page: value,
+                                        page: 1,
                                     });
                                 }}
                             >
-                                <SelectTrigger className="w-16">
-                                    <SelectValue />
+                                <SelectTrigger className="h-8 w-[70px]">
+                                    <SelectValue
+                                        placeholder={String(places.per_page)}
+                                    />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent side="top">
                                     <SelectItem value="10">10</SelectItem>
                                     <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="30">30</SelectItem>
+                                    <SelectItem value="40">40</SelectItem>
                                     <SelectItem value="50">50</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        <div className="text-sm">
+                        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                             Page {places.current_page} of {places.last_page}
                         </div>
-
-                        {places.last_page > 1 && (
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={places.current_page === 1}
-                                    onClick={() =>
-                                        router.get("/places", {
-                                            ...filters,
-                                            page: places.current_page - 1,
-                                        })
-                                    }
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                className="hidden h-8 w-8 p-0 lg:flex"
+                                onClick={() =>
+                                    router.get("/places", {
+                                        ...filters,
+                                        page: 1,
+                                    })
+                                }
+                                disabled={places.current_page === 1}
+                            >
+                                <span className="sr-only">
+                                    Go to first page
+                                </span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
                                 >
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={
-                                        places.current_page === places.last_page
-                                    }
-                                    onClick={() =>
-                                        router.get("/places", {
-                                            ...filters,
-                                            page: places.current_page + 1,
-                                        })
-                                    }
+                                    <polyline points="11,17 6,12 11,7" />
+                                    <polyline points="18,17 13,12 18,7" />
+                                </svg>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                                onClick={() =>
+                                    router.get("/places", {
+                                        ...filters,
+                                        page: places.current_page - 1,
+                                    })
+                                }
+                                disabled={places.current_page === 1}
+                            >
+                                <span className="sr-only">
+                                    Go to previous page
+                                </span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
                                 >
-                                    Next
-                                </Button>
-                            </div>
-                        )}
+                                    <polyline points="15,18 9,12 15,6" />
+                                </svg>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                                onClick={() =>
+                                    router.get("/places", {
+                                        ...filters,
+                                        page: places.current_page + 1,
+                                    })
+                                }
+                                disabled={
+                                    places.current_page === places.last_page
+                                }
+                            >
+                                <span className="sr-only">Go to next page</span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
+                                >
+                                    <polyline points="9,18 15,12 9,6" />
+                                </svg>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="hidden h-8 w-8 p-0 lg:flex"
+                                onClick={() =>
+                                    router.get("/places", {
+                                        ...filters,
+                                        page: places.last_page,
+                                    })
+                                }
+                                disabled={
+                                    places.current_page === places.last_page
+                                }
+                            >
+                                <span className="sr-only">Go to last page</span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
+                                >
+                                    <polyline points="13,17 18,12 13,7" />
+                                    <polyline points="6,17 11,12 6,7" />
+                                </svg>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

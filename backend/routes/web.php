@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PlaceController;
+use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
     return Inertia::render('welcome', [
@@ -37,6 +38,11 @@ Route::middleware([
             Route::delete('/{id}', [PlaceController::class, 'destroy'])->name('places.destroy');
             Route::get('/location/nearby', [PlaceController::class, 'getByLocation'])->name('places.nearby');
         });
+
+        // ============================================
+        //  USER MANAGEMENT
+        // ============================================
+        Route::resource('users', UserController::class);
     });
 });
 
