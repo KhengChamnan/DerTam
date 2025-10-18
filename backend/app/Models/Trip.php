@@ -58,6 +58,8 @@ class Trip extends Model
 
     /**
      * Get the duration of the trip in days.
+     *
+     * @return int|null The duration of the trip in days, or null if dates are missing.
      */
     public function getDurationAttribute(): ?int
     {
