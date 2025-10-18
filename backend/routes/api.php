@@ -9,6 +9,7 @@ use App\Http\Controllers\API\Place\PlaceBrowseController;
 use App\Http\Controllers\API\Place\RecommendationController;
 use App\Http\Controllers\API\Place\PlaceCategoryController;
 use App\Http\Controllers\API\Place\PlaceCreateController;
+use App\Http\Controllers\API\Place\PlaceDetailController;
 use App\Http\Controllers\API\EventController as ApiEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\API\Trip\TripController;
@@ -60,6 +61,9 @@ Route::controller(PlaceBrowseController::class)->group(function(){
 Route::get('place-categories', [PlaceCategoryController::class, 'index']);
 Route::get('places/recommended', [RecommendationController::class, 'index']);
 Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
+
+// Place detail routes (public)
+Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']);  // Get place details with nearby hotels & restaurants
 
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
