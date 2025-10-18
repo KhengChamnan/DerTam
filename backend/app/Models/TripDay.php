@@ -46,6 +46,8 @@ class TripDay extends Model
 
     /**
      * Get the trip places for the trip day.
+     *
+     * @return HasMany
      */
     public function tripPlaces(): HasMany
     {
