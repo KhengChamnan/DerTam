@@ -11,6 +11,8 @@ use App\Http\Controllers\API\Place\PlaceCategoryController;
 use App\Http\Controllers\API\Place\PlaceCreateController;
 use App\Http\Controllers\API\EventController as ApiEventController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\API\Trip\TripController;
+use App\Http\Controllers\API\Trip\TripPlaceSelectionController;
 
 
 Route::get('/user', function (Request $request) {
@@ -62,6 +64,23 @@ Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('places', [PlaceCreateController::class, 'store']);
+    
+    // Trip management routes
+    Route::controller(TripController::class)->group(function() {
+        Route::post('trips', 'store');           // Create a new trip
+        Route::get('trips', 'index');            // Get all user trips
+        Route::get('trips/{tripId}', 'show');    // Get specific trip with days
+        Route::get('trip-days/{tripDayId}/places', 'getTripDayPlaces'); // Get all places for a trip day
+        Route::post('trip-days/{tripDayId}/places', 'addPlacesToDay'); // Add places to a trip day
+    });
+
+    // Trip place selection routes (for adding places to trips)
+    Route::controller(TripPlaceSelectionController::class)->group(function() {
+        Route::get('trip-planning/places', 'index');              // Get all places for selection with filters
+        Route::get('trip-planning/places/{placeId}', 'show');     // Get specific place details
+        Route::post('trip-planning/places/batch', 'getByIds');    // Get multiple places by IDs
+        Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
+    });
 });
 
 Route::get('/upload', function () {

@@ -98,6 +98,7 @@ Table for managing individual days within a trip.
 | trip_day_id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique trip day identifier |
 | trip_id | BIGINT UNSIGNED | NOT NULL, FOREIGN KEY | Reference to trips.trip_id |
 | date | DATE | NOT NULL | Date for this trip day |
+| day_number | INTEGER | NULLABLE | Sequential day number within the trip (1, 2, 3, etc.) |
 | created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
 | updated_at | TIMESTAMP | NOT NULL | Record last update timestamp |
 
