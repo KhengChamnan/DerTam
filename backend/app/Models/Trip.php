@@ -42,6 +42,8 @@ class Trip extends Model
 
     /**
      * Get the user that owns the trip.
+     *
+     * @return BelongsTo
      */
     public function user(): BelongsTo
     {
