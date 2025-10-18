@@ -37,6 +37,8 @@ class TripPlace extends Model
 
     /**
      * Get the place associated with the trip place.
+     *
+     * @return BelongsTo
      */
     public function place(): BelongsTo
     {
