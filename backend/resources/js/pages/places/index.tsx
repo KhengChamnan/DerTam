@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
+import ImportDialog from "@/components/ImportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +22,9 @@ import {
     Filter,
     Eye,
     MoreHorizontal,
+    Upload,
+    MapPinPlus,
+    Settings2,
 } from "lucide-react";
 import {
     Select,
@@ -36,6 +40,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
@@ -50,6 +55,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import PlaceDetailsDialog from "@/components/place-details-dialog";
 import { type BreadcrumbItem } from "@/types";
+import { handleImageError, getSafeImageUrl } from "@/utils/imageUtils";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Place {
     placeID: number;
@@ -98,6 +105,16 @@ interface Props {
     };
 }
 
+interface ColumnVisibility {
+    image: boolean;
+    description: boolean;
+    category: boolean;
+    province: boolean;
+    rating: boolean;
+    reviews: boolean;
+    entryFee: boolean;
+}
+
 export default function PlacesIndex({
     places,
     categories,
@@ -114,14 +131,95 @@ export default function PlacesIndex({
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: "Places",
-            href: "/places",
-        },
-    ];
+    // Column visibility state with localStorage persistence
+    const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
+        () => {
+            // Try to load saved preferences from localStorage
+            const savedPreferences = localStorage.getItem(
+                "placesTableColumnVisibility"
+            );
+            if (savedPreferences) {
+                try {
+                    return JSON.parse(savedPreferences);
+                } catch (e) {
+                    console.error(
+                        "Failed to parse column visibility preferences:",
+                        e
+                    );
+                }
+            }
+            // Default values if nothing saved
+            return {
+                image: true,
+                description: true,
+                category: true,
+                province: true,
+                rating: true,
+                reviews: true,
+                entryFee: true,
+            };
+        }
+    );
 
-    const handleFilter = () => {
+    // Save column visibility preferences to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem(
+            "placesTableColumnVisibility",
+            JSON.stringify(columnVisibility)
+        );
+    }, [columnVisibility]);
+
+    // Use useRef to track if this is the initial mount
+    const isInitialMount = useRef(true);
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Auto-search with debouncing for search term
+    useEffect(() => {
+        // Skip the initial mount
+        if (isInitialMount.current) {
+            return;
+        }
+
+        // Clear previous timer
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        // Set new timer for debounced search
+        debounceTimer.current = setTimeout(() => {
+            router.get(
+                "/places",
+                {
+                    search: search || undefined,
+                    category_id:
+                        categoryFilter !== "all" ? categoryFilter : undefined,
+                    province_id:
+                        provinceFilter !== "all" ? provinceFilter : undefined,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                }
+            );
+        }, 500); // 500ms debounce
+
+        // Cleanup function
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [search]);
+
+    // Separate useEffect for filter changes (immediate)
+    useEffect(() => {
+        // Skip the initial mount
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
         router.get(
             "/places",
             {
@@ -133,9 +231,34 @@ export default function PlacesIndex({
             },
             {
                 preserveState: true,
+                preserveScroll: true,
+                replace: true,
             }
         );
-    };
+    }, [categoryFilter, provinceFilter]);
+
+    // Update state when filters change from server (e.g., pagination)
+    useEffect(() => {
+        setSearch(filters.search || "");
+        setCategoryFilter(filters.category_id || "all");
+        setProvinceFilter(filters.province_id || "all");
+    }, [filters.search, filters.category_id, filters.province_id]);
+
+    // Permission checks
+    const {
+        canCreatePlaces,
+        canEditPlaces,
+        canDeletePlaces,
+        canImportPlaces,
+        user,
+    } = usePermissions();
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Places",
+            href: "/places",
+        },
+    ];
 
     const handleDelete = (id: number) => {
         router.delete(`/places/${id}`, {
@@ -223,10 +346,24 @@ export default function PlacesIndex({
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline">Import</Button>
-                        <Link href="/places/create">
-                            <Button>Create Place</Button>
-                        </Link>
+                        {canImportPlaces() && (
+                            <ImportDialog
+                                trigger={
+                                    <Button variant="outline" className="gap-2">
+                                        <Upload className="h-4 w-4" />
+                                        Import
+                                    </Button>
+                                }
+                            />
+                        )}
+                        {canCreatePlaces() && (
+                            <Link href="/places/create">
+                                <Button className="gap-2">
+                                    <MapPinPlus className="h-4 w-4" />
+                                    Create Place
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
@@ -239,9 +376,6 @@ export default function PlacesIndex({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="pl-8"
-                            onKeyPress={(e) =>
-                                e.key === "Enter" && handleFilter()
-                            }
                         />
                     </div>
 
@@ -286,39 +420,170 @@ export default function PlacesIndex({
                             ))}
                         </SelectContent>
                     </Select>
+
+                    {/* Column Toggle */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-auto"
+                            >
+                                <Settings2 className="h-4 w-4" />
+                                View
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[150px]">
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.image}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        image: !!value,
+                                    }))
+                                }
+                            >
+                                Image
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.description}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        description: !!value,
+                                    }))
+                                }
+                            >
+                                Description
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.category}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        category: !!value,
+                                    }))
+                                }
+                            >
+                                Category
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.province}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        province: !!value,
+                                    }))
+                                }
+                            >
+                                Province
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.rating}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        rating: !!value,
+                                    }))
+                                }
+                            >
+                                Rating
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.reviews}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        reviews: !!value,
+                                    }))
+                                }
+                            >
+                                Reviews
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.entryFee}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        entryFee: !!value,
+                                    }))
+                                }
+                            >
+                                Entry Fee
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 {/* Table-like layout */}
                 <div className="rounded-md border overflow-x-auto">
-                    <div className="min-w-[1400px]">
+                    <div className="min-w-[1500px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
-                            <div className="grid grid-cols-15 gap-4 items-center">
-                                <div className="col-span-1 text-sm font-medium">
-                                    ID
-                                </div>
-                                <div className="col-span-2 text-sm font-medium">
-                                    Name
-                                </div>
-                                <div className="col-span-3 text-sm font-medium">
-                                    Description
-                                </div>
-                                <div className="col-span-2 text-sm font-medium">
-                                    Category
-                                </div>
-                                <div className="col-span-2 text-sm font-medium">
-                                    Province
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Rating
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Reviews
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Entry Fee
-                                </div>
-                                <div className="col-span-2 text-sm font-medium">
+                            <div
+                                className="grid gap-4 items-center"
+                                style={{
+                                    gridTemplateColumns: `${
+                                        columnVisibility.image ? "1fr" : ""
+                                    } 2fr ${
+                                        columnVisibility.description
+                                            ? "3fr"
+                                            : ""
+                                    } ${
+                                        columnVisibility.category ? "2fr" : ""
+                                    } ${
+                                        columnVisibility.province ? "2fr" : ""
+                                    } ${columnVisibility.rating ? "1fr" : ""} ${
+                                        columnVisibility.reviews ? "1fr" : ""
+                                    } ${
+                                        columnVisibility.entryFee ? "1fr" : ""
+                                    } 2fr`.trim(),
+                                }}
+                            >
+                                {columnVisibility.image && (
+                                    <div className="text-sm font-medium">
+                                        Image
+                                    </div>
+                                )}
+                                <div className="text-sm font-medium">Name</div>
+                                {columnVisibility.description && (
+                                    <div className="text-sm font-medium">
+                                        Description
+                                    </div>
+                                )}
+                                {columnVisibility.category && (
+                                    <div className="text-sm font-medium">
+                                        Category
+                                    </div>
+                                )}
+                                {columnVisibility.province && (
+                                    <div className="text-sm font-medium">
+                                        Province
+                                    </div>
+                                )}
+                                {columnVisibility.rating && (
+                                    <div className="text-sm font-medium">
+                                        Rating
+                                    </div>
+                                )}
+                                {columnVisibility.reviews && (
+                                    <div className="text-sm font-medium">
+                                        Reviews
+                                    </div>
+                                )}
+                                {columnVisibility.entryFee && (
+                                    <div className="text-sm font-medium">
+                                        Entry Fee
+                                    </div>
+                                )}
+                                <div className="text-sm font-medium">
                                     Actions
                                 </div>
                             </div>
@@ -331,69 +596,153 @@ export default function PlacesIndex({
                                     key={place.placeID}
                                     className="p-4 hover:bg-muted/50"
                                 >
-                                    <div className="grid grid-cols-15 gap-4 items-center">
-                                        <div className="col-span-1">
-                                            <Link
-                                                href={`/places/${place.placeID}`}
-                                                className="font-medium text-blue-600 hover:underline"
-                                            >
-                                                {place.placeID}
-                                            </Link>
-                                        </div>
-                                        <div className="col-span-2">
+                                    <div
+                                        className="grid gap-4 items-center"
+                                        style={{
+                                            gridTemplateColumns: `${
+                                                columnVisibility.image
+                                                    ? "1fr"
+                                                    : ""
+                                            } 2fr ${
+                                                columnVisibility.description
+                                                    ? "3fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.category
+                                                    ? "2fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.province
+                                                    ? "2fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.rating
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.reviews
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.entryFee
+                                                    ? "1fr"
+                                                    : ""
+                                            } 2fr`.trim(),
+                                        }}
+                                    >
+                                        {columnVisibility.image && (
+                                            <div>
+                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                    {place.images_url &&
+                                                    place.images_url.length >
+                                                        0 ? (
+                                                        <img
+                                                            src={getSafeImageUrl(
+                                                                place
+                                                                    .images_url[0],
+                                                                48,
+                                                                48
+                                                            )}
+                                                            alt={place.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) =>
+                                                                handleImageError(
+                                                                    e,
+                                                                    48,
+                                                                    48
+                                                                )
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                                                            <svg
+                                                                className="w-6 h-6 text-gray-400"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                                />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div>
                                             <div className="font-medium truncate">
                                                 {place.name}
                                             </div>
                                         </div>
-                                        <div className="col-span-3">
-                                            <div className="text-sm text-muted-foreground truncate">
-                                                {place.description}
+                                        {columnVisibility.description && (
+                                            <div>
+                                                <div className="text-sm text-muted-foreground truncate">
+                                                    {place.description}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <Badge
-                                                variant="secondary"
-                                                className="text-xs"
-                                            >
-                                                {place.category?.name || "N/A"}
-                                            </Badge>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <Badge
-                                                variant="outline"
-                                                className="text-xs"
-                                            >
-                                                {place.province?.name || "N/A"}
-                                            </Badge>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <div className="flex items-center gap-1">
-                                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                                <span className="text-sm">
-                                                    {place.ratings || 0}
+                                        )}
+                                        {columnVisibility.category && (
+                                            <div>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="text-xs"
+                                                >
+                                                    {place.category?.name ||
+                                                        "N/A"}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                        {columnVisibility.province && (
+                                            <div>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-xs"
+                                                >
+                                                    {place.province?.name ||
+                                                        "N/A"}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                        {columnVisibility.rating && (
+                                            <div>
+                                                <div className="flex items-center gap-1">
+                                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                                    <span className="text-sm">
+                                                        {place.ratings || 0}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {columnVisibility.reviews && (
+                                            <div>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {place.reviews_count || 0}
                                                 </span>
                                             </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <span className="text-sm text-muted-foreground">
-                                                {place.reviews_count || 0}
-                                            </span>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <Badge
-                                                variant={
-                                                    place.entry_free
-                                                        ? "default"
-                                                        : "destructive"
-                                                }
-                                                className="text-xs"
-                                            >
-                                                {place.entry_free
-                                                    ? "Free"
-                                                    : "Paid"}
-                                            </Badge>
-                                        </div>
-                                        <div className="col-span-2">
+                                        )}
+                                        {columnVisibility.entryFee && (
+                                            <div>
+                                                <Badge
+                                                    variant={
+                                                        place.entry_free
+                                                            ? "default"
+                                                            : "destructive"
+                                                    }
+                                                    className="text-xs"
+                                                >
+                                                    {place.entry_free
+                                                        ? "Free"
+                                                        : "Paid"}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                        <div>
                                             <div className="flex items-center gap-2">
                                                 <Link
                                                     href={`/places/${place.placeID}/edit`}
@@ -427,79 +776,92 @@ export default function PlacesIndex({
                                                             View details
                                                             <Eye className="ml-2 h-4 w-4" />
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/places/${place.placeID}/edit`}
-                                                            >
-                                                                Edit place
-                                                                <Edit className="ml-5 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger
+                                                        {canEditPlaces() && (
+                                                            <DropdownMenuItem
                                                                 asChild
                                                             >
-                                                                <DropdownMenuItem
-                                                                    onSelect={(
-                                                                        e
-                                                                    ) =>
-                                                                        e.preventDefault()
-                                                                    }
-                                                                    className="text-red-600 focus:text-red-600"
+                                                                <Link
+                                                                    href={`/places/${place.placeID}/edit`}
                                                                 >
-                                                                    Delete place
-                                                                </DropdownMenuItem>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>
-                                                                        Are you
-                                                                        absolutely
-                                                                        sure?
-                                                                    </AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This
-                                                                        action
-                                                                        cannot
-                                                                        be
-                                                                        undone.
-                                                                        This
-                                                                        will
-                                                                        permanently
-                                                                        delete
-                                                                        the
-                                                                        place "
-                                                                        {
-                                                                            place.name
-                                                                        }
-                                                                        " and
-                                                                        remove
-                                                                        all its
-                                                                        data
-                                                                        from our
-                                                                        servers.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>
-                                                                        Cancel
-                                                                    </AlertDialogCancel>
-                                                                    <AlertDialogAction
-                                                                        onClick={() =>
-                                                                            handleDelete(
-                                                                                place.placeID
-                                                                            )
-                                                                        }
-                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                    Edit place
+                                                                    <Edit className="ml-5 h-4 w-4" />
+                                                                </Link>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {canDeletePlaces() && (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger
+                                                                        asChild
                                                                     >
-                                                                        Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
+                                                                        <DropdownMenuItem
+                                                                            onSelect={(
+                                                                                e
+                                                                            ) =>
+                                                                                e.preventDefault()
+                                                                            }
+                                                                            className="text-red-600 focus:text-red-600"
+                                                                        >
+                                                                            Delete
+                                                                            place
+                                                                        </DropdownMenuItem>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>
+                                                                                Are
+                                                                                you
+                                                                                absolutely
+                                                                                sure?
+                                                                            </AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                This
+                                                                                action
+                                                                                cannot
+                                                                                be
+                                                                                undone.
+                                                                                This
+                                                                                will
+                                                                                permanently
+                                                                                delete
+                                                                                the
+                                                                                place
+                                                                                "
+                                                                                {
+                                                                                    place.name
+                                                                                }
+
+                                                                                "
+                                                                                and
+                                                                                remove
+                                                                                all
+                                                                                its
+                                                                                data
+                                                                                from
+                                                                                our
+                                                                                servers.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>
+                                                                                Cancel
+                                                                            </AlertDialogCancel>
+                                                                            <AlertDialogAction
+                                                                                onClick={() =>
+                                                                                    handleDelete(
+                                                                                        place.placeID
+                                                                                    )
+                                                                                }
+                                                                                className="bg-red-600 hover:bg-red-700"
+                                                                            >
+                                                                                Delete
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            </>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>

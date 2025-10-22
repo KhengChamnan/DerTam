@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -31,18 +34,56 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter by role
+        // Filter by role (using Spatie roles)
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('name', $request->role);
+            });
         }
 
-        $users = $query->orderBy('created_at', 'desc')
+        $users = $query->with('roles')
+                      ->orderBy('created_at', 'desc')
                       ->paginate(10)
                       ->withQueryString();
 
+        // Transform users to include role information
+        $users->getCollection()->transform(function ($user) {
+            // Map role names to display names
+            $roleDisplayNames = [
+                'user' => 'User',
+                'admin' => 'Admin', 
+                'superadmin' => 'Super Admin'
+            ];
+
+            $userRoles = $user->roles->pluck('name')->toArray();
+            $displayRoles = array_map(function($role) use ($roleDisplayNames) {
+                return $roleDisplayNames[$role] ?? ucfirst($role);
+            }, $userRoles);
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'phone_number' => $user->phone_number,
+                'status' => ucfirst($user->status ?? 'active'),
+                'roles' => $userRoles, // Keep original for filtering
+                'role_display' => implode(', ', $displayRoles), // For display
+                'role' => !empty($displayRoles) ? $displayRoles[0] : 'User', // Primary role for display
+                'created_at' => $user->created_at,
+                'last_login_at' => $user->last_login_at,
+            ];
+        });
+
+        $roles = Role::all(['id', 'name']);
+
         return Inertia::render('users/index', [
             'users' => $users,
+            'roles' => $roles,
             'filters' => $request->only(['search', 'status', 'role']),
+            'auth' => [
+                'user' => Auth::user()->load('roles:id,name'),
+            ],
         ]);
     }
 
@@ -71,15 +112,25 @@ class UserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        User::create([
+        // Map display names to database role names
+        $roleMapping = [
+            'Super Admin' => 'superadmin',
+            'Admin' => 'admin',
+            'User' => 'user'
+        ];
+
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'username' => $request->username,
             'phone_number' => $request->phone_number,
-            'role' => $request->role,
             'status' => $request->status ?? 'Active',
             'password' => Hash::make($request->password),
         ]);
+
+        // Assign role using Spatie Permission
+        $databaseRoleName = $roleMapping[$request->role];
+        $user->assignRole($databaseRoleName);
 
         return redirect()->route('users.index')
                         ->with('success', 'User created successfully.');
@@ -100,8 +151,31 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        // Map database role names to display names for the form
+        $roleDisplayNames = [
+            'user' => 'User',
+            'admin' => 'Admin', 
+            'superadmin' => 'Super Admin'
+        ];
+
+        $userRoles = $user->roles->pluck('name')->toArray();
+        $displayRole = !empty($userRoles) ? $roleDisplayNames[$userRoles[0]] ?? 'User' : 'User';
+
+        // Transform user data for the form
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'username' => $user->username,
+            'phone_number' => $user->phone_number,
+            'status' => ucfirst($user->status ?? 'active'),
+            'role' => $displayRole, // Use display name for the form
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+
         return Inertia::render('users/createEdit', [
-            'user' => $user,
+            'user' => $userData,
             'isEdit' => true,
         ]);
     }
@@ -127,12 +201,18 @@ class UserController extends Controller
 
         $request->validate($rules);
 
+        // Map display names to database role names
+        $roleMapping = [
+            'Super Admin' => 'superadmin',
+            'Admin' => 'admin',
+            'User' => 'user'
+        ];
+
         $updateData = [
             'name' => $request->name,
             'email' => $request->email,
             'username' => $request->username,
             'phone_number' => $request->phone_number,
-            'role' => $request->role,
             'status' => $request->status ?? 'Active',
         ];
 
@@ -142,6 +222,10 @@ class UserController extends Controller
         }
 
         $user->update($updateData);
+
+        // Update role using Spatie Permission
+        $databaseRoleName = $roleMapping[$request->role];
+        $user->syncRoles([$databaseRoleName]); // syncRoles removes old roles and assigns new one
 
         return redirect()->route('users.index')
                         ->with('success', 'User updated successfully.');

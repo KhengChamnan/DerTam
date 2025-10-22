@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Place;
+use App\Imports\PlacesImport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Auth;
 
 class PlaceController extends Controller
 {
@@ -110,6 +113,9 @@ class PlaceController extends Controller
                 'categories' => $categories,
                 'provinces' => $provinces,
                 'filters' => $request->only(['category_id', 'province_id', 'search']),
+                'auth' => [
+                    'user' => Auth::user()->load('roles:id,name'),
+                ],
             ]);
         } catch (\Exception $e) {
             return Inertia::render('places/index', [
@@ -399,6 +405,139 @@ class PlaceController extends Controller
                 'places' => [],
                 'location' => $request->only(['latitude', 'longitude', 'radius']),
                 'error' => 'Failed to retrieve nearby places: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Import places from Excel/CSV file.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        try {
+            $request->validate([
+                'file' => 'required|file|mimes:xlsx,csv,xls|max:10240', // Max 10MB
+            ]);
+
+            $file = $request->file('file');
+            $import = new PlacesImport();
+            
+            Excel::import($import, $file);
+
+            $stats = $import->getStats();
+            
+            if ($stats['errors'] > 0) {
+                return back()->with([
+                    'import_result' => [
+                        'type' => 'warning',
+                        'message' => "Import completed with warnings. Imported: {$stats['success']}, Errors: {$stats['errors']}",
+                        'stats' => $stats,
+                        'errors' => $import->getErrors()
+                    ]
+                ]);
+            }
+
+            return back()->with([
+                'import_result' => [
+                    'type' => 'success',
+                    'message' => "Successfully imported {$stats['success']} places",
+                    'stats' => $stats
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            return back()->with([
+                'import_result' => [
+                    'type' => 'error',
+                    'message' => 'Import failed: ' . $e->getMessage()
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * Download template Excel file for places import.
+     */
+    public function downloadTemplate()
+    {
+        try {
+            // Create headers for the CSV template
+            $headers = [
+                'name',
+                'description',
+                'category_name',
+                'province_name',
+                'latitude',
+                'longitude',
+                'entry_free',
+                'google_maps_link',
+                'best_season_to_visit'
+            ];
+
+            // Create sample data rows
+            $sampleData = [
+                [
+                    'Angkor Wat Temple',
+                    'Ancient temple complex and UNESCO World Heritage Site',
+                    'Historical Sites',
+                    'Siem Reap',
+                    '13.4125',
+                    '103.8670',
+                    '0',
+                    'https://maps.google.com/example1',
+                    'November to March'
+                ],
+                [
+                    'Koh Rong Beach',
+                    'Beautiful pristine beach with crystal clear water',
+                    'Beaches',
+                    'Preah Sihanouk',
+                    '10.7236',
+                    '103.2906',
+                    '1',
+                    'https://maps.google.com/example2',
+                    'December to April'
+                ],
+                [
+                    'Bokor National Park',
+                    'Mountain national park with cool climate and hiking trails',
+                    'National Parks',
+                    'Kampot',
+                    '10.6167',
+                    '104.0167',
+                    '1',
+                    'https://maps.google.com/example3',
+                    'Year round'
+                ]
+            ];
+
+            // Create CSV content
+            $csvContent = '';
+            
+            // Add headers
+            $csvContent .= implode(',', array_map(function($header) {
+                return '"' . str_replace('"', '""', $header) . '"';
+            }, $headers)) . "\n";
+            
+            // Add sample data
+            foreach ($sampleData as $row) {
+                $csvContent .= implode(',', array_map(function($value) {
+                    return '"' . str_replace('"', '""', $value) . '"';
+                }, $row)) . "\n";
+            }
+
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="places_import_template.csv"')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+
+        } catch (\Exception $e) {
+            return back()->with([
+                'error' => 'Failed to generate template: ' . $e->getMessage()
             ]);
         }
     }

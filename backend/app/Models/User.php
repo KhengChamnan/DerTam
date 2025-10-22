@@ -9,10 +9,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use HasApiTokens;
+    use HasRoles;
 
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
@@ -31,7 +33,6 @@ class User extends Authenticatable
         'password',
         'username',
         'phone_number',
-        'role',
         'status',
         'last_login_at',
     ];
@@ -69,5 +70,85 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Check if user is super admin
+     *
+     * @return bool
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('superadmin');
+    }
+
+    /**
+     * Check if user is admin (admin or superadmin)
+     *
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasAnyRole(['admin', 'superadmin']);
+    }
+
+    /**
+     * Check if user is regular user
+     *
+     * @return bool
+     */
+    public function isUser(): bool
+    {
+        return $this->hasRole('user');
+    }
+
+    /**
+     * Check if user can manage places
+     *
+     * @return bool
+     */
+    public function canManagePlaces(): bool
+    {
+        return $this->can('create places') || $this->can('edit places') || $this->isSuperAdmin();
+    }
+
+    /**
+     * Check if user can delete places
+     *
+     * @return bool
+     */
+    public function canDeletePlaces(): bool
+    {
+        return $this->can('delete places') || $this->isSuperAdmin();
+    }
+
+    /**
+     * Check if user can manage users
+     *
+     * @return bool
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->can('view users') || $this->can('edit users') || $this->isSuperAdmin();
+    }
+
+    /**
+     * Get user's role names as array
+     *
+     * @return array
+     */
+    public function getRoleNamesAttribute(): array
+    {
+        return $this->roles->pluck('name')->toArray();
+    }
+
+    /**
+     * Get user's permission names as array
+     *
+     * @return array
+     */
+    public function getPermissionNamesAttribute(): array
+    {
+        return $this->getAllPermissions()->pluck('name')->toArray();
     }
 }

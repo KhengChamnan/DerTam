@@ -1,25 +1,27 @@
-import RegisteredUserController from '@/actions/App/Http/Controllers/Auth/RegisteredUserController';
-import { login } from '@/routes';
-import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import RegisteredUserController from "@/actions/App/Http/Controllers/Auth/RegisteredUserController";
+import { login } from "@/routes";
+import { Form, Head } from "@inertiajs/react";
+import { LoaderCircle } from "lucide-react";
 
-import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthLayout from '@/layouts/auth-layout';
+import InputError from "@/components/input-error";
+import TextLink from "@/components/text-link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import AuthLayout from "@/layouts/auth-layout";
 
 export default function Register() {
     return (
         <AuthLayout
             title="Create an account"
             description="Enter your details below to create your account"
+            imageSrc="/images/register.svg"
+            imageAlt="Registration illustration"
         >
             <Head title="Register" />
             <Form
                 {...RegisteredUserController.store.form()}
-                resetOnSuccess={['password', 'password_confirmation']}
+                resetOnSuccess={["password", "password_confirmation"]}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
@@ -104,7 +106,7 @@ export default function Register() {
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
+                            Already have an account?{" "}
                             <TextLink href={login()} tabIndex={6}>
                                 Log in
                             </TextLink>

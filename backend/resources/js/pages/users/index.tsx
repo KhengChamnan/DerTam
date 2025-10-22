@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,12 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -20,20 +26,39 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { type BreadcrumbItem, type User } from "@/types";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
-    PlusIcon,
     SearchIcon,
     EditIcon,
     TrashIcon,
     EyeIcon,
     EyeOffIcon,
     Filter,
+    Shield,
     Users,
+    UserPlus,
+    Upload,
+    Settings2,
+    UserCog,
 } from "lucide-react";
+
+interface UserWithRole {
+    id: number;
+    name: string;
+    email: string;
+    username?: string;
+    phone_number?: string;
+    status: string;
+    role: string;
+    role_display: string;
+    roles: string[];
+    created_at: string;
+    last_login_at?: string;
+}
 
 interface UsersPageProps {
     users: {
-        data: User[];
+        data: UserWithRole[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -44,6 +69,15 @@ interface UsersPageProps {
         status?: string;
         role?: string;
     };
+}
+
+interface ColumnVisibility {
+    email: boolean;
+    phone: boolean;
+    registered: boolean;
+    lastLogin: boolean;
+    status: boolean;
+    role: boolean;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -73,34 +107,116 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const handleSearch = () => {
+
+    // Column visibility state with localStorage persistence
+    const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
+        () => {
+            // Try to load saved preferences from localStorage
+            const savedPreferences = localStorage.getItem(
+                "userTableColumnVisibility"
+            );
+            if (savedPreferences) {
+                try {
+                    return JSON.parse(savedPreferences);
+                } catch (e) {
+                    console.error(
+                        "Failed to parse column visibility preferences:",
+                        e
+                    );
+                }
+            }
+            // Default values if nothing saved
+            return {
+                email: true,
+                phone: true,
+                registered: true,
+                lastLogin: true,
+                status: true,
+                role: true,
+            };
+        }
+    );
+
+    // Save column visibility preferences to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem(
+            "userTableColumnVisibility",
+            JSON.stringify(columnVisibility)
+        );
+    }, [columnVisibility]);
+
+    // Use useRef to track if this is the initial mount
+    const isInitialMount = useRef(true);
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Separate useEffect for search term with proper debouncing
+    useEffect(() => {
+        // Skip the initial mount
+        if (isInitialMount.current) {
+            return;
+        }
+
+        // Clear previous timer
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        // Set new timer for debounced search
+        debounceTimer.current = setTimeout(() => {
+            router.get(
+                "/users",
+                {
+                    search: searchTerm || undefined,
+                    status: statusFilter === "all" ? undefined : statusFilter,
+                    role: roleFilter === "all" ? undefined : roleFilter,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                    only: ["users"], // Only reload the users data, not the whole page
+                }
+            );
+        }, 500); // Increased debounce time to 500ms
+
+        // Cleanup function
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [searchTerm]);
+
+    // Separate useEffect for filter changes (immediate)
+    useEffect(() => {
+        // Skip the initial mount
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
         router.get(
             "/users",
             {
-                search: searchTerm,
-                status: statusFilter === "all" ? "" : statusFilter,
-                role: roleFilter === "all" ? "" : roleFilter,
+                search: searchTerm || undefined,
+                status: statusFilter === "all" ? undefined : statusFilter,
+                role: roleFilter === "all" ? undefined : roleFilter,
             },
             {
                 preserveState: true,
+                preserveScroll: true,
                 replace: true,
+                only: ["users"],
             }
         );
-    };
+    }, [statusFilter, roleFilter]);
 
-    const handleReset = () => {
-        setSearchTerm("");
-        setStatusFilter("all");
-        setRoleFilter("all");
-        router.get(
-            "/users",
-            {},
-            {
-                preserveState: true,
-                replace: true,
-            }
-        );
-    };
+    // Update state when filters change from server (e.g., pagination)
+    useEffect(() => {
+        setSearchTerm(filters.search || "");
+        setStatusFilter(filters.status || "all");
+        setRoleFilter(filters.role || "all");
+    }, [filters.search, filters.status, filters.role]);
 
     const handleAddUser = (e: React.FormEvent) => {
         e.preventDefault();
@@ -150,30 +266,49 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     };
 
     const getRoleBadge = (role: string) => {
-        const roleColors = {
-            "Super Admin":
-                "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-            Admin: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-            User: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+        // Normalize role name for comparison
+        const normalizedRole = role.toLowerCase().replace(/\s+/g, "");
+
+        // Define role configurations with icons
+        const roleConfig = {
+            superadmin: {
+                icon: Shield,
+                label: "Superadmin",
+                className: "bg-transparent border-none text-foreground",
+            },
+            admin: {
+                icon: UserCog,
+                label: "Admin",
+                className: "bg-transparent border-none text-foreground",
+            },
+            manager: {
+                icon: Users,
+                label: "Manager",
+                className: "bg-transparent border-none text-foreground",
+            },
+            user: {
+                icon: UserCog,
+                label: "User",
+                className: "bg-transparent border-none text-foreground",
+            },
         };
 
-        return (
-            <Badge
-                className={
-                    roleColors[role as keyof typeof roleColors] ||
-                    "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
-                }
-            >
-                {role}
-            </Badge>
-        );
-    };
+        const config = roleConfig[
+            normalizedRole as keyof typeof roleConfig
+        ] || {
+            icon: UserCog,
+            label: role,
+            className: "bg-transparent border-none text-foreground",
+        };
 
-    const clearFilters = () => {
-        setSearchTerm("");
-        setStatusFilter("all");
-        setRoleFilter("all");
-        router.get("/users");
+        const IconComponent = config.icon;
+
+        return (
+            <div className="flex items-center gap-2">
+                <IconComponent className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{config.label}</span>
+            </div>
+        );
     };
 
     return (
@@ -192,14 +327,17 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline">Import</Button>
+                        <Button variant="outline">
+                            <Upload className="size-4" />
+                            Import
+                        </Button>
                         <Dialog
                             open={showAddUserDialog}
                             onOpenChange={setShowAddUserDialog}
                         >
                             <DialogTrigger asChild>
                                 <Button className="gap-2">
-                                    <PlusIcon className="size-4" />
+                                    <UserPlus className="size-4" />
                                     Add New User
                                 </Button>
                             </DialogTrigger>
@@ -300,13 +438,13 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                 <SelectValue placeholder="Select a role" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="Super Admin">
+                                                <SelectItem value="superadmin">
                                                     Super Admin
                                                 </SelectItem>
-                                                <SelectItem value="Admin">
+                                                <SelectItem value="admin">
                                                     Admin
                                                 </SelectItem>
-                                                <SelectItem value="User">
+                                                <SelectItem value="user">
                                                     User
                                                 </SelectItem>
                                             </SelectContent>
@@ -430,9 +568,6 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-8"
-                            onKeyPress={(e) =>
-                                e.key === "Enter" && handleSearch()
-                            }
                         />
                     </div>
 
@@ -454,33 +589,107 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     </Select>
 
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Roles</SelectItem>
-                            <SelectItem value="Super Admin">
-                                Super Admin
-                            </SelectItem>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="User">User</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={roleFilter} onValueChange={setRoleFilter}>
                         <SelectTrigger className="w-[150px]">
                             <Users className="h-4 w-4 mr-2" />
                             <SelectValue placeholder="Role" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Roles</SelectItem>
-                            <SelectItem value="Super Admin">
+                            <SelectItem value="superadmin">
                                 Super Admin
                             </SelectItem>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="User">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="user">User</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {/* Column Toggle */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-auto"
+                            >
+                                <Settings2 className="h-4 w-4" />
+                                View
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[150px]">
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.email}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        email: !!value,
+                                    }))
+                                }
+                            >
+                                Email
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.phone}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        phone: !!value,
+                                    }))
+                                }
+                            >
+                                Phone
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.registered}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        registered: !!value,
+                                    }))
+                                }
+                            >
+                                Registered
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.lastLogin}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        lastLogin: !!value,
+                                    }))
+                                }
+                            >
+                                Last Login
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.status}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        status: !!value,
+                                    }))
+                                }
+                            >
+                                Status
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.role}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        role: !!value,
+                                    }))
+                                }
+                            >
+                                Role
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 {/* Users Table */}
@@ -488,29 +697,52 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     <div className="min-w-[1200px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
-                            <div className="grid grid-cols-11 gap-4 items-center">
-                                <div className="col-span-2 text-sm font-medium">
-                                    Name
-                                </div>
-                                <div className="col-span-2 text-sm font-medium">
-                                    Email
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Phone Number
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Registered Date
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Last Login Date
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Status
-                                </div>
-                                <div className="col-span-1 text-sm font-medium">
-                                    Role
-                                </div>
-                                <div className="col-span-2 text-sm font-medium">
+                            <div
+                                className="grid gap-4 items-center"
+                                style={{
+                                    gridTemplateColumns: `2fr ${
+                                        columnVisibility.email ? "2fr" : ""
+                                    } ${columnVisibility.phone ? "1fr" : ""} ${
+                                        columnVisibility.registered ? "1fr" : ""
+                                    } ${
+                                        columnVisibility.lastLogin ? "1fr" : ""
+                                    } ${columnVisibility.status ? "1fr" : ""} ${
+                                        columnVisibility.role ? "1fr" : ""
+                                    } 3fr`.trim(),
+                                }}
+                            >
+                                <div className="text-sm font-medium">Name</div>
+                                {columnVisibility.email && (
+                                    <div className="text-sm font-medium">
+                                        Email
+                                    </div>
+                                )}
+                                {columnVisibility.phone && (
+                                    <div className="text-sm font-medium">
+                                        Phone
+                                    </div>
+                                )}
+                                {columnVisibility.registered && (
+                                    <div className="text-sm font-medium">
+                                        Registered
+                                    </div>
+                                )}
+                                {columnVisibility.lastLogin && (
+                                    <div className="text-sm font-medium">
+                                        Last Login
+                                    </div>
+                                )}
+                                {columnVisibility.status && (
+                                    <div className="text-sm font-medium">
+                                        Status
+                                    </div>
+                                )}
+                                {columnVisibility.role && (
+                                    <div className="text-sm font-medium">
+                                        Role
+                                    </div>
+                                )}
+                                <div className="text-sm font-medium">
                                     Actions
                                 </div>
                             </div>
@@ -518,13 +750,42 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {users.data.map((user: User) => (
+                            {users.data.map((user: UserWithRole) => (
                                 <div
                                     key={user.id}
                                     className="p-4 hover:bg-muted/50"
                                 >
-                                    <div className="grid grid-cols-11 gap-4 items-center">
-                                        <div className="col-span-2">
+                                    <div
+                                        className="grid gap-4 items-center"
+                                        style={{
+                                            gridTemplateColumns: `2fr ${
+                                                columnVisibility.email
+                                                    ? "2fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.phone
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.registered
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.lastLogin
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.status
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.role
+                                                    ? "1fr"
+                                                    : ""
+                                            } 3fr`.trim(),
+                                        }}
+                                    >
+                                        <div>
                                             <div className="flex items-center gap-3">
                                                 <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
                                                     <span className="text-sm font-medium text-primary">
@@ -543,41 +804,69 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="col-span-2">
-                                            <div className="text-sm text-muted-foreground truncate">
-                                                {user.email}
+                                        {columnVisibility.email && (
+                                            <div>
+                                                <div className="text-sm text-muted-foreground truncate">
+                                                    {user.email}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <div className="text-sm text-muted-foreground">
-                                                {user.phone_number || "-"}
+                                        )}
+                                        {columnVisibility.phone && (
+                                            <div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    {user.phone_number || "-"}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <div className="text-sm text-muted-foreground">
-                                                {new Date(
-                                                    user.created_at
-                                                ).toLocaleDateString()}
+                                        )}
+                                        {columnVisibility.registered && (
+                                            <div>
+                                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {new Date(
+                                                        user.created_at
+                                                    ).toLocaleDateString(
+                                                        "en-US",
+                                                        {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "2-digit",
+                                                        }
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <div className="text-sm text-muted-foreground">
-                                                {user.last_login_at
-                                                    ? new Date(
-                                                          user.last_login_at
-                                                      ).toLocaleDateString()
-                                                    : "-"}
+                                        )}
+                                        {columnVisibility.lastLogin && (
+                                            <div>
+                                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {user.last_login_at
+                                                        ? new Date(
+                                                              user.last_login_at
+                                                          ).toLocaleDateString(
+                                                              "en-US",
+                                                              {
+                                                                  month: "short",
+                                                                  day: "numeric",
+                                                                  year: "2-digit",
+                                                              }
+                                                          )
+                                                        : "-"}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-span-1">
-                                            {getStatusBadge(
-                                                user.status || "Inactive"
-                                            )}
-                                        </div>
-                                        <div className="col-span-1">
-                                            {getRoleBadge(user.role || "User")}
-                                        </div>
-                                        <div className="col-span-2">
+                                        )}
+                                        {columnVisibility.status && (
+                                            <div>
+                                                {getStatusBadge(
+                                                    user.status || "Inactive"
+                                                )}
+                                            </div>
+                                        )}
+                                        {columnVisibility.role && (
+                                            <div>
+                                                {getRoleBadge(
+                                                    user.role || "User"
+                                                )}
+                                            </div>
+                                        )}
+                                        <div>
                                             <div className="flex items-center gap-2">
                                                 <Button
                                                     variant="ghost"
