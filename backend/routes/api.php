@@ -14,6 +14,12 @@ use App\Http\Controllers\API\EventController as ApiEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\API\Trip\TripController;
 use App\Http\Controllers\API\Trip\TripPlaceSelectionController;
+use App\Http\Controllers\API\Hotel\HotelCrudController;
+use App\Http\Controllers\API\Hotel\HotelPropertyController;
+use App\Http\Controllers\API\Hotel\FacilitiesCrudController;   
+use App\Http\Controllers\API\Hotel\RoomPropertiesCrudController;
+use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
+use App\Http\Controllers\API\Hotel\BookingController;
 
 
 Route::get('/user', function (Request $request) {
@@ -65,9 +71,32 @@ Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
 // Place detail routes (public)
 Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']);  // Get place details with nearby hotels & restaurants
 
+// Public hotel property GET routes
+Route::get('hotels/properties', [HotelPropertyController::class, 'index']); // Get all properties with filters
+Route::get('hotels/properties/{property_id}', [HotelPropertyController::class, 'show']); // Get single property
+
+// Public booking GET routes
+Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
+
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('places', [PlaceCreateController::class, 'store']);
+    
+    // Hotel property routes
+    Route::post('hotels/properties', [HotelCrudController::class, 'store']);
+    Route::delete('hotels/properties/{property_id}', [HotelCrudController::class, 'destroy']);
+    Route::post('hotels/facilities', [FacilitiesCrudController::class, 'store']);
+    Route::post('hotels/room-properties', [RoomPropertiesCrudController::class, 'store']);
+    Route::post('hotels/amenities', [AmenitiesCrudController::class, 'store']);
+    Route::delete('hotels/amenities/{id}', [AmenitiesCrudController::class, 'destroy']);
+    
+    // Hotel booking routes
+    Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
+    Route::get('hotels/bookings', [BookingController::class, 'index']); // Get all bookings with filters
+    Route::patch('hotels/bookings/{booking_id}/status', [BookingController::class, 'updateStatus']); // Update booking status
+    Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
+    Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
+    Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
     
     // Trip management routes
     Route::controller(TripController::class)->group(function() {
@@ -87,7 +116,4 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::get('/upload', function () {
-    return view('upload');
-});
-Route::post('/upload', [MediaController::class, 'upload']);
+
