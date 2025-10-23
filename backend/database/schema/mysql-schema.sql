@@ -19,6 +19,50 @@ CREATE TABLE `amenities` (
   CONSTRAINT `amenities_room_properties_id_foreign` FOREIGN KEY (`room_properties_id`) REFERENCES `room_properties` (`room_properties_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `booking_details`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `booking_details` (
+  `booking_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `trip_id` bigint unsigned DEFAULT NULL,
+  `full_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `age` int DEFAULT NULL,
+  `gender` enum('Male','Female','Other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `mobile` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `id_number` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `id_image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `check_in` date NOT NULL,
+  `check_out` date NOT NULL,
+  `total_amount` decimal(10,2) NOT NULL,
+  `payment_method` enum('KHQR','ABA_QR','Cash','Acleda_Bank') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('pending','paid','cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `merchant_ref_no` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tran_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `payment_date` datetime DEFAULT NULL,
+  `payment_status` enum('success','failed','pending') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`booking_id`),
+  UNIQUE KEY `booking_details_merchant_ref_no_unique` (`merchant_ref_no`),
+  KEY `booking_details_trip_id_foreign` (`trip_id`),
+  CONSTRAINT `booking_details_trip_id_foreign` FOREIGN KEY (`trip_id`) REFERENCES `trips` (`trip_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `booking_rooms`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `booking_rooms` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `booking_id` int unsigned NOT NULL,
+  `room_id` bigint unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_booking` (`booking_id`),
+  KEY `fk_room` (`room_id`),
+  CONSTRAINT `fk_booking` FOREIGN KEY (`booking_id`) REFERENCES `booking_details` (`booking_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_room` FOREIGN KEY (`room_id`) REFERENCES `room_properties` (`room_properties_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `cache`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -495,3 +539,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (28,'2025_10_23_060
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (29,'2025_10_23_061515_create_hotel_room_table',14);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2025_10_23_062025_create_hotel_amenitiy_table',15);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2025_10_23_075024_change_amenity_foreign_key_to_room_property',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2025_10_23_080000_create_booking_details_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2025_10_23_080100_create_booking_rooms_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2025_10_23_131933_add_fr_trip_id',19);

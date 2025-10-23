@@ -3,6 +3,7 @@
 namespace App\Models\Hotel;
 
 use App\Models\User;
+use App\Models\ProvinceCategory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,9 @@ class Property extends Model
         'description',
         'rating',
         'reviews_count',
+        'image_url',
+        'image_public_id',
+        'province_category_id',
     ];
 
     protected $casts = [
@@ -32,6 +36,8 @@ class Property extends Model
         'longitude' => 'float',
         'rating' => 'float',
         'reviews_count' => 'integer',
+        'image_url' => 'array',
+        'image_public_id' => 'array',
     ];
 
     public function ownerUser(): BelongsTo
@@ -48,6 +54,12 @@ class Property extends Model
     {
         return $this->hasMany(RoomProperty::class, 'property_id', 'property_id');
     }
+
+  public function provinceCategory(): BelongsTo
+{
+    return $this->belongsTo(ProvinceCategory::class, 'province_category_id', 'province_categoryID');
+}
+
 }
 
 
