@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Property extends Model
 {
@@ -36,9 +37,17 @@ class Property extends Model
         return $this->belongsTo(Place::class, 'place_id', 'placeID');
     }
 
-    public function facilities(): HasMany
+    // Many-to-many relationship with facilities through pivot table
+    public function facilities()
     {
-        return $this->hasMany(Facility::class, 'property_id', 'property_id');
+        return $this->belongsToMany(
+            Facility::class, 
+            'property_facilities', // pivot table name
+            'property_id', 
+            'facility_id',
+            'property_id',
+            'facility_id'
+        );
     }
 
     public function roomProperties(): HasMany

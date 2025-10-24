@@ -5,7 +5,7 @@ namespace App\Models\Hotel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class RoomProperty extends Model
 {
@@ -40,9 +40,17 @@ class RoomProperty extends Model
         return $this->belongsTo(Property::class, 'property_id', 'property_id');
     }
 
-    public function amenities(): HasMany
+    // Many-to-many relationship with amenities through pivot table
+    public function amenities()
     {
-        return $this->hasMany(Amenity::class, 'room_properties_id', 'room_properties_id');
+        return $this->belongsToMany(
+            Amenity::class,
+            'room_amenities', // pivot table name
+            'room_properties_id',
+            'amenity_id',
+            'room_properties_id',
+            'amenity_id'
+        );
     }
 }
 
