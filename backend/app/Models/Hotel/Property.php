@@ -3,7 +3,7 @@
 namespace App\Models\Hotel;
 
 use App\Models\User;
-use App\Models\ProvinceCategory;
+use App\Models\Place;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,31 +18,22 @@ class Property extends Model
     protected $primaryKey = 'property_id';
 
     protected $fillable = [
-        'name',
-        'google_map_link',
-        'latitude',
-        'longitude',
         'owner_user_id',
-        'description',
-        'rating',
-        'reviews_count',
-        'image_url',
-        'image_public_id',
-        'province_category_id',
+        'place_id',
     ];
 
     protected $casts = [
-        'latitude' => 'float',
-        'longitude' => 'float',
-        'rating' => 'float',
-        'reviews_count' => 'integer',
-        'image_url' => 'array',
-        'image_public_id' => 'array',
+        //
     ];
 
     public function ownerUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id', 'id');
+    }
+
+    public function place(): BelongsTo
+    {
+        return $this->belongsTo(Place::class, 'place_id', 'placeID');
     }
 
     public function facilities(): HasMany
@@ -54,11 +45,6 @@ class Property extends Model
     {
         return $this->hasMany(RoomProperty::class, 'property_id', 'property_id');
     }
-
-  public function provinceCategory(): BelongsTo
-{
-    return $this->belongsTo(ProvinceCategory::class, 'province_category_id', 'province_categoryID');
-}
 
 }
 
