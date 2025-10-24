@@ -1,9 +1,9 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_screen.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/utils/validation.dart';
@@ -95,7 +95,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              registerValue!.data!['message'] ?? 'Registration successful',
+              registerValue!.data?.name?? 'Registration successful',
             ),
             backgroundColor: Colors.green,
           ),
@@ -104,7 +104,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
         // Navigate to home screen
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) =>  HomePage()),
           (route) => false,
         );
       } else if (registerValue?.state == AsyncValueState.error) {

@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 class FetchingData {
-  static const String baseUrl = "https://elegant-many-oyster.ngrok-free.app/api";
+  static const String baseUrl = "https://g9-capstone-project-ll.onrender.com";
 
   static Future<http.Response> postData(String provideUrl,
       Map<String, dynamic> param, Map<String, String> headers) async {
@@ -52,6 +53,21 @@ class FetchingData {
       rethrow;
     }
   }
+  static Future<http.Response> getDataPar(String provideUrl,
+      Map<String, String> param, Map<String, String> header) async {
+    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl, param);
+    try {
+      final response = await http
+          .get(url, headers: header)
+          .timeout(const Duration(seconds: 10));
+      return response;
+    } on SocketException {
+      throw Exception('Network connection failed');
+    } on TimeoutException {
+      throw Exception('Request timed out');
+    }
+  }
+
   static Future<http.Response> updateDate(String provideUrl,
       Map<String, String> param, Map<String, dynamic> parBody) async {
     var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
