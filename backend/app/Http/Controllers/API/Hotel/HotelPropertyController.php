@@ -13,11 +13,11 @@ class HotelPropertyController extends Controller
      * Get all properties with optional filters.
      * 
      * Query Parameters:
-     * - province_category_id: Filter by province
+     * - province_category_id: Filter by province (through place relationship)
      * - max_guests: Filter by minimum max_guests in room properties
      * - min_price: Filter by minimum price_per_night
      * - max_price: Filter by maximum price_per_night
-     * - rating: Filter by minimum rating
+     * - rating: Filter by minimum rating (from place ratings)
      * - page: Page number for pagination
      * - per_page: Number of items per page (default: 15)
      */
@@ -25,15 +25,18 @@ class HotelPropertyController extends Controller
     {
         try {
             $query = Property::with([
-                'provinceCategory:province_categoryID,province_categoryName',
-                'facilities:facility_id,property_id,facility_name',
-                'roomProperties:room_properties_id,property_id,room_type,max_guests,room_size,price_per_night,is_available,images_url',
-                'roomProperties.amenities:amenity_id,room_properties_id,amenity_name,is_available'
+                'place:placeID,name,description,google_maps_link,ratings,reviews_count,images_url,entry_free,operating_hours,latitude,longitude,province_id',
+                'place.provinceCategory:province_categoryID,province_categoryName,category_description',
+                'facilities:facility_id,facility_name,image_url,image_public_ids',
+                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
+                'roomProperties.amenities:amenity_id,amenity_name,image_url,image_public_ids'
             ]);
 
-            // Filter by province
+            // Filter by province (through place relationship)
             if ($request->has('province_category_id')) {
-                $query->where('province_category_id', $request->province_category_id);
+                $query->whereHas('place', function ($q) use ($request) {
+                    $q->where('province_id', $request->province_category_id);
+                });
             }
 
             // Filter by max_guests (properties that have at least one room with max_guests >= requested value)
@@ -60,16 +63,26 @@ class HotelPropertyController extends Controller
                 });
             }
 
-            // Filter by minimum rating
+            // Filter by minimum rating (from place ratings)
             if ($request->has('rating')) {
-                $query->where('rating', '>=', $request->rating);
+                $query->whereHas('place', function ($q) use ($request) {
+                    $q->where('ratings', '>=', $request->rating);
+                });
             }
 
             // Pagination
             $perPage = $request->get('per_page', 15);
-            $properties = $query->orderBy('rating', 'desc')
-                                ->orderBy('created_at', 'desc')
+            $properties = $query->orderByDesc('created_at')
                                 ->paginate($perPage);
+
+            // Sort by place rating if available
+            if (!$request->has('rating')) {
+                $properties->getCollection()->transform(function ($property) {
+                    return $property;
+                })->sortByDesc(function ($property) {
+                    return $property->place->ratings ?? 0;
+                });
+            }
 
             return response()->json([
                 'message' => 'Properties retrieved successfully',
@@ -107,10 +120,12 @@ class HotelPropertyController extends Controller
         try {
             $property = Property::with([
                 'ownerUser:id,name,email',
-                'provinceCategory:province_categoryID,province_categoryName',
-                'facilities:facility_id,property_id,facility_name',
-                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url',
-                'roomProperties.amenities:amenity_id,room_properties_id,amenity_name,is_available'
+                'place:placeID,name,description,google_maps_link,ratings,reviews_count,images_url,entry_free,operating_hours,latitude,longitude,province_id,category_id',
+                'place.provinceCategory:province_categoryID,province_categoryName,category_description',
+                'place.category:placeCategoryID,category_name,category_description',
+                'facilities:facility_id,facility_name,images_url,image_public_ids',
+                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
+                'roomProperties.amenities:amenity_id,amenity_name,images_url,image_public_ids'
             ])->find($property_id);
 
             if (!$property) {
