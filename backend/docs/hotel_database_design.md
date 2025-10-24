@@ -14,32 +14,20 @@ The main table for storing hotel/property information.
 | Column Name | Data Type | Constraints | Description |
 |------------|-----------|-------------|-------------|
 | `property_id` | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique identifier for the property |
-| `name` | VARCHAR(200) | NOT NULL | Name of the property/hotel |
-| `google_map_link` | VARCHAR(255) | NULLABLE | Google Maps link for the property location |
-| `latitude` | DECIMAL(10,7) | NULLABLE | Latitude coordinate of the property |
-| `longitude` | DECIMAL(10,7) | NULLABLE | Longitude coordinate of the property |
 | `owner_user_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `users.id` - Property owner |
-| `province_category_id` | BIGINT UNSIGNED | FOREIGN KEY, NULLABLE | References `province_categories.province_categoryID` - Province/location |
-| `description` | TEXT | NULLABLE | Detailed description of the property |
-| `rating` | DECIMAL(2,1) | NOT NULL, DEFAULT 0.0 | Average rating of the property (0.0 - 9.9) |
-| `reviews_count` | INTEGER | NULLABLE, DEFAULT 0 | Total number of reviews |
+| `place_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `places.placeID` - Associated place/location |
 | `created_at` | TIMESTAMP | NULLABLE | Record creation timestamp |
 | `updated_at` | TIMESTAMP | NULLABLE | Record last update timestamp |
-| `image_url` | JSON | NULLABLE | Array of image URLs for the room |
-| `image_public_id` | JSON | NULLABLE | Array of public IDs for images (e.g., Cloudinary) |
 
 **Foreign Keys:**
 - `owner_user_id` → `users.id` ON DELETE CASCADE
-- `province_category_id` → `province_categories.province_categoryID` ON DELETE SET NULL
+- `place_id` → `places.placeID` ON DELETE CASCADE
 
 **Relationships:**
 - One property belongs to one user (owner)
+- One property belongs to one place
 - One property has many facilities
 - One property has many room properties
-  
-**JSON Fields Format:**
-- `images_url`: `["https://example.com/image1.jpg", "https://example.com/image2.jpg"]`
-- `image_public_ids`: `["cloudinary_id_1", "cloudinary_id_2"]`
 
 ---
 
@@ -50,26 +38,23 @@ Stores general facilities/amenities available at the property level (e.g., parki
 | Column Name | Data Type | Constraints | Description |
 |------------|-----------|-------------|-------------|
 | `facility_id` | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique identifier for the facility |
-| `property_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `properties.property_id` |
 | `facility_name` | VARCHAR(150) | NOT NULL | Name of the facility |
+| `images_url` | string | NULLABLE |  image URLs for the room |
+| `image_public_ids` | string | NULLABLE | public IDs for images (e.g., Cloudinary) |
 | `created_at` | TIMESTAMP | NULLABLE | Record creation timestamp |
 | `updated_at` | TIMESTAMP | NULLABLE | Record last update timestamp |
 
-**Foreign Keys:**
-- `property_id` → `properties.property_id` ON DELETE CASCADE
 
-**Relationships:**
-- One facility belongs to one property
 
 ---
-
+****
 ### 3. **room_properties**
 
 Stores information about different room types available at a property.
 
 | Column Name | Data Type | Constraints | Description |
 |------------|-----------|-------------|-------------|
-| `room_properties_id` | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique identifier for the room property |
+| `room_properties_id` | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique identifier for the room property |****
 | `property_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `properties.property_id` |
 | `room_type` | VARCHAR(100) | NOT NULL | Type of room (e.g., Deluxe, Suite, Standard) |
 | `room_description` | VARCHAR(255) | NULLABLE | Description of the room |
@@ -102,21 +87,24 @@ Stores room-specific amenities (e.g., WiFi, TV, minibar, air conditioning).
 | Column Name | Data Type | Constraints | Description |
 |------------|-----------|-------------|-------------|
 | `amenity_id` | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique identifier for the amenity |
-| `room_properties_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `room_properties.room_properties_id` |
+| `images_url` | JSON | NULLABLE | Array of image URLs for the room |
+| `image_public_ids` | JSON | NULLABLE | Array of public IDs for images (e.g., Cloudinary) |
 | `amenity_name` | VARCHAR(100) | NOT NULL | Name of the amenity |
-| `is_available` | BOOLEAN | NULLABLE, DEFAULT TRUE | Availability status of the amenity |
 | `created_at` | TIMESTAMP | NULLABLE | Record creation timestamp |
 | `updated_at` | TIMESTAMP | NULLABLE | Record last update timestamp |
 
-**Foreign Keys:**
-- `room_properties_id` → `room_properties.room_properties_id` ON DELETE CASCADE
+### 5. **Room Amenities Junction Table**
+| Column Name | Data Type | Constraints | Description |
+|------------|-----------|-------------|-------------|  
+| `room_properties_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `room_properties.room_properties_id` |
+| `amenity_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `amenities.amenity_id` |
 
-**Relationships:**
-- One amenity belongs to one room property
+### 6. **Properties Facilities Junction Table**
+| Column Name | Data Type | Constraints | Description |
+|------------|-----------|-------------|-------------|
+| `property_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `properties.property_id` |
+| `facility_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `facilities.facility_id` |
 
-**Note:** Originally, amenities were linked to properties, but this was changed to link to room_properties for more granular control (migration: `2025_10_23_075024_change_amenity_foreign_key_to_room_property.php`).
-
-  
 
 ## Booking System Tables
 
@@ -180,6 +168,7 @@ Junction table linking bookings to specific rooms.
 
 ### Properties
 - **Belongs To:** `users` (via `owner_user_id`)
+- **Belongs To:** `places` (via `place_id`)
 - **Has Many:** `facilities`, `room_properties`
 
 ### Facilities

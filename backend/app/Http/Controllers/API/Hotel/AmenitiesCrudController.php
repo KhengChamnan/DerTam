@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Hotel;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\MediaController;
 use App\Models\Hotel\Amenity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -18,8 +19,8 @@ class AmenitiesCrudController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'room_properties_id' => 'required|exists:room_properties,room_properties_id',
             'amenity_name' => 'required|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -31,10 +32,25 @@ class AmenitiesCrudController extends Controller
         }
 
         try {
+            $imageUrl = null;
+            $imagePublicId = null;
+
+            // Handle image upload if present
+            if ($request->hasFile('image')) {
+                $mediaController = new MediaController();
+                $uploadResult = $mediaController->uploadFile(
+                    $request->file('image'),
+                    'amenities'
+                );
+                $imageUrl = $uploadResult['url'];
+                $imagePublicId = $uploadResult['public_id'];
+            }
+
             $amenity = Amenity::create([
-                'room_properties_id' => $request->room_properties_id,
                 'amenity_name' => $request->amenity_name,
                 'is_available' => $request->is_available ?? true,
+                'image_url' => $imageUrl,
+                'image_public_ids' => $imagePublicId,
             ]);
 
             return response()->json([
@@ -67,6 +83,12 @@ class AmenitiesCrudController extends Controller
                     'success' => false,
                     'message' => 'Amenity not found'
                 ], 404);
+            }
+
+            // Delete image from Cloudinary if exists
+            if ($amenity->image_public_ids) {
+                $mediaController = new MediaController();
+                $mediaController->deleteFile($amenity->image_public_ids);
             }
 
             $amenity->delete();

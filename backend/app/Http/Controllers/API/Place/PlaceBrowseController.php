@@ -36,7 +36,8 @@ class PlaceBrowseController extends Controller
 				->where(function($sub) use ($q) {
 					$sub->where('places.name', 'like', "%{$q}%")
 						->orWhere('places.description', 'like', "%{$q}%");
-				});
+				})
+				->whereNotIn('places.category_id', [2, 3]); // Exclude restaurants (2) and hotels (3)
 
 			if ($provinceId) {
 				$query->where('places.province_id', $provinceId);
@@ -84,7 +85,8 @@ class PlaceBrowseController extends Controller
 					'places.province_id',
 					DB::raw("JSON_UNQUOTE(JSON_EXTRACT(places.images_url, '$[0]')) as image_url"),
 					DB::raw('province_categories.province_categoryName as location')
-				);
+				)
+				->whereNotIn('places.category_id', [2, 3]); // Exclude restaurants (2) and hotels (3)
 
 			if ($category === 'popular') {
 				$query->orderByDesc('places.ratings')->orderByDesc('places.reviews_count');
