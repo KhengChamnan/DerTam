@@ -15,19 +15,17 @@ class Amenity extends Model
     protected $primaryKey = 'amenity_id';
 
     protected $fillable = [
-        'room_properties_id',
         'amenity_name',
-        'is_available',
+        'image_url',
+        'image_public_ids',
     ];
 
     protected $casts = [
-        'is_available' => 'boolean',
+        // No casts needed for now
     ];
 
-    public function roomProperty(): BelongsTo
-    {
-        return $this->belongsTo(RoomProperty::class, 'room_properties_id', 'room_properties_id');
-    }
+    // Removed roomProperty relationship since amenities is now a master list
+    // If you need to relate amenities to rooms, create a pivot table like room_amenities
 }
 
 

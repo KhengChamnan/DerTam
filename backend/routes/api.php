@@ -17,8 +17,10 @@ use App\Http\Controllers\API\Trip\TripPlaceSelectionController;
 use App\Http\Controllers\API\Hotel\HotelCrudController;
 use App\Http\Controllers\API\Hotel\HotelPropertyController;
 use App\Http\Controllers\API\Hotel\FacilitiesCrudController;   
+use App\Http\Controllers\API\Hotel\PropertyFacilitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomPropertiesCrudController;
 use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
+use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\BookingController;
 
 
@@ -89,6 +91,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('hotels/room-properties', [RoomPropertiesCrudController::class, 'store']);
     Route::post('hotels/amenities', [AmenitiesCrudController::class, 'store']);
     Route::delete('hotels/amenities/{id}', [AmenitiesCrudController::class, 'destroy']);
+    Route::post('hotels/room-amenities', [RoomAmenitiesCrudController::class, 'store']);
+    Route::post('hotels/property-facilities', [PropertyFacilitiesCrudController::class, 'store']);
     
     // Hotel booking routes
     Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
@@ -97,7 +101,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
     Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
     Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
-    
+
+
     // Trip management routes
     Route::controller(TripController::class)->group(function() {
         Route::post('trips', 'store');           // Create a new trip
