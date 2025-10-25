@@ -24,8 +24,18 @@ class Amenity extends Model
         // No casts needed for now
     ];
 
-    // Removed roomProperty relationship since amenities is now a master list
-    // If you need to relate amenities to rooms, create a pivot table like room_amenities
+    // Inverse of the many-to-many relationship
+    public function roomProperties()
+    {
+        return $this->belongsToMany(
+            RoomProperty::class,
+            'room_amenities', // pivot table name
+            'amenity_id',
+            'room_properties_id',
+            'amenity_id',
+            'room_properties_id'
+        );
+    }
 }
 
 

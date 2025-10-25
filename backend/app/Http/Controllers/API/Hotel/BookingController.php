@@ -7,6 +7,7 @@ use App\Models\Hotel\BookingDetail;
 use App\Models\Hotel\BookingRoom;
 use App\Models\Hotel\RoomProperty;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -103,6 +104,7 @@ class BookingController extends Controller
 
                 // Create booking detail
                 $bookingDetail = BookingDetail::create([
+                    'user_id' => Auth::id(), // Automatically set the authenticated user
                     'trip_id' => $validated['trip_id'] ?? null,
                     'full_name' => $validated['full_name'],
                     'age' => $validated['age'] ?? null,
@@ -193,9 +195,10 @@ class BookingController extends Controller
         try {
             $query = BookingDetail::with([
                 'bookingRooms.roomProperty:room_properties_id,property_id,room_type,price_per_night',
-                'bookingRooms.roomProperty.property:property_id,name',
+                'bookingRooms.roomProperty.property:property_id,place_id',
+                'bookingRooms.roomProperty.property.place:placeID,name,google_maps_link,latitude,longitude,images_url',
                 'trip:trip_id,title'
-            ]);
+            ])->where('user_id', Auth::id()); // Only show bookings for the authenticated user
 
             // Filter by status
             if ($request->has('status')) {
@@ -257,16 +260,26 @@ class BookingController extends Controller
 
     /**
      * Get a single booking by ID.
+     * For authenticated users: only shows their own bookings
+     * For public access: allows viewing by merchant_ref_no (for payment verification)
      */
     public function show($booking_id)
     {
         try {
-            $booking = BookingDetail::with([
+            $query = BookingDetail::with([
                 'bookingRooms.roomProperty:room_properties_id,property_id,room_type,room_description,price_per_night,max_guests,images_url',
-                'bookingRooms.roomProperty.property:property_id,name,google_map_link,latitude,longitude,image_url',
-                'bookingRooms.roomProperty.amenities:amenity_id,room_properties_id,amenity_name',
+                'bookingRooms.roomProperty.amenities:amenity_id,amenity_name',
                 'trip:trip_id,title,start_date,end_date'
-            ])->find($booking_id);
+            ]);
+
+            // If user is authenticated, only show their own bookings
+            if (Auth::check()) {
+                $query->where('user_id', Auth::id());
+                $booking = $query->find($booking_id);
+            } else {
+                // For public access, allow viewing by merchant_ref_no only
+                $booking = $query->where('merchant_ref_no', $booking_id)->first();
+            }
 
             if (!$booking) {
                 return response()->json([
@@ -279,9 +292,53 @@ class BookingController extends Controller
             $checkOut = new \DateTime($booking->check_out);
             $nights = $checkIn->diff($checkOut)->days;
 
+            // Transform booking rooms to match the expected format
+            $bookingRooms = $booking->bookingRooms->map(function ($bookingRoom) {
+                return [
+                    'id' => $bookingRoom->id,
+                    'booking_id' => $bookingRoom->booking_id,
+                    'room_id' => $bookingRoom->room_id,
+                    'room_property' => $bookingRoom->roomProperty ? [
+                        'room_properties_id' => $bookingRoom->roomProperty->room_properties_id,
+                        'property_id' => $bookingRoom->roomProperty->property_id,
+                        'room_type' => $bookingRoom->roomProperty->room_type,
+                        'room_description' => $bookingRoom->roomProperty->room_description,
+                        'price_per_night' => $bookingRoom->roomProperty->price_per_night,
+                        'max_guests' => $bookingRoom->roomProperty->max_guests,
+                        'images_url' => $bookingRoom->roomProperty->images_url,
+                        'amenities' => $bookingRoom->roomProperty->amenities
+                    ] : null
+                ];
+            });
+
             return response()->json([
                 'message' => 'Booking retrieved successfully',
-                'data' => array_merge($booking->toArray(), ['nights' => $nights]),
+                'data' => [
+                    'booking_id' => $booking->booking_id,
+                    'trip_id' => $booking->trip_id,
+                    'full_name' => $booking->full_name,
+                    'age' => $booking->age,
+                    'gender' => $booking->gender,
+                    'mobile' => $booking->mobile,
+                    'email' => $booking->email,
+                    'id_number' => $booking->id_number,
+                    'id_image' => $booking->id_image,
+                    'check_in' => $booking->check_in,
+                    'check_out' => $booking->check_out,
+                    'total_amount' => $booking->total_amount,
+                    'payment_method' => $booking->payment_method,
+                    'status' => $booking->status,
+                    'merchant_ref_no' => $booking->merchant_ref_no,
+                    'tran_id' => $booking->tran_id,
+                    'payment_date' => $booking->payment_date,
+                    'payment_status' => $booking->payment_status,
+                    'created_at' => $booking->created_at,
+                    'updated_at' => $booking->updated_at,
+                    'user_id' => $booking->user_id,
+                    'booking_rooms' => $bookingRooms,
+                    'trip' => $booking->trip,
+                    'nights' => $nights
+                ],
             ], 200);
 
         } catch (\Throwable $e) {
@@ -315,7 +372,7 @@ class BookingController extends Controller
                 'status' => 'required|in:pending,paid,cancelled',
             ]);
 
-            $booking = BookingDetail::find($booking_id);
+            $booking = BookingDetail::where('user_id', Auth::id())->find($booking_id);
 
             if (!$booking) {
                 return response()->json([
@@ -375,7 +432,7 @@ class BookingController extends Controller
                 'payment_date' => 'nullable|date',
             ]);
 
-            $booking = BookingDetail::find($booking_id);
+            $booking = BookingDetail::where('user_id', Auth::id())->find($booking_id);  
 
             if (!$booking) {
                 return response()->json([
@@ -438,7 +495,7 @@ class BookingController extends Controller
     public function cancel($booking_id)
     {
         try {
-            $booking = BookingDetail::find($booking_id);
+            $booking = BookingDetail::where('user_id', Auth::id())->find($booking_id);
 
             if (!$booking) {
                 return response()->json([
@@ -487,7 +544,7 @@ class BookingController extends Controller
     public function destroy($booking_id)
     {
         try {
-            $booking = BookingDetail::find($booking_id);
+            $booking = BookingDetail::where('user_id', Auth::id())->find($booking_id);
 
             if (!$booking) {
                 return response()->json([
