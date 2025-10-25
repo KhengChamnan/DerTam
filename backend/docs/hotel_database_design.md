@@ -134,7 +134,7 @@ The main table for storing hotel booking information.
 | `payment_status` | ENUM('success', 'failed', 'pending') | NOT NULL, DEFAULT 'pending' | Payment status |
 | `created_at` | TIMESTAMP | NULLABLE | Record creation timestamp |
 | `updated_at` | TIMESTAMP | NULLABLE | Record last update timestamp |
-
+| `user_id` | BIGINT UNSIGNED | FOREIGN KEY, NOT NULL | References `users.id` |
 **Foreign Keys:**
 - `trip_id` → `trips.trip_id` ON DELETE SET NULL (optional relationship)
 

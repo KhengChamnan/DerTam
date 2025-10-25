@@ -75,10 +75,9 @@ Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']); 
 
 // Public hotel property GET routes
 Route::get('hotels/properties', [HotelPropertyController::class, 'index']); // Get all properties with filters
-Route::get('hotels/properties/{property_id}', [HotelPropertyController::class, 'show']); // Get single property
+Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show']); // Get single property
 
 // Public booking GET routes
-Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
 
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
@@ -101,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
     Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
     Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
+    Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
 
 
     // Trip management routes
@@ -120,5 +120,3 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
     });
 });
-
-

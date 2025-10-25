@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+
 
 class TripController extends Controller
 {
@@ -39,7 +41,7 @@ class TripController extends Controller
             DB::beginTransaction();
 
             // Get authenticated user ID
-            $userId = auth()->id();
+            $userId = Auth::id();
             
             if (!$userId) {
                 return response()->json([
@@ -126,7 +128,7 @@ class TripController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $userId = auth()->id();
+            $userId = Auth::id();
             
             if (!$userId) {
                 return response()->json([
@@ -170,7 +172,7 @@ class TripController extends Controller
     public function show(int $tripId): JsonResponse
     {
         try {
-            $userId = auth()->id();
+            $userId = Auth::id();
             
             if (!$userId) {
                 return response()->json([
@@ -224,7 +226,7 @@ class TripController extends Controller
     public function getTripDayPlaces(int $tripDayId): JsonResponse
     {
         try {
-            $userId = auth()->id();
+            $userId = Auth::id();
             
             if (!$userId) {
                 return response()->json([
@@ -330,7 +332,7 @@ class TripController extends Controller
         try {
             DB::beginTransaction();
 
-            $userId = auth()->id();
+            $userId = Auth::id();
             
             if (!$userId) {
                 return response()->json([

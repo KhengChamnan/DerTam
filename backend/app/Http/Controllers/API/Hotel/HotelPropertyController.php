@@ -113,9 +113,9 @@ class HotelPropertyController extends Controller
     }
 
     /**
-     * Get a single property by ID with all related data.
+     * Get a single property by place ID with all related data.
      */
-    public function show($property_id)
+    public function show($place_id)
     {
         try {
             $property = Property::with([
@@ -123,10 +123,10 @@ class HotelPropertyController extends Controller
                 'place:placeID,name,description,google_maps_link,ratings,reviews_count,images_url,entry_free,operating_hours,latitude,longitude,province_id,category_id',
                 'place.provinceCategory:province_categoryID,province_categoryName,category_description',
                 'place.category:placeCategoryID,category_name,category_description',
-                'facilities:facility_id,facility_name,images_url,image_public_ids',
+                'facilities:facility_id,facility_name,image_url,image_public_ids',
                 'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
-                'roomProperties.amenities:amenity_id,amenity_name,images_url,image_public_ids'
-            ])->find($property_id);
+                'roomProperties.amenities:amenity_id,amenity_name,image_url,image_public_ids'
+            ])->where('place_id', $place_id)->first();
 
             if (!$property) {
                 return response()->json([
@@ -141,7 +141,7 @@ class HotelPropertyController extends Controller
 
         } catch (\Throwable $e) {
             Log::error('Failed to retrieve property', [
-                'property_id' => $property_id,
+                'place_id' => $place_id,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),

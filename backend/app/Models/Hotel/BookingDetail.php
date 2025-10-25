@@ -17,8 +17,8 @@ class BookingDetail extends Model
     protected $primaryKey = 'booking_id';
 
     protected $fillable = [
+        'user_id',
         'trip_id',
-        'province_category_id',
         'full_name',
         'age',
         'gender',
@@ -55,6 +55,11 @@ class BookingDetail extends Model
     public function bookingRooms(): HasMany
     {
         return $this->hasMany(BookingRoom::class, 'booking_id', 'booking_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id', 'id');
     }
 
 }
