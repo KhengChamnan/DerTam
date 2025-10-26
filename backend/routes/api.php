@@ -14,6 +14,7 @@ use App\Http\Controllers\API\EventController as ApiEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\API\Trip\TripController;
 use App\Http\Controllers\API\Trip\TripPlaceSelectionController;
+use App\Http\Controllers\API\Expense\ExpenseController;
 use App\Http\Controllers\API\Hotel\HotelCrudController;
 use App\Http\Controllers\API\Hotel\HotelPropertyController;
 use App\Http\Controllers\API\Hotel\FacilitiesCrudController;   
@@ -119,4 +120,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('trip-planning/places/batch', 'getByIds');    // Get multiple places by IDs
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
     });
+
+    // Expense management routes
+    Route::controller(ExpenseController::class)->group(function() {
+        Route::post('budgets', 'createBudget');                   // Create a new budget for a trip
+        Route::get('trips/{tripId}/budget', 'getBudgetDetails');  // Get budget details with expenses
+        Route::post('budgets/{budgetId}/expenses', 'addExpense');  // Add expense to budget
+        Route::patch('budgets/{budgetId}', 'updateBudget');       // Update budget
+        Route::patch('expenses/{expenseId}', 'updateExpense');    // Update expense
+        Route::delete('expenses/{expenseId}', 'deleteExpense');   // Delete expense
+    });
+});
+
+Route::get('/upload', function () {
+    return view('upload');
+});
+Route::post('/upload', [MediaController::class, 'upload']);
 });
