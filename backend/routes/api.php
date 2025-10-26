@@ -136,4 +136,4 @@ Route::get('/upload', function () {
     return view('upload');
 });
 Route::post('/upload', [MediaController::class, 'upload']);
-});
+
