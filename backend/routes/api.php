@@ -14,6 +14,7 @@ use App\Http\Controllers\API\EventController as ApiEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\API\Trip\TripController;
 use App\Http\Controllers\API\Trip\TripPlaceSelectionController;
+use App\Http\Controllers\API\Expense\ExpenseController;
 
 
 Route::get('/user', function (Request $request) {
@@ -84,6 +85,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trip-planning/places/{placeId}', 'show');     // Get specific place details
         Route::post('trip-planning/places/batch', 'getByIds');    // Get multiple places by IDs
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
+    });
+
+    // Expense management routes
+    Route::controller(ExpenseController::class)->group(function() {
+        Route::post('budgets', 'createBudget');                   // Create a new budget for a trip
+        Route::get('trips/{tripId}/budget', 'getBudgetDetails');  // Get budget details with expenses
+        Route::post('budgets/{budgetId}/expenses', 'addExpense');  // Add expense to budget
+        Route::patch('budgets/{budgetId}', 'updateBudget');       // Update budget
+        Route::patch('expenses/{expenseId}', 'updateExpense');    // Update expense
+        Route::delete('expenses/{expenseId}', 'deleteExpense');   // Delete expense
     });
 });
 
