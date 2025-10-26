@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import {
     Card,
     CardContent,
@@ -46,23 +47,41 @@ export default function RoleForm({ role, permissions }: Props) {
             href: "/roles",
         },
         {
-            title: isEditing ? `Edit ${role.name}` : "Create New Role",
+            title: isEditing && role ? `Edit ${role.name}` : "Create New Role",
             href: "#",
         },
     ];
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
-        name: role?.name || "",
-        permissions: role?.permissions || [],
+        name: role?.name ?? "",
+        permissions: role?.permissions ?? [],
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (isEditing) {
-            put(`/roles/${role.id}`);
+        console.log("Form submitted", { isEditing, role, data });
+
+        if (isEditing && role?.id) {
+            console.log("Updating role:", role.id);
+            put(`/roles/${role.id}`, {
+                onSuccess: () => {
+                    toast.success("Role updated successfully");
+                },
+                onError: () => {
+                    toast.error("Failed to update role");
+                },
+            });
         } else {
-            post("/roles");
+            console.log("Creating new role");
+            post("/roles", {
+                onSuccess: () => {
+                    toast.success("Role created successfully");
+                },
+                onError: () => {
+                    toast.error("Failed to create role");
+                },
+            });
         }
     };
 
@@ -142,14 +161,16 @@ export default function RoleForm({ role, permissions }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isEditing ? `Edit ${role.name}` : "Create Role"} />
+            <Head
+                title={isEditing && role ? `Edit ${role.name}` : "Create Role"}
+            />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">
-                            {isEditing
+                            {isEditing && role
                                 ? `Edit Role: ${role.name}`
                                 : "Create New Role"}
                         </h1>

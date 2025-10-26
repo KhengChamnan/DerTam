@@ -20,6 +20,7 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    'admin.portal', // Restrict admin portal access to admin/superadmin only
 ])->group(function () {
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', function () {

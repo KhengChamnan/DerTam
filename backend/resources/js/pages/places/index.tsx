@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import ImportDialog from "@/components/ImportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
     Card,
     CardContent,
@@ -263,7 +264,10 @@ export default function PlacesIndex({
     const handleDelete = (id: number) => {
         router.delete(`/places/${id}`, {
             onSuccess: () => {
-                // Handle success
+                toast.success("Place deleted successfully");
+            },
+            onError: () => {
+                toast.error("Failed to delete place");
             },
         });
     };
@@ -682,7 +686,10 @@ export default function PlacesIndex({
                                         </div>
                                         {columnVisibility.description && (
                                             <div>
-                                                <div className="text-sm text-muted-foreground truncate">
+                                                <div
+                                                    className="text-sm text-muted-foreground line-clamp-2"
+                                                    title={place.description}
+                                                >
                                                     {place.description}
                                                 </div>
                                             </div>

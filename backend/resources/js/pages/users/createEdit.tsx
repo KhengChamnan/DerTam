@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
     Select,
     SelectContent,
@@ -72,18 +73,22 @@ export default function CreateEditUser({
         if (isEdit && user) {
             router.put(`/users/${user.id}`, submitData, {
                 onSuccess: () => {
+                    toast.success("User updated successfully");
                     router.visit("/users");
                 },
                 onError: (errors) => {
+                    toast.error("Failed to update user");
                     setErrors(errors);
                 },
             });
         } else {
             router.post("/users", submitData, {
                 onSuccess: () => {
+                    toast.success("User created successfully");
                     router.visit("/users");
                 },
                 onError: (errors) => {
+                    toast.error("Failed to create user");
                     setErrors(errors);
                 },
             });

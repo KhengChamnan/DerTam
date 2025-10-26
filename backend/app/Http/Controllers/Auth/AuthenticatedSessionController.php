@@ -41,6 +41,13 @@ class AuthenticatedSessionController extends Controller
             return to_route('two-factor.login');
         }
 
+        // Check if user has admin or superadmin role before allowing login to admin portal
+        if ($user->hasRole('user') && !$user->hasRole(['admin', 'superadmin'])) {
+            return back()->withErrors([
+                'email' => 'You do not have permission to access the admin portal. Please use the mobile app or user web interface.',
+            ])->onlyInput('email');
+        }
+
         Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();

@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
     Select,
     SelectContent,
@@ -167,7 +168,10 @@ export default function RolesIndex({ roles, filters }: Props) {
     const handleDelete = (id: number) => {
         router.delete(`/roles/${id}`, {
             onSuccess: () => {
-                // Handle success
+                toast.success("Role deleted successfully");
+            },
+            onError: () => {
+                toast.error("Failed to delete role");
             },
         });
     };
@@ -418,13 +422,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                                                         </span>
                                                     </Button>
                                                 </Link>
-                                                {![
-                                                    "superadmin",
-                                                    "admin",
-                                                    "user",
-                                                ].includes(
-                                                    role.name.toLowerCase()
-                                                ) && (
+                                                {role.name.toLowerCase() !==
+                                                "superadmin" ? (
                                                     <AlertDialog>
                                                         <AlertDialogTrigger
                                                             asChild
@@ -480,6 +479,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                                                             </AlertDialogFooter>
                                                         </AlertDialogContent>
                                                     </AlertDialog>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground"></span>
                                                 )}
                                             </div>
                                         </div>

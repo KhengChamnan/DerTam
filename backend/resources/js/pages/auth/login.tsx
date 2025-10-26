@@ -21,8 +21,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         <AuthLayout
             title="Log in to your account"
             description="Enter your email and password below to log in"
-            imageSrc="/images/login.svg"
-            imageAlt="Login illustration"
+            imageSrc="/images/login.jpg"
+            imageAlt="Login photo"
         >
             <Head title="Log in" />
 

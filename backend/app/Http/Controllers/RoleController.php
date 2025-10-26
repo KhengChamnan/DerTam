@@ -156,12 +156,6 @@ class RoleController extends Controller
         try {
             $role = SpatieRole::with('permissions')->findOrFail($id);
             
-            // Prevent editing system roles
-            if (in_array($role->name, ['superadmin', 'admin', 'user'])) {
-                return redirect()->route('roles.index')
-                    ->with('error', 'System roles cannot be edited.');
-            }
-            
             // Transform role data to match frontend expectations
             $transformedRole = [
                 'id' => $role->id,
@@ -189,12 +183,6 @@ class RoleController extends Controller
         try {
             $role = SpatieRole::findOrFail($id);
 
-            // Prevent updating system roles
-            if (in_array($role->name, ['superadmin', 'admin', 'user'])) {
-                return redirect()->route('roles.index')
-                    ->with('error', 'System roles cannot be updated.');
-            }
-
             $role->update([
                 'name' => $request->name,
             ]);
@@ -221,9 +209,9 @@ class RoleController extends Controller
         try {
             $role = SpatieRole::findOrFail($id);
             
-            // Prevent deleting system roles
-            if (in_array($role->name, ['superadmin', 'admin', 'user'])) {
-                return back()->withErrors(['error' => 'System roles cannot be deleted']);
+            // Prevent deleting superadmin role only
+            if ($role->name === 'superadmin') {
+                return back()->withErrors(['error' => 'Superadmin role cannot be deleted']);
             }
 
             // Check if role has users

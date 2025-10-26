@@ -15,8 +15,8 @@ export default function Register() {
         <AuthLayout
             title="Create an account"
             description="Enter your details below to create your account"
-            imageSrc="/images/register.svg"
-            imageAlt="Registration illustration"
+            imageSrc="/images/register.jpg"
+            imageAlt="Registration photo"
         >
             <Head title="Register" />
             <Form

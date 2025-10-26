@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\MediaController;
 
 class PlaceController extends Controller
 {
@@ -181,8 +182,8 @@ class PlaceController extends Controller
                 'google_maps_link' => 'nullable|url',
                 'ratings' => 'nullable|numeric|between:0,5',
                 'reviews_count' => 'nullable|integer|min:0',
-                'images_url' => 'nullable|array',
-                'images_url.*' => 'url',
+                'images' => 'nullable|array',
+                'images.*' => 'file|image|max:5120', // Max 5MB per image
                 'entry_free' => 'boolean',
                 'operating_hours' => 'nullable|array',
                 'best_season_to_visit' => 'nullable|string',
@@ -190,6 +191,24 @@ class PlaceController extends Controller
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
             ]);
+
+            // Handle image uploads to Cloudinary
+            $imageUrls = [];
+            $publicIds = [];
+            if ($request->hasFile('images')) {
+                $mediaController = new MediaController();
+                $uploadResult = $mediaController->uploadMultipleFiles(
+                    $request->file('images'),
+                    'places'
+                );
+                $imageUrls = $uploadResult['urls'];
+                $publicIds = $uploadResult['public_ids'];
+            }
+
+            // Replace images field with uploaded URLs and public IDs
+            $validatedData['images_url'] = $imageUrls;
+            $validatedData['image_public_ids'] = $publicIds;
+            unset($validatedData['images']);
 
             $place = Place::create($validatedData);
             $place->load(['category', 'province']);
@@ -264,6 +283,7 @@ class PlaceController extends Controller
                 'reviews_count' => $place->reviews_count,
                 'entry_free' => $place->entry_free,
                 'images_url' => $place->images_url,
+                'image_public_ids' => $place->image_public_ids,
                 'latitude' => $place->latitude,
                 'longitude' => $place->longitude,
                 'google_maps_link' => $place->google_maps_link,
@@ -324,8 +344,12 @@ class PlaceController extends Controller
                 'google_maps_link' => 'nullable|url',
                 'ratings' => 'nullable|numeric|between:0,5',
                 'reviews_count' => 'nullable|integer|min:0',
-                'images_url' => 'nullable|array',
-                'images_url.*' => 'url',
+                'images' => 'nullable|array',
+                'images.*' => 'file|image|max:5120', // Max 5MB per image
+                'existing_images' => 'nullable|array', // Keep existing image URLs
+                'existing_images.*' => 'url',
+                'existing_public_ids' => 'nullable|array', // Keep existing public IDs
+                'existing_public_ids.*' => 'string',
                 'entry_free' => 'boolean',
                 'operating_hours' => 'nullable|array',
                 'best_season_to_visit' => 'nullable|string',
@@ -334,10 +358,32 @@ class PlaceController extends Controller
                 'longitude' => 'sometimes|nullable|numeric|between:-180,180',
             ]);
 
+            // Start with existing images and public IDs
+            $imageUrls = $request->input('existing_images', []);
+            $publicIds = $request->input('existing_public_ids', []);
+
+            // Handle new image uploads to Cloudinary
+            if ($request->hasFile('images')) {
+                $mediaController = new MediaController();
+                $uploadResult = $mediaController->uploadMultipleFiles(
+                    $request->file('images'),
+                    'places'
+                );
+                $imageUrls = array_merge($imageUrls, $uploadResult['urls']);
+                $publicIds = array_merge($publicIds, $uploadResult['public_ids']);
+            }
+
+            // Replace images field with combined URLs and public IDs
+            $validatedData['images_url'] = $imageUrls;
+            $validatedData['image_public_ids'] = $publicIds;
+            unset($validatedData['images']);
+            unset($validatedData['existing_images']);
+            unset($validatedData['existing_public_ids']);
+
             $place->update($validatedData);
             $place->load(['category', 'province']);
 
-            return redirect()->route('places.show', $place->id)->with('success', 'Place updated successfully');
+            return redirect()->route('places.index')->with('success', 'Place updated successfully');
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {

@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
     Dialog,
     DialogContent,
@@ -232,13 +233,24 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     password: "",
                     password_confirmation: "",
                 });
+                toast.success("User created successfully");
+            },
+            onError: () => {
+                toast.error("Failed to create user");
             },
         });
     };
 
     const handleDeleteUser = (userId: number) => {
         if (confirm("Are you sure you want to delete this user?")) {
-            router.delete(`/users/${userId}`);
+            router.delete(`/users/${userId}`, {
+                onSuccess: () => {
+                    toast.success("User deleted successfully");
+                },
+                onError: () => {
+                    toast.error("Failed to delete user");
+                },
+            });
         }
     };
 
