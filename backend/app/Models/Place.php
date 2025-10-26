@@ -69,4 +69,12 @@ class Place extends Model
     {
         return $this->belongsTo(ProvinceCategory::class, 'province_id', 'province_categoryID');
     }
+
+    /**
+     * Alias for province relationship (for compatibility).
+     */
+    public function provinceCategory()
+    {
+        return $this->belongsTo(ProvinceCategory::class, 'province_id', 'province_categoryID');
+    }
 }

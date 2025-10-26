@@ -63,4 +63,39 @@ class MediaController extends Controller
             'public_ids' => $publicIds,
         ];
     }
+
+    /**
+     * Delete a file from Cloudinary
+     * 
+     * @param string $publicId
+     * @return mixed
+     */
+    public function deleteFile($publicId)
+    {
+        return cloudinary()->uploadApi()->destroy($publicId);
+    }
+
+    /**
+     * Delete multiple files from Cloudinary
+     * 
+     * @param array $publicIds
+     * @return array
+     */
+    public function deleteMultipleFiles(array $publicIds)
+    {
+        $results = [];
+        
+        foreach ($publicIds as $publicId) {
+            try {
+                $results[] = $this->deleteFile($publicId);
+            } catch (\Exception $e) {
+                $results[] = [
+                    'public_id' => $publicId,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        
+        return $results;
+    }
 }

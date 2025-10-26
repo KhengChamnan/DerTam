@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Place;
+use App\Imports\PlacesImport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\MediaController;
 
 class PlaceController extends Controller
 {
@@ -110,6 +114,9 @@ class PlaceController extends Controller
                 'categories' => $categories,
                 'provinces' => $provinces,
                 'filters' => $request->only(['category_id', 'province_id', 'search']),
+                'auth' => [
+                    'user' => Auth::user()->load('roles:id,name'),
+                ],
             ]);
         } catch (\Exception $e) {
             return Inertia::render('places/index', [
@@ -175,8 +182,8 @@ class PlaceController extends Controller
                 'google_maps_link' => 'nullable|url',
                 'ratings' => 'nullable|numeric|between:0,5',
                 'reviews_count' => 'nullable|integer|min:0',
-                'images_url' => 'nullable|array',
-                'images_url.*' => 'url',
+                'images' => 'nullable|array',
+                'images.*' => 'file|image|max:5120', // Max 5MB per image
                 'entry_free' => 'boolean',
                 'operating_hours' => 'nullable|array',
                 'best_season_to_visit' => 'nullable|string',
@@ -184,6 +191,24 @@ class PlaceController extends Controller
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
             ]);
+
+            // Handle image uploads to Cloudinary
+            $imageUrls = [];
+            $publicIds = [];
+            if ($request->hasFile('images')) {
+                $mediaController = new MediaController();
+                $uploadResult = $mediaController->uploadMultipleFiles(
+                    $request->file('images'),
+                    'places'
+                );
+                $imageUrls = $uploadResult['urls'];
+                $publicIds = $uploadResult['public_ids'];
+            }
+
+            // Replace images field with uploaded URLs and public IDs
+            $validatedData['images_url'] = $imageUrls;
+            $validatedData['image_public_ids'] = $publicIds;
+            unset($validatedData['images']);
 
             $place = Place::create($validatedData);
             $place->load(['category', 'province']);
@@ -258,6 +283,7 @@ class PlaceController extends Controller
                 'reviews_count' => $place->reviews_count,
                 'entry_free' => $place->entry_free,
                 'images_url' => $place->images_url,
+                'image_public_ids' => $place->image_public_ids,
                 'latitude' => $place->latitude,
                 'longitude' => $place->longitude,
                 'google_maps_link' => $place->google_maps_link,
@@ -318,8 +344,12 @@ class PlaceController extends Controller
                 'google_maps_link' => 'nullable|url',
                 'ratings' => 'nullable|numeric|between:0,5',
                 'reviews_count' => 'nullable|integer|min:0',
-                'images_url' => 'nullable|array',
-                'images_url.*' => 'url',
+                'images' => 'nullable|array',
+                'images.*' => 'file|image|max:5120', // Max 5MB per image
+                'existing_images' => 'nullable|array', // Keep existing image URLs
+                'existing_images.*' => 'url',
+                'existing_public_ids' => 'nullable|array', // Keep existing public IDs
+                'existing_public_ids.*' => 'string',
                 'entry_free' => 'boolean',
                 'operating_hours' => 'nullable|array',
                 'best_season_to_visit' => 'nullable|string',
@@ -328,10 +358,32 @@ class PlaceController extends Controller
                 'longitude' => 'sometimes|nullable|numeric|between:-180,180',
             ]);
 
+            // Start with existing images and public IDs
+            $imageUrls = $request->input('existing_images', []);
+            $publicIds = $request->input('existing_public_ids', []);
+
+            // Handle new image uploads to Cloudinary
+            if ($request->hasFile('images')) {
+                $mediaController = new MediaController();
+                $uploadResult = $mediaController->uploadMultipleFiles(
+                    $request->file('images'),
+                    'places'
+                );
+                $imageUrls = array_merge($imageUrls, $uploadResult['urls']);
+                $publicIds = array_merge($publicIds, $uploadResult['public_ids']);
+            }
+
+            // Replace images field with combined URLs and public IDs
+            $validatedData['images_url'] = $imageUrls;
+            $validatedData['image_public_ids'] = $publicIds;
+            unset($validatedData['images']);
+            unset($validatedData['existing_images']);
+            unset($validatedData['existing_public_ids']);
+
             $place->update($validatedData);
             $place->load(['category', 'province']);
 
-            return redirect()->route('places.show', $place->id)->with('success', 'Place updated successfully');
+            return redirect()->route('places.index')->with('success', 'Place updated successfully');
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
@@ -399,6 +451,139 @@ class PlaceController extends Controller
                 'places' => [],
                 'location' => $request->only(['latitude', 'longitude', 'radius']),
                 'error' => 'Failed to retrieve nearby places: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Import places from Excel/CSV file.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        try {
+            $request->validate([
+                'file' => 'required|file|mimes:xlsx,csv,xls|max:10240', // Max 10MB
+            ]);
+
+            $file = $request->file('file');
+            $import = new PlacesImport();
+            
+            Excel::import($import, $file);
+
+            $stats = $import->getStats();
+            
+            if ($stats['errors'] > 0) {
+                return back()->with([
+                    'import_result' => [
+                        'type' => 'warning',
+                        'message' => "Import completed with warnings. Imported: {$stats['success']}, Errors: {$stats['errors']}",
+                        'stats' => $stats,
+                        'errors' => $import->getErrors()
+                    ]
+                ]);
+            }
+
+            return back()->with([
+                'import_result' => [
+                    'type' => 'success',
+                    'message' => "Successfully imported {$stats['success']} places",
+                    'stats' => $stats
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            return back()->with([
+                'import_result' => [
+                    'type' => 'error',
+                    'message' => 'Import failed: ' . $e->getMessage()
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * Download template Excel file for places import.
+     */
+    public function downloadTemplate()
+    {
+        try {
+            // Create headers for the CSV template
+            $headers = [
+                'name',
+                'description',
+                'category_name',
+                'province_name',
+                'latitude',
+                'longitude',
+                'entry_free',
+                'google_maps_link',
+                'best_season_to_visit'
+            ];
+
+            // Create sample data rows
+            $sampleData = [
+                [
+                    'Angkor Wat Temple',
+                    'Ancient temple complex and UNESCO World Heritage Site',
+                    'Historical Sites',
+                    'Siem Reap',
+                    '13.4125',
+                    '103.8670',
+                    '0',
+                    'https://maps.google.com/example1',
+                    'November to March'
+                ],
+                [
+                    'Koh Rong Beach',
+                    'Beautiful pristine beach with crystal clear water',
+                    'Beaches',
+                    'Preah Sihanouk',
+                    '10.7236',
+                    '103.2906',
+                    '1',
+                    'https://maps.google.com/example2',
+                    'December to April'
+                ],
+                [
+                    'Bokor National Park',
+                    'Mountain national park with cool climate and hiking trails',
+                    'National Parks',
+                    'Kampot',
+                    '10.6167',
+                    '104.0167',
+                    '1',
+                    'https://maps.google.com/example3',
+                    'Year round'
+                ]
+            ];
+
+            // Create CSV content
+            $csvContent = '';
+            
+            // Add headers
+            $csvContent .= implode(',', array_map(function($header) {
+                return '"' . str_replace('"', '""', $header) . '"';
+            }, $headers)) . "\n";
+            
+            // Add sample data
+            foreach ($sampleData as $row) {
+                $csvContent .= implode(',', array_map(function($value) {
+                    return '"' . str_replace('"', '""', $value) . '"';
+                }, $row)) . "\n";
+            }
+
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="places_import_template.csv"')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+
+        } catch (\Exception $e) {
+            return back()->with([
+                'error' => 'Failed to generate template: ' . $e->getMessage()
             ]);
         }
     }
