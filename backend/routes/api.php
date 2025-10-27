@@ -23,6 +23,7 @@ use App\Http\Controllers\API\Hotel\RoomPropertiesCrudController;
 use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\BookingController;
+use App\Http\Controllers\API\Hotel\RoomController;
 
 
 Route::get('/user', function (Request $request) {
@@ -93,6 +94,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('hotels/amenities/{id}', [AmenitiesCrudController::class, 'destroy']);
     Route::post('hotels/room-amenities', [RoomAmenitiesCrudController::class, 'store']);
     Route::post('hotels/property-facilities', [PropertyFacilitiesCrudController::class, 'store']);
+
+    //Room
+    Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
     
     // Hotel booking routes
     Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
