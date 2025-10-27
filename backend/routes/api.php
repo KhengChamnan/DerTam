@@ -24,6 +24,8 @@ use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\BookingController;
 use App\Http\Controllers\API\Hotel\RoomController;
+use App\Http\Controllers\API\Trip\TripShareController;
+
 
 
 Route::get('/user', function (Request $request) {
@@ -124,6 +126,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('trip-planning/places/batch', 'getByIds');    // Get multiple places by IDs
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
     });
+
+    //trip share routes
+    Route::get('/trip/{trip_id}/share', [TripShareController::class, 'generate']);
+    Route::get('/trip/share/{token}', [TripShareController::class, 'resolve']);
 
     // Expense management routes
     Route::controller(ExpenseController::class)->group(function() {
