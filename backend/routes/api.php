@@ -79,6 +79,9 @@ Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']); 
 Route::get('hotels/properties', [HotelPropertyController::class, 'index']); // Get all properties with filters
 Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show']); // Get single property
 
+// room 
+Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+
 // Public booking GET routes
 
 // Protected create endpoint for places (requires Sanctum auth)
@@ -95,8 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('hotels/room-amenities', [RoomAmenitiesCrudController::class, 'store']);
     Route::post('hotels/property-facilities', [PropertyFacilitiesCrudController::class, 'store']);
 
-    //Room
-    Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+
     
     // Hotel booking routes
     Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
