@@ -25,6 +25,7 @@ class RoomProperty extends Model
         'is_available',
         'images_url',
         'image_public_ids',
+        'number_of_bed',
     ];
 
     protected $casts = [
