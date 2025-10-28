@@ -3,9 +3,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:mobile_frontend/models/place/place_deatail.dart';
+import 'package:mobile_frontend/models/place/place_detail.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
-import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/screen/hotel/hotel_detail_screen.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_detail_info.dart';
@@ -40,16 +39,16 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
       categoryDescription:
           'Historical sites, temples, museums, monuments, and cultural attractions',
       googleMapsLink: 'https://maps.google.com/?q=11.5564,104.9282',
-      ratings: '4.50',
+      ratings: 4.50,
       reviewsCount: 10,
-      entryFree: 1,
+      entryFree: true,
       operatingHours: {'mon': '9:00-17:00', 'tue': '9:00-17:00'},
       bestSeasonToVisit: 'Summer',
       provinceCategoryName: 'Phnom Penh',
       provinceDescription:
           'Capital and most populous city of Cambodia, located at the confluence of the Mekong and Tonlé Sap rivers',
-      latitude: '11.5564000',
-      longitude: '104.9282000',
+      latitude: 11.5564,
+      longitude: 104.9282,
       createdAt: '2025-10-18 08:35:46',
       updatedAt: '2025-10-18 08:35:46',
     ),
@@ -63,44 +62,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
     ],
     nearbyPlace: [],
     hotelNearby: [],
-    restaurantNearby: [
-      NearByRestaurant(
-        placeId: '201',
-        name: 'Malis Restaurant',
-        imageUrl:
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
-
-        location: 'Phnom Penh',
-        rating: '4.6',
-      ),
-      NearByRestaurant(
-        placeId: '201',
-        name: 'Malis Restaurant',
-        imageUrl:
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
-
-        location: 'Phnom Penh',
-        rating: '4.6',
-      ),
-      NearByRestaurant(
-        placeId: '201',
-        name: 'Malis Restaurant',
-        imageUrl:
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
-
-        location: 'Phnom Penh',
-        rating: '4.6',
-      ),
-      NearByRestaurant(
-        placeId: '201',
-        name: 'Malis Restaurant',
-        imageUrl:
-            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
-
-        location: 'Phnom Penh',
-        rating: '4.6',
-      ),
-    ],
+    restaurantNearby: [],
   );
 
   @override
@@ -111,9 +73,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
     // Fetch recommended places and upcoming events when the page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final placeProvider = context.read<PlaceProvider>();
-      final hotelProvider = context.read<HotelProvider>();
       placeProvider.getPlaceDetail(widget.placeId);
-      hotelProvider.fetchHotels();
     });
   }
 
@@ -144,13 +104,11 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
   @override
   Widget build(BuildContext context) {
     final placeProvider = context.watch<PlaceProvider>();
-    final hotelProvider = context.watch<HotelProvider>();
-
     final placeDetailData = placeProvider.placeDetail;
-    final hotelData = hotelProvider.hotels;
+    // final hotelData = hotelProvider.hotels;
     Widget content;
-    print('mean konleng dek ot ${hotelData.data}');
-    switch (hotelData.state) {
+    print('mean konleng dek ot ${placeDetailData.data}');
+    switch (placeDetailData.state) {
       case AsyncValueState.empty:
         content = SizedBox(
           height: 150,
@@ -161,13 +119,13 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
             ),
           ),
         );
-
+        break;
       case AsyncValueState.loading:
         content = SizedBox(
           height: 150,
           child: Center(child: CircularProgressIndicator()),
         );
-
+        break;
       case AsyncValueState.error:
         content = SizedBox(
           height: 150,
@@ -183,7 +141,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  hotelData.error.toString(),
+                  placeDetailData.error.toString(),
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
@@ -191,9 +149,10 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
             ),
           ),
         );
+        break;
 
       case AsyncValueState.success:
-        if (hotelData.data?.isEmpty ?? true) {
+        if (placeDetailData.data?.hotelNearby.isEmpty == true) {
           content = SizedBox(
             height: 150,
             child: Center(
@@ -203,38 +162,41 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
               ),
             ),
           );
-        }
-
-        content = SizedBox(
-          height: 150,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            physics: const BouncingScrollPhysics(),
-            itemCount: hotelData.data?.length,
-            itemBuilder: (context, index) {
-              final hotel = hotelData.data?[index];
-              return Container(
-                margin: const EdgeInsets.only(right: 16),
-                child: DertamHotelNearby(
-                  name: hotel?.name ?? '',
-                  location: hotel?.provinceCategory.name ?? '',
-                  rating: hotel?.rating ?? '',
-                  imageUrl: hotel?.imageUrl.isNotEmpty ?? false
-                      ? (hotel?.imageUrl.first ?? '')
-                      : '',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HotelDetailScreen(hotelId: '1'),
+        } else {
+          content = SizedBox(
+            height: 150,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const BouncingScrollPhysics(),
+              itemCount: placeDetailData.data?.hotelNearby.length,
+              itemBuilder: (context, index) {
+                final hotel = placeDetailData.data?.hotelNearby[index];
+                return Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  child: DertamHotelNearby(
+                    name: hotel?.name ?? '',
+                    location: hotel?.provinceCategoryName ?? '',
+                    rating: hotel?.ratings.toString() ?? '0.0',
+                    imageUrl: hotel?.imagesUrl.isNotEmpty ?? false
+                        ? (hotel?.imagesUrl.first ?? '')
+                        : '',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            HotelDetailScreen(hotelId: hotel?.placeID ?? ''),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        );
+                );
+              },
+            ),
+          );
+        }
+        break;
     }
+
     return Scaffold(
       backgroundColor: DertamColors.white,
       body: CustomScrollView(
@@ -313,7 +275,8 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              placeDetailData.data?.placeDetail.ratings ??
+                              placeDetailData.data?.placeDetail.ratings
+                                      .toString() ??
                                   '0.0',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -385,7 +348,10 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                           icon: Iconsax.ticket,
                           title: 'Entry Fee',
                           value:
-                              '\$${placeDetailData.data?.placeDetail.entryFree ?? '0.0'}',
+                              placeDetailData.data?.placeDetail.entryFree ==
+                                  true
+                              ? 'Free'
+                              : 'Paid',
                         ),
                       ),
                     ],
@@ -426,62 +392,75 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: placeDetailData.data?.nearbyPlace.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          width: 200,
-                          margin: const EdgeInsets.only(right: 16),
-                          child: DertamNearbyPlace(
-                            name:
-                                placeDetailData.data?.nearbyPlace[index].name ??
-                                '',
-                            location:
-                                placeDetailData
-                                    .data
-                                    ?.nearbyPlace[index]
-                                    .provinceCategoryName ??
-                                'Neatby not available',
-                            rating:
-                                double.tryParse(
-                                  placeDetailData
-                                          .data
-                                          ?.nearbyPlace[index]
-                                          .ratings ??
-                                      '0.0',
-                                ) ??
-                                0.0,
-                            imageUrl:
-                                placeDetailData
-                                    .data
-                                    ?.nearbyPlace[index]
-                                    .imagesUrl
-                                    .first ??
-                                '',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DetailEachPlace(
-                                  placeId:
-                                      placeDetailData
-                                          .data
-                                          ?.nearbyPlace[index]
-                                          .placeID
-                                          .toString() ??
-                                      '',
-                                ),
+                  placeDetailData.data?.nearbyPlace.isEmpty ?? true
+                      ? SizedBox(
+                          height: 150,
+                          child: Center(
+                            child: Text(
+                              'No nearby places found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        )
+                      : SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: placeDetailData.data?.nearbyPlace.length,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                width: 200,
+                                margin: const EdgeInsets.only(right: 16),
+                                child: DertamNearbyPlace(
+                                  name:
+                                      placeDetailData
+                                          .data
+                                          ?.nearbyPlace[index]
+                                          .name ??
+                                      '',
+                                  location:
+                                      placeDetailData
+                                          .data
+                                          ?.nearbyPlace[index]
+                                          .provinceCategoryName ??
+                                      'Nearby not available',
+                                  rating:
+                                      placeDetailData
+                                          .data
+                                          ?.nearbyPlace[index]
+                                          .ratings ??
+                                      0.0,
+                                  imageUrl:
+                                      placeDetailData
+                                          .data
+                                          ?.nearbyPlace[index]
+                                          .imagesUrl
+                                          .first ??
+                                      '',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DetailEachPlace(
+                                        placeId:
+                                            placeDetailData
+                                                .data
+                                                ?.nearbyPlace[index]
+                                                .placeID
+                                                .toString() ??
+                                            '',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                   SizedBox(height: 18),
                   Text(
                     'Nearby Hotels',
@@ -506,47 +485,57 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     ),
                   ),
                   SizedBox(height: 18),
-                  SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: _dummyPlaceData.restaurantNearby.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          width: 260,
-                          margin: const EdgeInsets.only(right: 16),
-                          child: DertamRetauanrantNearby(
-                            name: _dummyPlaceData.restaurantNearby[index].name,
-                            location: _dummyPlaceData
-                                .restaurantNearby[index]
-                                .location,
-                            rating:
-                                _dummyPlaceData.restaurantNearby[index].rating,
-                            imageUrl:
-                                _dummyPlaceData
-                                    .restaurantNearby[index]
-                                    .imageUrl
-                                    .isNotEmpty
-                                ? _dummyPlaceData
-                                      .restaurantNearby[index]
-                                      .imageUrl
-                                : '',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RestaurantDetailScreen(
-                                  restaurant:
-                                      _dummyPlaceData.restaurantNearby[index],
-                                ),
+                  placeDetailData.data?.restaurantNearby.isEmpty ?? true
+                      ? SizedBox(
+                          height: 150,
+                          child: Center(
+                            child: Text(
+                              'No nearby restaurants found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        )
+                      : SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            physics: const BouncingScrollPhysics(),
+                            itemCount:
+                                placeDetailData.data?.restaurantNearby.length,
+                            itemBuilder: (context, index) {
+                              final restaurant =
+                                  placeDetailData.data?.restaurantNearby[index];
+                              return Container(
+                                width: 260,
+                                margin: const EdgeInsets.only(right: 16),
+                                child: DertamRetauanrantNearby(
+                                  name: restaurant?.name ?? '',
+                                  location:
+                                      restaurant?.provinceCategoryName ?? '',
+                                  rating:
+                                      restaurant?.ratings.toString() ?? '0.0',
+                                  imageUrl:
+                                      restaurant?.imagesUrl.isNotEmpty ?? false
+                                      ? (restaurant?.imagesUrl.first ?? '')
+                                      : '',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          RestaurantDetailScreen(
+                                            restaurant: restaurant!,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                   SizedBox(height: 18),
                 ],
               ),

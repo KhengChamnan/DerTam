@@ -1,5 +1,3 @@
-import 'package:mobile_frontend/models/hotel/hotel_nearby.dart';
-
 class PlaceDetailResponse {
   final bool success;
   final PlaceDetailData data;
@@ -22,7 +20,7 @@ class PlaceDetailData {
   final PlaceDetail placeDetail;
   final List<String> listOfImageUrl;
   final List<NearbyPlace> nearbyPlace;
-  final List<Hotel> hotelNearby;
+  final List<NearByHotel> hotelNearby;
   final List<NearByRestaurant> restaurantNearby;
 
   PlaceDetailData({
@@ -45,7 +43,7 @@ class PlaceDetailData {
             [],
         hotelNearby:
             (json['hotelNearby'] as List<dynamic>?)
-                ?.map((e) => Hotel.fromJson(e))
+                ?.map((e) => NearByHotel.fromJson(e))
                 .toList() ??
             [],
         restaurantNearby:
@@ -75,15 +73,15 @@ class PlaceDetail {
   final String categoryName;
   final String categoryDescription;
   final String googleMapsLink;
-  final String ratings;
+  final double ratings;
   final int reviewsCount;
-  final int entryFree;
-  final Map<String, String> operatingHours;
+  final bool entryFree;
+  final Map<String, dynamic> operatingHours;
   final String bestSeasonToVisit;
   final String provinceCategoryName;
   final String provinceDescription;
-  final String latitude;
-  final String longitude;
+  final double latitude;
+  final double longitude;
   final String createdAt;
   final String updatedAt;
 
@@ -116,15 +114,17 @@ class PlaceDetail {
         categoryName: json['category_name'] ?? '',
         categoryDescription: json['category_description'] ?? '',
         googleMapsLink: json['google_maps_link'] ?? '',
-        ratings: json['ratings'] ?? '0.0',
+        ratings: (json['ratings'] ?? 0.0).toDouble(),
         reviewsCount: json['reviews_count'] ?? 0,
-        entryFree: json['entry_free'] ?? 0,
-        operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
+        entryFree: json['entry_free'] ?? false,
+        operatingHours: Map<String, dynamic>.from(
+          json['operating_hours'] ?? {},
+        ),
         bestSeasonToVisit: json['best_season_to_visit'] ?? '',
         provinceCategoryName: json['province_categoryName'] ?? '',
         provinceDescription: json['province_description'] ?? '',
-        latitude: json['latitude'] ?? '0.0',
-        longitude: json['longitude'] ?? '0.0',
+        latitude: (json['latitude'] ?? 0.0).toDouble(),
+        longitude: (json['longitude'] ?? 0.0).toDouble(),
         createdAt: json['created_at'] ?? '',
         updatedAt: json['updated_at'] ?? '',
       );
@@ -176,14 +176,14 @@ class NearbyPlace {
   final String description;
   final String categoryName;
   final String googleMapsLink;
-  final String ratings;
+  final double ratings;
   final int reviewsCount;
   final List<String> imagesUrl;
-  final int entryFree;
+  final bool entryFree;
   final Map<String, String> operatingHours;
   final String provinceCategoryName;
-  final String latitude;
-  final String longitude;
+  final double latitude;
+  final double longitude;
   final double distance;
   final String distanceText;
 
@@ -212,14 +212,14 @@ class NearbyPlace {
       description: json['description'] ?? '',
       categoryName: json['category_name'] ?? '',
       googleMapsLink: json['google_maps_link'] ?? '',
-      ratings: json['ratings'] ?? '0.0',
+      ratings: (json['ratings'] ?? 0.0).toDouble(),
       reviewsCount: json['reviews_count'] ?? 0,
       imagesUrl: List<String>.from(json['images_url'] ?? []),
-      entryFree: json['entry_free'] ?? 0,
+      entryFree: json['entry_free'] ?? false,
       operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
       provinceCategoryName: json['province_categoryName'] ?? '',
-      latitude: json['latitude'] ?? '0.0',
-      longitude: json['longitude'] ?? '0.0',
+      latitude: (json['latitude'] ?? 0.0).toDouble(),
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
       distance: (json['distance'] ?? 0).toDouble(),
       distanceText: json['distance_text'] ?? '',
     );
@@ -260,47 +260,181 @@ class NearbyPlace {
   }
 }
 
-// class NearByHotel {
-//   final String name;
-//   final String imageUrl;
-//   final String location;
-//   final String rating;
-//   NearByHotel({
-//     required this.name,
-//     required this.imageUrl,
-//     required this.location,
-//     required this.rating,
-//   });
-//   factory NearByHotel.fromJson(Map<String, dynamic> json) {
-//     return NearByHotel(
-//       name: json['name'] ?? '',
-//       imageUrl: json['imageUrl'] ?? '',
-//       location: json['location'] ?? '',
-//       rating: json['rating'] ?? '0.0',
-//     );
-//   }
-// }
-
 class NearByRestaurant {
-  final String placeId;
+  final int placeID;
   final String name;
-  final String imageUrl;
-  final String location;
-  final String rating;
+  final String description;
+  final String categoryName;
+  final String googleMapsLink;
+  final double ratings;
+  final int reviewsCount;
+  final List<String> imagesUrl;
+  final bool entryFree;
+  final Map<String, String> operatingHours;
+  final String provinceCategoryName;
+  final double latitude;
+  final double longitude;
+  final double distance;
+  final String distanceText;
+
   NearByRestaurant({
-    required this.placeId,
+    required this.placeID,
     required this.name,
-    required this.imageUrl,
-    required this.location,
-    required this.rating,
+    required this.description,
+    required this.categoryName,
+    required this.googleMapsLink,
+    required this.ratings,
+    required this.reviewsCount,
+    required this.imagesUrl,
+    required this.entryFree,
+    required this.operatingHours,
+    required this.provinceCategoryName,
+    required this.latitude,
+    required this.longitude,
+    required this.distance,
+    required this.distanceText,
   });
+
   factory NearByRestaurant.fromJson(Map<String, dynamic> json) {
     return NearByRestaurant(
-      placeId: json['placeId'] ?? '',
+      placeID: json['placeID'] ?? 0,
       name: json['name'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
-      location: json['location'] ?? '',
-      rating: json['rating'] ?? '0.0',
+      description: json['description'] ?? '',
+      categoryName: json['category_name'] ?? '',
+      googleMapsLink: json['google_maps_link'] ?? '',
+      ratings: (json['ratings'] ?? 0.0).toDouble(),
+      reviewsCount: json['reviews_count'] ?? 0,
+      imagesUrl: List<String>.from(json['images_url'] ?? []),
+      entryFree: json['entry_free'] ?? false,
+      operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
+      provinceCategoryName: json['province_categoryName'] ?? '',
+      latitude: (json['latitude'] ?? 0.0).toDouble(),
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
+      distance: (json['distance'] ?? 0).toDouble(),
+      distanceText: json['distance_text'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'placeID': placeID,
+      'name': name,
+      'description': description,
+      'category_name': categoryName,
+      'google_maps_link': googleMapsLink,
+      'ratings': ratings,
+      'reviews_count': reviewsCount,
+      'images_url': imagesUrl,
+      'entry_free': entryFree,
+      'operating_hours': operatingHours,
+      'province_categoryName': provinceCategoryName,
+      'latitude': latitude,
+      'longitude': longitude,
+      'distance': distance,
+      'distance_text': distanceText,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is NearByRestaurant && other.placeID == placeID;
+  }
+
+  @override
+  int get hashCode => placeID.hashCode;
+
+  @override
+  String toString() {
+    return 'NearByRestaurant{placeID: $placeID, name: $name, distance: $distanceText}';
+  }
+}
+
+class NearByHotel {
+  final String placeID;
+  final String name;
+  final String description;
+  final String categoryName;
+  final String googleMapsLink;
+  final double ratings;
+  final int reviewsCount;
+  final List<String> imagesUrl;
+  final bool entryFree;
+  final Map<String, String> operatingHours;
+  final String provinceCategoryName;
+  final double latitude;
+  final double longitude;
+  final double distance;
+  final String distanceText;
+
+  NearByHotel({
+    required this.placeID,
+    required this.name,
+    required this.description,
+    required this.categoryName,
+    required this.googleMapsLink,
+    required this.ratings,
+    required this.reviewsCount,
+    required this.imagesUrl,
+    required this.entryFree,
+    required this.operatingHours,
+    required this.provinceCategoryName,
+    required this.latitude,
+    required this.longitude,
+    required this.distance,
+    required this.distanceText,
+  });
+  factory NearByHotel.fromJson(Map<String, dynamic> json) {
+    return NearByHotel(
+      placeID: (json['placeID'] ?? 0).toString(),
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+      categoryName: json['category_name'] ?? '',
+      googleMapsLink: json['google_maps_link'] ?? '',
+      ratings: (json['ratings'] ?? 0.0).toDouble(),
+      reviewsCount: json['reviews_count'] ?? 0,
+      imagesUrl: List<String>.from(json['images_url'] ?? []),
+      entryFree: json['entry_free'] ?? false,
+      operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
+      provinceCategoryName: json['province_categoryName'] ?? '',
+      latitude: (json['latitude'] ?? 0.0).toDouble(),
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
+      distance: (json['distance'] ?? 0).toDouble(),
+      distanceText: json['distance_text'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'placeID': placeID,
+      'name': name,
+      'description': description,
+      'category_name': categoryName,
+      'google_maps_link': googleMapsLink,
+      'ratings': ratings,
+      'reviews_count': reviewsCount,
+      'images_url': imagesUrl,
+      'entry_free': entryFree,
+      'operating_hours': operatingHours,
+      'province_categoryName': provinceCategoryName,
+      'latitude': latitude,
+      'longitude': longitude,
+      'distance': distance,
+      'distance_text': distanceText,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is NearByRestaurant && other.placeID == placeID;
+  }
+
+  @override
+  int get hashCode => placeID.hashCode;
+
+  @override
+  String toString() {
+    return 'NearByRestaurant{placeID: $placeID, name: $name, distance: $distanceText}';
   }
 }

@@ -6,7 +6,7 @@ import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/place_repository.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/models/place/place_category.dart';
-import 'package:mobile_frontend/models/place/place_deatail.dart';
+import 'package:mobile_frontend/models/place/place_detail.dart';
 
 class LaravelPlaceApiRepository implements PlaceRepository {
   final _baseHeaders = {
@@ -79,22 +79,42 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   @override
   Future<PlaceDetailData> getPlaceDetails(String placeId) async {
     try {
+      print('🔍 [DEBUG] getPlaceDetails called with placeId: $placeId');
+
       // Construct the endpoint with the place ID
       final endpoint = '/api/places/$placeId/details';
+      print('🔍 [DEBUG] Endpoint: $endpoint');
+      print('🔍 [DEBUG] Headers: $_baseHeaders');
+
       final response = await FetchingData.getDate(endpoint, _baseHeaders);
+
+      print('🔍 [DEBUG] Response status code: ${response.statusCode}');
+      print('🔍 [DEBUG] Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonData = json.decode(response.body);
-        // Check if the response has a 'data' key (common API pattern)
-        final dataToProcess = jsonData.containsKey('data')
-            ? jsonData['data']
-            : jsonData;
+        print('🔍 [DEBUG] Decoded JSON data: $jsonData');
 
-        final place = PlaceDetailData.fromJson(dataToProcess);
-        return place;
+        // Parse the complete response using PlaceDetailResponse
+        final placeDetailResponse = PlaceDetailResponse.fromJson(jsonData);
+        print('🔍 [DEBUG] Response success: ${placeDetailResponse.success}');
+
+        if (!placeDetailResponse.success) {
+          throw Exception('API returned success: false');
+        }
+
+        print(
+          '🔍 [DEBUG] Successfully parsed PlaceDetailData: ${placeDetailResponse.data.toString()}',
+        );
+        return placeDetailResponse.data;
       } else {
+        print('❌ [DEBUG] Failed with status code: ${response.statusCode}');
+        print('❌ [DEBUG] Error response body: ${response.body}');
         throw Exception('Failed to load place details: ${response.statusCode}');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [DEBUG] Exception caught in getPlaceDetails: $e');
+      print('❌ [DEBUG] Stack trace: $stackTrace');
       rethrow;
     }
   }

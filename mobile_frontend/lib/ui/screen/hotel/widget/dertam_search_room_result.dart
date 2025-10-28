@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:mobile_frontend/models/hotel/hotel_nearby.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class DertamSearchRoomResult extends StatelessWidget {
-  final Hotel hotel;
+  final String hotel;
   final DateTime checkInDate;
   final DateTime checkOutDate;
   final int guestCount;
@@ -90,7 +89,7 @@ class DertamSearchRoomResult extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              hotel.name,
+                              hotel,
                               style: DertamTextStyles.subtitle.copyWith(
                                 color: DertamColors.primaryDark,
                                 fontWeight: FontWeight.bold,
@@ -220,7 +219,7 @@ class _RoomResultCardState extends State<_RoomResultCard> {
                   topLeft: Radius.circular(DertamSpacings.radius),
                   topRight: Radius.circular(DertamSpacings.radius),
                 ),
-                child: widget.room.imageUrl.isEmpty
+                child: widget.room.imagesUrl.isEmpty
                     ? Container(
                         width: double.infinity,
                         height: 200,
@@ -232,7 +231,7 @@ class _RoomResultCardState extends State<_RoomResultCard> {
                         ),
                       )
                     : Image.network(
-                        widget.room.imageUrl,
+                        widget.room.imagesUrl.first,
                         width: double.infinity,
                         height: 200,
                         fit: BoxFit.cover,
@@ -317,7 +316,7 @@ class _RoomResultCardState extends State<_RoomResultCard> {
                 const SizedBox(height: DertamSpacings.xs),
                 // Capacity and Duration
                 Text(
-                  '${widget.numberOfNights} days ${widget.numberOfNights + 1} nights - ${widget.room.maxGuest}',
+                  '${widget.numberOfNights} days ${widget.numberOfNights + 1} nights - ${widget.room.maxGuests}',
                   style: DertamTextStyles.bodyMedium.copyWith(
                     color: Colors.grey[600],
                     fontSize: 13,

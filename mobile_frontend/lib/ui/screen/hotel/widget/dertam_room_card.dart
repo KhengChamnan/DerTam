@@ -36,7 +36,7 @@ class DertamRoomCard extends StatelessWidget {
             // Room Image
             ClipRRect(
               borderRadius: BorderRadius.circular(DertamSpacings.radiusSmall),
-              child: room.imageUrl.isEmpty
+              child: room.imagesUrl.isEmpty
                   ? Container(
                       width: 140,
                       height: 140,
@@ -48,7 +48,7 @@ class DertamRoomCard extends StatelessWidget {
                       ),
                     )
                   : Image.network(
-                      room.imageUrl,
+                      room.imagesUrl.first,
                       width: 140,
                       height: 140,
                       fit: BoxFit.cover,
@@ -126,7 +126,7 @@ class DertamRoomCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        room.maxGuest,
+                        room.maxGuests.toString(),
                         style: DertamTextStyles.bodySmall.copyWith(
                           color: Colors.grey[700],
                           fontWeight: FontWeight.w500,

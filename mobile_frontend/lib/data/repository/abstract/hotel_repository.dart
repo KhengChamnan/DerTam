@@ -1,5 +1,7 @@
-import 'package:mobile_frontend/models/hotel/hotel_nearby.dart';
+import 'package:mobile_frontend/models/hotel/hotel_datial.dart';
+import 'package:mobile_frontend/models/hotel/room.dart';
 
 abstract class HotelRepository {
-  Future<List<Hotel>> getHotels();
+  Future<HotelDetail> getHotelDetails(String hotelId);
+  Future<Room> getRoomDetails(String roomId);
 }

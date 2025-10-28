@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:mobile_frontend/models/hotel/amenities.dart';
-import 'package:mobile_frontend/models/hotel/room.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_booking_room_screen.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_room_card.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_select_date.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/facilities_list.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:provider/provider.dart';
 
 class HotelDetailScreen extends StatefulWidget {
   final String hotelId;
@@ -18,83 +19,157 @@ class HotelDetailScreen extends StatefulWidget {
 class _HotelDetailScreenState extends State<HotelDetailScreen> {
   bool _isFavorite = false;
 
-  // Mock room data - replace with actual API data later
-  final List<Room> _mockRooms = [
-    Room(
-      roomId: '1',
-      hotelId: 'hotel_001',
-      roomType: 'Deluxe Room',
-      maxGuest: '2 Adults, 1 Child',
-      roomSize: '35 sqm',
-      pricePerNight: '120.00',
-      isAvailable: true,
-      imageUrl:
-          'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800',
-      amenities: [
-        Amendities(
-          amenityId: 'am_1',
-          roomId: '1',
-          amenityName: 'Air Conditioning',
-        ),
-        Amendities(
-          amenityId: 'am_2',
-          roomId: '1',
-          amenityName: 'Breakfast Included',
-        ),
-        Amendities(amenityId: 'am_3', roomId: '1', amenityName: 'Free WiFi'),
-        Amendities(amenityId: 'am_4', roomId: '1', amenityName: 'Smart TV'),
-      ],
-    ),
-    Room(
-      roomId: '2',
-      hotelId: 'hotel_001',
-      roomType: 'Executive Suite',
-      maxGuest: '3 Adults, 2 Children',
-      roomSize: '55 sqm',
-      pricePerNight: '185.00',
-      isAvailable: true,
-      imageUrl:
-          'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800',
-      amenities: [
-        Amendities(
-          amenityId: 'am_1',
-          roomId: '2',
-          amenityName: 'Air Conditioning',
-        ),
-        Amendities(
-          amenityId: 'am_2',
-          roomId: '2',
-          amenityName: 'Breakfast Included',
-        ),
-        Amendities(amenityId: 'am_3', roomId: '2', amenityName: 'Free WiFi'),
-        Amendities(amenityId: 'am_4', roomId: '2', amenityName: 'Smart TV'),
-        Amendities(amenityId: 'am_5', roomId: '2', amenityName: 'Bathtub'),
-        Amendities(amenityId: 'am_6', roomId: '2', amenityName: 'Balcony'),
-      ],
-    ),
-    Room(
-      roomId: '3',
-      hotelId: 'hotel_001',
-      roomType: 'Standard Room',
-      maxGuest: '2 Adults',
-      roomSize: '25 sqm',
-      pricePerNight: '85.00',
-      isAvailable: true,
-      imageUrl:
-          'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800',
-      amenities: [
-        Amendities(
-          amenityId: 'am_1',
-          roomId: '3',
-          amenityName: 'Air Conditioning',
-        ),
-        Amendities(amenityId: 'am_3', roomId: '3', amenityName: 'Free WiFi'),
-        Amendities(amenityId: 'am_4', roomId: '3', amenityName: 'TV'),
-      ],
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final hotelProvider = context.read<HotelProvider>();
+      hotelProvider.fetchHotelDetail(widget.hotelId);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hotelProvider = context.watch<HotelProvider>();
+    final hotelDetailData = hotelProvider.hotelDetail;
+    // Handle loading state
+    if (hotelDetailData.state == AsyncValueState.loading) {
+      return Scaffold(
+        backgroundColor: DertamColors.backgroundWhite,
+        appBar: AppBar(
+          backgroundColor: DertamColors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              color: DertamColors.primaryDark,
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('Loading...'),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Fetching hotel details...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Handle error state
+    if (hotelDetailData.state == AsyncValueState.error) {
+      return Scaffold(
+        backgroundColor: DertamColors.backgroundWhite,
+        appBar: AppBar(
+          backgroundColor: DertamColors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              color: DertamColors.primaryDark,
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load hotel details',
+                  style: DertamTextStyles.title.copyWith(
+                    color: DertamColors.primaryDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${hotelDetailData.error}',
+                  style: DertamTextStyles.body.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<HotelProvider>().fetchHotelDetail(
+                      widget.hotelId,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: DertamColors.primaryDark,
+                  ),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Handle empty/null data
+    if (hotelDetailData.data == null) {
+      return Scaffold(
+        backgroundColor: DertamColors.backgroundWhite,
+        appBar: AppBar(
+          backgroundColor: DertamColors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              color: DertamColors.primaryDark,
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.hotel_outlined, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No hotel data available',
+                style: DertamTextStyles.title.copyWith(
+                  color: DertamColors.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'State: ${hotelDetailData.state}',
+                style: DertamTextStyles.body.copyWith(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<HotelProvider>().fetchHotelDetail(
+                    widget.hotelId,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: DertamColors.primaryDark,
+                ),
+                child: const Text('Reload'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Success state - show the actual content
+    final hotel = hotelDetailData.data!;
+
     return Scaffold(
       backgroundColor: DertamColors.backgroundWhite,
       body: CustomScrollView(
@@ -166,9 +241,25 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                   Image.network(
-                          'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800',
+                  hotel.place.imagesUrl.isNotEmpty
+                      ? Image.network(
+                          hotel.place.imagesUrl.first,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: Colors.grey[300],
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
                               color: Colors.grey[300],
@@ -179,6 +270,14 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                               ),
                             );
                           },
+                        )
+                      : Container(
+                          color: Colors.grey[300],
+                          child: Icon(
+                            Icons.hotel_outlined,
+                            size: 80,
+                            color: Colors.grey[500],
+                          ),
                         ),
                   // Route button overlay
                   Positioned(
@@ -232,12 +331,12 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Restaurant name and rating
+                  // Hotel name and rating
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          'Malis Cambodian Cuisine',
+                          hotel.place.name,
                           style: DertamTextStyles.title.copyWith(
                             color: DertamColors.primaryDark,
                             fontWeight: FontWeight.bold,
@@ -249,7 +348,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       ...List.generate(
                         5,
                         (index) => Icon(
-                          index < double.parse('2.0').floor()
+                          index < (hotel.place.rating).floor()
                               ? Icons.star
                               : Icons.star_border,
                           color: Colors.amber,
@@ -258,7 +357,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '4.5',
+                        hotel.place.rating.toStringAsFixed(1),
                         style: DertamTextStyles.body.copyWith(
                           fontWeight: FontWeight.w600,
                           color: DertamColors.primaryDark,
@@ -269,31 +368,15 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                   const SizedBox(height: DertamSpacings.s),
                   // Description
                   Text(
-                    'Malis Cambodian Cuisine draws inspiration from the ancient Angkor period, offering a unique flavor profile created through a masterful blend of spices. Each dish reflects Cambodia\'s rich botanical heritage.',
+                    hotel.place.description.isNotEmpty
+                        ? hotel.place.description
+                        : 'No description available',
                     style: DertamTextStyles.bodyMedium.copyWith(
                       color: Colors.grey[700],
                       height: 1.5,
                     ),
                   ),
                   const SizedBox(height: DertamSpacings.m),
-                  // Phone number
-                  Row(
-                    children: [
-                      Icon(
-                        Iconsax.call,
-                        size: 16,
-                        color: DertamColors.primaryDark,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '+855 123456',
-                        style: DertamTextStyles.bodyMedium.copyWith(
-                          color: DertamColors.primaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: DertamSpacings.xs),
                   // Location
                   Row(
                     children: [
@@ -305,7 +388,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'TK Map Link',
+                          hotel.place.provinceCategory.provinceCategoryName,
                           style: DertamTextStyles.bodyMedium.copyWith(
                             color: DertamColors.primaryDark,
                           ),
@@ -314,74 +397,98 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: DertamSpacings.l),
-                  // Menu section title
-                  Text(
-                    'Facilities',
-                    style: DertamTextStyles.title.copyWith(
-                      color: DertamColors.primaryDark,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                  // Facilities section
+                  if (hotel.facilities.isNotEmpty) ...[
+                    Text(
+                      'Facilities',
+                      style: DertamTextStyles.title.copyWith(
+                        color: DertamColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: DertamSpacings.s),
-
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        FacilitiesList(
-                          imageUrl:
-                              'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800',
-                        ),
-                      ],
+                    const SizedBox(height: DertamSpacings.s),
+                    SizedBox(
+                      height: 96,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: hotel.facilities.length,
+                        itemBuilder: (context, index) {
+                          final facility = hotel.facilities[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index < hotel.facilities.length - 1
+                                  ? DertamSpacings.s
+                                  : 0,
+                            ),
+                            child: FacilitiesList(imageUrl: facility.imageUrl),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    Text(
+                      'No facilities information available',
+                      style: DertamTextStyles.bodyMedium.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          // Room section title
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.m),
-              child: Text(
-                'Available Rooms',
-                style: DertamTextStyles.title.copyWith(
-                  color: DertamColors.primaryDark,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+          // Room section
+          if (hotel.roomProperties.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DertamSpacings.m,
+                ),
+                child: Text(
+                  'Available Rooms',
+                  style: DertamTextStyles.title.copyWith(
+                    color: DertamColors.primaryDark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: DertamSpacings.m)),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final room = _mockRooms[index];
-                return DertamRoomCard(
-                  room: Room(
-                    isAvailable: true,
-                    roomSize: room.roomSize,
-                    hotelId: room.hotelId,
-                    roomId: room.roomId,
-                    roomType: room.roomType,
-                    imageUrl: room.imageUrl,
-                    maxGuest: room.maxGuest,
-                    amenities: room.amenities,
-                    pricePerNight: room.pricePerNight,
-                  ),
-                  onCheckAvailability: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DertamBookingRoomScreen(room: room),
+            const SliverToBoxAdapter(child: SizedBox(height: DertamSpacings.m)),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final room = hotel.roomProperties[index];
+                  return DertamRoomCard(
+                    room: room,
+                    onCheckAvailability: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            DertamBookingRoomScreen(roomId: room.roomPropertiesId),
+                      ),
+                    ),
+                  );
+                }, childCount: hotel.roomProperties.length),
+              ),
+            ),
+          ] else ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(DertamSpacings.m),
+                child: Center(
+                  child: Text(
+                    'No rooms available',
+                    style: DertamTextStyles.bodyMedium.copyWith(
+                      color: Colors.grey[600],
                     ),
                   ),
-                );
-              }, childCount: _mockRooms.length),
+                ),
+              ),
             ),
-          ),
+          ],
         ],
       ),
       bottomNavigationBar: Padding(
@@ -390,7 +497,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: DertamColors.primaryDark,
             padding: const EdgeInsets.symmetric(vertical: DertamSpacings.m),
-
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(DertamSpacings.radiusSmall),
             ),
@@ -398,18 +504,14 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
           onPressed: () async {
             final result = await DertamSelectDateDialog.show(context);
             if (result != null) {
-              // Handle the search result
               print(
                 'Searching for ${result['guestCount']} guests\n'
                 'Check-in: ${result['checkInDate']}\n'
                 'Check-out: ${result['checkOutDate']}\n'
                 'Nights: ${result['numberOfNights']}',
               );
-              // TODO: Implement room search logic here
-              // You can navigate to a search results screen or filter rooms
             }
           },
-
           child: Text(
             'Search rooms',
             style: DertamTextStyles.button.copyWith(

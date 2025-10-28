@@ -39,9 +39,11 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
-    if (_isAutoScrolling && widget.images.length > 1) {
+    if (_isAutoScrolling &&
+        widget.images.isNotEmpty &&
+        widget.images.length > 1) {
       _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-        if (_pageController.hasClients) {
+        if (_pageController.hasClients && widget.images.isNotEmpty) {
           int nextPage = (_currentImageIndex + 1) % widget.images.length;
           _pageController.animateToPage(
             nextPage,

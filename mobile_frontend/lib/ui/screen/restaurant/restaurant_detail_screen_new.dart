@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:mobile_frontend/models/place/place_deatail.dart';
+import 'package:mobile_frontend/models/place/place_detail.dart';
 import 'package:mobile_frontend/models/restaurant/food_menu.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/widget/food_category_tab.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/widget/list_food_menu.dart';
@@ -100,7 +100,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  widget.restaurant.imageUrl.isEmpty
+                  widget.restaurant.imagesUrl.isEmpty
                       ? Container(
                           color: Colors.grey[300],
                           child: Icon(
@@ -110,7 +110,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                           ),
                         )
                       : Image.network(
-                          widget.restaurant.imageUrl,
+                          widget.restaurant.imagesUrl[0],
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
@@ -192,7 +192,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       ...List.generate(
                         5,
                         (index) => Icon(
-                          index < double.parse(widget.restaurant.rating).floor()
+                          index <
+                                  double.parse(
+                                    widget.restaurant.ratings.toString(),
+                                  ).floor()
                               ? Icons.star
                               : Icons.star_border,
                           color: Colors.amber,
@@ -201,7 +204,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        widget.restaurant.rating,
+                        widget.restaurant.ratings.toString(),
                         style: DertamTextStyles.body.copyWith(
                           fontWeight: FontWeight.w600,
                           color: DertamColors.primaryDark,
@@ -248,7 +251,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'TK ${widget.restaurant.location}',
+                          'TK ${widget.restaurant.googleMapsLink}',
                           style: DertamTextStyles.bodyMedium.copyWith(
                             color: DertamColors.primaryDark,
                           ),

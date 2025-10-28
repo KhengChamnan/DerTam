@@ -18,9 +18,9 @@ class ApiEndpoint {
   static const String recommendedPlaces = '/api/places/recommended';
 
   // Hotel Endpoints
-  static const String hotel = '/api/hotels/properties';
+  static const String hotelDetails = '/api/hotel-details';
+  static const String roomDetails = '/api/rooms';
 
- 
   //Trip Endpoints
   static const String createTrip = '/api/trips';
   static const String getAllUsers = '/api/trips';

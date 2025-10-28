@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/place_repository.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/models/place/place_category.dart';
-import 'package:mobile_frontend/models/place/place_deatail.dart';
+import 'package:mobile_frontend/models/place/place_detail.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 
 class PlaceProvider extends ChangeNotifier {
