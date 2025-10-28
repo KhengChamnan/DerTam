@@ -20,8 +20,6 @@ class RoomController extends Controller
         try {
             $room = RoomProperty::with([
                 'property:property_id,place_id',
-                'property.place:placeID,name,description,google_maps_link,ratings,reviews_count,images_url,entry_free,operating_hours,latitude,longitude,province_id',
-                'property.place.provinceCategory:province_categoryID,province_categoryName,category_description',
                 'amenities:amenity_id,amenity_name,image_url,image_public_ids'
             ])->where('room_properties_id', $room_properties_id)->first();
 
