@@ -24,6 +24,7 @@ use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\BookingController;
 use App\Http\Controllers\API\Hotel\RoomController;
+use App\Http\Controllers\API\Payment\ABAPaymentController;
 
 
 Route::get('/user', function (Request $request) {
@@ -109,6 +110,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
     Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
 
+    // ABA Payment initiate (protected)
+    Route::post('payments/aba/bookings/{booking_id}/initiate', [ABAPaymentController::class, 'initiateForBooking']);
+
 
     // Trip management routes
     Route::controller(TripController::class)->group(function() {
@@ -142,4 +146,7 @@ Route::get('/upload', function () {
     return view('upload');
 });
 Route::post('/upload', [MediaController::class, 'upload']);
+
+// ABA webhook (public; ABA server callback)
+Route::post('payments/aba/webhook', [ABAPaymentController::class, 'webhook']);
 

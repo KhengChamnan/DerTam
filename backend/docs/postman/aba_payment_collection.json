@@ -1,0 +1,146 @@
+{
+  "info": {
+    "name": "ABA PayWay - Booking Payments",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "aba-payway-booking-collection"
+  },
+  "item": [
+    {
+      "name": "Create Booking",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{authToken}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/hotels/bookings",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "hotels", "bookings" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trip_id\": null,\n  \"full_name\": \"John Doe\",\n  \"age\": 30,\n  \"gender\": \"Male\",\n  \"mobile\": \"+85512345678\",\n  \"email\": \"john@example.com\",\n  \"id_number\": \"ABC123456\",\n  \"check_in\": \"2030-01-10\",\n  \"check_out\": \"2030-01-12\",\n  \"room_ids\": [1],\n  \"payment_method\": \"KHQR\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "const data = res.data || {};",
+              "if (data.booking_id) pm.collectionVariables.set('booking_id', data.booking_id);",
+              "if (data.merchant_ref_no) pm.collectionVariables.set('merchant_ref_no', data.merchant_ref_no);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Initiate Payment (ABA KHQR)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{authToken}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/aba/bookings/{{booking_id}}/initiate",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "payments", "aba", "bookings", "{{booking_id}}", "initiate" ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "const data = res.data || {};",
+              "if (data.tran_id) pm.collectionVariables.set('tran_id', data.tran_id);",
+              "if (data.abapay_deeplink) pm.collectionVariables.set('abapay_deeplink', data.abapay_deeplink);",
+              "if (data.qrImage) pm.collectionVariables.set('qrImage', data.qrImage);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Booking by ID",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{authToken}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/hotels/bookings/{{booking_id}}",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "hotels", "bookings", "{{booking_id}}" ]
+        }
+      }
+    },
+    {
+      "name": "ABA Webhook (simulate success)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/aba/webhook",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "payments", "aba", "webhook" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tran_id\": \"{{tran_id}}\",\n  \"status\": { \"code\": \"0\", \"message\": \"Success.\", \"trace_id\": \"demo-trace\" }\n}"
+        }
+      }
+    },
+    {
+      "name": "ABA Webhook (simulate failed)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/aba/webhook",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "payments", "aba", "webhook" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tran_id\": \"{{tran_id}}\",\n  \"status\": { \"code\": \"48\", \"message\": \"Something went wrong\", \"trace_id\": \"demo-trace\" }\n}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "authToken", "value": "PASTE_YOUR_SANCTUM_TOKEN_HERE" },
+    { "key": "booking_id", "value": "" },
+    { "key": "merchant_ref_no", "value": "" },
+    { "key": "tran_id", "value": "" },
+    { "key": "abapay_deeplink", "value": "" },
+    { "key": "qrImage", "value": "" }
+  ]
+}
+
+
