@@ -16,8 +16,22 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
     Select,
     SelectContent,
@@ -41,6 +55,7 @@ import {
     Upload,
     Settings2,
     UserCog,
+    MoreHorizontal,
 } from "lucide-react";
 
 interface UserWithRole {
@@ -242,16 +257,14 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     };
 
     const handleDeleteUser = (userId: number) => {
-        if (confirm("Are you sure you want to delete this user?")) {
-            router.delete(`/users/${userId}`, {
-                onSuccess: () => {
-                    toast.success("User deleted successfully");
-                },
-                onError: () => {
-                    toast.error("Failed to delete user");
-                },
-            });
-        }
+        router.delete(`/users/${userId}`, {
+            onSuccess: () => {
+                toast.success("User deleted successfully");
+            },
+            onError: () => {
+                toast.error("Failed to delete user");
+            },
+        });
     };
 
     const getStatusBadge = (status: string) => {
@@ -880,29 +893,104 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                         )}
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    asChild
+                                                <Link
+                                                    href={`/users/${user.id}/edit`}
                                                 >
-                                                    <Link
-                                                        href={`/users/${user.id}/edit`}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                     >
                                                         <EditIcon className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        handleDeleteUser(
-                                                            user.id
-                                                        )
-                                                    }
-                                                    className="text-destructive hover:text-destructive"
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
+                                                    </Button>
+                                                </Link>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/users/${user.id}/edit`}
+                                                            >
+                                                                Edit user
+                                                                <EditIcon className="ml-8 h-4 w-4" />
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger
+                                                                asChild
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onSelect={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.preventDefault()
+                                                                    }
+                                                                    className="text-red-600 focus:text-red-600"
+                                                                >
+                                                                    Delete user
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>
+                                                                        Are you
+                                                                        absolutely
+                                                                        sure?
+                                                                    </AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This
+                                                                        action
+                                                                        cannot
+                                                                        be
+                                                                        undone.
+                                                                        This
+                                                                        will
+                                                                        permanently
+                                                                        delete
+                                                                        the user
+                                                                        "
+                                                                        {
+                                                                            user.name
+                                                                        }
+                                                                        " and
+                                                                        remove
+                                                                        all
+                                                                        their
+                                                                        data
+                                                                        from our
+                                                                        servers.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>
+                                                                        Cancel
+                                                                    </AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        onClick={() =>
+                                                                            handleDeleteUser(
+                                                                                user.id
+                                                                            )
+                                                                        }
+                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                    >
+                                                                        Delete
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </div>
                                     </div>

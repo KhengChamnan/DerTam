@@ -41,8 +41,8 @@ class AuthenticatedSessionController extends Controller
             return to_route('two-factor.login');
         }
 
-        // Check if user has admin or superadmin role before allowing login to admin portal
-        if ($user->hasRole('user') && !$user->hasRole(['admin', 'superadmin'])) {
+        // Check if user has permission to access admin portal or is a hotel owner
+        if (!$user->can('access admin panel') && !$user->hasRole('hotel owner')) {
             return back()->withErrors([
                 'email' => 'You do not have permission to access the admin portal. Please use the mobile app or user web interface.',
             ])->onlyInput('email');
@@ -51,6 +51,11 @@ class AuthenticatedSessionController extends Controller
         Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();
+
+        // Redirect hotel owners to their specific dashboard
+        if ($user->hasRole('hotel owner')) {
+            return redirect()->intended(route('hotel-owner.dashboard', absolute: false));
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

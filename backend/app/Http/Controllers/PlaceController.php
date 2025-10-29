@@ -115,7 +115,13 @@ class PlaceController extends Controller
                 'provinces' => $provinces,
                 'filters' => $request->only(['category_id', 'province_id', 'search']),
                 'auth' => [
-                    'user' => Auth::user()->load('roles:id,name'),
+                    'user' => Auth::user() ? [
+                        'id' => Auth::user()->id,
+                        'name' => Auth::user()->name,
+                        'email' => Auth::user()->email,
+                        'roles' => Auth::user()->load('roles')->roles,
+                        'permissions' => Auth::user()->load('permissions', 'roles.permissions')->getAllPermissions()->pluck('name')->toArray(),
+                    ] : null,
                 ],
             ]);
         } catch (\Exception $e) {
