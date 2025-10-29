@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/data/repo/laravel/laravel_auth_api_repository.dart';
+import 'package:mobile_frontend/data/repository/abstract/auth_repository.dart';
+import 'package:mobile_frontend/models/user/user_model.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 
-///
-/// Auth Provider
-/// Manages authentication state and handles all auth-related operations
-///
 class AuthProvider extends ChangeNotifier {
   // Repository instance
-  final LaravelAuthApiRepository _authRepository = LaravelAuthApiRepository();
-
+  final AuthRepository authRepository;
+  AuthProvider({required this.authRepository});
   // Async values for different operations
-  AsyncValue<Map<String, dynamic>>? loginValue;
-  AsyncValue<Map<String, dynamic>>? registerValue;
-  AsyncValue<Map<String, dynamic>>? forgotPasswordValue;
-  AsyncValue<Map<String, dynamic>>? verifyPinValue;
-  AsyncValue<Map<String, dynamic>>? resetPasswordValue;
-  AsyncValue<Map<String, dynamic>>? googleSignInValue;
+  AsyncValue<User>? loginValue;
+  AsyncValue<User>? registerValue;
+  AsyncValue<User>? forgotPasswordValue;
+  AsyncValue<User>? verifyPinValue;
+  AsyncValue<User>? resetPasswordValue;
+  AsyncValue<User>? googleSignInValue;
+  AsyncValue<String?> _userToken = AsyncValue.empty();
 
   // User state
   String? _authToken;
+  User? _currentUser;
   bool _isAuthenticated = false;
 
   /// Check if user is authenticated
@@ -28,182 +27,150 @@ class AuthProvider extends ChangeNotifier {
   /// Get authentication token
   String? get authToken => _authToken;
 
-  /// Initialize auth state (check if token exists)
+  /// Get current user
+  User? get currentUser => _currentUser;
+
+  /// Get user token
+  AsyncValue<String?> get userToken => _userToken;
   Future<void> initializeAuth() async {
-    final token = await _authRepository.getToken();
-    if (token != null) {
+    final token = await authRepository.getToken();
+    if (token != null && token.isNotEmpty) {
       _authToken = token;
       _isAuthenticated = true;
       notifyListeners();
     }
   }
 
-  /// Login user
+  Future<String?> getUserToken() async {
+    _userToken = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final token = await authRepository.getToken();
+      _userToken = AsyncValue.success(token);
+      notifyListeners();
+      return token;
+    } catch (error) {
+      debugPrint('❌ Error getting user token in provider: $error');
+      _userToken = AsyncValue.error(error);
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<void> login(String email, String password) async {
-    // 1 - Set loading state
     loginValue = AsyncValue.loading();
     notifyListeners();
 
     try {
-      // 2 - Call repository to login
-      final result = await _authRepository.login(email, password);
-
-      // 3 - Handle success
-      if (result['success']) {
-        _authToken = result['data']['token'];
-        _isAuthenticated = true;
-        loginValue = AsyncValue.success(result);
-      } else {
-        // Handle error response
-        loginValue = AsyncValue.error(result['message']);
-      }
+      final user = await authRepository.login(email, password);
+      final token = await authRepository.getToken();
+      _authToken = token;
+      _currentUser = user;
+      _isAuthenticated = true;
+      loginValue = AsyncValue.success(user);
+      debugPrint('✅ Login successful in provider');
     } catch (error) {
-      // 4 - Handle exception
+      debugPrint('❌ Login error in provider: $error');
       loginValue = AsyncValue.error(error);
+      _isAuthenticated = false;
     }
-
-    // 5 - Notify listeners
     notifyListeners();
   }
 
-  /// Register new user
   Future<void> register(
     String name,
     String email,
     String password,
     String confirmPassword,
   ) async {
-    // 1 - Set loading state
     registerValue = AsyncValue.loading();
     notifyListeners();
 
     try {
-      // 2 - Call repository to register
-      final result = await _authRepository.register(
+      final user = await authRepository.register(
         name,
         email,
         password,
         confirmPassword,
       );
-
-      // 3 - Handle success
-      if (result['success']) {
-        _authToken = result['data']['token'];
-        _isAuthenticated = true;
-        registerValue = AsyncValue.success(result);
-      } else {
-        // Handle error response
-        registerValue = AsyncValue.error(result['message']);
-      }
+      final token = await authRepository.getToken();
+      _authToken = token;
+      _currentUser = user;
+      _isAuthenticated = true;
+      registerValue = AsyncValue.success(user);
+      debugPrint('✅ Registration successful in provider');
     } catch (error) {
-      // 4 - Handle exception
+      debugPrint('❌ Registration error in provider: $error');
       registerValue = AsyncValue.error(error);
+      _isAuthenticated = false;
     }
-
-    // 5 - Notify listeners
     notifyListeners();
   }
 
-  /// Send password reset email
   Future<void> sendPasswordResetEmail(String email) async {
-    // 1 - Set loading state
     forgotPasswordValue = AsyncValue.loading();
     notifyListeners();
-
     try {
-      // 2 - Call repository to send reset email
-      final result = await _authRepository.sendPasswordResetEmail(email);
-
-      // 3 - Handle response
-      if (result['success']) {
-        forgotPasswordValue = AsyncValue.success(result);
-      } else {
-        forgotPasswordValue = AsyncValue.error(result['message']);
-      }
+      final user = await authRepository.sendPasswordResetEmail(email);
+      forgotPasswordValue = AsyncValue.success(user);
+      debugPrint('✅ Password reset email sent successfully in provider');
     } catch (error) {
-      // 4 - Handle exception
+      debugPrint('❌ Password reset email error in provider: $error');
       forgotPasswordValue = AsyncValue.error(error);
     }
-
-    // 5 - Notify listeners
     notifyListeners();
   }
 
-  /// Verify PIN code
   Future<void> verifyPin(String email, String pin) async {
-    // 1 - Set loading state
     verifyPinValue = AsyncValue.loading();
     notifyListeners();
-
     try {
-      // 2 - Call repository to verify PIN
-      final result = await _authRepository.verifyPin(email, pin);
-
-      // 3 - Handle response
-      if (result['success']) {
-        verifyPinValue = AsyncValue.success(result);
-      } else {
-        verifyPinValue = AsyncValue.error(result['message']);
-      }
+      final user = await authRepository.verifyPin(email, pin);
+      verifyPinValue = AsyncValue.success(user);
+      debugPrint('✅ PIN verified successfully in provider');
     } catch (error) {
-      // 4 - Handle exception
+      debugPrint('❌ PIN verification error in provider: $error');
       verifyPinValue = AsyncValue.error(error);
     }
-
-    // 5 - Notify listeners
     notifyListeners();
   }
 
-  /// Reset password
   Future<void> resetPassword(String email, String newPassword) async {
-    // 1 - Set loading state
     resetPasswordValue = AsyncValue.loading();
     notifyListeners();
 
     try {
-      // 2 - Call repository to reset password
-      final result = await _authRepository.resetPassword(email, newPassword);
-
-      // 3 - Handle response
-      if (result['success']) {
-        resetPasswordValue = AsyncValue.success(result);
-      } else {
-        resetPasswordValue = AsyncValue.error(result['message']);
-      }
+      final user = await authRepository.resetPassword(email, newPassword);
+      resetPasswordValue = AsyncValue.success(user);
+      debugPrint('✅ Password reset successfully in provider');
     } catch (error) {
-      // 4 - Handle exception
+      debugPrint('❌ Password reset error in provider: $error');
       resetPasswordValue = AsyncValue.error(error);
     }
-
-    // 5 - Notify listeners
     notifyListeners();
   }
 
-  /// Google sign in
   Future<void> googleSignIn() async {
-    // 1 - Set loading state
     googleSignInValue = AsyncValue.loading();
     notifyListeners();
 
     try {
-      // 2 - Call repository to sign in with Google
-      final result = await _authRepository.googleSignIn();
+      final user = await authRepository.googleSignIn();
+      final token = await authRepository.getToken();
+      _authToken = token;
+      _currentUser = user;
+      _isAuthenticated = true;
+      googleSignInValue = AsyncValue.success(user);
 
-      // 3 - Handle success
-      if (result['success']) {
-        _authToken = result['data']['token'];
-        _isAuthenticated = true;
-        googleSignInValue = AsyncValue.success(result);
-      } else {
-        // Handle error response
-        googleSignInValue = AsyncValue.error(result['message']);
-      }
+      debugPrint('✅ Google sign-in successful in provider');
     } catch (error) {
-      // 4 - Handle exception
+      // 5 - Handle exception
+      debugPrint('❌ Google sign-in error in provider: $error');
       googleSignInValue = AsyncValue.error(error);
+      _isAuthenticated = false;
     }
 
-    // 5 - Notify listeners
+    // 6 - Notify listeners
     notifyListeners();
   }
 
@@ -211,15 +178,17 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     try {
       // Call repository to logout
-      await _authRepository.logout();
+      await authRepository.logOut();
+      debugPrint('✅ Logout successful in provider');
     } catch (error) {
       // Log error but continue with local logout
-      debugPrint('Logout error: $error');
+      debugPrint('❌ Logout error in provider: $error');
     } finally {
       // Clear local auth state
       _authToken = null;
+      _currentUser = null;
       _isAuthenticated = false;
-      
+
       // Clear all async values
       loginValue = null;
       registerValue = null;
@@ -227,7 +196,7 @@ class AuthProvider extends ChangeNotifier {
       verifyPinValue = null;
       resetPasswordValue = null;
       googleSignInValue = null;
-      
+
       notifyListeners();
     }
   }

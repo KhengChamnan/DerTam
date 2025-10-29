@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/forgot_password/forgot_password_screen.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/register/dertam_register_screen.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_screen.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import '../../../theme/dertam_apptheme.dart';
@@ -61,14 +61,14 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
       // Success - Show message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(loginValue!.data!['message'] ?? 'Login successful'),
+          content: Text(loginValue!.data!.name),
           backgroundColor: Colors.green,
         ),
       );
       
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) =>  HomePage()),
       );
       
     } else if (loginValue?.state == AsyncValueState.error) {
@@ -84,7 +84,6 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
 
   /// Handles forgot password
   void _handleForgotPassword() {
-    // TODO: Navigate to forgot password screen
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
@@ -105,17 +104,9 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
     final googleSignInValue = authProvider.googleSignInValue;
     
     if (googleSignInValue?.state == AsyncValueState.success) {
-      // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(googleSignInValue!.data!['message'] ?? 'Google sign in successful'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) =>  HomePage()),
       );
       
     } else if (googleSignInValue?.state == AsyncValueState.error) {

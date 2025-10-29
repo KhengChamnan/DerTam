@@ -94,8 +94,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               //Send Button
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
-                  final isLoading = authProvider.forgotPasswordValue?.state == AsyncValueState.loading;
-                  
+                  final isLoading =
+                      authProvider.forgotPasswordValue?.state ==
+                      AsyncValueState.loading;
+
                   return DertamButton(
                     text: 'Send',
                     onPressed: () => _handleEmailVerification(),
@@ -149,21 +151,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     // Check result after login
     if (!mounted) return;
-
     final response = authProvider.forgotPasswordValue;
-
     if (response?.state == AsyncValueState.success) {
       // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response!.data!['message'] ?? 'Login successful'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => VerifyPinScreen(email: _emailController.text.trim())),
+        MaterialPageRoute(
+          builder: (context) =>
+              VerifyPinScreen(email: _emailController.text.trim()),
+        ),
       );
     } else if (response?.state == AsyncValueState.error) {
       // Error - Show error message
