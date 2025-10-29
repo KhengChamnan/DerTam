@@ -1,4 +1,4 @@
-enum AsyncValueState { loading, error, success }
+enum AsyncValueState { loading, error, success, empty }
 
 class AsyncValue<T> {
   final T? data;
@@ -14,4 +14,5 @@ class AsyncValue<T> {
 
   factory AsyncValue.error(Object error) =>
       AsyncValue._(error: error, state: AsyncValueState.error);
+  factory AsyncValue.empty() => AsyncValue._(state: AsyncValueState.empty);
 }

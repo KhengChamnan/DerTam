@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_screen.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_text_field.dart';
@@ -175,17 +175,9 @@ Future<void> _handleResetPassword() async {
     final resetPasswordValue = authProvider.resetPasswordValue;
 
     if (resetPasswordValue?.state == AsyncValueState.success) {
-      // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(resetPasswordValue!.data!['message'] ?? 'Login successful'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) =>  HomePage()),
       );
 
     } else if (resetPasswordValue?.state == AsyncValueState.error) {

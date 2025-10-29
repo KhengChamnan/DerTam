@@ -74,12 +74,7 @@ Future<void> _handleConfirm() async {
     
     if (response?.state == AsyncValueState.success) {
       // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response!.data!['message'] ?? 'Login successful'),
-          backgroundColor: Colors.green,
-        ),
-      );
+  
       
       Navigator.pushReplacement(
         context,
@@ -112,14 +107,6 @@ Future<void> _handleConfirm() async {
     final response = authProvider.forgotPasswordValue;
     
     if (response?.state == AsyncValueState.success) {
-      // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response!.data!['message'] ?? 'PIN sent successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
       // Clear PIN fields
       for (var controller in _controllers) {
         controller.clear();

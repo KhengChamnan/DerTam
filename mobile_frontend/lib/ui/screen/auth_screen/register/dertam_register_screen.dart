@@ -1,10 +1,13 @@
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_screen.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/utils/validation.dart';
+import '../widgets/login_error.dart';
 import '../../../theme/dertam_apptheme.dart';
 import '../../../widgets/inputs/dertam_text_field.dart';
 import '../../../widgets/actions/dertam_button.dart';
@@ -43,6 +46,20 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
     // Validate form first
     if (!_formKey.currentState!.validate()) {
       debugPrint('Form validation failed');
+      // Show validation error dialog
+      await AuthErrorDialog.showValidationError(
+        context: context,
+        message: 'Please fix the errors in the form before continuing.',
+      );
+      return;
+    }
+
+    // Additional password confirmation check
+    if (_passwordController.text != _confirmPasswordController.text) {
+      await AuthErrorDialog.showValidationError(
+        context: context,
+        message: 'Passwords do not match. Please check and try again.',
+      );
       return;
     }
 
@@ -52,61 +69,65 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
     debugPrint('Password: ${_passwordController.text}');
     debugPrint('Confirm Password: ${_confirmPasswordController.text}');
 
-    // Get auth provider
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    // Call register method
-    await authProvider.register(
-      _nameController.text.trim(),
-      _emailController.text.trim(),
-      _passwordController.text,
-      _confirmPasswordController.text,
-    );
+    try {
+      // Get auth provider
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Check result after registration
-    if (!mounted) return;
+      // Call register method
+      await authProvider.register(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+        _confirmPasswordController.text,
+      );
 
-    final registerValue = authProvider.registerValue;
-    
-    // Debug: Print register value state
-    debugPrint('Register state: ${registerValue?.state}');
-    debugPrint('Register data: ${registerValue?.data}');
-    debugPrint('Register error: ${registerValue?.error}');
-    
-    if (registerValue?.state == AsyncValueState.success) {
-      // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(registerValue!.data!['message'] ?? 'Registration successful'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Navigate to home screen
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      );
-      
-    } else if (registerValue?.state == AsyncValueState.error) {
-      // Error - Show detailed error message
-      String errorMessage;
-      
-      // Check if error is a string or object
-      if (registerValue!.error is String) {
-        errorMessage = registerValue.error as String;
-      } else {
-        errorMessage = 'Registration failed. Please try again.';
+      // Check result after registration
+      if (!mounted) return;
+      final registerValue = authProvider.registerValue;
+
+      // Debug: Print register value state
+      debugPrint('Register state: ${registerValue?.state}');
+      debugPrint('Register data: ${registerValue?.data}');
+      debugPrint('Register error: ${registerValue?.error}');
+
+      if (registerValue?.state == AsyncValueState.success) {
+        // Success - Show message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              registerValue!.data?.name?? 'Registration successful',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate to home screen
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) =>  HomePage()),
+          (route) => false,
+        );
+      } else if (registerValue?.state == AsyncValueState.error) {
+        // Error - Show error dialog instead of SnackBar
+        String errorMessage;
+        // Check if error is a string or object
+        if (registerValue!.error is String) {
+          errorMessage = registerValue.error as String;
+        } else {
+          errorMessage = 'Registration failed. Please try again.';
+        }
+
+        // Show error dialog
+        await AuthErrorDialog.showRegistrationError(
+          context: context,
+          customMessage: errorMessage,
+        );
       }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
-      );
+    } catch (e) {
+      // Handle any unexpected errors
+      debugPrint('Unexpected error during registration: $e');
+      await AuthErrorDialog.showNetworkError(context: context);
+      return;
     }
   }
 
@@ -200,8 +221,10 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
                   // Sign up button
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
-                      final isLoading = authProvider.registerValue?.state == AsyncValueState.loading;
-                      
+                      final isLoading =
+                          authProvider.registerValue?.state ==
+                          AsyncValueState.loading;
+
                       return DertamButton(
                         text: 'Sign up',
                         onPressed: () => _handleSignup(),
@@ -213,7 +236,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
 
                   SizedBox(height: DertamSpacings.l),
 
-                  // 
+                  //
                   // Register link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -238,7 +261,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: DertamSpacings.xl),
                 ],
               ),

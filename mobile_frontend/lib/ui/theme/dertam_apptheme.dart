@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 ///
 class DertamColors {
   // Primary colors
-  static Color primaryDark           = const Color(0xFF01015B);
-  static Color primaryBlue           = const Color(0xFF1F3EEE);
+  static Color primaryDark           = const Color(0xFF01015b);
+  static Color primaryBlue           = const Color(0xFF01015B);
   static Color primaryPurple         = const Color(0xFF5740AD);
   
   // Gradient colors for buttons
