@@ -7,6 +7,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\HotelOwnerController;
+use App\Http\Controllers\Hotel\RoomController;
+use App\Http\Controllers\Hotel\RoomPropertyController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -113,8 +115,6 @@ Route::middleware([
                 ->middleware('permission:delete users')
                 ->name('destroy');
         });
-            
-        // Update user routes to include hotel assignment
         Route::post('/users/{user}/assign-hotel', [UserController::class, 'assignHotelOwnership'])
             ->middleware('permission:assign hotel ownership')
             ->name('users.assign-hotel');
@@ -128,10 +128,31 @@ Route::middleware([
             Route::get('/properties/{id}', [HotelOwnerController::class, 'show'])
                 ->middleware('hotel.owner')
                 ->name('properties.show');
-            Route::get('/properties/{property_id}/rooms', [HotelOwnerController::class, 'rooms'])
-                ->middleware('hotel.owner')
-                ->name('properties.rooms');
+            Route::get('/rooms', [HotelOwnerController::class, 'allRooms'])->name('rooms.all');
             Route::get('/bookings', [HotelOwnerController::class, 'bookings'])->name('bookings.index');
+            
+            // Room Property (Room Types) Management
+            Route::prefix('properties/{property_id}/room-properties')
+                ->name('room-properties.')
+                ->middleware('hotel.owner')
+                ->group(function () {
+                    Route::get('/create', [RoomPropertyController::class, 'create'])->name('create');
+                    Route::post('/', [RoomPropertyController::class, 'store'])->name('store');
+                    Route::get('/{room_property_id}/edit', [RoomPropertyController::class, 'edit'])->name('edit');
+                    Route::put('/{room_property_id}', [RoomPropertyController::class, 'update'])->name('update');
+                    Route::delete('/{room_property_id}', [RoomPropertyController::class, 'destroy'])->name('destroy');
+                });
+            
+            // Individual Rooms Management (Separate from Room Types)
+            Route::prefix('rooms')
+                ->name('rooms.')
+                ->group(function () {
+                    Route::get('/create', [RoomController::class, 'create'])->name('create');
+                    Route::post('/', [RoomController::class, 'store'])->name('store');
+                    Route::get('/{room_id}/edit', [RoomController::class, 'edit'])->name('edit');
+                    Route::put('/{room_id}', [RoomController::class, 'update'])->name('update');
+                    Route::delete('/{room_id}', [RoomController::class, 'destroy'])->name('destroy');
+                });
         });
 
         // ============================================

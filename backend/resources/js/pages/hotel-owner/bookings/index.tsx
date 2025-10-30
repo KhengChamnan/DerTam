@@ -1,10 +1,37 @@
-import React from "react";
-import { Head, Link } from "@inertiajs/react";
+import React, { useState, useEffect } from "react";
+import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, DollarSign, Eye, Hotel } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Calendar,
+    Users,
+    DollarSign,
+    Eye,
+    Hotel,
+    Phone,
+    Settings2,
+    Search,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+} from "lucide-react";
 
 interface Booking {
     booking_id: number;
@@ -42,6 +69,14 @@ interface PaginatedBookings {
     }>;
 }
 
+interface ColumnVisibility {
+    property: boolean;
+    checkIn: boolean;
+    checkOut: boolean;
+    bookedOn: boolean;
+    paymentStatus: boolean;
+}
+
 interface Props {
     bookings?: PaginatedBookings;
 }
@@ -56,6 +91,42 @@ export default function HotelOwnerBookingsIndex({
         links: [],
     },
 }: Props) {
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+
+    // Column visibility state with localStorage persistence
+    const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
+        () => {
+            const savedPreferences = localStorage.getItem(
+                "bookingsTableColumnVisibility"
+            );
+            if (savedPreferences) {
+                try {
+                    return JSON.parse(savedPreferences);
+                } catch (e) {
+                    console.error(
+                        "Failed to parse column visibility preferences:",
+                        e
+                    );
+                }
+            }
+            return {
+                property: true,
+                checkIn: true,
+                checkOut: true,
+                bookedOn: true,
+                paymentStatus: true,
+            };
+        }
+    );
+
+    // Save column visibility preferences
+    useEffect(() => {
+        localStorage.setItem(
+            "bookingsTableColumnVisibility",
+            JSON.stringify(columnVisibility)
+        );
+    }, [columnVisibility]);
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "paid":
@@ -87,158 +158,304 @@ export default function HotelOwnerBookingsIndex({
             <Head title="Hotel Bookings" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+                {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold">Hotel Bookings</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            Hotel Bookings
+                        </h1>
                         <p className="text-muted-foreground">
                             Manage and monitor your hotel bookings
                         </p>
                     </div>
                 </div>
 
-                {/* Bookings List */}
-                <div className="space-y-4">
-                    {bookings.data.map((booking) => (
-                        <Card
-                            key={booking.booking_id}
-                            className="hover:shadow-lg transition-shadow"
-                        >
-                            <CardHeader className="pb-3">
-                                <div className="flex items-start justify-between">
-                                    <div className="space-y-1">
-                                        <CardTitle className="text-lg">
-                                            Booking #{booking.booking_id}
-                                        </CardTitle>
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Users className="h-4 w-4" />
-                                            <span className="text-sm">
+                {/* Filters */}
+                <div className="flex items-center gap-4">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search bookings..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-8"
+                        />
+                    </div>
+
+                    <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                    >
+                        <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Column Toggle */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-auto"
+                            >
+                                <Settings2 className="h-4 w-4" />
+                                View
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[150px]">
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.property}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        property: !!value,
+                                    }))
+                                }
+                            >
+                                Property
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.checkIn}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        checkIn: !!value,
+                                    }))
+                                }
+                            >
+                                Check-in
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.checkOut}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        checkOut: !!value,
+                                    }))
+                                }
+                            >
+                                Check-out
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.bookedOn}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        bookedOn: !!value,
+                                    }))
+                                }
+                            >
+                                Booked On
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
+                                checked={columnVisibility.paymentStatus}
+                                onCheckedChange={(value) =>
+                                    setColumnVisibility((prev) => ({
+                                        ...prev,
+                                        paymentStatus: !!value,
+                                    }))
+                                }
+                            >
+                                Payment Status
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                {/* Table-like layout */}
+                <div className="rounded-md border overflow-x-auto">
+                    <div className="min-w-[1200px]">
+                        {/* Table Header */}
+                        <div className="border-b bg-muted/50 p-4">
+                            <div
+                                className="grid gap-4 items-center"
+                                style={{
+                                    gridTemplateColumns: `1fr 2fr ${
+                                        columnVisibility.property ? "2fr" : ""
+                                    } ${
+                                        columnVisibility.checkIn ? "1.5fr" : ""
+                                    } ${
+                                        columnVisibility.checkOut ? "1.5fr" : ""
+                                    } 1.5fr ${
+                                        columnVisibility.bookedOn ? "1.5fr" : ""
+                                    } 1.5fr ${
+                                        columnVisibility.paymentStatus
+                                            ? "1fr"
+                                            : ""
+                                    } 1.5fr`.trim(),
+                                }}
+                            >
+                                <div className="text-sm font-medium">
+                                    Booking ID
+                                </div>
+                                <div className="text-sm font-medium">Guest</div>
+                                {columnVisibility.property && (
+                                    <div className="text-sm font-medium">
+                                        Property
+                                    </div>
+                                )}
+                                {columnVisibility.checkIn && (
+                                    <div className="text-sm font-medium">
+                                        Check-in
+                                    </div>
+                                )}
+                                {columnVisibility.checkOut && (
+                                    <div className="text-sm font-medium">
+                                        Check-out
+                                    </div>
+                                )}
+                                <div className="text-sm font-medium">
+                                    Total Amount
+                                </div>
+                                {columnVisibility.bookedOn && (
+                                    <div className="text-sm font-medium">
+                                        Booked On
+                                    </div>
+                                )}
+                                <div className="text-sm font-medium">
+                                    Status
+                                </div>
+                                {columnVisibility.paymentStatus && (
+                                    <div className="text-sm font-medium">
+                                        Payment
+                                    </div>
+                                )}
+                                <div className="text-sm font-medium">
+                                    Actions
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Table Body */}
+                        <div className="divide-y">
+                            {bookings.data.map((booking) => (
+                                <div
+                                    key={booking.booking_id}
+                                    className="p-4 hover:bg-muted/50"
+                                >
+                                    <div
+                                        className="grid gap-4 items-center"
+                                        style={{
+                                            gridTemplateColumns: `1fr 2fr ${
+                                                columnVisibility.property
+                                                    ? "2fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.checkIn
+                                                    ? "1.5fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.checkOut
+                                                    ? "1.5fr"
+                                                    : ""
+                                            } 1.5fr ${
+                                                columnVisibility.bookedOn
+                                                    ? "1.5fr"
+                                                    : ""
+                                            } 1.5fr ${
+                                                columnVisibility.paymentStatus
+                                                    ? "1fr"
+                                                    : ""
+                                            } 1.5fr`.trim(),
+                                        }}
+                                    >
+                                        <div className="font-medium">
+                                            #{booking.booking_id}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">
                                                 {booking.full_name}
                                             </span>
-                                            {booking.email && (
-                                                <>
-                                                    <span>•</span>
-                                                    <span className="text-sm">
-                                                        {booking.email}
-                                                    </span>
-                                                </>
-                                            )}
+                                            <span className="text-xs text-muted-foreground">
+                                                {booking.email}
+                                            </span>
                                         </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {getStatusBadge(booking.status)}
-                                        {getPaymentStatusBadge(
-                                            booking.payment_status
+                                        {columnVisibility.property && (
+                                            <div className="text-sm">
+                                                {booking.property?.place
+                                                    ?.name || "Unknown"}
+                                            </div>
                                         )}
-                                    </div>
-                                </div>
-                            </CardHeader>
-
-                            <CardContent className="space-y-4">
-                                {/* Property Info */}
-                                {booking.property && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Hotel className="h-4 w-4 text-muted-foreground" />
-                                        <span>
-                                            {booking.property.place?.name ||
-                                                "Unknown Property"}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* Booking Details Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="space-y-1">
-                                        <div className="text-sm font-medium">
-                                            Check-in
-                                        </div>
-                                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                            <Calendar className="h-3 w-3" />
-                                            {new Date(
-                                                booking.check_in
-                                            ).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="text-sm font-medium">
-                                            Check-out
-                                        </div>
-                                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                            <Calendar className="h-3 w-3" />
-                                            {new Date(
-                                                booking.check_out
-                                            ).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="text-sm font-medium">
-                                            Total Amount
-                                        </div>
-                                        <div className="flex items-center gap-1 text-sm font-semibold">
-                                            <DollarSign className="h-3 w-3" />$
+                                        {columnVisibility.checkIn && (
+                                            <div className="flex items-center gap-1 text-sm">
+                                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                {new Date(
+                                                    booking.check_in
+                                                ).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                        {columnVisibility.checkOut && (
+                                            <div className="flex items-center gap-1 text-sm">
+                                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                {new Date(
+                                                    booking.check_out
+                                                ).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                        <div className="font-semibold">
+                                            $
                                             {booking.total_amount.toLocaleString()}
                                         </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="text-sm font-medium">
-                                            Booked On
+                                        {columnVisibility.bookedOn && (
+                                            <div className="text-sm">
+                                                {new Date(
+                                                    booking.created_at
+                                                ).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                        <div>
+                                            {getStatusBadge(booking.status)}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {new Date(
-                                                booking.created_at
-                                            ).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Room Types */}
-                                {booking.rooms && booking.rooms.length > 0 && (
-                                    <div className="space-y-2">
-                                        <div className="text-sm font-medium">
-                                            Room Types
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {booking.rooms.map(
-                                                (room, index) => (
-                                                    <Badge
-                                                        key={index}
-                                                        variant="outline"
-                                                        className="text-xs"
+                                        {columnVisibility.paymentStatus && (
+                                            <div>
+                                                {getPaymentStatusBadge(
+                                                    booking.payment_status
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2">
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                <Link
+                                                    href={`/hotel-owner/bookings/${booking.booking_id}`}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            {booking.mobile && (
+                                                <Button
+                                                    asChild
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    <a
+                                                        href={`tel:${booking.mobile}`}
                                                     >
-                                                        {room.room_type} - $
-                                                        {room.price_per_night}
-                                                        /night
-                                                    </Badge>
-                                                )
+                                                        <Phone className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
-                                )}
-
-                                {/* Actions */}
-                                <div className="flex gap-2 pt-2 border-t">
-                                    <Button asChild size="sm" variant="outline">
-                                        <Link
-                                            href={`/hotel-owner/bookings/${booking.booking_id}`}
-                                        >
-                                            <Eye className="h-4 w-4 mr-2" />
-                                            View Details
-                                        </Link>
-                                    </Button>
-                                    {booking.mobile && (
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            variant="outline"
-                                        >
-                                            <a href={`tel:${booking.mobile}`}>
-                                                Contact Guest
-                                            </a>
-                                        </Button>
-                                    )}
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Empty State */}
@@ -261,35 +478,114 @@ export default function HotelOwnerBookingsIndex({
                     </Card>
                 )}
 
-                {/* Pagination */}
-                {bookings.last_page > 1 && (
-                    <div className="flex items-center justify-center space-x-2">
-                        {bookings.links.map((link, index) => (
-                            <Button
-                                key={index}
-                                variant={link.active ? "default" : "outline"}
-                                size="sm"
-                                asChild={!!link.url}
-                                disabled={!link.url}
-                            >
-                                {link.url ? (
-                                    <Link
-                                        href={link.url}
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                ) : (
-                                    <span
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                )}
-                            </Button>
-                        ))}
+                {/* Footer */}
+                <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                        Showing{" "}
+                        {(bookings.current_page - 1) * bookings.per_page + 1} to{" "}
+                        {Math.min(
+                            bookings.current_page * bookings.per_page,
+                            bookings.total
+                        )}{" "}
+                        of {bookings.total} row(s).
                     </div>
-                )}
+
+                    <div className="flex items-center space-x-6 lg:space-x-8">
+                        <div className="flex items-center space-x-2">
+                            <p className="text-sm font-medium">Rows per page</p>
+                            <Select
+                                value={String(bookings.per_page)}
+                                onValueChange={(value) => {
+                                    router.get("/hotel-owner/bookings", {
+                                        per_page: value,
+                                        page: 1,
+                                    });
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-[70px]">
+                                    <SelectValue
+                                        placeholder={String(bookings.per_page)}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent side="top">
+                                    {[10, 20, 30, 40, 50].map((pageSize) => (
+                                        <SelectItem
+                                            key={pageSize}
+                                            value={String(pageSize)}
+                                        >
+                                            {pageSize}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                            Page {bookings.current_page} of {bookings.last_page}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                className="hidden h-8 w-8 p-0 lg:flex"
+                                onClick={() =>
+                                    router.get("/hotel-owner/bookings", {
+                                        page: 1,
+                                    })
+                                }
+                                disabled={bookings.current_page === 1}
+                            >
+                                <span className="sr-only">
+                                    Go to first page
+                                </span>
+                                <ChevronsLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                                onClick={() =>
+                                    router.get("/hotel-owner/bookings", {
+                                        page: bookings.current_page - 1,
+                                    })
+                                }
+                                disabled={bookings.current_page === 1}
+                            >
+                                <span className="sr-only">
+                                    Go to previous page
+                                </span>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                                onClick={() =>
+                                    router.get("/hotel-owner/bookings", {
+                                        page: bookings.current_page + 1,
+                                    })
+                                }
+                                disabled={
+                                    bookings.current_page === bookings.last_page
+                                }
+                            >
+                                <span className="sr-only">Go to next page</span>
+                                <ChevronLeft className="h-4 w-4 rotate-180" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="hidden h-8 w-8 p-0 lg:flex"
+                                onClick={() =>
+                                    router.get("/hotel-owner/bookings", {
+                                        page: bookings.last_page,
+                                    })
+                                }
+                                disabled={
+                                    bookings.current_page === bookings.last_page
+                                }
+                            >
+                                <span className="sr-only">Go to last page</span>
+                                <ChevronsRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

@@ -21,6 +21,7 @@ import {
     Users,
     Shield,
     Home,
+    DoorOpen,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 
@@ -72,9 +73,15 @@ const hotelOwnerNavItems: NavItem[] = [
         roles: ["hotel owner"],
     },
     {
+        title: "Rooms",
+        href: "/hotel-owner/rooms",
+        icon: DoorOpen,
+        roles: ["hotel owner"],
+    },
+    {
         title: "Bookings",
         href: "/hotel-owner/bookings",
-        icon: Users,
+        icon: BookOpen,
         roles: ["hotel owner"],
     },
 ];

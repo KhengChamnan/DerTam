@@ -283,11 +283,9 @@ export default function HotelOwnerPropertyShow({
                                 <div className="flex items-center justify-between">
                                     <CardTitle>Room Types</CardTitle>
                                     <Button size="sm" asChild>
-                                        <Link
-                                            href={`/hotel-owner/properties/${property.property_id}/rooms`}
-                                        >
+                                        <Link href={`/hotel-owner/properties`}>
                                             <Plus className="h-4 w-4 mr-2" />
-                                            Manage Rooms
+                                            Go to My Hotels
                                         </Link>
                                     </Button>
                                 </div>
