@@ -28,7 +28,7 @@ class HotelPropertyController extends Controller
                 'place:placeID,name,description,google_maps_link,ratings,reviews_count,images_url,entry_free,operating_hours,latitude,longitude,province_id',
                 'place.provinceCategory:province_categoryID,province_categoryName,category_description',
                 'facilities:facility_id,facility_name,image_url,image_public_ids',
-                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
+                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,images_url,image_public_ids',
                 'roomProperties.amenities:amenity_id,amenity_name,image_url,image_public_ids'
             ]);
 
@@ -124,7 +124,7 @@ class HotelPropertyController extends Controller
                 'place.provinceCategory:province_categoryID,province_categoryName,category_description',
                 'place.category:placeCategoryID,category_name,category_description',
                 'facilities:facility_id,facility_name,image_url,image_public_ids',
-                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
+                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,images_url,image_public_ids',
                 'roomProperties.amenities:amenity_id,amenity_name,image_url,image_public_ids'
             ])->where('place_id', $place_id)->first();
 

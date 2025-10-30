@@ -31,7 +31,6 @@ class RoomProperty extends Model
     protected $casts = [
         'max_guests' => 'integer',
         'price_per_night' => 'integer',
-        'is_available' => 'boolean',
         'images_url' => 'array',
         'image_public_ids' => 'array',
     ];
