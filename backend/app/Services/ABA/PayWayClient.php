@@ -9,194 +9,286 @@ use Illuminate\Support\Facades\Log;
 class PayWayClient
 {
     /**
-     * Initiate payment with ABA PayWay.
-     * If ABA_USE_PURCHASE=true, registers a real transaction via /purchase endpoint
-     * so it appears in the sandbox merchant portal and triggers webhooks.
-     * Otherwise, uses /generate-qr for QR-only testing.
+     * Create a payment transaction with ABA PayWay Purchase API.
+     * This registers the transaction in ABA's portal and returns a valid deeplink.
+     * 
+     * @param array $params Payment parameters
+     * @return array Response with success status, QR code, deeplink, etc.
      */
-    public function generateQr(array $params): array
+    public function purchase(array $params): array
     {
         $merchantId = Config::get('services.aba.merchant_id');
         $apiKey = Config::get('services.aba.api_key');
-        $usePurchase = (bool) Config::get('services.aba.use_purchase', false);
-        $qrEndpoint = Config::get('services.aba.qr_endpoint');
         $purchaseEndpoint = Config::get('services.aba.purchase_endpoint');
-        $endpoint = $usePurchase ? $purchaseEndpoint : $qrEndpoint;
-
         $defaultCurrency = Config::get('services.aba.default_currency', 'KHR');
         $defaultLifetime = (int) Config::get('services.aba.default_lifetime', 10);
-        $qrTemplate = Config::get('services.aba.qr_image_template', 'template3_color');
 
+        // Required parameters
         $reqTime = $params['req_time'] ?? gmdate('YmdHis');
         $tranId = $params['tran_id'];
         $amount = (float) $params['amount'];
         $currency = strtoupper($params['currency'] ?? $defaultCurrency);
 
-        // ✅ ABA expects different amount formats per currency
-        $amountForHash = $currency === 'KHR'
+        // Format amount based on currency (KHR = no decimals, USD = 2 decimals)
+        $amountFormatted = $currency === 'KHR'
             ? number_format($amount, 0, '.', '')
             : number_format($amount, 2, '.', '');
 
+        // Optional parameters with defaults
         $purchaseType = $params['purchase_type'] ?? 'purchase';
-        $paymentOption = $params['payment_option'] ?? 'abapay_khqr';
+        $paymentOption = $params['payment_option'] ?? 'abapay_khqr_deeplink';
         $firstName = $params['first_name'] ?? '';
         $lastName = $params['last_name'] ?? '';
 
-        // Split name if full name is passed in first_name only
+        // Auto-split name if full name provided in first_name
         if ($firstName && !$lastName && str_contains($firstName, ' ')) {
-            [$splitFirst, $splitLast] = array_pad(explode(' ', trim($firstName), 2), 2, '');
-            $firstName = $splitFirst;
-            $lastName = $splitLast;
+            [$firstName, $lastName] = array_pad(explode(' ', trim($firstName), 2), 2, '');
         }
 
         $email = $params['email'] ?? '';
         $phone = $params['phone'] ?? '';
         $items = $params['items'] ?? '';
+        
+        // Shipping must be a number (0 if not provided)
+        $shipping = isset($params['shipping']) ? (float) $params['shipping'] : 0;
+        $shippingFormatted = $currency === 'KHR'
+            ? number_format($shipping, 0, '.', '')
+            : number_format($shipping, 2, '.', '');
+
+        // URLs for payment flow
+        $returnUrl = $params['return_url'] ?? '';
+        $cancelUrl = $params['cancel_url'] ?? '';
+        $continueSuccessUrl = $params['continue_success_url'] ?? '';
+        $returnDeeplink = $params['return_deeplink'] ?? '';
+        
+        // Additional optional fields
         $customFields = $params['custom_fields'] ?? '';
         $returnParams = $params['return_params'] ?? '';
         $payout = $params['payout'] ?? '';
         $lifetime = isset($params['lifetime']) ? (int) $params['lifetime'] : $defaultLifetime;
-        $qrImageTemplate = $params['qr_image_template'] ?? $qrTemplate;
+        $additionalParams = $params['additional_params'] ?? '';
+        $googlePayToken = $params['google_pay_token'] ?? '';
+        $skipSuccessPage = $params['skip_success_page'] ?? '';
 
-        // ✅ Callback URL (must be base64 encoded)
-        $fallbackCallback = rtrim(config('app.url'), '/') . '/api/payments/aba/webhook';
-        $callbackUrlRaw = $params['callback_url'] ?? (Config::get('services.aba.callback_url') ?: $fallbackCallback);
-        $callbackUrlBase64 = base64_encode($callbackUrlRaw);
+        // Build hash in exact order per ABA documentation
+        $hashString = $reqTime
+            . $merchantId
+            . $tranId
+            . $amountFormatted
+            . $items
+            . $shippingFormatted
+            . $firstName
+            . $lastName
+            . $email
+            . $phone
+            . $purchaseType
+            . $paymentOption
+            . $returnUrl
+            . $cancelUrl
+            . $continueSuccessUrl
+            . $returnDeeplink
+            . $currency
+            . $customFields
+            . $returnParams
+            . $payout
+            . $lifetime
+            . $additionalParams
+            . $googlePayToken
+            . $skipSuccessPage;
 
-        // ✅ Prepare data for purchase or QR mode
-        if ($usePurchase) {
-            // ------------------------
-            // PURCHASE MODE
-            // ------------------------
-            $shipping = $params['shipping'] ?? '';
-            $continueSuccessUrl = $params['continue_success_url'] ?? '';
-            $continueFailUrl = $params['continue_fail_url'] ?? '';
+        // Remove whitespace as per ABA requirements
+        $hashString = preg_replace('/\s+/', '', $hashString);
+        $hash = base64_encode(hash_hmac('sha512', $hashString, $apiKey, true));
 
-            // ✅ Build hash (official ABA order)
-            $b4hash = $reqTime
-                . $merchantId
-                . $tranId
-                . $amountForHash
-                . $items
-                . $shipping
-                . $firstName
-                . $lastName
-                . $email
-                . $phone
-                . $purchaseType
-                . $paymentOption
-                . $currency
-                . $continueSuccessUrl
-                . $continueFailUrl
-                . $callbackUrlBase64;
+        // Prepare request body
+        $body = [
+            'req_time' => $reqTime,
+            'merchant_id' => $merchantId,
+            'tran_id' => $tranId,
+            'amount' => $amountFormatted,
+            'items' => $items,
+            'shipping' => $shippingFormatted,
+            'firstname' => $firstName,
+            'lastname' => $lastName,
+            'email' => $email,
+            'phone' => $phone,
+            'type' => $purchaseType,
+            'payment_option' => $paymentOption,
+            'return_url' => $returnUrl,
+            'cancel_url' => $cancelUrl,
+            'continue_success_url' => $continueSuccessUrl,
+            'return_deeplink' => $returnDeeplink,
+            'currency' => $currency,
+            'custom_fields' => $customFields,
+            'return_params' => $returnParams,
+            'payout' => $payout,
+            'lifetime' => $lifetime,
+            'additional_params' => $additionalParams,
+            'google_pay_token' => $googlePayToken,
+            'skip_success_page' => $skipSuccessPage,
+            'hash' => $hash,
+        ];
 
-            // Remove line breaks or spaces just in case
-            $b4hash = preg_replace('/\s+/', '', $b4hash);
+        // Keep all fields used in hash (ABA requires even empty fields)
+        $body = array_filter($body, fn($v) => !is_null($v));
 
-            $hash = base64_encode(hash_hmac('sha512', $b4hash, $apiKey, true));
+        Log::info('ABA Purchase Request', [
+            'tran_id' => $tranId,
+            'amount' => $amountFormatted,
+            'currency' => $currency,
+            'payment_option' => $paymentOption,
+        ]);
 
-            $body = [
-                'req_time' => $reqTime,
-                'merchant_id' => $merchantId,
-                'tran_id' => $tranId,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $email,
-                'phone' => $phone,
-                // Send same string as hashed
-                'amount' => $amountForHash,
-                'type' => $purchaseType, // ⚠️ NOT "purchase_type"
-                'payment_option' => $paymentOption,
-                'items' => $items,
-                'shipping' => $shipping,
-                'currency' => $currency,
-                'continue_success_url' => $continueSuccessUrl,
-                'continue_fail_url' => $continueFailUrl,
-                'callback_url' => $callbackUrlBase64,
-                'custom_fields' => $customFields,
-                'return_params' => $returnParams,
-                'hash' => $hash,
-            ];
-        } else {
-            // ------------------------
-            // GENERATE-QR MODE
-            // ------------------------
-            $b4hash = $reqTime
-                . $merchantId
-                . $tranId
-                . $amountForHash
-                . $items
-                . $firstName
-                . $lastName
-                . $email
-                . $phone
-                . $purchaseType
-                . $paymentOption
-                . $callbackUrlBase64
-                . ($params['return_deeplink'] ?? '')
-                . $currency
-                . $customFields
-                . $returnParams
-                . $payout
-                . $lifetime
-                . $qrImageTemplate;
-
-            $b4hash = preg_replace('/\s+/', '', $b4hash);
-
-            $hash = base64_encode(hash_hmac('sha512', $b4hash, $apiKey, true));
-
-            $body = [
-                'req_time' => $reqTime,
-                'merchant_id' => $merchantId,
-                'tran_id' => $tranId,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $email,
-                'phone' => $phone,
-                'amount' => $amount,
-                'purchase_type' => $purchaseType,
-                'payment_option' => $paymentOption,
-                'items' => $items,
-                'currency' => $currency,
-                'callback_url' => $callbackUrlBase64,
-                'return_deeplink' => $params['return_deeplink'] ?? null,
-                'custom_fields' => $customFields,
-                'return_params' => $returnParams,
-                'payout' => $payout,
-                'lifetime' => $lifetime,
-                'qr_image_template' => $qrImageTemplate,
-                'hash' => $hash,
-            ];
-        }
-
-        // Remove null/empty values except required fields
-        $body = array_filter($body, fn($v) => !is_null($v) && $v !== '');
-
-        // ------------------------
-        // HTTP Request
-        // ------------------------
-        $response = Http::asJson()->post($endpoint, $body);
+        // Make request to ABA Purchase API
+        $response = Http::asForm()
+            ->timeout(30)
+            ->withOptions([
+                'curl' => [
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                ],
+            ])
+            ->post($purchaseEndpoint, $body);
 
         if (!$response->ok()) {
-            Log::warning('ABA request non-200', [
-                'endpoint' => $endpoint,
+            Log::error('ABA Purchase Request Failed', [
                 'status' => $response->status(),
                 'response' => $response->body(),
-                'body' => $body,
-                'b4hash' => $b4hash ?? '',
-                'hash' => $hash ?? '',
+                'tran_id' => $tranId,
             ]);
         }
 
-        $data = $response->json();
+        // Parse response
+        $contentType = $response->header('Content-Type');
+        $isJson = str_contains($contentType, 'application/json');
+
+        if ($isJson) {
+            $data = $response->json();
+        } else {
+            // HTML response (e.g., for abapay_khqr payment option)
+            $data = [
+                'status' => ['code' => '0', 'message' => 'Success - HTML checkout page returned'],
+                'html' => $response->body(),
+            ];
+        }
+
+        // Check for errors
+        if (isset($data['status']['code']) && !in_array((string) $data['status']['code'], ['0', '00'], true)) {
+            Log::error('ABA Purchase Gateway Error', [
+                'status_code' => $data['status']['code'],
+                'status_message' => $data['status']['message'] ?? 'Unknown error',
+                'tran_id' => $tranId,
+            ]);
+        }
+
+        // Log success
+        if ($response->ok() && $isJson) {
+            Log::info('ABA Purchase Successful', [
+                'tran_id' => $tranId,
+                'has_qr' => isset($data['qr_string']),
+                'has_deeplink' => isset($data['abapay_deeplink']),
+            ]);
+        }
+
+        // Determine success
+        $qrImage = $data['qr_string'] ?? null;
+        $hasStatusSuccess = isset($data['status']['code']) && in_array((string) $data['status']['code'], ['0', '00'], true);
+        $hasValidResponse = !empty($qrImage) || !empty($data['abapay_deeplink']);
+        $isSuccess = $hasStatusSuccess || ($isJson && $hasValidResponse && $response->ok());
 
         return [
-            'success' => isset($data['status']['code']) && (string) $data['status']['code'] === '0',
-            'qrImage' => $data['qrImage'] ?? null,
-            'abapay_deeplink' => $data['abapay_deeplink'] ?? ($data['deeplink'] ?? null),
+            'success' => $isSuccess,
+            'qrImage' => $qrImage,
+            'abapay_deeplink' => $data['abapay_deeplink'] ?? null,
+            'checkout_qr_url' => $data['checkout_qr_url'] ?? null,
             'amount' => $data['amount'] ?? $amount,
             'currency' => $data['currency'] ?? $currency,
             'raw' => $data,
+        ];
+    }
+
+    /**
+     * Backward compatibility alias for purchase()
+     * @deprecated Use purchase() instead
+     */
+    public function generateQr(array $params): array
+    {
+        return $this->purchase($params);
+    }
+
+    /**
+     * Get transaction details from ABA PayWay
+     * 
+     * @param string $tranId The transaction ID to query
+     * @return array
+     */
+    public function getTransactionDetail(string $tranId): array
+    {
+        $merchantId = Config::get('services.aba.merchant_id');
+        $apiKey = Config::get('services.aba.api_key');
+        $transactionDetailEndpoint = Config::get(
+            'services.aba.transaction_detail_endpoint',
+            'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/transaction-detail'
+        );
+
+        $reqTime = gmdate('YmdHis');
+
+        // Build hash: req_time + merchant_id + tran_id
+        $b4hash = $reqTime . $merchantId . $tranId;
+        $hash = base64_encode(hash_hmac('sha512', $b4hash, $apiKey, true));
+
+        $body = [
+            'req_time' => $reqTime,
+            'merchant_id' => $merchantId,
+            'tran_id' => $tranId,
+            'hash' => $hash,
+        ];
+
+        Log::debug('ABA Transaction Detail Request', [
+            'tran_id' => $tranId,
+            'b4hash' => $b4hash,
+            'hash' => $hash,
+        ]);
+
+        // Make POST request
+        $response = Http::asJson()->post($transactionDetailEndpoint, $body);
+
+        $data = $response->json();
+
+        if (!$response->ok()) {
+            Log::warning('ABA transaction detail request failed', [
+                'endpoint' => $transactionDetailEndpoint,
+                'status' => $response->status(),
+                'response' => $response->body(),
+                'tran_id' => $tranId,
+            ]);
+        }
+
+        // Check for errors - status might be nested in ['status']['code'] or direct
+        if (isset($data['status']) && is_array($data['status'])) {
+            $statusCode = (string) ($data['status']['code'] ?? '');
+            $errorMessage = $data['status']['message'] ?? 'Unknown error';
+        } else {
+            $statusCode = (string) ($data['status'] ?? ($data['code'] ?? ''));
+            $errorMessage = $data['message'] ?? 'Unknown error';
+        }
+        
+        $isSuccess = in_array($statusCode, ['0', '00'], true);
+
+        if (!$isSuccess) {
+            Log::warning('ABA transaction detail error', [
+                'tran_id' => $tranId,
+                'status_code' => $statusCode,
+                'message' => $errorMessage,
+                'response' => $data,
+            ]);
+        }
+
+        return [
+            'success' => $isSuccess,
+            'data' => $data,
+            'error' => $isSuccess ? null : $errorMessage,
         ];
     }
 }

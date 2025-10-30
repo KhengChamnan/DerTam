@@ -1,206 +1,78 @@
-# ABA QR API
+# ABA QR API – Generate QR Code
 
-## QR API
+## Endpoint
+**POST** `/api/payment-gateway/v1/payments/generate-qr`
 
-### API Endpoint
-```
-POST /api/payment-gateway/v1/payments/generate-qr
-```
-
-### Description
-Support both online/instore merchant
+Supports both **online** and **instore merchants**.
 
 ### Supported Payment Options
-- **Transaction currency KHR**: ABA PAY, KHQR
-- **Transaction currency USD**: ABA PAY, KHQR, WeChat and Alipay
+| Currency | Supported Methods |
+|-----------|-------------------|
+| **KHR** | ABA PAY, KHQR |
+| **USD** | ABA PAY, KHQR, WeChat, Alipay |
 
 ---
 
-## Request
+## 🧾 Request
 
-### Header Params
-
-#### Content-Type
-- **Type**: `string`
-- **Required**: Yes
-- **Example**: `application/json`
+### **Headers**
+| Name | Type | Required | Example |
+|------|------|-----------|----------|
+| `Content-Type` | string | ✅ Required | `application/json` |
 
 ---
 
-### Body Params (application/json)
+### **Body Parameters (application/json)**
 
-#### req_time
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: Request date and time in UTC format as `YYYYMMDDHHmmss`.
+| Field | Type | Required | Description |
+|--------|------|-----------|-------------|
+| `req_time` | string | ✅ | Request datetime (UTC, `YYYYMMDDHHmmss`) |
+| `merchant_id` | string | ✅ | Merchant key provided by ABA Bank (≤ 30 chars) |
+| `tran_id` | string | ✅ | Unique transaction ID (≤ 20 chars) |
+| `first_name` | string | Optional | Payer’s first name (≤ 20 chars) |
+| `last_name` | string | Optional | Payer’s last name (≤ 20 chars) |
+| `email` | string | Optional | Payer’s email (≤ 50 chars) |
+| `phone` | string | Optional | Payer’s phone (≤ 20 chars) |
+| `amount` | number | ✅ | Transaction amount (≥ 100 KHR or 0.01 USD) |
+| `currency` | string | ✅ | `KHR` or `USD` |
+| `purchase_type` | string | Optional | `pre-auth` or `purchase` (default `purchase`) |
+| `payment_option` | string | ✅ | `abapay_khqr`, `wechat`, `alipay` |
+| `items` | string | Optional | Base64 JSON array of items |
+| `callback_url` | string | Optional | Base64 URL for callback |
+| `return_deeplink` | string | Optional | Base64 JSON deep link for mobile return |
+| `custom_fields` | string | Optional | Base64 JSON custom data |
+| `return_params` | string | Optional | JSON with additional parameters |
+| `payout` | string | Optional | Base64 JSON payout info |
+| `lifetime` | integer | ✅ | Lifetime in minutes (min: 3, max: 43200 = 30 days) |
+| `qr_image_template` | string | ✅ | Template for QR image (≤ 20 chars) |
+| `hash` | string | ✅ | Base64 HMAC SHA512 hash of concatenated fields |
 
-#### merchant_id
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: A unique merchant key which provided by ABA Bank.
-- **Max Length**: 30 characters
+---
 
-#### tran_id
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: This is the unique transaction ID that identifies the transaction.
-- **Max Length**: 20 characters
+## 🔐 Hash Generation (PHP Example)
 
-#### first_name
-- **Type**: `string`
-- **Required**: No
-- **Description**: Payer's first name.
-- **Max Length**: 20 characters
-
-#### last_name
-- **Type**: `string`
-- **Required**: No
-- **Description**: Payer's last name.
-- **Max Length**: 20 characters
-
-#### email
-- **Type**: `string`
-- **Required**: No
-- **Description**: Payer's email address.
-- **Max Length**: 50 characters
-
-#### phone
-- **Type**: `string`
-- **Required**: No
-- **Description**: Payer's phone number.
-- **Max Length**: 20 characters
-
-#### amount
-- **Type**: `number`
-- **Required**: Yes
-- **Description**: The total transaction amount must be at least 100 KHR or 0.01 USD and cannot be null.
-
-#### currency
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: Supported transaction currencies: `KHR` and `USD`. Not case-sensitive.
-- **Max Length**: 3 characters
-
-#### purchase_type
-- **Type**: `string`
-- **Required**: No
-- **Description**: Supported values: `pre-auth` and `purchase`. If the merchant does not provide a value, the default will be `purchase`.
-  
-  **Note**: Alipay & WeChat do not support pre-auth.
-- **Max Length**: 20 characters
-
-#### payment_option
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: Supported payment options:
-  - `abapay_khqr`: PayWay will respond with ABA KHQR.
-  - `wechat`: PayWay will respond with a WeChat QR (only for USD transactions).
-  - `alipay`: PayWay will respond with an Alipay QR (only for USD transactions).
-- **Max Length**: 20 characters
-
-#### items
-- **Type**: `string`
-- **Required**: No
-- **Description**: Item list description in Base64-encoded JSON format. Maximum of 10 items.
-
-**PHP Sample Code:**
 ```php
-$items = base64_encode('[
-    {"name":"Item 1","quantity":1,"price":1.00},
-    {"name":"Item 2","quantity":1,"price":4.00}
-]');
-```
-- **Max Length**: 500 characters
-
-#### callback_url
-- **Type**: `string`
-- **Required**: No
-- **Description**: URL to receive callbacks upon payment completion, encrypted with Base64.
-
-**PHP Sample Code:**
-```php
-$callback_url = base64_encode('YOUR CALL BACK URL');
-```
-- **Max Length**: 255 characters
-
-#### return_deeplink
-- **Type**: `string`
-- **Required**: No
-
-**PHP Sample Code:**
-```php
-$return_deeplink = base64_encode('{"android_scheme": "{YOUR ANDROID SCHEME}", "ios_scheme":"{YOUR IOS SCHEME}"}');
-```
-- **Max Length**: 255 characters
-
-#### custom_fields
-- **Type**: `string`
-- **Required**: No
-- **Description**: Additional custom fields to attach to the QR, encrypted with Base64.
-
-**PHP Sample Code:**
-```php
-$custom_fields = base64_encode('{"Province":"ABC", "Province": "Male" }');
-```
-- **Max Length**: 255 characters
-
-#### return_params
-- **Type**: `string`
-- **Required**: No
-- **Description**: Additional information to include in the pushback once the payment is completed.
-
-**PHP Sample Code:**
-```php
-$return_params = '{"key_1": "Value 1","key_2": "Value 2"}';
-```
-
-#### payout
-- **Type**: `string`
-- **Required**: No
-- **Description**: Payout instructions in a Base64-encoded JSON string.
-
-**PHP Sample Code:**
-```php
-$payout = base64_encode('[
-    {"account":"201030101","amount":1.72},
-    {"account":"012538302","amount":1.72}
-]');
-```
-- **Max Length**: 255 characters
-
-#### lifetime
-- **Type**: `integer`
-- **Required**: Yes
-- **Description**: Transaction lifetime in minutes. Default: 30 days.
-  - **Minimum**: 3 mins
-  - **Maximum**: 30 days
-
-#### qr_image_template
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: The QR image comes with various options to suit your needs. Please refer to the link below for details templates.
-- **Max Length**: 20 characters
-
-#### hash
-- **Type**: `string`
-- **Required**: Yes
-- **Description**: Base64 encode of hash hmac sha512 encryption of concatenated values `req_time`, `merchant_id`, `tran_id`, `amount`, `items`, `first_name`, `last_name`, `email`, `phone`, `purchase_type`, `payment_option`, `callback_url`, `return_deeplink`, `currency`, `custom_fields`, `return_params`, `payout`, `lifetime`, and `qr_image_template`.
-
-**PHP Sample Code:**
-```php
-// public key provided by ABA Bank
+// Public key provided by ABA Bank
 $api_key = 'API KEY PROVIDED BY ABA BANK';
 
-// Prepare the data to be hashed
-$b4hash = $req_time . $merchant_id . $tran_id . $amount . $items . $first_name . $last_name . $email . $phone . $purchase_type . $payment_option . $callback_url . $return_deeplink . $currency . $custom_fields . $return_params . $payout . $lifetime . $qr_image_template;
+// Prepare data to hash
+$b4hash = $req_time . $merchant_id . $tran_id . $amount . $items .
+           $first_name . $last_name . $email . $phone . $purchase_type .
+           $payment_option . $callback_url . $return_deeplink . $currency .
+           $custom_fields . $return_params . $payout . $lifetime . $qr_image_template;
 
-// Generate the HMAC hash using SHA-512 and encode it in Base64 
+// Generate Base64 HMAC SHA-512 hash
 $hash = base64_encode(hash_hmac('sha512', $b4hash, $api_key, true));
 ```
 
-### Request Example
-```json
-{
+---
+
+## 🧰 Request Example (cURL)
+
+```bash
+curl -X POST "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/generate-qr" \
+  -H "Content-Type: application/json" \
+  -d '{
     "req_time": "20250312095439",
     "merchant_id": "keng.dara.online",
     "tran_id": "20250311033231",
@@ -221,73 +93,66 @@ $hash = base64_encode(hash_hmac('sha512', $b4hash, $api_key, true));
     "lifetime": 6,
     "qr_image_template": "template3_color",
     "hash": "ZyDmMe/kznbY2e...ZB6tMnqv57V06T13du8807dcbPTg=="
+  }'
+```
+
+---
+
+## ✅ Response Example
+
+### **200 OK (Success)**
+
+```json
+{
+  "qrString": "00020101021230510016abaakhppxxx@abaa01151250212145328460208ABA Bank52048249530384054040.015802KH5925OLD ME 25 CHAR WINNER IP",
+  "qrImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAYAAACLz2ctAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAOC0lEQVR4nO2deahV1RfHl6ZlaaZ",
+  "abapay_deeplink": "abamobilebank://ababank.com?type=payway&qrcode=00020101021230510016abaakhppxxx%40abaa01151250212145328460208ABA+Bank5",
+  "app_store": "https://itunes.apple.com/al/app/aba-mobile-bank/id968860649?mt=8",
+  "play_store": "https://play.google.com/store/apps/details?id=com.paygo24.ibank",
+  "amount": 0.01,
+  "currency": "USD",
+  "status": {
+    "code": "0",
+    "message": "Success.",
+    "trace_id": "b9f93f45b49f08e26dfcfb8c2da396c6"
+  }
 }
 ```
 
 ---
 
-## Responses
+## ⚠️ Possible Status Codes
 
-### 🟢 200 - Success (application/json)
+| Code | Meaning |
+|------|----------|
+| 0 | Success |
+| 1 | Wrong Hash |
+| 6 | Requested domain not whitelisted |
+| 8 | General error — contact support |
+| 12 | Payment currency not allowed |
+| 16 | Invalid first name |
+| 17 | Invalid last name |
+| 18 | Invalid phone number |
+| 19 | Invalid email |
+| 21 | End of API lifetime |
+| 23 | Payment option not enabled |
+| 32 | Service not enabled |
+| 35 | Invalid payout info |
+| 44 | Purchase amount exceeds limit |
+| 47 | KHR amount below 100 KHR |
+| 48 | Invalid parameters |
+| 96 | Invalid merchant data |
+| 102 | URL not whitelisted |
+| 403 | Duplicate transaction ID |
+| 429 | Rate limit exceeded — try again later |
 
-#### Response Body
+---
 
-- **qrString** (string, required): QR content as string.
-
-- **qrImage** (string, required): QR as base64 image.
-
-- **abapay_deeplink** (string, required): ABA Mobile Deeplink. You can use this deeplink to automatically open ABA Mobile so that customer can confirm payment.
-
-- **app_store** (string, required): If you try to open `abapay_deeplink` and the payer does not have ABA Mobile installed, you can redirect the user to the app store to download ABA Mobile.
-
-- **play_store** (string, required): If you try to open `abapay_deeplink` and the payer does not have ABA Mobile installed, you can redirect the user to the play store to download ABA Mobile.
-
-- **amount** (number, required): Transaction amount.
-
-- **currency** (string, required): Transaction currency.
-
-#### status (object, required)
-
-- **code** (string, required): Possible response codes:
-  - `0`: Success.
-  - `1`: Wrong Hash.
-  - `6`: Requested Domain is not in whitelist.
-  - `8`: Something went wrong. Please reach out to our digital support team for assistance.
-  - `12`: Payment currency is not allowed.
-  - `16`: Invalid First Name. It must not contain numbers or special characters or not more than 100 characters.
-  - `17`: Invalid Last Name. It must not contain numbers or special characters or not more than 100 characters.
-  - `18`: Invalid Phone Number.
-  - `19`: Invalid Email.
-  - `21`: End of API lifetime.
-  - `23`: Selected Payment Option is not enabled for this Merchant Profile.
-  - `32`: Service is not enabled.
-  - `35`: Payout Info is invalid.
-  - `44`: Purchase amount has reached transaction limit.
-  - `47`: KHR Amount must be greater than 100 KHR.
-  - `48`: Something went wrong with requested parameters. Please try again or contact the merchant for help.
-  - `96`: Invalid merchant data.
-  - `102`: The URL is not in the whitelist.
-  - `403`: Duplicated Transaction ID.
-  - `429`: You've reached the maximum attempt limit. Please try again in (min).
-
-- **message** (string, required): Please see the property response code for the details.
-
-- **trace_id** (string, required): A unique identifier assigned to a request to help track its journey through a system.
-
-### Response Example
-```json
-{
-    "qrString": "00020101021230510016abaakhppxxx@abaa01151250212145328460208ABA Bank52048249530384054040.015802KH5925OLD ME 25 CHAR WINNER IP",
-    "qrImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAYAAACLz2ctAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAOC0lEQVR4nO2deahV1RfHl6ZlaaZ",
-    "abapay_deeplink": "abamobilebank://ababank.com?type=payway&qrcode=00020101021230510016abaakhppxxx%40abaa01151250212145328460208ABA+Bank5",
-    "app_store": "https://itunes.apple.com/al/app/aba-mobile-bank/id968860649?mt=8",
-    "play_store": "https://play.google.com/store/apps/details?id=com.paygo24.ibank",
-    "amount": 0.01,
-    "currency": "USD",
-    "status": {
-        "code": "0",
-        "message": "Success.",
-        "trace_id": "b9f93f45b49f08e26dfcfb8c2da396c6"
-    }
-}
-```
+## 📝 Notes
+- Works for both **online** and **instore** merchant modes.  
+- `hash` is required for authentication — any mismatch will result in error code `1`.
+- `lifetime` defines how long the QR remains valid.
+- Use `abapay_deeplink` to directly open ABA Mobile app.
+- Use `app_store` and `play_store` URLs if ABA Mobile is not installed.
+- Sandbox URL: `https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/generate-qr`
+- Production URL: `https://checkout.payway.com.kh/api/payment-gateway/v1/payments/generate-qr`

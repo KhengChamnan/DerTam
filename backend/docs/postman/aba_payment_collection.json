@@ -1,12 +1,13 @@
 {
   "info": {
-    "name": "ABA PayWay - Booking Payments",
+    "name": "ABA PayWay - Booking Payments (Purchase API)",
+    "description": "Complete flow for ABA PayWay Purchase API integration with transaction portal visibility. Ensure ABA_USE_PURCHASE=true in .env file.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "aba-payway-booking-collection"
+    "_postman_id": "aba-payway-booking-collection-v2"
   },
   "item": [
     {
-      "name": "Create Booking",
+      "name": "1. Create Booking",
       "request": {
         "auth": {
           "type": "bearer",
@@ -16,7 +17,8 @@
         },
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
           "raw": "{{baseUrl}}/api/hotels/bookings",
@@ -26,7 +28,8 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"trip_id\": null,\n  \"full_name\": \"John Doe\",\n  \"age\": 30,\n  \"gender\": \"Male\",\n  \"mobile\": \"+85512345678\",\n  \"email\": \"john@example.com\",\n  \"id_number\": \"ABC123456\",\n  \"check_in\": \"2030-01-10\",\n  \"check_out\": \"2030-01-12\",\n  \"room_ids\": [1],\n  \"payment_method\": \"KHQR\"\n}"
-        }
+        },
+        "description": "Create a new hotel booking. This will return a booking_id needed for payment initiation."
       },
       "event": [
         {
@@ -36,15 +39,32 @@
             "exec": [
               "const res = pm.response.json();",
               "const data = res.data || {};",
-              "if (data.booking_id) pm.collectionVariables.set('booking_id', data.booking_id);",
-              "if (data.merchant_ref_no) pm.collectionVariables.set('merchant_ref_no', data.merchant_ref_no);"
+              "",
+              "// Save booking details to collection variables",
+              "if (data.booking_id) {",
+              "    pm.collectionVariables.set('booking_id', data.booking_id);",
+              "    console.log('✅ Booking ID saved:', data.booking_id);",
+              "}",
+              "if (data.merchant_ref_no) {",
+              "    pm.collectionVariables.set('merchant_ref_no', data.merchant_ref_no);",
+              "    console.log('✅ Merchant Ref saved:', data.merchant_ref_no);",
+              "}",
+              "",
+              "// Verify response",
+              "pm.test('Status code is 200 or 201', function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('Booking created successfully', function () {",
+              "    pm.expect(data.booking_id).to.exist;",
+              "});"
             ]
           }
         }
       ]
     },
     {
-      "name": "Initiate Payment (ABA KHQR)",
+      "name": "2. Initiate Payment (ABA Purchase API)",
       "request": {
         "auth": {
           "type": "bearer",
@@ -54,13 +74,15 @@
         },
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
           "raw": "{{baseUrl}}/api/payments/aba/bookings/{{booking_id}}/initiate",
           "host": [ "{{baseUrl}}" ],
           "path": [ "api", "payments", "aba", "bookings", "{{booking_id}}", "initiate" ]
-        }
+        },
+        "description": "Initiate ABA payment using Purchase API. This registers the transaction in ABA sandbox portal.\n\nRequirements:\n- ABA_USE_PURCHASE=true in .env\n- Valid booking_id from previous step\n- Authentication token\n\nResponse includes:\n- tran_id: Transaction ID to track payment\n- qrImage: Base64 QR code\n- abapay_deeplink: Deep link for ABA mobile app"
       },
       "event": [
         {
@@ -70,16 +92,53 @@
             "exec": [
               "const res = pm.response.json();",
               "const data = res.data || {};",
-              "if (data.tran_id) pm.collectionVariables.set('tran_id', data.tran_id);",
-              "if (data.abapay_deeplink) pm.collectionVariables.set('abapay_deeplink', data.abapay_deeplink);",
-              "if (data.qrImage) pm.collectionVariables.set('qrImage', data.qrImage);"
+              "",
+              "// Save transaction details",
+              "if (data.tran_id) {",
+              "    pm.collectionVariables.set('tran_id', data.tran_id);",
+              "    console.log('✅ Transaction ID saved:', data.tran_id);",
+              "}",
+              "if (data.abapay_deeplink) {",
+              "    pm.collectionVariables.set('abapay_deeplink', data.abapay_deeplink);",
+              "    console.log('✅ ABA Pay Deeplink:', data.abapay_deeplink);",
+              "}",
+              "if (data.qrImage) {",
+              "    pm.collectionVariables.set('qrImage', data.qrImage);",
+              "    console.log('✅ QR Image saved (base64)');",
+              "}",
+              "",
+              "// Tests",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Payment initiated successfully', function () {",
+              "    pm.expect(res.message).to.include('Payment initiated');",
+              "    pm.expect(data.tran_id).to.exist;",
+              "});",
+              "",
+              "pm.test('QR code or deeplink returned', function () {",
+              "    const hasQr = data.qrImage && data.qrImage.length > 0;",
+              "    const hasDeeplink = data.abapay_deeplink && data.abapay_deeplink.length > 0;",
+              "    pm.expect(hasQr || hasDeeplink).to.be.true;",
+              "});",
+              "",
+              "// Display next steps",
+              "if (pm.response.code === 200) {",
+              "    console.log('');",
+              "    console.log('📱 Next Steps:');",
+              "    console.log('1. Use the QR code or deeplink to complete payment in ABA app');",
+              "    console.log('2. Check ABA sandbox portal: https://checkout-sandbox.payway.com.kh/');",
+              "    console.log('3. Run \"Check Transaction Status\" to verify payment');",
+              "    console.log('4. Or simulate webhook for testing');",
+              "}"
             ]
           }
         }
       ]
     },
     {
-      "name": "Get Booking by ID",
+      "name": "3. Check Transaction Status",
       "request": {
         "auth": {
           "type": "bearer",
@@ -88,19 +147,110 @@
           ]
         },
         "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/aba/bookings/{{booking_id}}/status",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "payments", "aba", "bookings", "{{booking_id}}", "status" ]
+        },
+        "description": "Check the payment status from ABA PayWay. This calls ABA's transaction-detail API.\n\nPayment Status Codes:\n- payment_status_code: 0 = APPROVED\n- payment_status_code: 1 = PENDING\n- payment_status_code: 2 = FAILED/DECLINED"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Parse ABA response",
+              "if (res.data && res.data.payment_status_code !== undefined) {",
+              "    const statusCode = res.data.payment_status_code;",
+              "    const status = res.data.payment_status;",
+              "    ",
+              "    console.log('Payment Status Code:', statusCode);",
+              "    console.log('Payment Status:', status);",
+              "    ",
+              "    if (statusCode === 0) {",
+              "        console.log('✅ Payment APPROVED');",
+              "    } else if (statusCode === 1) {",
+              "        console.log('⏳ Payment PENDING');",
+              "    } else if (statusCode === 2) {",
+              "        console.log('❌ Payment FAILED/DECLINED');",
+              "    }",
+              "} else if (res.status) {",
+              "    console.log('Status Code:', res.status.code);",
+              "    console.log('Status Message:', res.status.message);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Get Booking Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{authToken}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/hotels/bookings/{{booking_id}}",
           "host": [ "{{baseUrl}}" ],
           "path": [ "api", "hotels", "bookings", "{{booking_id}}" ]
+        },
+        "description": "Retrieve booking details including payment status.\n\nPayment Status Values:\n- pending: Payment not yet completed\n- success: Payment approved\n- failed: Payment declined\n\nBooking Status:\n- pending: Awaiting payment\n- paid: Payment received"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "const booking = res.data || res;",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "if (booking.payment_status) {",
+              "    console.log('💳 Payment Status:', booking.payment_status);",
+              "    console.log('📦 Booking Status:', booking.status);",
+              "    console.log('💰 Total Amount:', booking.total_amount, booking.currency || 'KHR');",
+              "    ",
+              "    if (booking.tran_id) {",
+              "        console.log('🔑 Transaction ID:', booking.tran_id);",
+              "    }",
+              "    ",
+              "    if (booking.payment_date) {",
+              "        console.log('📅 Payment Date:', booking.payment_date);",
+              "    }",
+              "}"
+            ]
+          }
         }
-      }
+      ]
     },
     {
-      "name": "ABA Webhook (simulate success)",
+      "name": "5. Simulate Webhook - Payment APPROVED",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
           "raw": "{{baseUrl}}/api/payments/aba/webhook",
@@ -109,16 +259,44 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tran_id\": \"{{tran_id}}\",\n  \"status\": { \"code\": \"0\", \"message\": \"Success.\", \"trace_id\": \"demo-trace\" }\n}"
+          "raw": "{\n  \"status\": {\n    \"code\": \"0\",\n    \"message\": \"Success\",\n    \"tran_id\": \"{{tran_id}}\"\n  },\n  \"data\": {\n    \"payment_status_code\": 0,\n    \"payment_status\": \"APPROVED\",\n    \"tran_id\": \"{{tran_id}}\",\n    \"amount\": \"100.00\",\n    \"currency\": \"KHR\"\n  }\n}"
+        },
+        "description": "Simulate ABA webhook callback for APPROVED payment.\n\nThis mimics what ABA sends when payment is successful:\n- status.code: '0' = API call successful\n- data.payment_status_code: 0 = Payment APPROVED\n- data.payment_status: 'APPROVED'\n\nUse this to test your booking status update logic without actual payment."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "",
+              "pm.test('Webhook processed successfully', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "    pm.expect(res.message).to.include('Webhook processed');",
+              "});",
+              "",
+              "pm.test('Payment status updated to success', function () {",
+              "    pm.expect(res.payment_status).to.equal('success');",
+              "});",
+              "",
+              "console.log('✅ Webhook processed');",
+              "console.log('💳 Payment Status:', res.payment_status);",
+              "console.log('📦 Booking ID:', res.booking_id);",
+              "console.log('');",
+              "console.log('📌 Now run \"Get Booking Details\" to verify the booking is marked as paid');"
+            ]
+          }
         }
-      }
+      ]
     },
     {
-      "name": "ABA Webhook (simulate failed)",
+      "name": "6. Simulate Webhook - Payment PENDING",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
           "raw": "{{baseUrl}}/api/payments/aba/webhook",
@@ -127,19 +305,121 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tran_id\": \"{{tran_id}}\",\n  \"status\": { \"code\": \"48\", \"message\": \"Something went wrong\", \"trace_id\": \"demo-trace\" }\n}"
+          "raw": "{\n  \"status\": {\n    \"code\": \"0\",\n    \"message\": \"Success\",\n    \"tran_id\": \"{{tran_id}}\"\n  },\n  \"data\": {\n    \"payment_status_code\": 1,\n    \"payment_status\": \"PENDING\",\n    \"tran_id\": \"{{tran_id}}\",\n    \"amount\": \"100.00\",\n    \"currency\": \"KHR\"\n  }\n}"
+        },
+        "description": "Simulate ABA webhook callback for PENDING payment.\n\nPayment is initiated but not yet completed:\n- data.payment_status_code: 1 = PENDING\n- Booking remains in pending state"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "",
+              "pm.test('Webhook processed', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "console.log('⏳ Payment Status: PENDING');",
+              "console.log('📦 Booking ID:', res.booking_id);"
+            ]
+          }
         }
-      }
+      ]
+    },
+    {
+      "name": "7. Simulate Webhook - Payment FAILED",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/aba/webhook",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "payments", "aba", "webhook" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": {\n    \"code\": \"0\",\n    \"message\": \"Success\",\n    \"tran_id\": \"{{tran_id}}\"\n  },\n  \"data\": {\n    \"payment_status_code\": 2,\n    \"payment_status\": \"FAILED\",\n    \"tran_id\": \"{{tran_id}}\",\n    \"amount\": \"100.00\",\n    \"currency\": \"KHR\"\n  }\n}"
+        },
+        "description": "Simulate ABA webhook callback for FAILED/DECLINED payment.\n\nPayment was declined:\n- data.payment_status_code: 2 = FAILED\n- Booking payment_status updated to 'failed'"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const res = pm.response.json();",
+              "",
+              "pm.test('Webhook processed', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test('Payment status updated to failed', function () {",
+              "    pm.expect(res.payment_status).to.equal('failed');",
+              "});",
+              "",
+              "console.log('❌ Payment Status: FAILED');",
+              "console.log('📦 Booking ID:', res.booking_id);"
+            ]
+          }
+        }
+      ]
     }
   ],
   "variable": [
-    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
-    { "key": "authToken", "value": "PASTE_YOUR_SANCTUM_TOKEN_HERE" },
-    { "key": "booking_id", "value": "" },
-    { "key": "merchant_ref_no", "value": "" },
-    { "key": "tran_id", "value": "" },
-    { "key": "abapay_deeplink", "value": "" },
-    { "key": "qrImage", "value": "" }
+    { 
+      "key": "baseUrl", 
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    { 
+      "key": "authToken", 
+      "value": "PASTE_YOUR_SANCTUM_TOKEN_HERE",
+      "type": "string"
+    },
+    { 
+      "key": "booking_id", 
+      "value": "",
+      "type": "string"
+    },
+    { 
+      "key": "merchant_ref_no", 
+      "value": "",
+      "type": "string"
+    },
+    { 
+      "key": "tran_id", 
+      "value": "",
+      "type": "string"
+    },
+    { 
+      "key": "abapay_deeplink", 
+      "value": "",
+      "type": "string"
+    },
+    { 
+      "key": "qrImage", 
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script runs before each request",
+          "console.log('🚀 ABA PayWay Purchase API Test');",
+          "console.log('Endpoint:', pm.request.url.toString());"
+        ]
+      }
+    }
   ]
 }
 

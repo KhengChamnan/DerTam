@@ -112,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ABA Payment initiate (protected)
     Route::post('payments/aba/bookings/{booking_id}/initiate', [ABAPaymentController::class, 'initiateForBooking']);
+    Route::get('payments/aba/bookings/{booking_id}/status', [ABAPaymentController::class, 'checkTransactionStatus']);
 
 
     // Trip management routes

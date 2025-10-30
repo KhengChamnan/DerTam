@@ -43,15 +43,13 @@ return [
 
     'aba' => [
         'merchant_id' => env('ABA_MERCHANT_ID'),
-        'api_key' => env('ABA_API_KEY'), // public key from sandbox credentials
-        'qr_endpoint' => env('ABA_QR_ENDPOINT', 'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/generate-qr'),
+        'api_key' => env('ABA_API_KEY'),
         'purchase_endpoint' => env('ABA_PURCHASE_ENDPOINT', 'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase'),
-        'use_purchase' => filter_var(env('ABA_USE_PURCHASE', false), FILTER_VALIDATE_BOOL),
-        'callback_url' => env('ABA_CALLBACK_URL'), // defaults to APP_PUBLIC_URL . '/api/payments/aba/webhook' if null (handled in code)
+        'transaction_detail_endpoint' => env('ABA_TRANSACTION_DETAIL_ENDPOINT', 'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/transaction-detail'),
+        'callback_url' => env('ABA_CALLBACK_URL'),
         'default_currency' => env('ABA_DEFAULT_CURRENCY', 'KHR'),
         'default_lifetime' => env('ABA_DEFAULT_LIFETIME', 10), // minutes
-        'qr_image_template' => env('ABA_QR_IMAGE_TEMPLATE', 'template3_color'),
-        'webhook_verify_key' => env('ABA_WEBHOOK_VERIFY_KEY'), // optional shared secret for webhook body HMAC
+        'webhook_verify_key' => env('ABA_WEBHOOK_VERIFY_KEY'), // optional shared secret for webhook verification
     ],
 
 ];

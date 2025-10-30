@@ -1,0 +1,479 @@
+{
+	"info": {
+		"_postman_id": "aba-payment-simplified-2025",
+		"name": "ABA Payment - Simplified Purchase API",
+		"description": "Test collection for ABA PayWay Purchase API integration. This uses the Purchase endpoint to register transactions in ABA portal and get valid deeplinks for ABA Mobile app.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Initiate Payment for Booking",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Save response data for subsequent requests",
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    if (response.data) {",
+							"        pm.environment.set('tran_id', response.data.tran_id);",
+							"        pm.environment.set('qrImage', response.data.qrImage);",
+							"        pm.environment.set('abapay_deeplink', response.data.abapay_deeplink);",
+							"        console.log('Transaction ID:', response.data.tran_id);",
+							"        console.log('Deeplink:', response.data.abapay_deeplink);",
+							"    }",
+							"}",
+							"",
+							"// Test assertions",
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has success message', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.eql('Payment initiated');",
+							"});",
+							"",
+							"pm.test('Response contains QR and deeplink', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('qrImage');",
+							"    pm.expect(jsonData.data).to.have.property('abapay_deeplink');",
+							"    pm.expect(jsonData.data).to.have.property('tran_id');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Set booking_id if not already set",
+							"if (!pm.environment.get('booking_id')) {",
+							"    pm.environment.set('booking_id', '1');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/payments/aba/initiate/booking/{{booking_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"payments",
+						"aba",
+						"initiate",
+						"booking",
+						"{{booking_id}}"
+					]
+				},
+				"description": "Initiates ABA payment for a booking. This creates a transaction in ABA's portal using the Purchase API and returns:\n- QR code string (for display)\n- ABA deeplink (for opening in ABA Mobile app)\n- Transaction ID\n\n**Prerequisites:**\n- Valid booking_id that belongs to the authenticated user\n- Booking must not already be paid\n- Auth token required\n\n**Response:**\n```json\n{\n  \"message\": \"Payment initiated\",\n  \"data\": {\n    \"booking_id\": 1,\n    \"merchant_ref_no\": \"BK123\",\n    \"tran_id\": \"BK-1-20251029120000\",\n    \"amount\": \"100\",\n    \"currency\": \"KHR\",\n    \"qrImage\": \"00020101021...\",\n    \"abapay_deeplink\": \"abamobilebank://ababank.com?...\"\n  }\n}\n```"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Check Transaction Status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains transaction data', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('data');",
+							"});",
+							"",
+							"// Log payment status",
+							"const response = pm.response.json();",
+							"if (response.data && response.data.payment_status_code !== undefined) {",
+							"    const statusMap = {",
+							"        0: 'APPROVED',",
+							"        1: 'PENDING',",
+							"        2: 'FAILED',",
+							"        3: 'CANCELLED'",
+							"    };",
+							"    console.log('Payment Status:', statusMap[response.data.payment_status_code] || 'UNKNOWN');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/payments/aba/check-status/booking/{{booking_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"payments",
+						"aba",
+						"check-status",
+						"booking",
+						"{{booking_id}}"
+					]
+				},
+				"description": "Check the current status of an ABA payment transaction.\n\n**Payment Status Codes:**\n- 0 = APPROVED (payment successful)\n- 1 = PENDING (awaiting payment)\n- 2 = FAILED (payment failed)\n- 3 = CANCELLED (payment cancelled)\n\n**Usage:**\n1. Initiate payment first\n2. User scans QR or clicks deeplink and pays in ABA app\n3. Poll this endpoint to check if payment is complete\n\n**Response (Pending):**\n```json\n{\n  \"message\": \"Transaction is pending\",\n  \"data\": {\n    \"tran_id\": \"BK-1-20251029120000\",\n    \"payment_status_code\": 1,\n    \"amount\": \"100.00\",\n    \"currency\": \"KHR\"\n  }\n}\n```\n\n**Response (Approved):**\n```json\n{\n  \"message\": \"Transaction approved\",\n  \"data\": {\n    \"tran_id\": \"BK-1-20251029120000\",\n    \"payment_status_code\": 0,\n    \"amount\": \"100.00\",\n    \"currency\": \"KHR\",\n    \"approved_at\": \"2025-10-29T12:05:00Z\"\n  }\n}\n```"
+			},
+			"response": []
+		},
+		{
+			"name": "3. ABA Webhook (Callback)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response confirms receipt', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('message');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tran_id\": \"{{tran_id}}\",\n    \"status\": \"0\",\n    \"payment_status_code\": 0,\n    \"amount\": \"100.00\",\n    \"currency\": \"KHR\",\n    \"req_time\": \"20251029120000\",\n    \"approved_time\": \"20251029120500\",\n    \"hash\": \"base64_encoded_hash_here\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/payments/aba/webhook",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"payments",
+						"aba",
+						"webhook"
+					]
+				},
+				"description": "Simulates ABA's webhook callback when payment is completed.\n\n**Note:** This is called automatically by ABA when:\n- Payment is approved\n- Payment is failed\n- Payment is cancelled\n\n**Webhook Body (from ABA):**\n```json\n{\n  \"tran_id\": \"BK-1-20251029120000\",\n  \"status\": \"0\",\n  \"payment_status_code\": 0,\n  \"amount\": \"100.00\",\n  \"currency\": \"KHR\",\n  \"req_time\": \"20251029120000\",\n  \"approved_time\": \"20251029120500\",\n  \"hash\": \"base64_hash_for_verification\"\n}\n```\n\n**Payment Status Codes:**\n- 0 = APPROVED\n- 1 = PENDING\n- 2 = FAILED\n- 3 = CANCELLED\n\n**Testing:**\nYou can manually trigger this endpoint to simulate ABA's callback, but normally ABA calls this automatically."
+			},
+			"response": []
+		},
+		{
+			"name": "Direct: Test Purchase API",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// Save the response",
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    if (response.success && response.qrImage) {",
+							"        pm.environment.set('test_qr', response.qrImage);",
+							"        pm.environment.set('test_deeplink', response.abapay_deeplink);",
+							"        console.log('✅ QR Generated');",
+							"        console.log('✅ Deeplink:', response.abapay_deeplink);",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "req_time",
+							"value": "{{$timestamp}}",
+							"description": "Request timestamp in YmdHis format",
+							"type": "text"
+						},
+						{
+							"key": "merchant_id",
+							"value": "ec462305",
+							"description": "Your ABA merchant ID",
+							"type": "text"
+						},
+						{
+							"key": "tran_id",
+							"value": "TEST-{{$randomInt}}-{{$timestamp}}",
+							"description": "Unique transaction ID",
+							"type": "text"
+						},
+						{
+							"key": "amount",
+							"value": "1000",
+							"description": "Amount in KHR (minimum 100)",
+							"type": "text"
+						},
+						{
+							"key": "currency",
+							"value": "KHR",
+							"type": "text"
+						},
+						{
+							"key": "payment_option",
+							"value": "abapay_khqr_deeplink",
+							"description": "Returns JSON with QR and deeplink",
+							"type": "text"
+						},
+						{
+							"key": "items",
+							"value": "W3sibmFtZSI6IlRlc3QgQm9va2luZyIsInByaWNlIjoiMTAwMCIsInF1YW50aXR5IjoxfV0=",
+							"description": "Base64 encoded JSON array of items",
+							"type": "text"
+						},
+						{
+							"key": "shipping",
+							"value": "0",
+							"description": "Shipping cost",
+							"type": "text"
+						},
+						{
+							"key": "firstname",
+							"value": "Test",
+							"type": "text"
+						},
+						{
+							"key": "lastname",
+							"value": "User",
+							"type": "text"
+						},
+						{
+							"key": "email",
+							"value": "test@example.com",
+							"type": "text"
+						},
+						{
+							"key": "phone",
+							"value": "0123456789",
+							"type": "text"
+						},
+						{
+							"key": "type",
+							"value": "purchase",
+							"type": "text"
+						},
+						{
+							"key": "return_url",
+							"value": "{{base_url}}/payment/return",
+							"description": "URL to return after payment",
+							"type": "text"
+						},
+						{
+							"key": "cancel_url",
+							"value": "{{base_url}}/payment/cancel",
+							"description": "URL when user cancels",
+							"type": "text"
+						},
+						{
+							"key": "continue_success_url",
+							"value": "{{base_url}}/payment/success",
+							"description": "Success redirect URL",
+							"type": "text"
+						},
+						{
+							"key": "return_deeplink",
+							"value": "",
+							"description": "Optional: deeplink to return to your app",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "custom_fields",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "return_params",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "payout",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "lifetime",
+							"value": "10",
+							"description": "QR lifetime in minutes",
+							"type": "text"
+						},
+						{
+							"key": "additional_params",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "google_pay_token",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "skip_success_page",
+							"value": "",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "hash",
+							"value": "{{aba_hash}}",
+							"description": "HMAC-SHA512 hash (you need to calculate this)",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/purchase",
+					"protocol": "https",
+					"host": [
+						"checkout-sandbox",
+						"payway",
+						"com",
+						"kh"
+					],
+					"path": [
+						"api",
+						"payment-gateway",
+						"v1",
+						"payments",
+						"purchase"
+					]
+				},
+				"description": "Direct test of ABA Purchase API endpoint (bypassing your backend).\n\n**⚠️ Important:**\nThe `hash` field must be calculated correctly:\n\n```javascript\n// Hash concatenation order:\nreq_time + merchant_id + tran_id + amount + items + shipping + \nfirstname + lastname + email + phone + type + payment_option + \nreturn_url + cancel_url + continue_success_url + return_deeplink + \ncurrency + custom_fields + return_params + payout + lifetime + \nadditional_params + google_pay_token + skip_success_page\n\n// Then: base64(hmac_sha512(concatenated_string, api_key))\n```\n\n**Note:** Use your Laravel backend's `/api/payments/aba/initiate/booking/{id}` endpoint instead for automatic hash calculation.\n\n**Success Response:**\n```json\n{\n  \"qr_string\": \"00020101021...\",\n  \"abapay_deeplink\": \"abamobilebank://ababank.com?transactionId=...\",\n  \"checkout_qr_url\": \"https://checkout-sandbox.payway.com.kh/...\"\n}\n```"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-format timestamp for ABA",
+					"const now = new Date();",
+					"const timestamp = now.getFullYear() + ",
+					"    String(now.getMonth() + 1).padStart(2, '0') +",
+					"    String(now.getDate()).padStart(2, '0') +",
+					"    String(now.getHours()).padStart(2, '0') +",
+					"    String(now.getMinutes()).padStart(2, '0') +",
+					"    String(now.getSeconds()).padStart(2, '0');",
+					"",
+					"pm.environment.set('$timestamp', timestamp);"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost",
+			"type": "string"
+		},
+		{
+			"key": "booking_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "your_bearer_token_here",
+			"type": "string"
+		},
+		{
+			"key": "tran_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
