@@ -151,3 +151,27 @@ Route::post('/upload', [MediaController::class, 'upload']);
 // ABA webhook (public; ABA server callback)
 Route::post('payments/aba/webhook', [ABAPaymentController::class, 'webhook']);
 
+Route::prefix('payments/aba')->group(function () {
+
+    // ✅ When ABA redirects after a successful payment
+    Route::get('/return', function (Request $request) {
+        Log::info('ABA Return URL hit', $request->all());
+
+        return response()->json([
+            'message' => 'Payment return successful',
+            'query' => $request->all()
+        ]);
+    });
+
+    // ✅ When user cancels payment
+    Route::get('/cancel', function () {
+        return response()->json(['message' => 'Payment cancelled by user']);
+    });
+
+    // ✅ When payment is marked successful in ABA
+    Route::get('/success', function () {
+        return response()->json(['message' => 'Payment completed successfully']);
+    });
+
+    // ✅ For ABA server-to-server webhook notifications (important)
+});

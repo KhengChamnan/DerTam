@@ -1,0 +1,19 @@
+{
+    "timestamp": "2025-10-30 09:10:46",
+    "received_params": [],
+    "raw_query": ""
+}
+
+{
+    "timestamp": "2025-10-30 09:10:56",
+    "action": "payment_complete",
+    "received_params": [],
+    "raw_query": ""
+}
+
+{
+    "timestamp": "2025-10-30 09:12:27",
+    "received_params": [],
+    "raw_query": ""
+}
+
