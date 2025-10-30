@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Hotel\Property;
 use App\Models\Hotel\RoomProperty;
+use App\Models\Hotel\Room;
 use App\Models\Hotel\BookingDetail;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,11 +26,11 @@ class HotelOwnerController extends Controller
             ->get();
         
         // Calculate enhanced statistics
-        $totalRooms = RoomProperty::whereHas('property', function($q) use ($user) {
+        $totalRooms = Room::whereHas('roomProperty.property', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })->count();
         
-        $availableRooms = RoomProperty::whereHas('property', function($q) use ($user) {
+        $availableRooms = Room::whereHas('roomProperty.property', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })->where('is_available', true)->count();
         
@@ -82,21 +83,23 @@ class HotelOwnerController extends Controller
     
     /**
      * List all properties for the authenticated hotel owner
+     * Since hotel owner manages only 1 property, show it directly
      */
     public function index(): Response
     {
         $user = Auth::user();
         
-        $properties = Property::where('owner_user_id', $user->id)
+        $property = Property::where('owner_user_id', $user->id)
             ->with([
-                'place:placeID,name,description,ratings,reviews_count,images_url',
-                'roomProperties:property_id,room_properties_id,room_type,price_per_night,is_available',
-                'facilities:facility_id,facility_name'
+                'place',
+                'roomProperties.rooms',
+                'roomProperties.amenities',
+                'facilities'
             ])
-            ->paginate(10);
+            ->first();
         
         return Inertia::render('hotel-owner/properties/index', [
-            'properties' => $properties
+            'property' => $property
         ]);
     }
     
@@ -142,27 +145,6 @@ class HotelOwnerController extends Controller
     }
     
     /**
-     * Show room management for a specific property
-     */
-    public function rooms($property_id): Response
-    {
-        $user = Auth::user();
-        
-        $property = Property::where('owner_user_id', $user->id)
-            ->where('property_id', $property_id)
-            ->with(['place', 'roomProperties.amenities'])
-            ->firstOrFail();
-        
-        // Convert to array and explicitly include roomProperties for Inertia serialization
-        $propertyData = $property->toArray();
-        $propertyData['roomProperties'] = $property->roomProperties->toArray();
-        
-        return Inertia::render('hotel-owner/rooms/index', [
-            'property' => $propertyData
-        ]);
-    }
-    
-    /**
      * Show bookings for hotel owner's properties
      */
     public function bookings(): Response
@@ -181,6 +163,30 @@ class HotelOwnerController extends Controller
         
         return Inertia::render('hotel-owner/bookings/index', [
             'bookings' => $bookings
+        ]);
+    }
+
+    /**
+     * Show all individual rooms (not room types) across all properties
+     */
+    public function allRooms(): Response
+    {
+        $user = Auth::user();
+        
+        $rooms = Room::whereHas('roomProperty.property', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })
+        ->with([
+            'roomProperty:room_properties_id,property_id,room_type,price_per_night,max_guests,room_size,images_url',
+            'roomProperty.property:property_id,place_id',
+            'roomProperty.property.place:placeID,name',
+            'roomProperty.amenities:amenity_id,amenity_name'
+        ])
+        ->orderBy('room_number')
+        ->paginate(12);
+        
+        return Inertia::render('hotel-owner/rooms/allRooms', [
+            'rooms' => $rooms
         ]);
     }
 }

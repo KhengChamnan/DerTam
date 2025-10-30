@@ -39,6 +39,16 @@ class HotelOwnerMiddleware
                 }
             }
             
+            // For room property routes, verify through room property -> property relationship
+            $roomPropertyId = $request->route('room_property_id');
+            if ($roomPropertyId) {
+                $roomProperty = \App\Models\Hotel\RoomProperty::with('property')->find($roomPropertyId);
+                
+                if (!$roomProperty || !$roomProperty->property || $roomProperty->property->owner_user_id !== $user->id) {
+                    abort(403, 'You can only access rooms from your own hotels.');
+                }
+            }
+            
             return $next($request);
         }
         

@@ -25,7 +25,8 @@ class HotelController extends Controller
             'place:placeID,name,description,ratings,reviews_count,images_url,province_id',
             'place.provinceCategory:province_categoryID,province_categoryName',
             'ownerUser:id,name,email',
-            'roomProperties:room_properties_id,property_id,room_type,price_per_night,is_available',
+            'roomProperties:room_properties_id,property_id,room_type,price_per_night',
+            'roomProperties.rooms:room_id,room_properties_id,is_available',
             'facilities:facility_id,facility_name'
         ]);
 
@@ -55,14 +56,14 @@ class HotelController extends Controller
             });
         }
 
-        // Filter by availability
+        // Filter by availability (checking individual rooms)
         if ($request->filled('availability')) {
             if ($request->availability === 'available') {
-                $query->whereHas('roomProperties', function ($q) {
+                $query->whereHas('roomProperties.rooms', function ($q) {
                     $q->where('is_available', true);
                 });
             } elseif ($request->availability === 'unavailable') {
-                $query->whereDoesntHave('roomProperties', function ($q) {
+                $query->whereDoesntHave('roomProperties.rooms', function ($q) {
                     $q->where('is_available', true);
                 });
             }
@@ -78,8 +79,13 @@ class HotelController extends Controller
 
         // Transform properties for display
         $properties->getCollection()->transform(function ($property) {
-            $availableRooms = $property->roomProperties->where('is_available', true)->count();
-            $totalRooms = $property->roomProperties->count();
+            // Count available individual rooms
+            $availableRooms = $property->roomProperties->sum(function ($roomProperty) {
+                return $roomProperty->rooms->where('is_available', true)->count();
+            });
+            $totalRooms = $property->roomProperties->sum(function ($roomProperty) {
+                return $roomProperty->rooms->count();
+            });
             $priceRange = $this->getPriceRange($property->roomProperties);
             
             return [
@@ -174,7 +180,6 @@ class HotelController extends Controller
             'rooms.*.max_guests' => 'required|integer|min:1',
             'rooms.*.room_size' => 'nullable|numeric|min:0',
             'rooms.*.price_per_night' => 'required|numeric|min:0',
-            'rooms.*.is_available' => 'boolean',
             'rooms.*.amenities' => 'array',
             'rooms.*.amenities.*' => 'exists:amenities,amenity_id',
         ]);
@@ -202,7 +207,6 @@ class HotelController extends Controller
                         'max_guests' => $roomData['max_guests'],
                         'room_size' => $roomData['room_size'] ?? null,
                         'price_per_night' => $roomData['price_per_night'],
-                        'is_available' => $roomData['is_available'] ?? true,
                     ]);
 
                     // Attach amenities to room if provided
@@ -240,8 +244,9 @@ class HotelController extends Controller
             'place.category:placeCategoryID,category_name,category_description',
             'ownerUser:id,name,email,phone_number',
             'facilities:facility_id,facility_name,image_url',
-            'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url',
-            'roomProperties.amenities:amenity_id,amenity_name,image_url'
+            'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,images_url',
+            'roomProperties.amenities:amenity_id,amenity_name,image_url',
+            'roomProperties.rooms:room_id,room_properties_id,is_available'
         ])->findOrFail($id);
 
         // Get booking statistics
@@ -329,7 +334,6 @@ class HotelController extends Controller
             'rooms.*.max_guests' => 'required|integer|min:1',
             'rooms.*.room_size' => 'nullable|numeric|min:0',
             'rooms.*.price_per_night' => 'required|numeric|min:0',
-            'rooms.*.is_available' => 'boolean',
             'rooms.*.amenities' => 'array',
             'rooms.*.amenities.*' => 'exists:amenities,amenity_id',
         ]);
@@ -359,7 +363,6 @@ class HotelController extends Controller
                         'max_guests' => $roomData['max_guests'],
                         'room_size' => $roomData['room_size'] ?? null,
                         'price_per_night' => $roomData['price_per_night'],
-                        'is_available' => $roomData['is_available'] ?? true,
                     ]);
                     $updatedRoomIds[] = $room->room_properties_id;
                 } else {
@@ -371,7 +374,6 @@ class HotelController extends Controller
                         'max_guests' => $roomData['max_guests'],
                         'room_size' => $roomData['room_size'] ?? null,
                         'price_per_night' => $roomData['price_per_night'],
-                        'is_available' => $roomData['is_available'] ?? true,
                     ]);
                     $updatedRoomIds[] = $room->room_properties_id;
                 }
@@ -462,8 +464,8 @@ class HotelController extends Controller
     {
         $stats = [
             'total_properties' => Property::count(),
-            'total_rooms' => RoomProperty::count(),
-            'available_rooms' => RoomProperty::where('is_available', true)->count(),
+            'total_rooms' => \App\Models\Hotel\Room::count(),
+            'available_rooms' => \App\Models\Hotel\Room::where('is_available', true)->count(),
             'total_bookings' => BookingDetail::count(),
             'confirmed_bookings' => BookingDetail::where('status', 'paid')->count(),
             'pending_bookings' => BookingDetail::where('status', 'pending')->count(),
