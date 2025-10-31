@@ -5,7 +5,7 @@ import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_booking_room_screen.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_room_card.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_select_date.dart';
-import 'package:mobile_frontend/ui/screen/hotel/widget/facilities_list.dart';
+import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_hotel_facility.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:provider/provider.dart';
 

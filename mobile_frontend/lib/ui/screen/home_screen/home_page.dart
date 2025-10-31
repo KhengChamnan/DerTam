@@ -13,7 +13,7 @@ import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();

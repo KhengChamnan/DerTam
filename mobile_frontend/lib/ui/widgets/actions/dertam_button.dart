@@ -34,12 +34,11 @@ class DertamButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Default gradient if gradient button is requested but no gradient provided
-    final LinearGradient defaultGradient = gradient ?? DertamColors.buttonGradient2;
-    
-    // Default background color for solid buttons
-    final Color defaultBackgroundColor = backgroundColor ?? DertamColors.primaryDark;
-    
+    final LinearGradient defaultGradient =
+        gradient ?? DertamColors.buttonGradient2;
+    final Color defaultBackgroundColor =
+        backgroundColor ?? DertamColors.primaryDark;
+
     // Default text color
     final Color defaultTextColor = textColor ?? DertamColors.white;
 
@@ -48,7 +47,9 @@ class DertamButton extends StatelessWidget {
       height: height ?? DertamSpacings.buttonHeight,
       decoration: BoxDecoration(
         gradient: isGradient ? defaultGradient : null,
-        color: isGradient ? null : (isOutlined ? Colors.transparent : defaultBackgroundColor),
+        color: isGradient
+            ? null
+            : (isOutlined ? Colors.transparent : defaultBackgroundColor),
         borderRadius: BorderRadius.circular(DertamSpacings.buttonRadius),
         border: isOutlined
             ? Border.all(color: DertamColors.primaryDark, width: 2)
@@ -66,14 +67,19 @@ class DertamButton extends StatelessWidget {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(defaultTextColor),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        defaultTextColor,
+                      ),
                     ),
                   )
                 : Text(
                     text,
                     style: DertamTextStyles.button.copyWith(
-                      color: isOutlined ? DertamColors.primaryDark : defaultTextColor,
+                      color: isOutlined
+                          ? DertamColors.primaryDark
+                          : defaultTextColor,
                       fontWeight: FontWeight.w600,
+                      fontSize: 18,
                     ),
                   ),
           ),
