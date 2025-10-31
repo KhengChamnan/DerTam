@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mobile_frontend/models/budget/expend.dart';
+import 'package:mobile_frontend/models/budget/expense.dart';
 
 class ExpenseDto {
   static Expense fromJson(String id, Map<String, dynamic> json) {

@@ -1,6 +1,6 @@
 
 import 'package:mobile_frontend/models/budget/budget.dart';
-import 'package:mobile_frontend/models/budget/expend.dart';
+import 'package:mobile_frontend/models/budget/expense.dart';
 
 class BudgetDto {
   static Budget fromJson(String id, Map<String, dynamic> json) {
