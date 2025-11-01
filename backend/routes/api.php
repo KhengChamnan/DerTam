@@ -24,6 +24,8 @@ use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\BookingController;
 use App\Http\Controllers\API\Hotel\RoomController;
+use App\Http\Controllers\API\Trip\TripShareController;
+
 
 
 Route::get('/user', function (Request $request) {
@@ -123,6 +125,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trip-planning/places/{placeId}', 'show');     // Get specific place details
         Route::post('trip-planning/places/batch', 'getByIds');    // Get multiple places by IDs
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
+    });
+
+    // Trip share routes (protected - owner only)
+    Route::controller(TripShareController::class)->group(function() {
+        Route::get('/trip/share/{token}', 'resolve');                // Resolve share link (view shared trip)
+        Route::get('/trip/{trip_id}/share', 'generate');           // Generate share link
+        Route::get('/trip/{trip_id}/share/accesses', 'getAccessList'); // Get access list
+        Route::delete('/trip/{trip_id}/share', 'deactivateShare');  // Deactivate share link
     });
 
     // Expense management routes
