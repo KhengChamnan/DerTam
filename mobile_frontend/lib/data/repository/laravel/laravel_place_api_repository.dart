@@ -75,12 +75,10 @@ class LaravelPlaceApiRepository implements PlaceRepository {
       rethrow;
     }
   }
-
   @override
   Future<PlaceDetailData> getPlaceDetails(String placeId) async {
     try {
       print('🔍 [DEBUG] getPlaceDetails called with placeId: $placeId');
-
       // Construct the endpoint with the place ID
       final endpoint = '/api/places/$placeId/details';
       print('🔍 [DEBUG] Endpoint: $endpoint');

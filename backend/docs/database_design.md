@@ -62,6 +62,7 @@ Main table for managing tourist places and locations.
 | ratings | DECIMAL(3,2) | NULLABLE | Average rating (0.00-5.00) |
 | reviews_count | INTEGER | NULLABLE | Number of reviews |
 | images_url | JSON | NULLABLE | Array of image URLs |
+| image_public_ids | JSON | NULLABLE | Array of Cloudinary public IDs matching images_url |
 | entry_free | BOOLEAN | NULLABLE | Whether entry is free |
 | operating_hours | JSON | NULLABLE | Operating hours data |
 | best_season_to_visit | ENUM('Winter','Spring','Summer','Autumn') | NULLABLE | Best season to visit |
@@ -70,5 +71,54 @@ Main table for managing tourist places and locations.
 | longitude | DECIMAL(10,7) | NULLABLE | Longitude coordinate for the place |
 | created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
 | updated_at | TIMESTAMP | NOT NULL | Record last update timestamp |
+
+## Trip Management Tables
+
+### Trips Table
+Table for managing user trips and itineraries.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| trip_id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique trip identifier |
+| user_id | BIGINT UNSIGNED | NOT NULL, FOREIGN KEY | Reference to users.id |
+| trip_name | VARCHAR(255) | NOT NULL | Name of the trip |
+| start_date | DATE | NULLABLE | Trip start date |
+| end_date | DATE | NULLABLE | Trip end date |
+| created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Record last update timestamp |
+
+**Foreign Key Constraints:**
+- `user_id` REFERENCES `users(id)` ON DELETE CASCADE
+
+### Trip Days Table
+Table for managing individual days within a trip.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| trip_day_id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique trip day identifier |
+| trip_id | BIGINT UNSIGNED | NOT NULL, FOREIGN KEY | Reference to trips.trip_id |
+| date | DATE | NOT NULL | Date for this trip day |
+| day_number | INTEGER | NULLABLE | Sequential day number within the trip (1, 2, 3, etc.) |
+| created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Record last update timestamp |
+
+**Foreign Key Constraints:**
+- `trip_id` REFERENCES `trips(trip_id)` ON DELETE CASCADE
+
+### Trip Places Table
+Table for managing places associated with specific trip days.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| trip_place_id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT | Unique trip place identifier |
+| trip_day_id | BIGINT UNSIGNED | NOT NULL, FOREIGN KEY | Reference to trip_days.trip_day_id |
+| place_id | BIGINT UNSIGNED | NULLABLE, FOREIGN KEY | Reference to places.placeID |
+| notes | TEXT | NULLABLE | User notes for this place in the trip |
+| created_at | TIMESTAMP | NOT NULL | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Record last update timestamp |
+
+**Foreign Key Constraints:**
+- `trip_day_id` REFERENCES `trip_days(trip_day_id)` ON DELETE CASCADE
+- `place_id` REFERENCES `places(placeID)` ON DELETE SET NULL
 
 

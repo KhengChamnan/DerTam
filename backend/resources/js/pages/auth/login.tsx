@@ -1,15 +1,15 @@
-import AuthenticatedSessionController from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
-import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
-import { request } from '@/routes/password';
-import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import AuthenticatedSessionController from "@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController";
+import InputError from "@/components/input-error";
+import TextLink from "@/components/text-link";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import AuthLayout from "@/layouts/auth-layout";
+import { register } from "@/routes";
+import { request } from "@/routes/password";
+import { Form, Head } from "@inertiajs/react";
+import { LoaderCircle } from "lucide-react";
 
 interface LoginProps {
     status?: string;
@@ -21,12 +21,14 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         <AuthLayout
             title="Log in to your account"
             description="Enter your email and password below to log in"
+            imageSrc="/images/login.jpg"
+            imageAlt="Login photo"
         >
             <Head title="Log in" />
 
             <Form
                 {...AuthenticatedSessionController.store.form()}
-                resetOnSuccess={['password']}
+                resetOnSuccess={["password"]}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
@@ -96,7 +98,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
+                            Don't have an account?{" "}
                             <TextLink href={register()} tabIndex={5}>
                                 Sign up
                             </TextLink>

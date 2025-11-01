@@ -34,8 +34,13 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    username?: string;
+    phone_number?: string;
+    role?: 'Super Admin' | 'Admin' | 'User';
+    status?: 'Active' | 'Inactive' | 'Invited' | 'Suspended';
     avatar?: string;
     email_verified_at: string | null;
+    last_login_at?: string | null;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;

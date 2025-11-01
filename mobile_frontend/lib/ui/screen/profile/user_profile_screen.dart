@@ -53,7 +53,7 @@ class UserProfile extends StatelessWidget {
                   const SizedBox(height: 12),
                   // User Name
                   Text(
-                    'Somawatey',
+                    'Mokey',
                     style: DertamTextStyles.subtitle.copyWith(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w600,
@@ -152,7 +152,7 @@ class UserProfile extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: Navigationbar(currentIndex: 5),
+      bottomNavigationBar: Navigationbar(currentIndex: 4),
     );
   }
 }

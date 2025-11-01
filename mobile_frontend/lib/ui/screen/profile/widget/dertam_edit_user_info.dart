@@ -22,9 +22,9 @@ class _DertamEditUserInfoState extends State<DertamEditUserInfo> {
   void initState() {
     super.initState();
     // Initialize with sample data
-    _nameController.text = 'somawatey.khov';
+    _nameController.text = 'hi.k';
     _phoneController.text = '+855 1234569';
-    _emailController.text = 'somawatey.khov';
+    _emailController.text = 'hi.k';
   }
 
   @override

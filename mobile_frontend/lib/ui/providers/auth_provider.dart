@@ -26,10 +26,8 @@ class AuthProvider extends ChangeNotifier {
 
   /// Get authentication token
   String? get authToken => _authToken;
-
   /// Get current user
   User? get currentUser => _currentUser;
-
   /// Get user token
   AsyncValue<String?> get userToken => _userToken;
   Future<void> initializeAuth() async {

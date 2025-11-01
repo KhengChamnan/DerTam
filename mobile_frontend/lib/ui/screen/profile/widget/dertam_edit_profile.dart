@@ -75,7 +75,7 @@ class DertamEditProfile extends StatelessWidget {
             const SizedBox(height: 13),
             // User name
             Text(
-              'Somawatey',
+              'Mokey',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 20,
