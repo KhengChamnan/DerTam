@@ -127,9 +127,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
     });
 
-    //trip share routes
-    Route::get('/trip/{trip_id}/share', [TripShareController::class, 'generate']);
-    Route::get('/trip/share/{token}', [TripShareController::class, 'resolve']);
+    // Trip share routes (protected - owner only)
+    Route::controller(TripShareController::class)->group(function() {
+        Route::get('/trip/share/{token}', 'resolve');                // Resolve share link (view shared trip)
+        Route::get('/trip/{trip_id}/share', 'generate');           // Generate share link
+        Route::get('/trip/{trip_id}/share/accesses', 'getAccessList'); // Get access list
+        Route::delete('/trip/{trip_id}/share', 'deactivateShare');  // Deactivate share link
+    });
 
     // Expense management routes
     Route::controller(ExpenseController::class)->group(function() {

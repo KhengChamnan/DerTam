@@ -151,4 +151,14 @@ class User extends Authenticatable
     {
         return $this->getAllPermissions()->pluck('name')->toArray();
     }
+
+    /**
+     * Get the trips the user is viewing (shared with them).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function tripViewers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TripViewer::class, 'user_id', 'id');
+    }
 }

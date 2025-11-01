@@ -137,10 +137,23 @@ class TripController extends Controller
                 ], 401);
             }
 
-            $trips = DB::table('trips')
+            // Get owned trips
+            $ownedTrips = DB::table('trips')
                 ->where('user_id', $userId)
-                ->orderBy('created_at', 'desc')
+                ->select('trips.*')
+                ->addSelect(DB::raw("'owned' as trip_access_type"))
                 ->get();
+
+            // Get shared trips (trips the user has viewed)
+            $sharedTrips = DB::table('trip_viewers')
+                ->join('trips', 'trip_viewers.trip_id', '=', 'trips.trip_id')
+                ->where('trip_viewers.user_id', $userId)
+                ->select('trips.*')
+                ->addSelect(DB::raw("'shared' as trip_access_type"))
+                ->get();
+
+            // Combine both lists
+            $trips = $ownedTrips->merge($sharedTrips)->sortByDesc('created_at')->values();
 
             // Get trip days count for each trip
             foreach ($trips as $trip) {
