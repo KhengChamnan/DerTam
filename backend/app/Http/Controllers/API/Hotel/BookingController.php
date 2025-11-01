@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-
+use App\Http\Controllers\MediaController;
 class BookingController extends Controller
 {
     /**
@@ -31,6 +31,8 @@ class BookingController extends Controller
      *   "room_ids": [1, 2], // Array of room_properties_id (duplicates allowed, e.g., [1, 1] for 2 rooms of same type)
      *   "payment_method": "KHQR"
      * }
+     * 
+     * For image upload, use multipart/form-data with "image" field containing the ID card image file
      */
     public function store(Request $request)
     {
@@ -43,7 +45,7 @@ class BookingController extends Controller
                 'mobile' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:100',
                 'id_number' => 'nullable|string|max:50',
-                'id_image' => 'nullable|string|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'check_in' => 'required|date|after_or_equal:today',
                 'check_out' => 'required|date|after:check_in',
                 'room_ids' => 'required|array|min:1',
@@ -76,14 +78,14 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // Check if all rooms are available
-            $unavailableRooms = $rooms->where('is_available', false);
-            if ($unavailableRooms->count() > 0) {
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => ['room_ids' => ['One or more rooms are not available']],
-                ], 422);
-            }
+            // // Check if all rooms are available
+            // $unavailableRooms = $rooms->where('is_available', false);
+            // if ($unavailableRooms->count() > 0) {
+            //     return response()->json([
+            //         'message' => 'Validation failed',
+            //         'errors' => ['room_ids' => ['One or more rooms are not available']],
+            //     ], 422);
+            // }
 
             // Calculate total amount (considering duplicate room IDs)
             $totalAmount = 0;
@@ -94,6 +96,20 @@ class BookingController extends Controller
             }
             
             $totalAmount *= $nights;
+
+            // Handle image upload if present
+            $imageUrl = null;
+            $imagePublicId = null;
+
+            if ($request->hasFile('image')) {
+                $mediaController = new MediaController();
+                $uploadResult = $mediaController->uploadFile(
+                    $request->file('image'),
+                    'hotel_bookings/id_images'
+                );
+                $imageUrl = $uploadResult['url'];
+                $imagePublicId = $uploadResult['public_id'];
+            }
 
             // Start database transaction
             DB::beginTransaction();
@@ -112,7 +128,8 @@ class BookingController extends Controller
                     'mobile' => $validated['mobile'] ?? null,
                     'email' => $validated['email'] ?? null,
                     'id_number' => $validated['id_number'] ?? null,
-                    'id_image' => $validated['id_image'] ?? null,
+                    'image_url' => $imageUrl,
+                    'public_image_id' => $imagePublicId,
                     'check_in' => $validated['check_in'],
                     'check_out' => $validated['check_out'],
                     'total_amount' => $totalAmount,
@@ -144,6 +161,8 @@ class BookingController extends Controller
                         'booking_id' => $bookingDetail->booking_id,
                         'merchant_ref_no' => $bookingDetail->merchant_ref_no,
                         'full_name' => $bookingDetail->full_name,
+                        'image_url' => $bookingDetail->image_url,
+                        'public_image_id' => $bookingDetail->public_image_id,
                         'check_in' => $bookingDetail->check_in->format('Y-m-d'),
                         'check_out' => $bookingDetail->check_out->format('Y-m-d'),
                         'nights' => $nights,
@@ -322,7 +341,8 @@ class BookingController extends Controller
                     'mobile' => $booking->mobile,
                     'email' => $booking->email,
                     'id_number' => $booking->id_number,
-                    'id_image' => $booking->id_image,
+                    'image_url' => $booking->image_url,
+                    'public_image_id' => $booking->public_image_id,
                     'check_in' => $booking->check_in,
                     'check_out' => $booking->check_out,
                     'total_amount' => $booking->total_amount,
@@ -550,6 +570,12 @@ class BookingController extends Controller
                 return response()->json([
                     'message' => 'Booking not found',
                 ], 404);
+            }
+
+            // Delete image from Cloudinary if exists
+            if ($booking->public_image_id) {
+                $mediaController = new MediaController();
+                $mediaController->deleteFile($booking->public_image_id);
             }
 
             // Delete booking (cascade will handle booking_rooms)

@@ -88,16 +88,14 @@ Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('places', [PlaceCreateController::class, 'store']);
     
-    // Hotel property routes
-    Route::post('hotels/properties', [HotelCrudController::class, 'store']);
-    Route::delete('hotels/properties/{property_id}', [HotelCrudController::class, 'destroy']);
-    Route::post('hotels/facilities', [FacilitiesCrudController::class, 'store']);
-    Route::post('hotels/room-properties', [RoomPropertiesCrudController::class, 'store']);
-    Route::post('hotels/amenities', [AmenitiesCrudController::class, 'store']);
-    Route::delete('hotels/amenities/{id}', [AmenitiesCrudController::class, 'destroy']);
-    Route::post('hotels/room-amenities', [RoomAmenitiesCrudController::class, 'store']);
-    Route::post('hotels/property-facilities', [PropertyFacilitiesCrudController::class, 'store']);
-
+    // Hotel booking routes
+    Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
+    Route::get('hotels/bookings', [BookingController::class, 'index']); // Get all bookings with filters
+    Route::patch('hotels/bookings/{booking_id}/status', [BookingController::class, 'updateStatus']); // Update booking status
+    Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
+    Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
+    Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
+    Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
 
     
     // Hotel booking routes
