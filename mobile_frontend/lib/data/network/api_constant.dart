@@ -24,7 +24,10 @@ class ApiEndpoint {
   //Trip Endpoints
   static const String createTrip = '/api/trips';
   static const String getAllUsers = '/api/trips';
+  static const String getSpecificTrip = '/api/trips/'; // Here we need the trip Id
   static const String addPlaceToTripDay = '/api/trip-days/1/places';
   static const String getPlaceForTripDay = '/api/trip-days/7/places';
   static const String getAllPlacesForTripPlanning = '/api/trip-planning/places';
+
+
 }

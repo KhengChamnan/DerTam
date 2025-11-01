@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/screen/budget/select_currency_screen.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/select_place.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
-import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/trip_place_card.dart';
 

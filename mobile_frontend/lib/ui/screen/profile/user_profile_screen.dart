@@ -152,7 +152,7 @@ class UserProfile extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: Navigationbar(currentIndex: 5),
+      bottomNavigationBar: Navigationbar(currentIndex: 4),
     );
   }
 }

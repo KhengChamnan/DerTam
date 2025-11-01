@@ -159,7 +159,7 @@ class CalendarGrid extends StatelessWidget {
             } else {
               return SizedBox.shrink();
             }
-          }).where((widget) => widget is! SizedBox || (widget as SizedBox).height != null).toList(),
+          }).where((widget) => widget is! SizedBox || (widget).height != null),
           
           SizedBox(height: DertamSpacings.s),
         ],

@@ -42,7 +42,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   final List<String> _tabs = ['All', 'Today', 'Upcoming'];
 
   // Sample expenses with different dates
-  List<Expense> _expenses = [
+  final List<Expense> _expenses = [
     Expense.create(
       amount: 25000,
       description: 'Lunch at local restaurant',
