@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, useForm, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import {
     Card,
     CardContent,
@@ -33,6 +34,7 @@ interface Place {
     ratings?: number;
     reviews_count?: number;
     images_url: string[];
+    image_public_ids?: string[];
     entry_free: boolean;
     operating_hours: { [key: string]: string };
     best_season_to_visit?: string;
@@ -59,6 +61,8 @@ interface Props {
 export default function PlaceForm({ place, categories, provinces }: Props) {
     const isEditing = !!place;
     const [imageUrl, setImageUrl] = useState("");
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -71,15 +75,16 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
         },
     ];
 
-    const { data, setData, post, put, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         name: place?.name || "",
         description: place?.description || "",
         category_id: place?.category_id || "",
         province_id: place?.province_id || "",
         google_maps_link: place?.google_maps_link || "",
-        ratings: place?.ratings || "",
-        reviews_count: place?.reviews_count || "",
+        ratings: place?.ratings ?? "",
+        reviews_count: place?.reviews_count ?? "",
         images_url: place?.images_url || [],
+        image_public_ids: place?.image_public_ids || [],
         entry_free: place?.entry_free || false,
         operating_hours: place?.operating_hours || {
             monday: "",
@@ -91,30 +96,165 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
             sunday: "",
         },
         best_season_to_visit: place?.best_season_to_visit || "",
-        latitude: place?.latitude || "",
-        longitude: place?.longitude || "",
+        latitude: place?.latitude ?? "",
+        longitude: place?.longitude ?? "",
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Prepare data for submission
+        const submitData: any = {
+            ...data,
+            existing_images: Array.isArray(data.images_url)
+                ? data.images_url.filter((url) => url.startsWith("http"))
+                : [],
+            existing_public_ids: Array.isArray(data.image_public_ids)
+                ? data.image_public_ids
+                : [],
+            images: selectedFiles,
+        };
+
+        // Remove images_url and image_public_ids from submit data as we're sending them separately
+        delete submitData.images_url;
+        delete submitData.image_public_ids;
+
         if (isEditing) {
-            put(`/places/${place.placeID}`);
+            // Use POST with _method spoofing for file uploads
+            router.post(
+                `/places/${place.placeID}`,
+                {
+                    ...submitData,
+                    _method: "PUT",
+                },
+                {
+                    forceFormData: true,
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        toast.success("Place updated successfully");
+                        setSelectedFiles([]);
+                    },
+                    onError: (errors) => {
+                        console.error("Update errors:", errors);
+                        toast.error("Failed to update place");
+                    },
+                }
+            );
         } else {
-            post("/places");
+            router.post("/places", submitData, {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success("Place created successfully");
+                    setSelectedFiles([]);
+                },
+                onError: (errors) => {
+                    console.error("Create errors:", errors);
+                    toast.error("Failed to create place");
+                },
+            });
         }
     };
 
     const addImageUrl = () => {
+        console.log("addImageUrl function called!");
+        console.log("imageUrl value:", imageUrl);
+
         if (imageUrl.trim()) {
-            setData("images_url", [...data.images_url, imageUrl.trim()]);
+            const currentImages = Array.isArray(data.images_url)
+                ? data.images_url
+                : [];
+            console.log("Before adding - current images:", currentImages);
+            setData("images_url", [...currentImages, imageUrl.trim()]);
             setImageUrl("");
+            console.log("Image added:", imageUrl.trim());
+            console.log("After adding - images:", [
+                ...currentImages,
+                imageUrl.trim(),
+            ]);
+        } else {
+            console.log("Image URL is empty or whitespace only");
         }
+    };
+
+    const handleImageUrlChange = (value: string) => {
+        setImageUrl(value);
+
+        // Auto-add image if the value looks like a complete URL
+        if (
+            value.trim() &&
+            (value.startsWith("http://") || value.startsWith("https://"))
+        ) {
+            // Check if URL ends with common image extensions or contains image patterns
+            const imagePattern =
+                /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i;
+            const isImageUrl =
+                imagePattern.test(value) ||
+                value.includes("image") ||
+                value.includes("img");
+
+            if (isImageUrl) {
+                const currentImages = Array.isArray(data.images_url)
+                    ? data.images_url
+                    : [];
+                setData("images_url", [...currentImages, value.trim()]);
+                setImageUrl("");
+            }
+        }
+    };
+
+    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        // Add selected files to state for upload
+        const newFiles = Array.from(files).filter((file) =>
+            file.type.startsWith("image/")
+        );
+        setSelectedFiles((prev) => [...prev, ...newFiles]);
+
+        // Create preview URLs for display
+        newFiles.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const previewUrl = reader.result as string;
+                const currentImages = Array.isArray(data.images_url)
+                    ? data.images_url
+                    : [];
+                setData("images_url", [...currentImages, previewUrl]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const openFileBrowser = () => {
+        fileInputRef.current?.click();
     };
 
     const removeImageUrl = (index: number) => {
         const newImages = data.images_url.filter((_, i) => i !== index);
-        setData("images_url", newImages);
+        const newPublicIds = Array.isArray(data.image_public_ids)
+            ? data.image_public_ids.filter((_, i) => i !== index)
+            : [];
+
+        setData((prev) => ({
+            ...prev,
+            images_url: newImages,
+            image_public_ids: newPublicIds,
+        }));
+
+        // If removing a preview image, also remove from selectedFiles
+        // Calculate how many are existing vs new files
+        const existingImagesCount = place?.images_url?.length || 0;
+        if (index >= existingImagesCount) {
+            const fileIndex = index - existingImagesCount;
+            setSelectedFiles((prev) => prev.filter((_, i) => i !== fileIndex));
+        }
     };
 
     const updateOperatingHours = (day: string, time: string) => {
@@ -323,7 +463,11 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
                                             onChange={(e) =>
                                                 setData(
                                                     "latitude",
-                                                    parseFloat(e.target.value)
+                                                    e.target.value
+                                                        ? parseFloat(
+                                                              e.target.value
+                                                          )
+                                                        : ""
                                                 )
                                             }
                                             placeholder="e.g., 13.7563"
@@ -347,7 +491,11 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
                                             onChange={(e) =>
                                                 setData(
                                                     "longitude",
-                                                    parseFloat(e.target.value)
+                                                    e.target.value
+                                                        ? parseFloat(
+                                                              e.target.value
+                                                          )
+                                                        : ""
                                                 )
                                             }
                                             placeholder="e.g., 100.5018"
@@ -406,7 +554,11 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
                                             onChange={(e) =>
                                                 setData(
                                                     "ratings",
-                                                    parseFloat(e.target.value)
+                                                    e.target.value
+                                                        ? parseFloat(
+                                                              e.target.value
+                                                          )
+                                                        : ""
                                                 )
                                             }
                                             placeholder="e.g., 4.5"
@@ -430,7 +582,11 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
                                             onChange={(e) =>
                                                 setData(
                                                     "reviews_count",
-                                                    parseInt(e.target.value)
+                                                    e.target.value
+                                                        ? parseInt(
+                                                              e.target.value
+                                                          )
+                                                        : ""
                                                 )
                                             }
                                             placeholder="e.g., 100"
@@ -476,53 +632,107 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                {/* Hidden file input */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+
                                 <div className="flex gap-2">
                                     <Input
                                         value={imageUrl}
-                                        onChange={(e) =>
-                                            setImageUrl(e.target.value)
-                                        }
-                                        placeholder="Enter image URL"
+                                        onChange={(e) => {
+                                            handleImageUrlChange(
+                                                e.target.value
+                                            );
+                                        }}
+                                        onKeyDown={(e) => {
+                                            console.log("Key pressed:", e.key);
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                console.log(
+                                                    "Enter key detected, calling addImageUrl"
+                                                );
+                                                addImageUrl();
+                                            }
+                                        }}
+                                        onPaste={(e) => {
+                                            // Auto-add on paste
+                                            const target = e.currentTarget;
+                                            setTimeout(() => {
+                                                if (target && target.value) {
+                                                    handleImageUrlChange(
+                                                        target.value
+                                                    );
+                                                }
+                                            }, 10);
+                                        }}
+                                        placeholder="Paste image URL "
                                         className="flex-1"
                                     />
                                     <Button
                                         type="button"
-                                        onClick={addImageUrl}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openFileBrowser();
+                                        }}
                                         variant="outline"
+                                        title="Browse for images from your computer"
                                     >
                                         <Plus className="w-4 h-4" />
                                     </Button>
                                 </div>
 
-                                {data.images_url.length > 0 && (
-                                    <div className="space-y-2">
-                                        {data.images_url.map((url, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex items-center gap-2 p-2 border rounded"
-                                            >
-                                                <img
-                                                    src={url}
-                                                    alt={`Preview ${index + 1}`}
-                                                    className="w-16 h-16 object-cover rounded"
-                                                />
-                                                <span className="flex-1 text-sm truncate">
-                                                    {url}
-                                                </span>
-                                                <Button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        removeImageUrl(index)
-                                                    }
-                                                    variant="destructive"
-                                                    size="sm"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                {/* Display added images */}
+                                {Array.isArray(data.images_url) &&
+                                    data.images_url.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                                {data.images_url.length}{" "}
+                                                image(s) added
+                                            </p>
+                                            {data.images_url.map(
+                                                (url, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-center gap-2 p-2 border rounded"
+                                                    >
+                                                        <img
+                                                            src={url}
+                                                            alt={`Preview ${
+                                                                index + 1
+                                                            }`}
+                                                            className="w-16 h-16 object-cover rounded"
+                                                            onError={(e) => {
+                                                                e.currentTarget.src =
+                                                                    'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%23ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">No Image</text></svg>';
+                                                            }}
+                                                        />
+                                                        <span className="flex-1 text-sm truncate">
+                                                            {url}
+                                                        </span>
+                                                        <Button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                removeImageUrl(
+                                                                    index
+                                                                )
+                                                            }
+                                                            variant="destructive"
+                                                            size="sm"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+                                    )}
                             </CardContent>
                         </Card>
 

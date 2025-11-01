@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
     ArrowLeft,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
+import { handleImageError, getSafeImageUrl } from "@/utils/imageUtils";
 
 interface Place {
     placeID: number;
@@ -53,6 +54,31 @@ interface Props {
 }
 
 export default function PlaceShow({ place, error }: Props) {
+    const [loadingImages, setLoadingImages] = useState<{
+        [key: number]: boolean;
+    }>({});
+    const [failedImages, setFailedImages] = useState<{
+        [key: number]: boolean;
+    }>({});
+
+    const handleImageLoad = (index: number) => {
+        setLoadingImages((prev) => ({ ...prev, [index]: false }));
+    };
+
+    const handleImageLoadStart = (index: number) => {
+        setLoadingImages((prev) => ({ ...prev, [index]: true }));
+        setFailedImages((prev) => ({ ...prev, [index]: false }));
+    };
+
+    const handleImageErrorWithState = (
+        e: React.SyntheticEvent<HTMLImageElement>,
+        index: number
+    ) => {
+        setLoadingImages((prev) => ({ ...prev, [index]: false }));
+        setFailedImages((prev) => ({ ...prev, [index]: true }));
+        handleImageError(e, 400, 300);
+    };
+
     if (error || !place) {
         return (
             <AppLayout>
@@ -234,7 +260,7 @@ export default function PlaceShow({ place, error }: Props) {
                         )}
 
                         {/* Images */}
-                        {place.images_url && place.images_url.length > 0 && (
+                        {place.images_url && place.images_url.length > 0 ? (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
@@ -247,24 +273,99 @@ export default function PlaceShow({ place, error }: Props) {
                                         {place.images_url.map((url, index) => (
                                             <div
                                                 key={index}
-                                                className="relative group"
+                                                className="relative group overflow-hidden rounded-lg bg-gray-100"
                                             >
+                                                {/* Loading skeleton */}
+                                                {loadingImages[index] && (
+                                                    <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+                                                        <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                                                    </div>
+                                                )}
+
+                                                {/* Failed state */}
+                                                {failedImages[index] && (
+                                                    <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                                                        <div className="text-center text-gray-500">
+                                                            <ImageIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                                            <p className="text-sm">
+                                                                Failed to load
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <img
-                                                    src={url}
+                                                    src={getSafeImageUrl(
+                                                        url,
+                                                        400,
+                                                        300
+                                                    )}
                                                     alt={`${
                                                         place.name
                                                     } - Image ${index + 1}`}
-                                                    className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
-                                                    onError={(e) => {
-                                                        const target =
-                                                            e.target as HTMLImageElement;
-                                                        target.src =
-                                                            "/api/placeholder/400/300";
-                                                    }}
+                                                    className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                                                    onLoadStart={() =>
+                                                        handleImageLoadStart(
+                                                            index
+                                                        )
+                                                    }
+                                                    onLoad={() =>
+                                                        handleImageLoad(index)
+                                                    }
+                                                    onError={(e) =>
+                                                        handleImageErrorWithState(
+                                                            e,
+                                                            index
+                                                        )
+                                                    }
+                                                    loading="lazy"
                                                 />
-                                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+
+                                                {/* Hover overlay - only show when image is loaded successfully */}
+                                                {!loadingImages[index] &&
+                                                    !failedImages[index] && (
+                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    )}
+
+                                                {/* Image counter */}
+                                                <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                                    {index + 1} /{" "}
+                                                    {place.images_url?.length ||
+                                                        0}
+                                                </div>
                                             </div>
                                         ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <ImageIcon className="h-5 w-5" />
+                                        Images
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                            <ImageIcon className="w-8 h-8 text-gray-400" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                            No images available
+                                        </h3>
+                                        <p className="text-sm text-gray-500 mb-4">
+                                            This place doesn't have any images
+                                            yet.
+                                        </p>
+                                        <Link
+                                            href={`/places/${place.placeID}/edit`}
+                                        >
+                                            <Button variant="outline" size="sm">
+                                                <Edit className="w-4 h-4 mr-2" />
+                                                Add Images
+                                            </Button>
+                                        </Link>
                                     </div>
                                 </CardContent>
                             </Card>

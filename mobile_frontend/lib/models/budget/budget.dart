@@ -1,6 +1,6 @@
 // Budget Models
 // ignore_for_file: avoid_types_as_parameter_names
-import 'package:mobile_frontend/models/budget/expend.dart';
+import 'package:mobile_frontend/models/budget/expense.dart';
 
 class Budget {
   final String id;
