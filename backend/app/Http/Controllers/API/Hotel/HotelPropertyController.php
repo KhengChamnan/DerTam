@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hotel\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class HotelPropertyController extends Controller
 {
@@ -132,6 +133,18 @@ class HotelPropertyController extends Controller
                 return response()->json([
                     'message' => 'Property not found',
                 ], 404);
+            }
+
+            // Add available_room count for each room property
+            if ($property->roomProperties) {
+                foreach ($property->roomProperties as $roomProperty) {
+                    $availableCount = DB::table('rooms')
+                        ->where('room_properties_id', $roomProperty->room_properties_id)
+                        ->where('is_available', 1)
+                        ->count();
+                    
+                    $roomProperty->available_room = $availableCount;
+                }
             }
 
             return response()->json([
