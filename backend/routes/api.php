@@ -25,6 +25,7 @@ use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\BookingController;
 use App\Http\Controllers\API\Hotel\RoomController;
 use App\Http\Controllers\API\Trip\TripShareController;
+use App\Http\Controllers\API\Profile\ProfileController;
 
 
 
@@ -89,6 +90,17 @@ Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('places', [PlaceCreateController::class, 'store']);
+    
+    // Profile management routes
+    Route::controller(ProfileController::class)->group(function() {
+        Route::get('profile', 'index');                        // Get authenticated user's profile
+        Route::post('profile', 'update');                      // Update authenticated user's profile
+        Route::delete('profile', 'destroy');                   // Delete authenticated user's account
+        Route::post('profile/change-password', 'changePassword'); // Change password
+        Route::post('profile/update-image', 'updateProfileImage'); // Update profile image
+        Route::delete('profile/delete-image', 'deleteProfileImage'); // Delete profile image
+        Route::get('profile/{id}', 'show');                    // Get specific user's profile by ID
+    });
     
     // Hotel booking routes
     Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking

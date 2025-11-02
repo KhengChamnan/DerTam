@@ -35,6 +35,12 @@ class User extends Authenticatable
         'phone_number',
         'status',
         'last_login_at',
+        'google_id',
+        'avatar',
+        'age',
+        'gender',
+        'profile_image_url',
+        'profile_image_public_id',
     ];
 
     /**
@@ -69,6 +75,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'age' => 'integer',
         ];
     }
 
