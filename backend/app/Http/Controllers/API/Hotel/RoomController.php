@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hotel\RoomProperty;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class RoomController extends Controller
 {
@@ -28,6 +29,14 @@ class RoomController extends Controller
                     'message' => 'Room not found',
                 ], 404);
             }
+
+            // Add available_room count
+            $availableCount = DB::table('rooms')
+                ->where('room_properties_id', $room->room_properties_id)
+                ->where('is_available', 1)
+                ->count();
+            
+            $room->available_room = $availableCount;
 
             return response()->json([
                 'message' => 'Room retrieved successfully',
