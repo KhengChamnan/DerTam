@@ -238,10 +238,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> with TickerProviderStat
         ),
         title: Text(
           'My Favorites',
-          style: TextStyle(
+          style: DertamTextStyles.title.copyWith(
             color: DertamColors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
@@ -948,7 +946,7 @@ class _CategoryChipState extends State<_CategoryChip>
                     style: TextStyle(
                       color: widget.isSelected ? Colors.white : Colors.grey[700],
                       fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.normal,
-                      fontSize: 13,
+                      fontSize: 16,
                     ),
                   ),
                 ],
@@ -1142,14 +1140,15 @@ class _FavoritePlaceCardState extends State<_FavoritePlaceCard>
                           Text(
                             widget.place.name,
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                               height: 1.2,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                        
+                          const Spacer(),
                           Row(
                             children: [
                               Icon(
