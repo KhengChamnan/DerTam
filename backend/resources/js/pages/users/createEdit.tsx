@@ -290,6 +290,12 @@ export default function CreateEditUser({
                                                             Admin
                                                         </div>
                                                     </SelectItem>
+                                                    <SelectItem value="Hotel Owner">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="size-2 rounded-full bg-orange-500"></div>
+                                                            Hotel Owner
+                                                        </div>
+                                                    </SelectItem>
                                                     <SelectItem value="User">
                                                         <div className="flex items-center gap-2">
                                                             <div className="size-2 rounded-full bg-blue-500"></div>

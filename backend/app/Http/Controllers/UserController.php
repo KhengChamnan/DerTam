@@ -52,6 +52,7 @@ class UserController extends Controller
             $roleDisplayNames = [
                 'user' => 'User',
                 'admin' => 'Admin', 
+                'hotel owner' => 'Hotel Owner',
                 'superadmin' => 'Super Admin'
             ];
 
@@ -82,7 +83,13 @@ class UserController extends Controller
             'roles' => $roles,
             'filters' => $request->only(['search', 'status', 'role']),
             'auth' => [
-                'user' => Auth::user()->load('roles:id,name'),
+                'user' => Auth::user() ? [
+                    'id' => Auth::user()->id,
+                    'name' => Auth::user()->name,
+                    'email' => Auth::user()->email,
+                    'roles' => Auth::user()->load('roles')->roles,
+                    'permissions' => Auth::user()->load('permissions', 'roles.permissions')->getAllPermissions()->pluck('name')->toArray(),
+                ] : null,
             ],
         ]);
     }
@@ -107,7 +114,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'username' => 'nullable|string|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Super Admin,Admin,User',
+            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,User',
             'status' => 'nullable|string|in:Active,Inactive,Invited,Suspended',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -116,6 +123,7 @@ class UserController extends Controller
         $roleMapping = [
             'Super Admin' => 'superadmin',
             'Admin' => 'admin',
+            'Hotel Owner' => 'hotel owner',
             'User' => 'user'
         ];
 
@@ -155,6 +163,7 @@ class UserController extends Controller
         $roleDisplayNames = [
             'user' => 'User',
             'admin' => 'Admin', 
+            'hotel owner' => 'Hotel Owner',
             'superadmin' => 'Super Admin'
         ];
 
@@ -190,7 +199,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'username' => 'nullable|string|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Super Admin,Admin,User',
+            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,User',
             'status' => 'nullable|string|in:Active,Inactive,Invited,Suspended',
         ];
 
@@ -205,6 +214,7 @@ class UserController extends Controller
         $roleMapping = [
             'Super Admin' => 'superadmin',
             'Admin' => 'admin',
+            'Hotel Owner' => 'hotel owner',
             'User' => 'user'
         ];
 
@@ -240,5 +250,27 @@ class UserController extends Controller
 
         return redirect()->route('users.index')
                         ->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Assign hotel ownership to a user.
+     */
+    public function assignHotelOwnership(Request $request, User $user)
+    {
+        $request->validate([
+            'property_ids' => 'required|array',
+            'property_ids.*' => 'exists:properties,property_id'
+        ]);
+        
+        // Assign hotel owner role if not already assigned
+        if (!$user->hasRole('hotel owner')) {
+            $user->assignRole('hotel owner');
+        }
+        
+        // Update property ownership
+        \App\Models\Hotel\Property::whereIn('property_id', $request->property_ids)
+            ->update(['owner_user_id' => $user->id]);
+        
+        return back()->with('success', 'Hotel ownership assigned successfully.');
     }
 }

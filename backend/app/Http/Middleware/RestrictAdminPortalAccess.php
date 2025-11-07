@@ -12,8 +12,8 @@ class RestrictAdminPortalAccess
     /**
      * Handle an incoming request.
      * 
-     * This middleware prevents users with only the 'user' role from accessing the admin portal.
-     * Users must have 'admin' or 'superadmin' role to access the admin portal.
+     * This middleware prevents users without admin portal access permission from accessing the admin portal.
+     * Users must have 'access admin panel' permission OR be a hotel owner to access the admin portal.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -21,8 +21,8 @@ class RestrictAdminPortalAccess
     {
         $user = Auth::user();
 
-        // If user is authenticated and only has the 'user' role
-        if ($user && $user->hasRole('user') && !$user->hasRole(['admin', 'superadmin'])) {
+        // If user is authenticated but doesn't have admin panel access permission AND is not a hotel owner
+        if ($user && !$user->can('access admin panel') && !$user->hasRole('hotel owner')) {
             // Log them out from the admin portal
             Auth::guard('web')->logout();
             $request->session()->invalidate();

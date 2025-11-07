@@ -52,15 +52,18 @@ class RoleController extends Controller
             });
 
             $user = Auth::user();
-            if ($user) {
-                $user->load('roles');
-            }
             
             return Inertia::render('roles/index', [
                 'roles' => $roles,
                 'filters' => $request->only(['search']),
                 'auth' => [
-                    'user' => $user,
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'roles' => $user->load('roles')->roles,
+                        'permissions' => $user->load('permissions', 'roles.permissions')->getAllPermissions()->pluck('name')->toArray(),
+                    ] : null,
                 ],
             ]);
         } catch (\Exception $e) {

@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'admin.portal' => \App\Http\Middleware\RestrictAdminPortalAccess::class,
+            'hotel.owner' => \App\Http\Middleware\HotelOwnerMiddleware::class,
+            'redirect.hotel.owners' => \App\Http\Middleware\RedirectHotelOwners::class,
         ]);
 
         // Trust all proxies for Render deployment

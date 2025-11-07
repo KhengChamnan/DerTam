@@ -25,11 +25,6 @@ class PermissionMiddleware
 
         $user = Auth::user();
 
-        // Super admin has all permissions
-        if ($user->hasRole('superadmin')) {
-            return $next($request);
-        }
-
         // Check if user has any of the specified permissions
         foreach ($permissions as $permission) {
             if ($user->can($permission)) {

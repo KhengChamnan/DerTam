@@ -201,7 +201,7 @@ export default function ImportDialog({ trigger }: ImportDialogProps) {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <FileSpreadsheet className="h-5 w-5" />
-                        Import Places from Excel/CSV
+                        Import Places
                     </DialogTitle>
                     <DialogDescription>
                         Upload an Excel or CSV file to import multiple places at

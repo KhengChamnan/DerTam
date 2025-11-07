@@ -43,6 +43,15 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+            'auth' => [
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'roles' => $request->user()->load('roles')->roles,
+                    'permissions' => $request->user()->load('permissions', 'roles.permissions')->getAllPermissions()->pluck('name')->toArray(),
+                ] : null,
+            ],
         ];
     }
 }

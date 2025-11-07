@@ -10,6 +10,7 @@ interface AuthUser {
     name: string;
     email: string;
     roles: Role[];
+    permissions: string[];
 }
 
 interface PageProps {
@@ -21,6 +22,14 @@ interface PageProps {
 
 export const usePermissions = () => {
     const { auth } = usePage<PageProps>().props;
+
+    const hasPermission = (permission: string): boolean => {
+        return auth.user?.permissions?.includes(permission) ?? false;
+    };
+
+    const hasAnyPermission = (permissions: string[]): boolean => {
+        return auth.user?.permissions?.some(permission => permissions.includes(permission)) ?? false;
+    };
 
     const hasRole = (role: string): boolean => {
         return auth.user?.roles?.some(userRole => userRole.name === role) ?? false;
@@ -42,36 +51,64 @@ export const usePermissions = () => {
         return hasRole('user');
     };
 
+    // Permission-based access control functions
     const canViewPlaces = (): boolean => {
-        return true; // All authenticated users can view places
+        return hasPermission('view places');
     };
 
     const canCreatePlaces = (): boolean => {
-        return isAdmin();
+        return hasPermission('create places');
     };
 
     const canEditPlaces = (): boolean => {
-        return isAdmin();
+        return hasPermission('edit places');
     };
 
     const canDeletePlaces = (): boolean => {
-        return isSuperAdmin();
+        return hasPermission('delete places');
     };
 
     const canImportPlaces = (): boolean => {
-        return isAdmin();
+        return hasPermission('import places');
     };
 
     const canManageUsers = (): boolean => {
-        return isAdmin();
+        return hasAnyPermission(['view users', 'create users', 'edit users', 'delete users']);
     };
 
     const canManageRoles = (): boolean => {
-        return isAdmin();
+        return hasAnyPermission(['view roles', 'create roles', 'edit roles', 'delete roles']);
+    };
+
+    // Hotel permissions
+    const canViewHotels = (): boolean => {
+        return hasPermission('view hotels');
+    };
+
+    const canCreateHotels = (): boolean => {
+        return hasPermission('create hotels');
+    };
+
+    const canEditHotels = (): boolean => {
+        return hasPermission('edit hotels');
+    };
+
+    const canDeleteHotels = (): boolean => {
+        return hasPermission('delete hotels');
+    };
+
+    const canManageHotelRooms = (): boolean => {
+        return hasPermission('manage hotel rooms');
+    };
+
+    const canViewHotelAnalytics = (): boolean => {
+        return hasPermission('view hotel analytics');
     };
 
     return {
         user: auth.user,
+        hasPermission,
+        hasAnyPermission,
         hasRole,
         hasAnyRole,
         isSuperAdmin,
@@ -84,5 +121,11 @@ export const usePermissions = () => {
         canImportPlaces,
         canManageUsers,
         canManageRoles,
+        canViewHotels,
+        canCreateHotels,
+        canEditHotels,
+        canDeleteHotels,
+        canManageHotelRooms,
+        canViewHotelAnalytics,
     };
 };
