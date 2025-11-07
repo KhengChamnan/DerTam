@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:mobile_frontend/ui/screen/bus_booking/dertam_bus_booking_screen.dart';
 import 'package:mobile_frontend/ui/screen/favorite/favorite_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
-import 'package:mobile_frontend/ui/screen/profile/user_profile.dart';
-import 'package:mobile_frontend/ui/screen/trip/trip_planning.dart';
+import 'package:mobile_frontend/ui/screen/profile/user_profile_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/dertam_trip_planning_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class Navigationbar extends StatelessWidget {
@@ -20,7 +21,7 @@ class Navigationbar extends StatelessWidget {
         screen = HomePage();
         break;
       case 1:
-        screen = const TripPlanning();
+        screen = const DertamBusBookingScreen();
         break;
       case 2:
         screen = const TripPlanning();
@@ -35,7 +36,10 @@ class Navigationbar extends StatelessWidget {
         return;
     }
 
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
   }
 
   @override
@@ -44,78 +48,75 @@ class Navigationbar extends StatelessWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
       children: [
-        // Main Navigation Bar
-        Container(
-          decoration: BoxDecoration(
-            color: DertamColors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: NavigationBar(
-            height: 70,
-            elevation: 0,
-            selectedIndex: currentIndex == 2
-                ? 0
-                : currentIndex > 2
-                ? currentIndex - 1
-                : currentIndex,
-            backgroundColor: DertamColors.primaryBlue.withOpacity(0.05),
-            indicatorColor: DertamColors.primaryBlue.withOpacity(0.2),
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            destinations: [
-              NavigationDestination(
-                icon: Icon(
-                  Iconsax.home,
-                  color: currentIndex == 0
-                      ? DertamColors.primaryBlue
-                      : Colors.grey,
+        /// Main Navigation Bar
+        Material(
+          elevation: 10,
+          shadowColor: Colors.black.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: DertamColors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: NavigationBar(
+              height: 70,
+              elevation: 0,
+              backgroundColor: DertamColors.white,
+              indicatorColor: DertamColors.primaryBlue.withOpacity(0.15),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              selectedIndex: currentIndex,
+              destinations: [
+                NavigationDestination(
+                  icon: Icon(
+                    Iconsax.home,
+                    color: currentIndex == 0
+                        ? DertamColors.primaryBlue
+                        : Colors.grey,
+                  ),
+                  label: 'Home',
                 ),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Iconsax.book,
-                  color: currentIndex == 1
-                      ? DertamColors.primaryBlue
-                      : Colors.grey,
+                NavigationDestination(
+                  icon: Icon(
+                    Iconsax.bus,
+                    color: currentIndex == 1
+                        ? DertamColors.primaryBlue
+                        : Colors.grey,
+                  ),
+                  label: 'Bus Booking',
                 ),
-                label: 'Bus Booking',
-              ),
-              // Empty space for the floating button
-              const NavigationDestination(icon: SizedBox(width: 60), label: ''),
-              NavigationDestination(
-                icon: Icon(
-                  Iconsax.heart,
-                  color: currentIndex == 3
-                      ? DertamColors.primaryBlue
-                      : Colors.grey,
+                const NavigationDestination(
+                  icon: SizedBox(width: 60),
+                  label: '',
                 ),
-                label: 'Favorite',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Iconsax.user,
-                  color: currentIndex == 4
-                      ? DertamColors.primaryBlue
-                      : Colors.grey,
+                NavigationDestination(
+                  icon: Icon(
+                    Iconsax.heart,
+                    color: currentIndex == 3
+                        ? DertamColors.primaryBlue
+                        : Colors.grey,
+                  ),
+                  label: 'Favorite',
                 ),
-                label: 'Profile',
-              ),
-            ],
-            onDestinationSelected: (int index) {
-              // Adjust index for the empty space
-              int actualIndex = index >= 2 ? index + 1 : index;
-              _navigateToScreen(context, actualIndex);
-            },
+                NavigationDestination(
+                  icon: Icon(
+                    Iconsax.user,
+                    color: currentIndex == 4
+                        ? DertamColors.primaryBlue
+                        : Colors.grey,
+                  ),
+                  label: 'Profile',
+                ),
+              ],
+              onDestinationSelected: (int index) {
+                if (index == 2) return; // skip empty slot
+                _navigateToScreen(context, index);
+              },
+            ),
           ),
         ),
-        // Floating Trip Plan Button
+
+
+        /// Floating Trip Plan Button
         Positioned(
           bottom: 20,
           child: GestureDetector(

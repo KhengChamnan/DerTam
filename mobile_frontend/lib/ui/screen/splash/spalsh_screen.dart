@@ -6,8 +6,6 @@ class SplashScreen extends StatelessWidget {
   static String nameRoute = "/splash";
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SplashBody(),
-    );
+    return Scaffold(body: SplashBody());
   }
 }
