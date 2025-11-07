@@ -139,14 +139,16 @@ class HotelController extends Controller
      */
     public function create()
     {
-        // Get available places that are not already hotel properties
+        // Get available places that are hotels (category_id = 3) and not already assigned to a property
         $availablePlaces = Place::whereDoesntHave('properties')
+                                ->where('category_id', 3) // Filter for hotel category only
                                 ->with('provinceCategory')
                                 ->orderBy('name')
                                 ->get(['placeID', 'name', 'province_id']);
 
-        // Get users who can own properties (admin and superadmin roles)
-        $owners = User::role(['admin', 'superadmin'])
+        // Get users with 'hotel owner' role who don't own any properties yet
+        $owners = User::role('hotel owner')
+                     ->whereDoesntHave('ownedProperties')
                      ->orderBy('name')
                      ->get(['id', 'name', 'email']);
 

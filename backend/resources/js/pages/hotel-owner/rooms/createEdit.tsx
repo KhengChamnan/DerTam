@@ -60,7 +60,8 @@ export default function RoomCreateEdit({
     isEdit = false,
 }: Props) {
     const { data, setData, post, put, processing, errors } = useForm({
-        room_properties_id: room?.room_properties_id || (roomTypes[0]?.room_properties_id || ""),
+        room_properties_id:
+            room?.room_properties_id || roomTypes[0]?.room_properties_id || "",
         room_number: room?.room_number || "",
         is_available: room?.is_available ?? true,
         status: room?.status || "available",
@@ -117,12 +118,16 @@ export default function RoomCreateEdit({
                             {/* Room Type Selection */}
                             <div className="space-y-2">
                                 <Label htmlFor="room_properties_id">
-                                    Room Type <span className="text-red-500">*</span>
+                                    Room Type{" "}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={String(data.room_properties_id)}
                                     onValueChange={(value) =>
-                                        setData("room_properties_id", Number(value))
+                                        setData(
+                                            "room_properties_id",
+                                            Number(value)
+                                        )
                                     }
                                 >
                                     <SelectTrigger id="room_properties_id">
@@ -131,10 +136,15 @@ export default function RoomCreateEdit({
                                     <SelectContent>
                                         {roomTypes.map((roomType) => (
                                             <SelectItem
-                                                key={roomType.room_properties_id}
-                                                value={String(roomType.room_properties_id)}
+                                                key={
+                                                    roomType.room_properties_id
+                                                }
+                                                value={String(
+                                                    roomType.room_properties_id
+                                                )}
                                             >
-                                                {roomType.room_type} - ${roomType.price_per_night}/night
+                                                {roomType.room_type} - $
+                                                {roomType.price_per_night}/night
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -144,17 +154,19 @@ export default function RoomCreateEdit({
                                         {errors.room_properties_id}
                                     </p>
                                 )}
-                                {selectedRoomType && (
+                                {/* {selectedRoomType && (
                                     <p className="text-sm text-muted-foreground">
-                                        {selectedRoomType.room_description || "No description"}
+                                        {selectedRoomType.room_description ||
+                                            "No description"}
                                     </p>
-                                )}
+                                )} */}
                             </div>
 
                             {/* Room Number */}
                             <div className="space-y-2">
                                 <Label htmlFor="room_number">
-                                    Room Number <span className="text-red-500">*</span>
+                                    Room Number{" "}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="room_number"
@@ -175,26 +187,37 @@ export default function RoomCreateEdit({
                             {/* Status */}
                             <div className="space-y-2">
                                 <Label htmlFor="status">
-                                    Status <span className="text-red-500">*</span>
+                                    Status{" "}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={data.status}
-                                    onValueChange={(value: any) => setData("status", value)}
+                                    onValueChange={(value: any) =>
+                                        setData("status", value)
+                                    }
                                 >
                                     <SelectTrigger id="status">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="available">Available</SelectItem>
-                                        <SelectItem value="occupied">Occupied</SelectItem>
+                                        <SelectItem value="available">
+                                            Available
+                                        </SelectItem>
+                                        <SelectItem value="occupied">
+                                            Occupied
+                                        </SelectItem>
                                         <SelectItem value="maintenance">
                                             Maintenance
                                         </SelectItem>
-                                        <SelectItem value="cleaning">Cleaning</SelectItem>
+                                        <SelectItem value="cleaning">
+                                            Cleaning
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.status && (
-                                    <p className="text-sm text-red-500">{errors.status}</p>
+                                    <p className="text-sm text-red-500">
+                                        {errors.status}
+                                    </p>
                                 )}
                             </div>
 
@@ -205,7 +228,8 @@ export default function RoomCreateEdit({
                                         Available for Booking
                                     </Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Enable this to allow guests to book this room
+                                        Enable this to allow guests to book this
+                                        room
                                     </p>
                                 </div>
                                 <Switch
@@ -223,17 +247,31 @@ export default function RoomCreateEdit({
                                 <Textarea
                                     id="notes"
                                     value={data.notes}
-                                    onChange={(e) => setData("notes", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("notes", e.target.value)
+                                    }
                                     placeholder="Any special notes about this room..."
                                     rows={4}
                                 />
                                 {errors.notes && (
-                                    <p className="text-sm text-red-500">{errors.notes}</p>
+                                    <p className="text-sm text-red-500">
+                                        {errors.notes}
+                                    </p>
                                 )}
                             </div>
 
                             {/* Submit Buttons */}
-                            <div className="flex gap-2 pt-4">
+                            <div className="flex gap-2 pt-4 justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    asChild
+                                    disabled={processing}
+                                >
+                                    <Link href="/hotel-owner/rooms">
+                                        Cancel
+                                    </Link>
+                                </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing ? (
                                         <>
@@ -243,17 +281,11 @@ export default function RoomCreateEdit({
                                     ) : (
                                         <>
                                             <Save className="mr-2 h-4 w-4" />
-                                            {isEdit ? "Update Room" : "Create Room"}
+                                            {isEdit
+                                                ? "Update Room"
+                                                : "Create Room"}
                                         </>
                                     )}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    asChild
-                                    disabled={processing}
-                                >
-                                    <Link href="/hotel-owner/rooms">Cancel</Link>
                                 </Button>
                             </div>
                         </CardContent>

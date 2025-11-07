@@ -345,7 +345,12 @@ export default function CreateEditRoomProperty({
                             </div>
 
                             {/* Submit Button */}
-                            <div className="flex gap-2 pt-4">
+                            <div className="flex gap-2 pt-4 justify-end">
+                                <Button type="button" variant="outline" asChild>
+                                    <Link href="/hotel-owner/properties">
+                                        Cancel
+                                    </Link>
+                                </Button>
                                 <Button type="submit" disabled={processing}>
                                     <Save className="h-4 w-4 mr-2" />
                                     {processing
@@ -353,11 +358,6 @@ export default function CreateEditRoomProperty({
                                         : isEditing
                                         ? "Update Room Type"
                                         : "Create Room Type"}
-                                </Button>
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href="/hotel-owner/properties">
-                                        Cancel
-                                    </Link>
                                 </Button>
                             </div>
                         </CardContent>

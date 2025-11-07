@@ -140,6 +140,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the properties owned by this user
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ownedProperties()
+    {
+        return $this->hasMany(\App\Models\Hotel\Property::class, 'owner_user_id', 'id');
+    }
+
+    /**
      * Get user's role names as array
      *
      * @return array

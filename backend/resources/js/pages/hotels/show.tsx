@@ -70,9 +70,10 @@ interface Room {
     max_guests: number;
     room_size: number;
     price_per_night: number;
-    is_available: boolean;
     images_url: string[];
     amenities: Amenity[];
+    available_rooms_count: number;
+    total_rooms_count: number;
 }
 
 interface Property {
@@ -98,10 +99,14 @@ interface Props {
 }
 
 export default function HotelShow({ property, bookingStats }: Props) {
-    const availableRooms = property.rooms.filter(
-        (room) => room.is_available
-    ).length;
-    const totalRooms = property.rooms.length;
+    const availableRooms = property.rooms.reduce(
+        (sum, room) => sum + room.available_rooms_count,
+        0
+    );
+    const totalRooms = property.rooms.reduce(
+        (sum, room) => sum + room.total_rooms_count,
+        0
+    );
     const priceRange =
         property.rooms.length > 0
             ? `$${Math.min(
@@ -303,10 +308,7 @@ export default function HotelShow({ property, bookingStats }: Props) {
                         {/* Facilities */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>
-                                    Hotel Facilities (
-                                    {property.facilities.length})
-                                </CardTitle>
+                                <CardTitle>Hotel Facilities</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {property.facilities.length > 0 ? (
@@ -333,9 +335,7 @@ export default function HotelShow({ property, bookingStats }: Props) {
                         {/* Rooms */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>
-                                    Room Properties ({property.rooms.length})
-                                </CardTitle>
+                                <CardTitle>Room Properties</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {property.rooms.map((room) => (
@@ -354,18 +354,19 @@ export default function HotelShow({ property, bookingStats }: Props) {
                                             </div>
                                             <Badge
                                                 variant={
-                                                    room.is_available
+                                                    room.available_rooms_count >
+                                                    0
                                                         ? "default"
                                                         : "secondary"
                                                 }
                                             >
-                                                {room.is_available
-                                                    ? "Available"
+                                                {room.available_rooms_count > 0
+                                                    ? `${room.available_rooms_count} Available`
                                                     : "Unavailable"}
                                             </Badge>
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-4 text-sm">
+                                        <div className="grid grid-cols-4 gap-4 text-sm">
                                             <div>
                                                 <span className="text-muted-foreground">
                                                     Max Guests:
@@ -392,6 +393,14 @@ export default function HotelShow({ property, bookingStats }: Props) {
                                                 <div className="flex items-center font-medium">
                                                     <DollarSign className="h-3 w-3 mr-1" />
                                                     {room.price_per_night}/night
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted-foreground">
+                                                    Total Rooms:
+                                                </span>
+                                                <div className="font-medium">
+                                                    {room.total_rooms_count}
                                                 </div>
                                             </div>
                                         </div>

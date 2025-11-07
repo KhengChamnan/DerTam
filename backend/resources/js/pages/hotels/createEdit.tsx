@@ -14,7 +14,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Save } from "lucide-react";
 
 interface Place {
     placeID: number;
@@ -275,6 +275,7 @@ export default function HotelCreateEdit({
                             </Button>
                         </Link>
                         <Button type="submit" disabled={processing}>
+                            <Save className="w-4 h-4 mr-2" />
                             {processing
                                 ? isEditing
                                     ? "Updating..."

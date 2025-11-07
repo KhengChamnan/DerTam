@@ -590,9 +590,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                                                         : "secondary"
                                                 }
                                             >
-                                                {property.room_stats.available}/
                                                 {property.room_stats.total}{" "}
-                                                available
                                             </Badge>
                                         )}
 

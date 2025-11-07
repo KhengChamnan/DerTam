@@ -6,6 +6,7 @@ use App\Models\Place;
 use App\Models\PlaceCategory;
 use App\Models\ProvinceCategory;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -25,10 +26,17 @@ class PlacesImport implements ToCollection, WithHeadingRow
             } catch (\Exception $e) {
                 $this->errors[] = [
                     'row' => $index + 2,
-                    'error' => $e->getMessage(),
+                    'message' => $e->getMessage(),
                     'data' => $row->toArray()
                 ];
                 $this->skipCount++;
+                
+                // Log the error for debugging
+                Log::error('Place import error on row ' . ($index + 2), [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'data' => $row->toArray()
+                ]);
             }
         }
     }
@@ -39,8 +47,8 @@ class PlacesImport implements ToCollection, WithHeadingRow
         $validator = Validator::make($row->toArray(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category_name' => 'required|string|exists:place_categories,name',
-            'province_name' => 'required|string|exists:province_categories,name',
+            'category_name' => 'required|string|exists:place_categories,category_name',
+            'province_name' => 'required|string|exists:province_categories,province_categoryName',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'entry_free' => 'nullable|boolean',
@@ -53,16 +61,20 @@ class PlacesImport implements ToCollection, WithHeadingRow
         }
 
         // Find category and province
-        $category = PlaceCategory::where('name', $row['category_name'])->first();
-        $province = ProvinceCategory::where('name', $row['province_name'])->first();
+        $category = PlaceCategory::where('category_name', $row['category_name'])->first();
+        $province = ProvinceCategory::where('province_categoryName', $row['province_name'])->first();
 
-        if (!$category || !$province) {
-            throw new \Exception('Category or Province not found');
+        if (!$category) {
+            throw new \Exception('Category "' . $row['category_name'] . '" not found');
+        }
+        
+        if (!$province) {
+            throw new \Exception('Province "' . $row['province_name'] . '" not found');
         }
 
         // Check if place already exists
         $existingPlace = Place::where('name', $row['name'])
-            ->where('placeCategoryID', $category->placeCategoryID)
+            ->where('category_id', $category->placeCategoryID)
             ->first();
 
         if ($existingPlace) {
@@ -83,8 +95,8 @@ class PlacesImport implements ToCollection, WithHeadingRow
         Place::create([
             'name' => $row['name'],
             'description' => $row['description'] ?? '',
-            'placeCategoryID' => $category->placeCategoryID,
-            'province_categoryID' => $province->province_categoryID,
+            'category_id' => $category->placeCategoryID,
+            'province_id' => $province->province_categoryID,
             'latitude' => $row['latitude'] ?? null,
             'longitude' => $row['longitude'] ?? null,
             'entry_free' => filter_var($row['entry_free'] ?? true, FILTER_VALIDATE_BOOLEAN),
