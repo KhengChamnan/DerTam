@@ -69,9 +69,8 @@ export default function ImportDialog({ trigger }: ImportDialogProps) {
                 return;
             }
 
-            // Validate file size (10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                alert("File size must be less than 10MB.");
+            if (file.size > 100 * 1024 * 1024) {
+                alert("File size must be less than 100MB.");
                 return;
             }
 
@@ -211,7 +210,7 @@ export default function ImportDialog({ trigger }: ImportDialogProps) {
                 </DialogHeader>
 
                 <div className="space-y-6">
-                    {/* Template Download */}
+                    {/* Template Download
                     <div className="flex items-center justify-between p-4 border border-blue-200 bg-blue-50 rounded-lg">
                         <div className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-blue-600" />
@@ -233,7 +232,7 @@ export default function ImportDialog({ trigger }: ImportDialogProps) {
                             <Download className="h-4 w-4 mr-2" />
                             Download
                         </Button>
-                    </div>
+                    </div> */}
 
                     {/* File Upload Area */}
                     <div
@@ -298,7 +297,7 @@ export default function ImportDialog({ trigger }: ImportDialogProps) {
                                         </p>
                                         <p className="text-sm text-gray-500">
                                             Supports .xlsx, .xls, and .csv files
-                                            up to 10MB
+                                            up to 100MB
                                         </p>
                                     </>
                                 )}

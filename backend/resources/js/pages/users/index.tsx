@@ -6,13 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
@@ -39,15 +32,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { type BreadcrumbItem, type User } from "@/types";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
     SearchIcon,
     EditIcon,
     TrashIcon,
-    EyeIcon,
-    EyeOffIcon,
     Filter,
     Shield,
     Users,
@@ -111,18 +101,6 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [statusFilter, setStatusFilter] = useState(filters.status || "all");
     const [roleFilter, setRoleFilter] = useState(filters.role || "all");
-    const [showAddUserDialog, setShowAddUserDialog] = useState(false);
-    const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        username: "",
-        phone_number: "",
-        role: "",
-        password: "",
-        password_confirmation: "",
-    });
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -153,7 +131,6 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         }
     );
 
-    // Save column visibility preferences to localStorage whenever they change
     useEffect(() => {
         localStorage.setItem(
             "userTableColumnVisibility",
@@ -161,23 +138,18 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         );
     }, [columnVisibility]);
 
-    // Use useRef to track if this is the initial mount
     const isInitialMount = useRef(true);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Separate useEffect for search term with proper debouncing
     useEffect(() => {
-        // Skip the initial mount
         if (isInitialMount.current) {
             return;
         }
 
-        // Clear previous timer
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
         }
 
-        // Set new timer for debounced search
         debounceTimer.current = setTimeout(() => {
             router.get(
                 "/users",
@@ -190,12 +162,11 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     preserveState: true,
                     preserveScroll: true,
                     replace: true,
-                    only: ["users"], // Only reload the users data, not the whole page
+                    only: ["users"],
                 }
             );
-        }, 500); // Increased debounce time to 500ms
+        }, 500);
 
-        // Cleanup function
         return () => {
             if (debounceTimer.current) {
                 clearTimeout(debounceTimer.current);
@@ -203,9 +174,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         };
     }, [searchTerm]);
 
-    // Separate useEffect for filter changes (immediate)
     useEffect(() => {
-        // Skip the initial mount
         if (isInitialMount.current) {
             isInitialMount.current = false;
             return;
@@ -227,34 +196,11 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         );
     }, [statusFilter, roleFilter]);
 
-    // Update state when filters change from server (e.g., pagination)
     useEffect(() => {
         setSearchTerm(filters.search || "");
         setStatusFilter(filters.status || "all");
         setRoleFilter(filters.role || "all");
     }, [filters.search, filters.status, filters.role]);
-
-    const handleAddUser = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.post("/users", formData, {
-            onSuccess: () => {
-                setShowAddUserDialog(false);
-                setFormData({
-                    name: "",
-                    email: "",
-                    username: "",
-                    phone_number: "",
-                    role: "",
-                    password: "",
-                    password_confirmation: "",
-                });
-                toast.success("User created successfully");
-            },
-            onError: () => {
-                toast.error("Failed to create user");
-            },
-        });
-    };
 
     const handleDeleteUser = (userId: number) => {
         router.delete(`/users/${userId}`, {
@@ -291,10 +237,8 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     };
 
     const getRoleBadge = (role: string) => {
-        // Normalize role name for comparison
         const normalizedRole = role.toLowerCase().replace(/\s+/g, "");
 
-        // Define role configurations with icons
         const roleConfig = {
             superadmin: {
                 icon: Shield,
@@ -304,6 +248,11 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
             admin: {
                 icon: UserCog,
                 label: "Admin",
+                className: "bg-transparent border-none text-foreground",
+            },
+            hotelowner: {
+                icon: Users,
+                label: "Hotel Owner",
                 className: "bg-transparent border-none text-foreground",
             },
             manager: {
@@ -352,235 +301,17 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline">
+                        {/* <Button variant="outline">
                             <Upload className="size-4" />
                             Import
-                        </Button>
-                        <Dialog
-                            open={showAddUserDialog}
-                            onOpenChange={setShowAddUserDialog}
+                        </Button> */}
+                        <Button
+                            className="gap-2"
+                            onClick={() => router.visit("/users/create")}
                         >
-                            <DialogTrigger asChild>
-                                <Button className="gap-2">
-                                    <UserPlus className="size-4" />
-                                    Add New User
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                                <DialogHeader>
-                                    <DialogTitle>Add New User</DialogTitle>
-                                </DialogHeader>
-
-                                <form
-                                    onSubmit={handleAddUser}
-                                    className="space-y-4"
-                                >
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="name">
-                                                First Name
-                                            </Label>
-                                            <Input
-                                                id="name"
-                                                value={formData.name}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        name: e.target.value,
-                                                    })
-                                                }
-                                                placeholder="John"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="username">
-                                                Last Name
-                                            </Label>
-                                            <Input
-                                                id="username"
-                                                value={formData.username}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        username:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                                placeholder="Doe"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">Email</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={formData.email}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    email: e.target.value,
-                                                })
-                                            }
-                                            placeholder="john.doe@gmail.com"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="phone_number">
-                                            Phone Number
-                                        </Label>
-                                        <Input
-                                            id="phone_number"
-                                            value={formData.phone_number}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    phone_number:
-                                                        e.target.value,
-                                                })
-                                            }
-                                            placeholder="+123456789"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="role">Role</Label>
-                                        <Select
-                                            value={formData.role}
-                                            onValueChange={(value) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    role: value,
-                                                })
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a role" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="superadmin">
-                                                    Super Admin
-                                                </SelectItem>
-                                                <SelectItem value="admin">
-                                                    Admin
-                                                </SelectItem>
-                                                <SelectItem value="user">
-                                                    User
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="password">
-                                            Password
-                                        </Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="password"
-                                                type={
-                                                    showPassword
-                                                        ? "text"
-                                                        : "password"
-                                                }
-                                                value={formData.password}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        password:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                                placeholder="********"
-                                                required
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                className="absolute right-2 top-1/2 -translate-y-1/2"
-                                                onClick={() =>
-                                                    setShowPassword(
-                                                        !showPassword
-                                                    )
-                                                }
-                                            >
-                                                {showPassword ? (
-                                                    <EyeOffIcon className="size-4" />
-                                                ) : (
-                                                    <EyeIcon className="size-4" />
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="password_confirmation">
-                                            Confirm Password
-                                        </Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="password_confirmation"
-                                                type={
-                                                    showConfirmPassword
-                                                        ? "text"
-                                                        : "password"
-                                                }
-                                                value={
-                                                    formData.password_confirmation
-                                                }
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        password_confirmation:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                                placeholder="********"
-                                                required
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                className="absolute right-2 top-1/2 -translate-y-1/2"
-                                                onClick={() =>
-                                                    setShowConfirmPassword(
-                                                        !showConfirmPassword
-                                                    )
-                                                }
-                                            >
-                                                {showConfirmPassword ? (
-                                                    <EyeOffIcon className="size-4" />
-                                                ) : (
-                                                    <EyeIcon className="size-4" />
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end gap-3 pt-4">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() =>
-                                                setShowAddUserDialog(false)
-                                            }
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button type="submit">
-                                            Save changes
-                                        </Button>
-                                    </div>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
+                            <UserPlus className="size-4" />
+                            Add New User
+                        </Button>
                     </div>
                 </div>
 
@@ -624,6 +355,9 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                 Super Admin
                             </SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="hotel owner">
+                                Hotel Owner
+                            </SelectItem>
                             <SelectItem value="user">User</SelectItem>
                         </SelectContent>
                     </Select>

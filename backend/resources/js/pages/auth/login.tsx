@@ -1,5 +1,6 @@
 import AuthenticatedSessionController from "@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController";
 import InputError from "@/components/input-error";
+import PasswordInput from "@/components/password-input";
 import TextLink from "@/components/text-link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,9 +63,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         </TextLink>
                                     )}
                                 </div>
-                                <Input
+                                <PasswordInput
                                     id="password"
-                                    type="password"
                                     name="password"
                                     required
                                     tabIndex={2}
@@ -97,12 +97,12 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
+                        {/* <div className="text-center text-sm text-muted-foreground">
                             Don't have an account?{" "}
                             <TextLink href={register()} tabIndex={5}>
                                 Sign up
                             </TextLink>
-                        </div>
+                        </div> */}
                     </>
                 )}
             </Form>

@@ -223,26 +223,27 @@ export default function RoleForm({ role, permissions }: Props) {
                         </Card>
 
                         {/* Permissions */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
+                        <div>
+                            <div className="mb-4">
+                                <h2 className="text-2xl font-bold flex items-center gap-2">
                                     <Key className="h-5 w-5" />
                                     Permissions
-                                </CardTitle>
-                                <CardDescription>
+                                </h2>
+                                <p className="text-muted-foreground text-sm mt-1">
                                     Select which permissions this role should
                                     have. Permissions are grouped by resource
                                     for easier management.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {permissions.map((group) => (
-                                    <div
+                                    <Card
                                         key={group.resource}
-                                        className="border rounded-lg p-4"
+                                        className="flex flex-col"
                                     >
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center space-x-2">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center space-x-2 mb-2">
                                                 <Checkbox
                                                     id={`group-${group.resource}`}
                                                     checked={isGroupFullySelected(
@@ -266,104 +267,95 @@ export default function RoleForm({ role, permissions }: Props) {
                                                 />
                                                 <Label
                                                     htmlFor={`group-${group.resource}`}
-                                                    className="text-lg font-semibold capitalize cursor-pointer"
+                                                    className="text-base font-semibold capitalize cursor-pointer"
                                                 >
                                                     {group.resource.replace(
                                                         /[_-]/g,
                                                         " "
                                                     )}
                                                 </Label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
                                                 {isGroupPartiallySelected(
                                                     group
                                                 ) && (
-                                                    <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                                                    <span className="text-xs text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-1 rounded">
                                                         Partial
                                                     </span>
                                                 )}
-                                            </div>
-                                            <span className="text-sm text-muted-foreground">
-                                                {
-                                                    group.permissions.filter(
-                                                        (p) =>
-                                                            data.permissions.includes(
-                                                                p.id
-                                                            )
-                                                    ).length
-                                                }{" "}
-                                                / {group.permissions.length}{" "}
-                                                selected
-                                            </span>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ml-6">
-                                            {group.permissions.map(
-                                                (permission) => (
-                                                    <div
-                                                        key={permission.id}
-                                                        className="flex items-center space-x-2"
-                                                    >
-                                                        <Checkbox
-                                                            id={`permission-${permission.id}`}
-                                                            checked={data.permissions.includes(
-                                                                permission.id
-                                                            )}
-                                                            onCheckedChange={(
-                                                                checked
-                                                            ) =>
-                                                                handlePermissionChange(
-                                                                    permission.id,
-                                                                    checked as boolean
+                                                <span className="text-xs text-muted-foreground">
+                                                    {
+                                                        group.permissions.filter(
+                                                            (p) =>
+                                                                data.permissions.includes(
+                                                                    p.id
                                                                 )
-                                                            }
-                                                        />
-                                                        <Label
-                                                            htmlFor={`permission-${permission.id}`}
-                                                            className="text-sm cursor-pointer flex items-center gap-1"
+                                                        ).length
+                                                    }{" "}
+                                                    / {group.permissions.length}{" "}
+                                                    selected
+                                                </span>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="flex-1">
+                                            <div className="space-y-3">
+                                                {group.permissions.map(
+                                                    (permission) => (
+                                                        <div
+                                                            key={permission.id}
+                                                            className="flex items-start space-x-2"
                                                         >
-                                                            <span
-                                                                className={`font-medium ${getActionColor(
-                                                                    permission.action
-                                                                )}`}
-                                                            >
-                                                                {
-                                                                    permission.action
-                                                                }
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                {permission.name.replace(
-                                                                    permission.action +
-                                                                        " ",
-                                                                    ""
+                                                            <Checkbox
+                                                                id={`permission-${permission.id}`}
+                                                                checked={data.permissions.includes(
+                                                                    permission.id
                                                                 )}
-                                                            </span>
-                                                        </Label>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
+                                                                onCheckedChange={(
+                                                                    checked
+                                                                ) =>
+                                                                    handlePermissionChange(
+                                                                        permission.id,
+                                                                        checked as boolean
+                                                                    )
+                                                                }
+                                                                className="mt-0.5"
+                                                            />
+                                                            <Label
+                                                                htmlFor={`permission-${permission.id}`}
+                                                                className="text-sm cursor-pointer leading-tight"
+                                                            >
+                                                                <span
+                                                                    className={`font-medium ${getActionColor(
+                                                                        permission.action
+                                                                    )}`}
+                                                                >
+                                                                    {
+                                                                        permission.action
+                                                                    }
+                                                                </span>{" "}
+                                                                <span className="text-muted-foreground">
+                                                                    {permission.name.replace(
+                                                                        permission.action +
+                                                                            " ",
+                                                                        ""
+                                                                    )}
+                                                                </span>
+                                                            </Label>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                 ))}
+                            </div>
 
-                                {errors.permissions && (
-                                    <p className="text-sm text-red-600">
-                                        {errors.permissions}
-                                    </p>
-                                )}
-
-                                <div className="bg-muted/50 p-4 rounded-lg">
-                                    <p className="text-sm text-muted-foreground">
-                                        <strong>Selected permissions:</strong>{" "}
-                                        {data.permissions.length} total
-                                    </p>
-                                    {data.permissions.length > 0 && (
-                                        <div className="mt-2 text-xs text-muted-foreground">
-                                            You can always modify permissions
-                                            later by editing this role.
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                            {errors.permissions && (
+                                <p className="text-sm text-red-600 mt-4">
+                                    {errors.permissions}
+                                </p>
+                            )}
+                        </div>
 
                         {/* Submit Button */}
                         <div className="flex justify-end gap-4">
