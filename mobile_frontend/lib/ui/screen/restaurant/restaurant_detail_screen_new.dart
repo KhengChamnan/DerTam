@@ -27,7 +27,96 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   bool _isFavorite = false;
   String _selectedCategory = 'Food';
 
+  late final Map<String, List<MenuItem>> _menuData;
   @override
+  @override
+  void initState() {
+    super.initState();
+    // Dummy grouped menu data by category
+    _menuData = {
+      'Food': [
+        MenuItem(
+          name: 'Nom banh chok',
+          imageUrl:
+              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400',
+          price: '5',
+        ),
+        MenuItem(
+          name: 'Amok Trey',
+          imageUrl:
+              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+          price: '7',
+        ),
+        MenuItem(
+          name: 'Bai sach chrouk',
+          imageUrl:
+              'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
+          price: '6',
+        ),
+        MenuItem(
+          name: 'Lok lak',
+          imageUrl:
+              'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+          price: '8',
+        ),
+      ],
+      'Drink': [
+        MenuItem(
+          name: 'Iced Coffee',
+          imageUrl:
+              'https://images.unsplash.com/photo-1511920170033-f8396924c348?w=400',
+          price: '2',
+        ),
+        MenuItem(
+          name: 'Tamarind Juice',
+          imageUrl:
+              'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=400',
+          price: '3',
+        ),
+        MenuItem(
+          name: 'Sugarcane Juice',
+          imageUrl:
+              'https://images.unsplash.com/photo-1542444459-db8b2f9b6a3a?w=400',
+          price: '2',
+        ),
+      ],
+      'Snack': [
+        MenuItem(
+          name: 'Fried Spring Rolls',
+          imageUrl:
+              'https://images.unsplash.com/photo-1604908177522-2b0b6f6d6b3b?w=400',
+          price: '4',
+        ),
+        MenuItem(
+          name: 'Grilled Corn',
+          imageUrl:
+              'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400',
+          price: '1',
+        ),
+        MenuItem(
+          name: 'Coconut Pancake',
+          imageUrl:
+              'https://images.unsplash.com/photo-1543486958-d783bfbf1b6d?w=400',
+          price: '3',
+        ),
+      ],
+      'Others': [
+        MenuItem(
+          name: 'Chef Special Platter',
+          imageUrl:
+              'https://images.unsplash.com/photo-1478144592103-25e218a04891?w=400',
+          price: '12',
+        ),
+        MenuItem(
+          name: 'Dessert Box',
+          imageUrl:
+              'https://images.unsplash.com/photo-1542362567-b07e54358753?w=400',
+          price: '5',
+        ),
+      ],
+    };
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DertamColors.backgroundWhite,
@@ -285,7 +374,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                 child: Row(
                   children: [
                     FoodCategoryTab(
-                      icon: Iconsax.cake,
+                      icon: Icons.restaurant,
                       label: 'Food',
                       isSelected: _selectedCategory == 'Food',
                       onTap: () {
@@ -298,7 +387,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
 
                     FoodCategoryTab(
                       label: 'Drink',
-                      icon: Iconsax.cup,
+                      icon: Icons.coffee,
                       isSelected: _selectedCategory == 'Drink',
                       onTap: () {
                         setState(() {
@@ -308,7 +397,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                     ),
                     const SizedBox(width: DertamSpacings.xs),
                     FoodCategoryTab(
-                      icon: Iconsax.coffee,
+                      icon: Icons.fastfood,
                       label: 'Snack',
                       isSelected: _selectedCategory == 'Snack',
                       onTap: () {
@@ -373,6 +462,11 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
         price: '5',
       ),
     ];
-    return allItems;
+    // Return items for the selected category. If category unknown, return all items.
+    if (_menuData.containsKey(_selectedCategory)) {
+      return _menuData[_selectedCategory]!;
+    }
+    // fallback: flatten all lists
+    return _menuData.values.expand((list) => list).toList();
   }
 }

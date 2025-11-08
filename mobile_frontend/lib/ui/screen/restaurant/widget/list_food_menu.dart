@@ -32,11 +32,12 @@ class ListFoodMenu extends StatelessWidget {
             // Menu item image
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(DertamSpacings.radius),
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(DertamSpacings.radius),
                 ),
                 child: Stack(
                   children: [
+                    // Image
                     Image.network(
                       menuItem.imageUrl,
                       width: double.infinity,
@@ -47,49 +48,64 @@ class ListFoodMenu extends StatelessWidget {
                           color: Colors.grey[300],
                           child: Icon(
                             Icons.restaurant,
-                            size: 40,
+                            size: 150,
                             color: Colors.grey[500],
                           ),
                         );
                       },
                     ),
-                    // Price badge
+
+                    // Name + Price overlay row
                     Positioned(
-                      bottom: 8,
+                      left: 8,
                       right: 8,
+                      bottom: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
-                          vertical: 4,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: DertamColors.primaryDark,
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.black.withOpacity(0.45),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          '\$${menuItem.price}',
-                          style: DertamTextStyles.bodySmall.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                menuItem.name,
+                                style: DertamTextStyles.bodySmall.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: DertamColors.primaryDark,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '\$${menuItem.price}',
+                                style: DertamTextStyles.bodySmall.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            // Menu item info
-            Padding(
-              padding: const EdgeInsets.all(DertamSpacings.s),
-              child: Text(
-                menuItem.name,
-                style: DertamTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: DertamColors.primaryDark,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
