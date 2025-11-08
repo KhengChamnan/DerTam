@@ -94,7 +94,10 @@ class _SplashBodyState extends State<SplashBody> {
         children: [
           // Full screen static splash image (use assets/images/splash.png)
           Positioned.fill(
-            child: Image.asset('assets/images/splash.png', fit: BoxFit.cover),
+            child: Image.asset(
+              'assets/images/splash.png',
+              fit: BoxFit.cover,
+            ),
           ),
 
           // optional small preparing indicator
@@ -118,7 +121,7 @@ class _SplashBodyState extends State<SplashBody> {
                     const SizedBox(width: 8),
                     Text(
                       'Preparing app...',
-                      style: TextStyle(color: DertamColors.white, fontSize: 12),
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
                     ),
                   ],
                 ),
