@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Models\Hotel;
+namespace App\Models;
 
-use App\Models\Trip;
+use App\Models\Hotel\BookingRoom;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class BookingDetail extends Model
+class Booking extends Model
 {
     use HasFactory;
 
-    protected $table = 'booking_details';
+    protected $table = 'bookings';
 
     protected $primaryKey = 'booking_id';
 
@@ -27,8 +27,6 @@ class BookingDetail extends Model
         'id_number',
         'public_image_id',
         'image_url',
-        'check_in',
-        'check_out',
         'total_amount',
         'payment_method',
         'status',
@@ -40,8 +38,6 @@ class BookingDetail extends Model
 
     protected $casts = [
         'age' => 'integer',
-        'check_in' => 'date',
-        'check_out' => 'date',
         'total_amount' => 'decimal:2',
         'payment_date' => 'datetime',
         'created_at' => 'datetime',
@@ -60,7 +56,6 @@ class BookingDetail extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'user_id', 'id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
-
 }
