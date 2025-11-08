@@ -95,7 +95,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              registerValue!.data?.name?? 'Registration successful',
+              registerValue!.data?.name ?? 'Registration successful',
             ),
             backgroundColor: Colors.green,
           ),
@@ -104,7 +104,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
         // Navigate to home screen
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) =>  HomePage()),
+          MaterialPageRoute(builder: (context) => HomePage()),
           (route) => false,
         );
       } else if (registerValue?.state == AsyncValueState.error) {

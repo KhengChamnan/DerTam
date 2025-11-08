@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
+import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/auth_repository.dart';
 import 'package:mobile_frontend/data/dto/auth_dto.dart';
 import 'package:mobile_frontend/data/network/api_constant.dart';
@@ -17,7 +18,14 @@ import 'package:mobile_frontend/models/user/user_model.dart';
 class LaravelAuthApiRepository extends AuthRepository {
   // Secure storage for tokens
   final _storage = const FlutterSecureStorage();
-
+  final _baseHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+  Map<String, String> _getAuthHeaders(String token) => {
+    ..._baseHeaders,
+    'Authorization': 'Bearer $token',
+  };
   // Token key for secure storage
   static const String _tokenKey = 'auth_token';
 
@@ -69,6 +77,7 @@ class LaravelAuthApiRepository extends AuthRepository {
   }
 
   /// Get stored authentication token
+  @override
   Future<String?> getToken() async {
     _debugLog('Getting current token');
 
@@ -91,6 +100,7 @@ class LaravelAuthApiRepository extends AuthRepository {
     return _cachedToken;
   }
 
+  @override
   Future<void> saveToken(String token) async {
     try {
       _debugLog('Saving token (length: ${token.length})');
@@ -307,7 +317,7 @@ class LaravelAuthApiRepository extends AuthRepository {
         }
 
         // Return a minimal user object since this is just a password reset request
-        return User(userId: '', name: '', email: email);
+        return User(id: 0, name: '', email: email);
       }
 
       throw _handleErrorResponse(response, 'Password reset email');
@@ -322,10 +332,8 @@ class LaravelAuthApiRepository extends AuthRepository {
   Future<User> verifyPin(String email, String pin) async {
     try {
       _debugLog('Verifying PIN for email: $email');
-
       // 1 - Prepare request body
       final body = AuthDto.verifyPinToJson(email, pin);
-
       // 2 - Send POST request
       final response = await http.post(
         Uri.parse(ApiEndpoint.verifyPin),
@@ -350,7 +358,7 @@ class LaravelAuthApiRepository extends AuthRepository {
         }
 
         // Return a minimal user object
-        return User(userId: '', name: '', email: email);
+        return User(id: 0, name: '', email: email);
       }
 
       throw _handleErrorResponse(response, 'PIN verification');
@@ -365,7 +373,6 @@ class LaravelAuthApiRepository extends AuthRepository {
   Future<User> resetPassword(String email, String newPassword) async {
     try {
       _debugLog('Resetting password for email: $email');
-
       // 1 - Prepare request body
       final body = {'email': email, 'newPassword': newPassword};
 
@@ -393,7 +400,7 @@ class LaravelAuthApiRepository extends AuthRepository {
         }
 
         // Return a minimal user object
-        return User(userId: '', name: '', email: email);
+        return User(id: 0, name: '', email: email);
       }
 
       throw _handleErrorResponse(response, 'Password reset');
@@ -454,10 +461,10 @@ class LaravelAuthApiRepository extends AuthRepository {
         throw Exception('Google sign in cancelled');
       }
 
-      final GoogleSignInAuthentication? googleAuth =
+      final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      if (googleAuth == null || googleAuth.accessToken == null) {
+      if (googleAuth.accessToken == null) {
         _debugLog('❌ Failed to get Google authentication');
         throw Exception('Failed to get Google authentication');
       }
@@ -547,6 +554,32 @@ class LaravelAuthApiRepository extends AuthRepository {
       _cachedToken = null;
     } catch (e) {
       _logger.severe('Logout error: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<User> getUserInfo() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('No authentication token found');
+      }
+      final response = await FetchingData.getDate(
+        ApiEndpoint.userInfo,
+        _getAuthHeaders(token),
+      );
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final jsonData = jsonResponse['data'];
+        if (jsonData == null) {
+          throw Exception('Response does not contain "data" field');
+        }
+        return User.fromJson(jsonData);
+      } else {
+        throw Exception('Failed to load user info: ${response.statusCode}');
+      }
+    } catch (e) {
       rethrow;
     }
   }

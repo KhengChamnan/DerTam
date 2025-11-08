@@ -13,6 +13,7 @@ abstract class AuthRepository {
   Future<User> login(String email, String password);
   Future<User> googleSignIn();
   Future<void> saveToken(String token);
+  Future<User> getUserInfo();
   Future<String?> getToken();
   Future<void> logOut();
 }

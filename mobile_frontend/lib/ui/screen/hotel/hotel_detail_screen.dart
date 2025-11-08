@@ -466,8 +466,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     onCheckAvailability: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            DertamBookingRoomScreen(roomId: room.roomPropertiesId),
+                        builder: (context) => DertamBookingRoomScreen(
+                          roomId: room.roomPropertiesId,
+                        ),
                       ),
                     ),
                   );

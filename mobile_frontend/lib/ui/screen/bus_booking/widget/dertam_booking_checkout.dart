@@ -210,7 +210,6 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                             ),
                           ],
                         ),
-              
                       ],
                     ),
                   ),

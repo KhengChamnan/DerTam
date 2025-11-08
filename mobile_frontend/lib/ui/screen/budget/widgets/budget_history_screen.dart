@@ -25,7 +25,8 @@ class BudgetHistoryScreen extends StatefulWidget {
   State<BudgetHistoryScreen> createState() => _BudgetHistoryScreenState();
 }
 
-class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerProviderStateMixin {
+class _BudgetHistoryScreenState extends State<BudgetHistoryScreen>
+    with TickerProviderStateMixin {
   // State management
   late BudgetHistoryState _state;
   late TabController _tabController;
@@ -49,12 +50,7 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
     return Scaffold(
       backgroundColor: DertamColors.white,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildSummaryCard(),
-          _buildExpenseList(),
-        ],
-      ),
+      body: Column(children: [_buildSummaryCard(), _buildExpenseList()]),
     );
   }
 
@@ -83,12 +79,7 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(120),
-        child: Column(
-          children: [
-            _buildSearchBar(),
-            _buildTabBar(),
-          ],
-        ),
+        child: Column(children: [_buildSearchBar(), _buildTabBar()]),
       ),
     );
   }
@@ -102,14 +93,14 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
           hintText: 'Search expenses...',
           prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
           suffixIcon: _state.searchQuery.isNotEmpty
-            ? IconButton(
-                icon: Icon(Icons.clear, color: Colors.grey[600]),
-                onPressed: () {
-                  _state.clearSearch();
-                  _updateState();
-                },
-              )
-            : null,
+              ? IconButton(
+                  icon: Icon(Icons.clear, color: Colors.grey[600]),
+                  onPressed: () {
+                    _state.clearSearch();
+                    _updateState();
+                  },
+                )
+              : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!),
@@ -144,7 +135,10 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
   }
 
   Widget _buildSummaryCard() {
-    final filteredExpenses = _state.getFilteredExpenses(widget.expenses, _tabController.index);
+    final filteredExpenses = _state.getFilteredExpenses(
+      widget.expenses,
+      _tabController.index,
+    );
     final categoryTotals = _state.getCategoryTotals(filteredExpenses);
     final totalFiltered = _state.getTotalFiltered(filteredExpenses);
 
@@ -171,10 +165,7 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
               ),
               Text(
                 '${filteredExpenses.length} transactions',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
@@ -188,7 +179,7 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Category Breakdown
           if (categoryTotals.isNotEmpty) ...[
             Text(
@@ -207,58 +198,73 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen> with TickerPr
     );
   }
 
-  List<Widget> _buildCategoryBreakdown(Map<ExpenseCategory, double> categoryTotals) {
+  List<Widget> _buildCategoryBreakdown(
+    Map<ExpenseCategory, double> categoryTotals,
+  ) {
     return (categoryTotals.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value)))
-      .take(3)
-      .map((entry) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+          ..sort((a, b) => b.value.compareTo(a.value)))
+        .take(3)
+        .map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(entry.key.icon, color: Colors.white70, size: 16),
-                const SizedBox(width: 8),
+                Row(
+                  children: [
+                    Icon(entry.key.icon, color: Colors.white70, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      entry.key.label,
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
                 Text(
-                  entry.key.label,
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  '${_state.getCurrencySymbol(widget.currency)} ${entry.value.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
-            Text(
-              '${_state.getCurrencySymbol(widget.currency)} ${entry.value.toStringAsFixed(0)}',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      )).toList();
+          ),
+        )
+        .toList();
   }
 
   Widget _buildExpenseList() {
-    final filteredExpenses = _state.getFilteredExpenses(widget.expenses, _tabController.index);
+    final filteredExpenses = _state.getFilteredExpenses(
+      widget.expenses,
+      _tabController.index,
+    );
 
     return Expanded(
       child: filteredExpenses.isEmpty
-        ? EmptyExpenseState()
-        : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: filteredExpenses.length,
-            itemBuilder: (context, index) {
-              final expense = filteredExpenses[index];
-              return ExpenseItem(
-                expense: expense,
-                index: index,
-                currencySymbol: _state.getCurrencySymbol(widget.currency),
-                onDelete: () {
-                  // Handle delete if needed
-                },
-                onTap: () {
-                  _state.showExpenseDetails(context, expense, widget.currency);
-                },
-              );
-            },
-          ),
+          ? EmptyExpenseState()
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: filteredExpenses.length,
+              itemBuilder: (context, index) {
+                final expense = filteredExpenses[index];
+                return ExpenseItem(
+                  expense: expense,
+                  index: index,
+                  currencySymbol: _state.getCurrencySymbol(widget.currency),
+                  onDelete: () {
+                    // Handle delete if needed
+                  },
+                  onTap: () {
+                    _state.showExpenseDetails(
+                      context,
+                      expense,
+                      widget.currency,
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 
@@ -318,36 +324,58 @@ class BudgetHistoryState {
 
     // Apply search filter
     if (searchQuery.isNotEmpty) {
-      filtered = filtered.where((expense) =>
-        expense.description.toLowerCase().contains(searchQuery.toLowerCase())
-      ).toList();
+      filtered = filtered
+          .where(
+            (expense) => expense.description.toLowerCase().contains(
+              searchQuery.toLowerCase(),
+            ),
+          )
+          .toList();
     }
 
     // Apply category filter
     if (selectedCategory != null) {
-      filtered = filtered.where((expense) => expense.category == selectedCategory).toList();
+      filtered = filtered
+          .where((expense) => expense.category == selectedCategory)
+          .toList();
     }
 
     // Apply date range filter
     if (selectedDateRange != null) {
       filtered = filtered.where((expense) {
-        final expenseDate = DateTime(expense.date.year, expense.date.month, expense.date.day);
-        final startDate = DateTime(selectedDateRange!.start.year, selectedDateRange!.start.month, selectedDateRange!.start.day);
-        final endDate = DateTime(selectedDateRange!.end.year, selectedDateRange!.end.month, selectedDateRange!.end.day);
-        return expenseDate.isAtSameMomentAs(startDate) || 
-               expenseDate.isAtSameMomentAs(endDate) ||
-               (expenseDate.isAfter(startDate) && expenseDate.isBefore(endDate));
+        final expenseDate = DateTime(
+          expense.date.year,
+          expense.date.month,
+          expense.date.day,
+        );
+        final startDate = DateTime(
+          selectedDateRange!.start.year,
+          selectedDateRange!.start.month,
+          selectedDateRange!.start.day,
+        );
+        final endDate = DateTime(
+          selectedDateRange!.end.year,
+          selectedDateRange!.end.month,
+          selectedDateRange!.end.day,
+        );
+        return expenseDate.isAtSameMomentAs(startDate) ||
+            expenseDate.isAtSameMomentAs(endDate) ||
+            (expenseDate.isAfter(startDate) && expenseDate.isBefore(endDate));
       }).toList();
     }
 
     // Apply tab filter
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    
+
     switch (tabIndex) {
       case 1: // Today
         filtered = filtered.where((expense) {
-          final expenseDate = DateTime(expense.date.year, expense.date.month, expense.date.day);
+          final expenseDate = DateTime(
+            expense.date.year,
+            expense.date.month,
+            expense.date.day,
+          );
           return expenseDate.isAtSameMomentAs(today);
         }).toList();
         break;
@@ -355,16 +383,25 @@ class BudgetHistoryState {
         final weekStart = today.subtract(Duration(days: today.weekday - 1));
         final weekEnd = weekStart.add(const Duration(days: 6));
         filtered = filtered.where((expense) {
-          final expenseDate = DateTime(expense.date.year, expense.date.month, expense.date.day);
+          final expenseDate = DateTime(
+            expense.date.year,
+            expense.date.month,
+            expense.date.day,
+          );
           return expenseDate.isAtSameMomentAs(weekStart) ||
-                 expenseDate.isAtSameMomentAs(weekEnd) ||
-                 (expenseDate.isAfter(weekStart) && expenseDate.isBefore(weekEnd));
+              expenseDate.isAtSameMomentAs(weekEnd) ||
+              (expenseDate.isAfter(weekStart) && expenseDate.isBefore(weekEnd));
         }).toList();
         break;
       case 3: // This Month
         filtered = filtered.where((expense) {
-          final expenseDate = DateTime(expense.date.year, expense.date.month, expense.date.day);
-          return expenseDate.month == today.month && expenseDate.year == today.year;
+          final expenseDate = DateTime(
+            expense.date.year,
+            expense.date.month,
+            expense.date.day,
+          );
+          return expenseDate.month == today.month &&
+              expenseDate.year == today.year;
         }).toList();
         break;
     }
@@ -377,7 +414,8 @@ class BudgetHistoryState {
   Map<ExpenseCategory, double> getCategoryTotals(List<Expense> expenses) {
     final Map<ExpenseCategory, double> totals = {};
     for (final expense in expenses) {
-      totals[expense.category] = (totals[expense.category] ?? 0) + expense.amount;
+      totals[expense.category] =
+          (totals[expense.category] ?? 0) + expense.amount;
     }
     return totals;
   }
@@ -393,26 +431,27 @@ class BudgetHistoryState {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => FilterBottomSheet(
-        state: this,
-        onUpdate: onUpdate,
-      ),
+      builder: (context) => FilterBottomSheet(state: this, onUpdate: onUpdate),
     );
   }
 
-  void showExpenseDetails(BuildContext context, Expense expense, String currency) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) => ExpenseDetailsSheet(
-      expense: expense,
-      currencySymbol: getCurrencySymbol(currency),
-    ),
-  );
-}
+  void showExpenseDetails(
+    BuildContext context,
+    Expense expense,
+    String currency,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => ExpenseDetailsSheet(
+        expense: expense,
+        currencySymbol: getCurrencySymbol(currency),
+      ),
+    );
+  }
 }
 
 // Separate widget for empty state
@@ -431,8 +470,8 @@ class EmptyExpenseState extends StatelessWidget {
             children: [
               Icon(
                 Icons.receipt_long_outlined,
-                size: 64, 
-                color: Colors.grey[400]
+                size: 64,
+                color: Colors.grey[400],
               ),
               const SizedBox(height: 16),
               Text(
@@ -446,10 +485,7 @@ class EmptyExpenseState extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Try adjusting your filters or add some expenses',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -527,16 +563,20 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   widget.onUpdate();
                 },
               ),
-              ...ExpenseCategory.values.map((category) => FilterChip(
-                label: Text(category.label),
-                selected: widget.state.selectedCategory == category,
-                onSelected: (selected) {
-                  setState(() {
-                    widget.state.updateSelectedCategory(selected ? category : null);
-                  });
-                  widget.onUpdate();
-                },
-              )),
+              ...ExpenseCategory.values.map(
+                (category) => FilterChip(
+                  label: Text(category.label),
+                  selected: widget.state.selectedCategory == category,
+                  onSelected: (selected) {
+                    setState(() {
+                      widget.state.updateSelectedCategory(
+                        selected ? category : null,
+                      );
+                    });
+                    widget.onUpdate();
+                  },
+                ),
+              ),
             ],
           ),
 
@@ -576,10 +616,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ),
               child: Text(
                 widget.state.selectedDateRange == null
-                  ? 'Select date range'
-                  : '${widget.state.selectedDateRange!.start.day}/${widget.state.selectedDateRange!.start.month} - ${widget.state.selectedDateRange!.end.day}/${widget.state.selectedDateRange!.end.month}',
+                    ? 'Select date range'
+                    : '${widget.state.selectedDateRange!.start.day}/${widget.state.selectedDateRange!.start.month} - ${widget.state.selectedDateRange!.end.day}/${widget.state.selectedDateRange!.end.month}',
                 style: TextStyle(
-                  color: widget.state.selectedDateRange == null ? Colors.grey[600] : DertamColors.black,
+                  color: widget.state.selectedDateRange == null
+                      ? Colors.grey[600]
+                      : DertamColors.black,
                 ),
               ),
             ),

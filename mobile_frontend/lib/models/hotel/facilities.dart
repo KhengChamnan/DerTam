@@ -25,4 +25,11 @@ class Facilities {
       pivot: json['pivot'],
     );
   }
+  Map<String, dynamic> toJson() => {
+    "facility_id": id,
+    "facility_name": name,
+    "image_url": imageUrl,
+    "image_public_ids": imagePublicImageId,
+    "pivot": pivot,
+  };
 }

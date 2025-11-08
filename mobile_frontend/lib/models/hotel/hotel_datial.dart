@@ -1,3 +1,4 @@
+import 'package:mobile_frontend/models/province/province_category_detail.dart';
 import 'package:mobile_frontend/models/user/owner_user.dart';
 import 'package:mobile_frontend/models/hotel/facilities.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
@@ -62,7 +63,7 @@ class HotelPlace {
   final double longitude;
   final int provinceId;
   final int categoryId;
-  final ProvinceCategory provinceCategory;
+  final ProvinceCategoryDetail provinceCategory;
   final Category category;
 
   HotelPlace({
@@ -98,7 +99,7 @@ class HotelPlace {
       longitude: (json['longitude'] ?? 0.0).toDouble(),
       provinceId: json['province_id'] ?? 0,
       categoryId: json['category_id'] ?? 0,
-      provinceCategory: ProvinceCategory.fromJson(
+      provinceCategory: ProvinceCategoryDetail.fromJson(
         json['province_category'] ?? {},
       ),
       category: Category.fromJson(json['category'] ?? {}),
@@ -106,25 +107,7 @@ class HotelPlace {
   }
 }
 
-class ProvinceCategory {
-  final int provinceCategoryId;
-  final String provinceCategoryName;
-  final String categoryDescription;
 
-  ProvinceCategory({
-    required this.provinceCategoryId,
-    required this.provinceCategoryName,
-    required this.categoryDescription,
-  });
-
-  factory ProvinceCategory.fromJson(Map<String, dynamic> json) {
-    return ProvinceCategory(
-      provinceCategoryId: json['province_categoryID'] ?? 0,
-      provinceCategoryName: json['province_categoryName'] ?? '',
-      categoryDescription: json['category_description'] ?? '',
-    );
-  }
-}
 
 class Category {
   final int placeCategoryId;

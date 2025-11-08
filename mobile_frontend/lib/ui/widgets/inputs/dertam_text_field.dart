@@ -33,7 +33,7 @@ class DertamTextField extends StatefulWidget {
 }
 
 class _DertamTextFieldState extends State<DertamTextField> {
-  bool _obscureText = true;                               // Password visibility state
+  bool _obscureText = true; // Password visibility state
 
   @override
   Widget build(BuildContext context) {
@@ -42,10 +42,7 @@ class _DertamTextFieldState extends State<DertamTextField> {
       decoration: BoxDecoration(
         color: DertamColors.white,
         borderRadius: BorderRadius.circular(DertamSpacings.radiusLarge),
-        border: Border.all(
-          color: const Color(0xFFD9D9D9),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFD9D9D9), width: 1),
       ),
       child: TextFormField(
         controller: widget.controller,
@@ -54,9 +51,7 @@ class _DertamTextFieldState extends State<DertamTextField> {
         validator: widget.validator,
         onChanged: widget.onChanged,
         enabled: widget.enabled,
-        style: DertamTextStyles.body.copyWith(
-          color: DertamColors.textPrimary,
-        ),
+        style: DertamTextStyles.body.copyWith(color: DertamColors.textPrimary),
         decoration: InputDecoration(
           hintText: widget.hintText,
           hintStyle: DertamTextStyles.bodyMedium.copyWith(

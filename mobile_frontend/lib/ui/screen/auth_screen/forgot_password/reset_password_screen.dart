@@ -111,8 +111,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               //Reset Password Button
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
-                  final isLoading = authProvider.resetPasswordValue?.state == AsyncValueState.loading;
-                  
+                  final isLoading =
+                      authProvider.resetPasswordValue?.state ==
+                      AsyncValueState.loading;
+
                   return DertamButton(
                     text: 'Reset Password',
                     onPressed: () => _handleResetPassword(),
@@ -155,19 +157,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-Future<void> _handleResetPassword() async {
-    if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
+  Future<void> _handleResetPassword() async {
+    if (_passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
       return;
     }
 
     // Get auth provider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     // Call login method
-    await authProvider.resetPassword(
-      widget.email,
-      _passwordController.text,
-    );
+    await authProvider.resetPassword(widget.email, _passwordController.text);
 
     // Check result after login
     if (!mounted) return;
@@ -177,9 +177,8 @@ Future<void> _handleResetPassword() async {
     if (resetPasswordValue?.state == AsyncValueState.success) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) =>  HomePage()),
+        MaterialPageRoute(builder: (context) => HomePage()),
       );
-
     } else if (resetPasswordValue?.state == AsyncValueState.error) {
       // Error - Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -190,5 +189,4 @@ Future<void> _handleResetPassword() async {
       );
     }
   }
-
 }

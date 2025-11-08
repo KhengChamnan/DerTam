@@ -44,11 +44,7 @@ class ExpenseItem extends StatelessWidget {
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Icon(
-                Icons.delete,
-                color: Colors.white,
-                size: 24,
-              ),
+              Icon(Icons.delete, color: Colors.white, size: 24),
               SizedBox(width: 8),
               Text(
                 'Delete',
@@ -68,7 +64,9 @@ class ExpenseItem extends StatelessWidget {
             builder: (BuildContext context) {
               return AlertDialog(
                 title: const Text('Delete Expense'),
-                content: Text('Are you sure you want to delete "${expense.description}"?'),
+                content: Text(
+                  'Are you sure you want to delete "${expense.description}"?',
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
@@ -76,9 +74,7 @@ class ExpenseItem extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
                     child: const Text('Delete'),
                   ),
                 ],
@@ -120,9 +116,9 @@ class ExpenseItem extends StatelessWidget {
                     size: 20,
                   ),
                 ),
-                
+
                 const SizedBox(width: 12),
-                
+
                 // Expense Details
                 Expanded(
                   child: Column(
@@ -139,37 +135,28 @@ class ExpenseItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         expense.description,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
-                
+
                 // Date and Time
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       _formatDate(expense.date),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _formatTime(expense.date),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
-                
+
                 // Swipe indicator
                 const SizedBox(width: 8),
                 Icon(
@@ -241,10 +228,7 @@ class BudgetDetailItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     description!,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ],
@@ -352,7 +336,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          
+
           // Amount
           Text(
             '$currencySymbol ${expense.amount.toStringAsFixed(2)}',
@@ -362,25 +346,21 @@ class ExpenseDetailsSheet extends StatelessWidget {
               color: DertamColors.primaryDark,
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Details using the reusable component
-          ExpenseDetailItem(
-            label: 'Description',
-            value: expense.description,
-          ),
-          ExpenseDetailItem(
-            label: 'Category',
-            value: expense.category.label,
-          ),
+          ExpenseDetailItem(label: 'Description', value: expense.description),
+          ExpenseDetailItem(label: 'Category', value: expense.category.label),
           ExpenseDetailItem(
             label: 'Date',
-            value: '${expense.date.day}/${expense.date.month}/${expense.date.year}',
+            value:
+                '${expense.date.day}/${expense.date.month}/${expense.date.year}',
           ),
           ExpenseDetailItem(
             label: 'Time',
-            value: '${expense.date.hour.toString().padLeft(2, '0')}:${expense.date.minute.toString().padLeft(2, '0')}',
+            value:
+                '${expense.date.hour.toString().padLeft(2, '0')}:${expense.date.minute.toString().padLeft(2, '0')}',
           ),
         ],
       ),

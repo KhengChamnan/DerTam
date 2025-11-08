@@ -47,9 +47,7 @@ class TripPlaceCard extends StatelessWidget {
                   child: Container(
                     width: 80,
                     height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                    ),
+                    decoration: BoxDecoration(color: Colors.grey[200]),
                     child: place.imagesUrl.isNotEmpty
                         ? Image.network(
                             place.imagesUrl,
@@ -68,7 +66,8 @@ class TripPlaceCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center, // Center vertically
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // Center vertically
                     children: [
                       Text(
                         place.name,
@@ -115,11 +114,7 @@ class TripPlaceCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Icon(
-                Icons.delete,
-                color: Colors.white,
-                size: 24,
-              ),
+              Icon(Icons.delete, color: Colors.white, size: 24),
               SizedBox(width: 8),
               Text(
                 'Delete',
@@ -134,27 +129,26 @@ class TripPlaceCard extends StatelessWidget {
         ),
         confirmDismiss: (direction) async {
           return await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('Delete Place'),
-              content: Text(
-                'Are you sure you want to remove "${place.name}" from your trip?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red,
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Delete Place'),
+                  content: Text(
+                    'Are you sure you want to remove "${place.name}" from your trip?',
                   ),
-                  child: Text('Delete'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: Text('Delete'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ) ?? false;
+              ) ??
+              false;
         },
         onDismissed: (direction) {
           onDelete!();
@@ -177,11 +171,7 @@ class TripPlaceCard extends StatelessWidget {
     return Container(
       color: Colors.grey[300],
       child: Center(
-        child: Icon(
-          Icons.place,
-          color: Colors.grey[600],
-          size: 32,
-        ),
+        child: Icon(Icons.place, color: Colors.grey[600], size: 32),
       ),
     );
   }

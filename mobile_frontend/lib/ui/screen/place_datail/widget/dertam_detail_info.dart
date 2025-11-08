@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+
 class DertamDetailInfo extends StatelessWidget {
   final IconData icon;
   final String title;

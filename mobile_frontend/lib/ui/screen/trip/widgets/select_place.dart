@@ -31,7 +31,8 @@ class SelectPlaceScreen extends StatefulWidget {
 class _SelectPlaceScreenState extends State<SelectPlaceScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
-  List<Map<String, dynamic>> _addedPlaces = []; // Track places with their selected dates
+  List<Map<String, dynamic>> _addedPlaces =
+      []; // Track places with their selected dates
   List<Place> _filteredPlaces = [];
   List<Place> _allPlaces = [];
 
@@ -513,7 +514,6 @@ class _SelectPlaceScreenState extends State<SelectPlaceScreen> {
     );
   }
 
-
   String _formatEditDate(DateTime date) {
     const months = [
       'Jan',
@@ -814,12 +814,8 @@ class _DateSelectionModalState extends State<DateSelectionModal> {
     final double baseHeight = 180;
     final double rowHeight = 50;
     final double dynamicHeight = baseHeight + (rows * rowHeight);
-    final double maxHeight =
-        MediaQuery.of(context).size.height * 0.65; 
-    final double containerHeight = dynamicHeight.clamp(
-      280,
-      maxHeight,
-    ); 
+    final double maxHeight = MediaQuery.of(context).size.height * 0.65;
+    final double containerHeight = dynamicHeight.clamp(280, maxHeight);
 
     return Container(
       height: containerHeight,

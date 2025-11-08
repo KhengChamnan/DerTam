@@ -75,6 +75,7 @@ class LaravelPlaceApiRepository implements PlaceRepository {
       rethrow;
     }
   }
+
   @override
   Future<PlaceDetailData> getPlaceDetails(String placeId) async {
     try {

@@ -7,10 +7,7 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/calender.dart';
 class TripDateScreen extends StatefulWidget {
   final String tripName;
 
-  const TripDateScreen({
-    super.key,
-    required this.tripName,
-  });
+  const TripDateScreen({super.key, required this.tripName});
 
   @override
   State<TripDateScreen> createState() => _TripDateScreenState();
@@ -50,7 +47,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
         'endDate': _endDate!.toIso8601String(),
         'createdAt': DateTime.now().toIso8601String(),
       };
-      
+
       _mockTrips.add(newTrip);
 
       setState(() {
@@ -66,7 +63,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
       );
 
       await Future.delayed(Duration(milliseconds: 500));
-      
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -103,19 +100,13 @@ class _TripDateScreenState extends State<TripDateScreen> {
 
   void _previousMonth() {
     setState(() {
-      _currentMonth = DateTime(
-        _currentMonth.year,
-        _currentMonth.month - 1,
-      );
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     });
   }
 
   void _nextMonth() {
     setState(() {
-      _currentMonth = DateTime(
-        _currentMonth.year,
-        _currentMonth.month + 1,
-      );
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
     });
   }
 
@@ -132,9 +123,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
         ),
         title: Text(
           widget.tripName,
-          style: DertamTextStyles.title.copyWith(
-            color: DertamColors.black,
-          ),
+          style: DertamTextStyles.title.copyWith(color: DertamColors.black),
         ),
         centerTitle: true,
       ),
@@ -145,7 +134,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
               padding: EdgeInsets.all(DertamSpacings.m),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [  
+                children: [
                   SizedBox(height: DertamSpacings.s),
                   Text(
                     "Choose your trip's start and end date",
@@ -154,7 +143,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
                     ),
                   ),
                   SizedBox(height: DertamSpacings.l),
-                  
+
                   // Calendar Widget - Using Combined Component
                   CalendarWidget(
                     currentMonth: _currentMonth,
@@ -164,70 +153,74 @@ class _TripDateScreenState extends State<TripDateScreen> {
                     onPreviousMonth: _previousMonth,
                     onNextMonth: _nextMonth,
                   ),
-                  
+
                   SizedBox(height: DertamSpacings.l),
-                  
+
                   // Date display
-               Container(
-                  padding: EdgeInsets.all(DertamSpacings.l),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(12),
+                  Container(
+                    padding: EdgeInsets.all(DertamSpacings.l),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'From',
+                              style: DertamTextStyles.body.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              _startDate != null
+                                  ? _formatDate(_startDate!)
+                                  : 'Select date',
+                              style: DertamTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: _startDate != null
+                                    ? DertamColors.black
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: DertamSpacings.m),
+                        Divider(color: Colors.grey[300]),
+                        SizedBox(height: DertamSpacings.m),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'To',
+                              style: DertamTextStyles.body.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              _endDate != null
+                                  ? _formatDate(_endDate!)
+                                  : 'Select date',
+                              style: DertamTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: _endDate != null
+                                    ? DertamColors.black
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'From',
-                            style: DertamTextStyles.body.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          Text(
-                            _startDate != null 
-                              ? _formatDate(_startDate!)
-                              : 'Select date',
-                            style: DertamTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: _startDate != null ? DertamColors.black : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: DertamSpacings.m),
-                      Divider(color: Colors.grey[300]),
-                      SizedBox(height: DertamSpacings.m),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'To',
-                            style: DertamTextStyles.body.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          Text(
-                            _endDate != null 
-                              ? _formatDate(_endDate!)
-                              : 'Select date',
-                            style: DertamTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: _endDate != null ? DertamColors.black : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-               ),
                   SizedBox(height: 100),
                 ],
               ),
             ),
           ),
-          
+
           // Continue Button
           Container(
             padding: EdgeInsets.all(DertamSpacings.l),
@@ -244,7 +237,8 @@ class _TripDateScreenState extends State<TripDateScreen> {
             child: SafeArea(
               child: DertamButton(
                 text: _isLoading ? 'Creating Trip...' : 'Continue',
-                onPressed: (_startDate != null && _endDate != null && !_isLoading)
+                onPressed:
+                    (_startDate != null && _endDate != null && !_isLoading)
                     ? _createTrip
                     : () {},
                 backgroundColor: (_startDate != null && _endDate != null)
@@ -260,12 +254,20 @@ class _TripDateScreenState extends State<TripDateScreen> {
     );
   }
 
-
-
   String _formatDate(DateTime date) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }

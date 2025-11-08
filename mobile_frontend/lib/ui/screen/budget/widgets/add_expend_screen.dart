@@ -10,8 +10,8 @@ class AddExpenseScreen extends StatefulWidget {
   final double totalBudget;
   final String tripId;
   final String budgetId;
-  final DateTime tripStartDate; 
-  final DateTime tripEndDate;    
+  final DateTime tripStartDate;
+  final DateTime tripEndDate;
   final Expense? expense;
   final bool isEditing;
 
@@ -20,11 +20,11 @@ class AddExpenseScreen extends StatefulWidget {
     required this.selectedCurrency,
     required this.remainingBudget,
     required this.dailyBudget,
-    required this.totalBudget, 
+    required this.totalBudget,
     required this.tripId,
     required this.budgetId,
-    required this.tripStartDate, 
-    required this.tripEndDate,    
+    required this.tripStartDate,
+    required this.tripEndDate,
     this.expense,
     this.isEditing = false,
   });
@@ -38,20 +38,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _peopleController = TextEditingController(text: '1');
-  
+
   DateTime _selectedDate = DateTime.now();
   ExpenseCategory _selectedCategory = ExpenseCategory.food;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Set default date to appropriate trip day
     final now = DateTime.now();
-    final tripStart = DateTime(widget.tripStartDate.year, widget.tripStartDate.month, widget.tripStartDate.day);
-    final tripEnd = DateTime(widget.tripEndDate.year, widget.tripEndDate.month, widget.tripEndDate.day);
+    final tripStart = DateTime(
+      widget.tripStartDate.year,
+      widget.tripStartDate.month,
+      widget.tripStartDate.day,
+    );
+    final tripEnd = DateTime(
+      widget.tripEndDate.year,
+      widget.tripEndDate.month,
+      widget.tripEndDate.day,
+    );
     final today = DateTime(now.year, now.month, now.day);
-    
+
     if (today.isAfter(tripEnd)) {
       // Trip has ended, default to last day
       _selectedDate = widget.tripEndDate;
@@ -62,7 +70,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       // Trip is ongoing, default to today
       _selectedDate = now;
     }
-    
+
     // If editing, populate fields
     if (widget.isEditing && widget.expense != null) {
       _amountController.text = widget.expense!.amount.toString();
@@ -101,20 +109,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   double get _availableForToday {
     final today = DateTime.now();
-    final selectedDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final selectedDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
     final todayDay = DateTime(today.year, today.month, today.day);
-    
+
     if (selectedDay.isAtSameMomentAs(todayDay)) {
       return widget.dailyBudget; // Available for today
     } else {
-      return widget.remainingBudget; // Available from total budget for other days
+      return widget
+          .remainingBudget; // Available from total budget for other days
     }
   }
 
   // Replace _selectDate with _selectTripDay
   void _selectTripDay() {
-    final tripStartDay = DateTime(widget.tripStartDate.year, widget.tripStartDate.month, widget.tripStartDate.day);
-    final tripEndDay = DateTime(widget.tripEndDate.year, widget.tripEndDate.month, widget.tripEndDate.day);
+    final tripStartDay = DateTime(
+      widget.tripStartDate.year,
+      widget.tripStartDate.month,
+      widget.tripStartDate.day,
+    );
+    final tripEndDay = DateTime(
+      widget.tripEndDate.year,
+      widget.tripEndDate.month,
+      widget.tripEndDate.day,
+    );
     final totalDays = tripEndDay.difference(tripStartDay).inDays + 1;
 
     showModalBottomSheet(
@@ -154,15 +175,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   itemBuilder: (context, index) {
                     final dayNumber = index + 1;
                     final dayDate = tripStartDay.add(Duration(days: index));
-                    final isSelected = DateTime(dayDate.year, dayDate.month, dayDate.day)
-                        .isAtSameMomentAs(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day));
-                    
+                    final isSelected =
+                        DateTime(
+                          dayDate.year,
+                          dayDate.month,
+                          dayDate.day,
+                        ).isAtSameMomentAs(
+                          DateTime(
+                            _selectedDate.year,
+                            _selectedDate.month,
+                            _selectedDate.day,
+                          ),
+                        );
+
                     final today = DateTime.now();
-                    final todayDay = DateTime(today.year, today.month, today.day);
-                    final isToday = DateTime(dayDate.year, dayDate.month, dayDate.day).isAtSameMomentAs(todayDay);
+                    final todayDay = DateTime(
+                      today.year,
+                      today.month,
+                      today.day,
+                    );
+                    final isToday = DateTime(
+                      dayDate.year,
+                      dayDate.month,
+                      dayDate.day,
+                    ).isAtSameMomentAs(todayDay);
                     final isPast = dayDate.isBefore(todayDay);
                     final isFuture = dayDate.isAfter(todayDay);
-                    
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
@@ -170,23 +209,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           width: 50,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: isSelected 
-                              ? DertamColors.primaryDark 
-                              : isToday 
+                            color: isSelected
+                                ? DertamColors.primaryDark
+                                : isToday
                                 ? Colors.blue[100]
                                 : Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
-                            border: isToday && !isSelected 
-                              ? Border.all(color: Colors.blue, width: 2)
-                              : null,
+                            border: isToday && !isSelected
+                                ? Border.all(color: Colors.blue, width: 2)
+                                : null,
                           ),
                           child: Center(
                             child: Text(
                               '$dayNumber',
                               style: TextStyle(
-                                color: isSelected 
-                                  ? Colors.white 
-                                  : isToday 
+                                color: isSelected
+                                    ? Colors.white
+                                    : isToday
                                     ? Colors.blue[700]
                                     : Colors.grey[600],
                                 fontWeight: FontWeight.bold,
@@ -200,14 +239,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             Text(
                               'Day $dayNumber',
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                color: isSelected ? DertamColors.primaryDark : DertamColors.black,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? DertamColors.primaryDark
+                                    : DertamColors.black,
                               ),
                             ),
                             if (isToday) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.blue,
                                   borderRadius: BorderRadius.circular(10),
@@ -227,19 +273,31 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         subtitle: Text(
                           _formatFullDate(dayDate),
                           style: TextStyle(
-                            color: isPast 
-                              ? Colors.grey[500]
-                              : isFuture 
+                            color: isPast
+                                ? Colors.grey[500]
+                                : isFuture
                                 ? Colors.orange[600]
                                 : Colors.blue[600],
                             fontSize: 13,
                           ),
                         ),
-                        trailing: isPast 
-                          ? Icon(Icons.history, color: Colors.grey[400], size: 20)
-                          : isFuture 
-                            ? Icon(Icons.schedule, color: Colors.orange[400], size: 20)
-                            : Icon(Icons.today, color: Colors.blue[400], size: 20),
+                        trailing: isPast
+                            ? Icon(
+                                Icons.history,
+                                color: Colors.grey[400],
+                                size: 20,
+                              )
+                            : isFuture
+                            ? Icon(
+                                Icons.schedule,
+                                color: Colors.orange[400],
+                                size: 20,
+                              )
+                            : Icon(
+                                Icons.today,
+                                color: Colors.blue[400],
+                                size: 20,
+                              ),
                         onTap: () {
                           setState(() {
                             _selectedDate = dayDate;
@@ -286,24 +344,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: _selectedCategory == category 
-                        ? DertamColors.primaryDark 
-                        : Colors.grey[200],
+                      color: _selectedCategory == category
+                          ? DertamColors.primaryDark
+                          : Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       category.icon,
-                      color: _selectedCategory == category 
-                        ? Colors.white 
-                        : Colors.grey[600],
+                      color: _selectedCategory == category
+                          ? Colors.white
+                          : Colors.grey[600],
                     ),
                   ),
                   title: Text(
                     category.label,
                     style: TextStyle(
-                      fontWeight: _selectedCategory == category 
-                        ? FontWeight.bold 
-                        : FontWeight.normal,
+                      fontWeight: _selectedCategory == category
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   onTap: () {
@@ -322,237 +380,244 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _saveExpense() async {
-  if (!_formKey.currentState!.validate()) return;
-  
-  if (_totalAmount <= 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please enter a valid amount'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+    if (!_formKey.currentState!.validate()) return;
 
-  if (_descriptionController.text.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please enter a description'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  // Check if expense exceeds budget
-  final currentTotalSpent = widget.remainingBudget < widget.totalBudget 
-    ? widget.totalBudget - widget.remainingBudget 
-    : 0.0;
-  final newTotalSpent = currentTotalSpent + _totalAmount;
-  
-  // Show warning if exceeds total budget
-  if (newTotalSpent > widget.totalBudget) {
-    final shouldContinue = await _showBudgetExceededDialog();
-    if (!shouldContinue) return;
-  }
-
-  // Create the expense
-  final expense = Expense.create(
-    amount: _totalAmount,
-    description: _descriptionController.text.trim(),
-    date: _selectedDate,
-    category: _selectedCategory,
-  );
-
-  // Show success message
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        widget.isEditing 
-          ? 'Expense updated successfully!' 
-          : 'Expense added successfully!',
-      ),
-      backgroundColor: Colors.green,
-    ),
-  );
-
-  // Return to previous screen with success result
-  Navigator.pop(context, true);
-}
-
-// Add this method to show the budget exceeded dialog
-Future<bool> _showBudgetExceededDialog() async {
-  return await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+    if (_totalAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid amount'),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: Colors.white,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: Colors.white,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Warning Icon
-              Container(
-                width: 60,
-                height: 60,
+      );
+      return;
+    }
+
+    if (_descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a description'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check if expense exceeds budget
+    final currentTotalSpent = widget.remainingBudget < widget.totalBudget
+        ? widget.totalBudget - widget.remainingBudget
+        : 0.0;
+    final newTotalSpent = currentTotalSpent + _totalAmount;
+
+    // Show warning if exceeds total budget
+    if (newTotalSpent > widget.totalBudget) {
+      final shouldContinue = await _showBudgetExceededDialog();
+      if (!shouldContinue) return;
+    }
+    // // Create the expense
+    // final expense = Expense.create(
+    //   amount: _totalAmount,
+    //   description: _descriptionController.text.trim(),
+    //   date: _selectedDate,
+    //   category: _selectedCategory,
+    // );
+    // // Show success message
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text(
+    //       widget.isEditing
+    //         ? 'Expense updated successfully!'
+    //         : 'Expense added successfully!',
+    //     ),
+    //     backgroundColor: Colors.green,
+    //   ),
+    // );
+    // Return to previous screen with success result
+    // Navigator.pop(context, true);
+  }
+
+  // Add this method to show the budget exceeded dialog
+  Future<bool> _showBudgetExceededDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              backgroundColor: Colors.white,
+              child: Container(
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.white,
                 ),
-                child: Icon(
-                  Icons.warning_rounded,
-                  color: Colors.red[600],
-                  size: 30,
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Title
-              Text(
-                'Budget Exceeded',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: DertamColors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Message
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                    height: 1.4,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const TextSpan(
-                      text: 'This expense exceeds your total budget of ',
-                    ),
-                    TextSpan(
-                      text: '${_getCurrencySymbol()} ${widget.totalBudget.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                    // Warning Icon
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.warning_rounded,
                         color: Colors.red[600],
+                        size: 30,
                       ),
                     ),
-                    const TextSpan(
-                      text: '\n\nAre you sure you want to continue?',
+
+                    const SizedBox(height: 20),
+
+                    // Title
+                    Text(
+                      'Budget Exceeded',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: DertamColors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Message
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                        children: [
+                          const TextSpan(
+                            text: 'This expense exceeds your total budget of ',
+                          ),
+                          TextSpan(
+                            text:
+                                '${_getCurrencySymbol()} ${widget.totalBudget.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[600],
+                            ),
+                          ),
+                          const TextSpan(
+                            text: '\n\nAre you sure you want to continue?',
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Note
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Note: You won\'t be asked again for this session.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Buttons
+                    Row(
+                      children: [
+                        // Cancel Button
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // Continue Button
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[600],
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Continue Anyway',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Note
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Note: You won\'t be asked again for this session.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Buttons
-              Row(
-                children: [
-                  // Cancel Button
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[300]!),
-                        ),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(width: 12),
-                  
-                  // Continue Button
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[600],
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Continue Anyway',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  ) ?? false;
-}
+            );
+          },
+        ) ??
+        false;
+  }
 
   // Update the _formatDate method to show trip day
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final selectedDay = DateTime(date.year, date.month, date.day);
-    
+
     // Calculate which day of the trip this is
-    final tripStartDay = DateTime(widget.tripStartDate.year, widget.tripStartDate.month, widget.tripStartDate.day);
+    final tripStartDay = DateTime(
+      widget.tripStartDate.year,
+      widget.tripStartDate.month,
+      widget.tripStartDate.day,
+    );
     final dayOfTrip = selectedDay.difference(tripStartDay).inDays + 1;
-    
+
     if (selectedDay.isAtSameMomentAs(today)) {
       return 'Day $dayOfTrip (Today)';
-    } else if (selectedDay.isAtSameMomentAs(today.add(const Duration(days: 1)))) {
+    } else if (selectedDay.isAtSameMomentAs(
+      today.add(const Duration(days: 1)),
+    )) {
       return 'Day $dayOfTrip (Tomorrow)';
-    } else if (selectedDay.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
+    } else if (selectedDay.isAtSameMomentAs(
+      today.subtract(const Duration(days: 1)),
+    )) {
       return 'Day $dayOfTrip (Yesterday)';
     } else {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -562,8 +627,29 @@ Future<bool> _showBudgetExceededDialog() async {
 
   // Add helper method for full date formatting
   String _formatFullDate(DateTime date) {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
   }
 
@@ -652,7 +738,8 @@ Future<bool> _showBudgetExceededDialog() async {
               ),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: _selectTripDay, // Changed from _selectDate to _selectTripDay
+                onTap:
+                    _selectTripDay, // Changed from _selectDate to _selectTripDay
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -662,7 +749,10 @@ Future<bool> _showBudgetExceededDialog() async {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.calendar_today, color: DertamColors.primaryDark),
+                      Icon(
+                        Icons.calendar_today,
+                        color: DertamColors.primaryDark,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -683,13 +773,10 @@ Future<bool> _showBudgetExceededDialog() async {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _formatDate(_selectedDate).contains('Today') 
-                      ? 'Daily budget:' 
-                      : 'Available budget:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    _formatDate(_selectedDate).contains('Today')
+                        ? 'Daily budget:'
+                        : 'Available budget:',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   Text(
                     '${_getCurrencySymbol()} ${_availableForToday.toStringAsFixed(2)}',
@@ -767,7 +854,9 @@ Future<bool> _showBudgetExceededDialog() async {
               // Expense Amount
               TextFormField(
                 controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Expense Amount (${_getCurrencySymbol()})',
                   border: OutlineInputBorder(
@@ -785,7 +874,8 @@ Future<bool> _showBudgetExceededDialog() async {
                   if (value == null || value.isEmpty) {
                     return 'Please enter an amount';
                   }
-                  if (double.tryParse(value) == null || double.parse(value) <= 0) {
+                  if (double.tryParse(value) == null ||
+                      double.parse(value) <= 0) {
                     return 'Please enter a valid amount';
                   }
                   return null;

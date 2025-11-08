@@ -107,7 +107,6 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
     final placeDetailData = placeProvider.placeDetail;
     // final hotelData = hotelProvider.hotels;
     Widget content;
-    print('mean konleng dek ot ${placeDetailData.data}');
     switch (placeDetailData.state) {
       case AsyncValueState.empty:
         content = SizedBox(

@@ -22,9 +22,7 @@ class Location {
   const Location({required this.name, required this.country});
 
   // Copy constructor
-  Location.copy(Location other)
-      : name = other.name,
-        country = other.country;
+  Location.copy(Location other) : name = other.name, country = other.country;
 
   @override
   bool operator ==(Object other) {
@@ -39,7 +37,4 @@ class Location {
   String toString() {
     return name;
   }
-  
-
- 
 }

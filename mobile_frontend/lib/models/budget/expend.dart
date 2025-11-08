@@ -8,7 +8,7 @@ enum ExpenseCategory {
   accommodation,
   tickets,
   shopping,
-  other
+  other,
 }
 
 extension ExpenseCategoryExtension on ExpenseCategory {

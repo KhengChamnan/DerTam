@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_profile.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_setting_screen.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_booking_screen.dart';
+import 'package:provider/provider.dart';
 import '../../theme/dertam_apptheme.dart';
 
 class UserProfile extends StatelessWidget {
@@ -11,6 +13,7 @@ class UserProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
     return Scaffold(
       backgroundColor: DertamColors.white,
       appBar: AppBar(
@@ -128,10 +131,7 @@ class UserProfile extends StatelessWidget {
                                     child: const Text('Cancel'),
                                   ),
                                   TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      // Add your logout logic here
-                                    },
+                                    onPressed: () => authProvider.logout(),
                                     child: const Text(
                                       'Log out',
                                       style: TextStyle(color: Colors.red),

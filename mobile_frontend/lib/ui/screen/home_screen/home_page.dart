@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/home_slide_show.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/places_category.dart';
@@ -26,13 +27,17 @@ class _HomePageState extends State<HomePage> {
     // Fetch recommended places and upcoming events when the page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final placeProvider = context.read<PlaceProvider>();
+      final authProvider = context.read<AuthProvider>();
       placeProvider.fetchRecommendedPlaces();
       placeProvider.fetchUpcomingEvents();
+      authProvider.getUserInfo();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>().userInfo;
+    print('User name ${authProvider.data?.name}');
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -43,45 +48,113 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // User Profile Header
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundImage: NetworkImage(
-                            'https://i.pravatar.cc/100',
-                          ),
-                          onBackgroundImageError: (e, stackTrace) {
-                            return;
-                          },
-                          backgroundColor: Colors.grey[200],
-                          radius: 20,
-                          child: Icon(Icons.person, color: Colors.grey[400]),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Hi John,',
-                            style: TextStyle(
-                              color: DertamColors.primaryBlue,
-                              fontSize: 24,
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        final userInfo = authProvider.userInfo;
+
+                        // Handle loading state
+                        if (userInfo.state == AsyncValueState.loading) {
+                          return SizedBox(
+                            height: 280,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: DertamColors.primaryBlue,
+                              ),
                             ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.search),
-                          color: DertamColors.primaryBlue,
-                          iconSize: 28,
-                          onPressed: () {},
-                        ),
-                        SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(Icons.notifications_none_outlined),
-                          color: Colors.grey[600],
-                          iconSize: 28,
-                          onPressed: () {},
-                        ),
-                      ],
+                          );
+                        }
+                        // Handle error state
+                        if (userInfo.state == AsyncValueState.error) {
+                          return SizedBox(
+                            height: 280,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 48,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Failed to load recommendations',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                  SizedBox(height: 8),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      context
+                                          .read<AuthProvider>()
+                                          .getUserInfo();
+                                    },
+                                    child: Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Handle empty state
+                        if (userInfo.state == AsyncValueState.empty ||
+                            userInfo.data == null) {
+                          return SizedBox(
+                            height: 280,
+                            child: Center(
+                              child: Text(
+                                'No user available',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ),
+                          );
+                        }
+                        // Handle success state
+                        return Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundImage: NetworkImage(
+                                userInfo.data?.imageUrl ??
+                                    'https://i.pravatar.cc/100',
+                              ),
+                              onBackgroundImageError: (e, stackTrace) {
+                                return;
+                              },
+                              backgroundColor: Colors.grey[200],
+                              radius: 20,
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                userInfo.data?.name ?? 'Guest User',
+                                style: TextStyle(
+                                  color: DertamColors.primaryBlue,
+                                  fontSize: 24,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.search),
+                              color: DertamColors.primaryBlue,
+                              iconSize: 28,
+                              onPressed: () {},
+                            ),
+                            SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.notifications_none_outlined),
+                              color: Colors.grey[600],
+                              iconSize: 28,
+                              onPressed: () {},
+                            ),
+                          ],
+                        );
+                      },
                     ),
+
                     SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

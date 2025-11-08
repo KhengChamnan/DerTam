@@ -8,7 +8,7 @@ enum ExpenseCategory {
   accommodation,
   tickets,
   shopping,
-  other
+  other,
 }
 
 extension ExpenseCategoryExtension on ExpenseCategory {
@@ -119,6 +119,17 @@ class Expense {
       date: date ?? this.date,
       description: description ?? this.description,
       placeId: placeId ?? this.placeId,
+    );
+  }
+
+  factory Expense.fromJson(Map<String, dynamic> json) {
+    return Expense(
+      id: json['id'] ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      category: json['category'] ?? 'other',
+      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+      description: json['description'] ?? '',
+      placeId: json['place_id'],
     );
   }
 

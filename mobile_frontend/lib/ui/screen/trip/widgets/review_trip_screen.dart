@@ -37,134 +37,168 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
 
   void _organizeByDays() {
     _organizedPlaces.clear();
-    
+
     // Group places by selected date
     for (var item in widget.addedPlaces) {
       final selectedDate = item['selectedDate'] as DateTime;
-      final dateKey = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-      
+      final dateKey = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+      );
+
       if (_organizedPlaces[dateKey] == null) {
         _organizedPlaces[dateKey] = [];
       }
       _organizedPlaces[dateKey]!.add(item);
     }
-    
+
     // Sort places within each day by added time
     _organizedPlaces.forEach((date, places) {
-      places.sort((a, b) => (a['addedAt'] as DateTime).compareTo(b['addedAt'] as DateTime));
+      places.sort(
+        (a, b) =>
+            (a['addedAt'] as DateTime).compareTo(b['addedAt'] as DateTime),
+      );
     });
   }
 
   List<DateTime> _getTripDays() {
     List<DateTime> days = [];
     DateTime currentDate = widget.startDate;
-    
-    while (currentDate.isBefore(widget.endDate) || currentDate.isAtSameMomentAs(widget.endDate)) {
+
+    while (currentDate.isBefore(widget.endDate) ||
+        currentDate.isAtSameMomentAs(widget.endDate)) {
       days.add(currentDate);
       currentDate = currentDate.add(Duration(days: 1));
     }
-    
+
     return days;
   }
 
   String _formatDate(DateTime date) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     const weekdays = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
-    
+
     return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
   }
 
   String _formatDateRange() {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
-    
+
     return '${widget.startDate.day} ${months[widget.startDate.month - 1]} ${widget.startDate.year} - ${widget.endDate.day} ${months[widget.endDate.month - 1]} ${widget.endDate.year}';
   }
 
   void _confirmPlan() {
-  // Navigate to Trip Detail Screen instead of showing dialog
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (context) => TripDetailScreen(
-        tripId: widget.tripId,
-        tripName: widget.tripName,
-        startDate: widget.startDate,
-        endDate: widget.endDate,
-        addedPlaces: widget.addedPlaces,
+    // Navigate to Trip Detail Screen instead of showing dialog
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TripDetailScreen(
+          tripId: widget.tripId,
+          tripName: widget.tripName,
+          startDate: widget.startDate,
+          endDate: widget.endDate,
+          addedPlaces: widget.addedPlaces,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-void _editDay(DateTime day) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => SelectPlaceScreen(
-        tripId: widget.tripId,
-        tripName: widget.tripName,
-        startDate: widget.startDate,
-        endDate: widget.endDate,
-        existingPlaces: widget.addedPlaces,
-        preSelectedDate: day, // Add this parameter to pre-select the date
+  void _editDay(DateTime day) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SelectPlaceScreen(
+          tripId: widget.tripId,
+          tripName: widget.tripName,
+          startDate: widget.startDate,
+          endDate: widget.endDate,
+          existingPlaces: widget.addedPlaces,
+          preSelectedDate: day, // Add this parameter to pre-select the date
+        ),
       ),
-    ),
-  ).then((result) {
-    // Handle result when returning from SelectPlaceScreen
-    if (result != null && result is List<Map<String, dynamic>>) {
-      setState(() {
-        widget.addedPlaces.clear();
-        widget.addedPlaces.addAll(result);
-        _organizeByDays();
-      });
-    }
-  });
-}
+    ).then((result) {
+      // Handle result when returning from SelectPlaceScreen
+      if (result != null && result is List<Map<String, dynamic>>) {
+        setState(() {
+          widget.addedPlaces.clear();
+          widget.addedPlaces.addAll(result);
+          _organizeByDays();
+        });
+      }
+    });
+  }
 
-void _deletePlace(Map<String, dynamic> placeItem) {
-  setState(() {
-    widget.addedPlaces.remove(placeItem);
-    _organizeByDays();
-  });
-}
+  void _deletePlace(Map<String, dynamic> placeItem) {
+    setState(() {
+      widget.addedPlaces.remove(placeItem);
+      _organizeByDays();
+    });
+  }
 
   void _continueEditing() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => SelectPlaceScreen(
-        tripId: widget.tripId,
-        tripName: widget.tripName,
-        startDate: widget.startDate,
-        endDate: widget.endDate,
-        existingPlaces: widget.addedPlaces,
-        // Don't pass preSelectedDate - this allows normal flow
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SelectPlaceScreen(
+          tripId: widget.tripId,
+          tripName: widget.tripName,
+          startDate: widget.startDate,
+          endDate: widget.endDate,
+          existingPlaces: widget.addedPlaces,
+          // Don't pass preSelectedDate - this allows normal flow
+        ),
       ),
-    ),
-  ).then((result) {
-    // Handle result when returning from SelectPlaceScreen
-    if (result != null && result is List<Map<String, dynamic>>) {
-      setState(() {
-        widget.addedPlaces.clear();
-        widget.addedPlaces.addAll(result);
-        _organizeByDays();
-      });
-    }
-  });
-}
+    ).then((result) {
+      // Handle result when returning from SelectPlaceScreen
+      if (result != null && result is List<Map<String, dynamic>>) {
+        setState(() {
+          widget.addedPlaces.clear();
+          widget.addedPlaces.addAll(result);
+          _organizeByDays();
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final tripDays = _getTripDays();
-    
+
     return Scaffold(
       backgroundColor: DertamColors.white,
       appBar: AppBar(
@@ -176,9 +210,7 @@ void _deletePlace(Map<String, dynamic> placeItem) {
         ),
         title: Text(
           'Review Your Trip',
-          style: DertamTextStyles.subtitle.copyWith(
-            color: DertamColors.black,
-          ),
+          style: DertamTextStyles.subtitle.copyWith(color: DertamColors.black),
         ),
         centerTitle: true,
       ),
@@ -186,8 +218,8 @@ void _deletePlace(Map<String, dynamic> placeItem) {
         children: [
           // Trip Header Info
           Container(
-             padding: EdgeInsets.all(DertamSpacings.m),
-             margin: EdgeInsets.symmetric(horizontal: DertamSpacings.s),
+            padding: EdgeInsets.all(DertamSpacings.m),
+            margin: EdgeInsets.symmetric(horizontal: DertamSpacings.s),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -213,9 +245,8 @@ void _deletePlace(Map<String, dynamic> placeItem) {
               ],
             ),
           ),
-           Divider(height: 1, color: Colors.grey[300]),
+          Divider(height: 1, color: Colors.grey[300]),
           SizedBox(height: DertamSpacings.s),
-         
 
           // Trip Days List
           Expanded(
@@ -227,14 +258,14 @@ void _deletePlace(Map<String, dynamic> placeItem) {
                 final dayKey = DateTime(day.year, day.month, day.day);
                 final placesForDay = _organizedPlaces[dayKey] ?? [];
                 final dayNumber = index + 1;
-                
+
                 return Container(
                   margin: EdgeInsets.only(bottom: DertamSpacings.l),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Day Header
-                     Row(
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
@@ -247,7 +278,7 @@ void _deletePlace(Map<String, dynamic> placeItem) {
                           GestureDetector(
                             onTap: () => _editDay(day),
                             child: Container(
-                              padding: EdgeInsets.all(8), 
+                              padding: EdgeInsets.all(8),
                               child: Icon(
                                 Icons.edit,
                                 color: DertamColors.primaryDark,
@@ -257,9 +288,9 @@ void _deletePlace(Map<String, dynamic> placeItem) {
                           ),
                         ],
                       ),
-                      
+
                       SizedBox(height: DertamSpacings.m),
-                      
+
                       // Places for this day
                       if (placesForDay.isEmpty)
                         Container(
@@ -276,24 +307,26 @@ void _deletePlace(Map<String, dynamic> placeItem) {
                         )
                       else
                         ...placesForDay.map((item) {
-                        final place = item['place'] as Place;
-                        return TripPlaceCard(
-                          place: place,
-                          enableSwipeToDelete: true, // Enable swipe-to-delete in review screen
-                          onDelete: () => _deletePlace(item), // Add the onDelete callback
-                          onTap: () {
-                            // Optional: Add tap functionality for review screen
-                            print('Tapped on ${place.name}');
-                          },
-                        );
-                      }).toList(),
+                          final place = item['place'] as Place;
+                          return TripPlaceCard(
+                            place: place,
+                            enableSwipeToDelete:
+                                true, // Enable swipe-to-delete in review screen
+                            onDelete: () =>
+                                _deletePlace(item), // Add the onDelete callback
+                            onTap: () {
+                              // Optional: Add tap functionality for review screen
+                              print('Tapped on ${place.name}');
+                            },
+                          );
+                        }).toList(),
                     ],
                   ),
                 );
               },
             ),
           ),
-          
+
           // Bottom Action Buttons
           Container(
             padding: EdgeInsets.all(DertamSpacings.l),
@@ -337,4 +370,3 @@ void _deletePlace(Map<String, dynamic> placeItem) {
     );
   }
 }
-

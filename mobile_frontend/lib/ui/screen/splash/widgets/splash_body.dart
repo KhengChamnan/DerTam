@@ -89,6 +89,7 @@ class _SplashBodyState extends State<SplashBody> with TickerProviderStateMixin {
     _textController.dispose();
     super.dispose();
   }
+
   Future<void> _initializeApp() async {
     try {
       // Get the auth provider
@@ -159,6 +160,7 @@ class _SplashBodyState extends State<SplashBody> with TickerProviderStateMixin {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

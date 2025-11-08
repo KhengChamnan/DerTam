@@ -10,13 +10,8 @@ import 'package:mobile_frontend/data/repository/laravel/laravel_place_api_reposi
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 void main() {
-  runApp(MyApp());
-}
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(
           create: (_) =>
@@ -29,12 +24,20 @@ class MyApp extends StatelessWidget {
           create: (_) => HotelProvider(repository: LaravelHotelApiRepository()),
         ),
       ],
-      child: MaterialApp(
-        title: 'DerTam',
-        debugShowCheckedModeBanner: false,
-        theme: dertamAppTheme,
-        home: SplashScreen(),
-      ),
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'DerTam',
+      debugShowCheckedModeBanner: false,
+      theme: dertamAppTheme,
+      home: SplashScreen(),
     );
   }
 }

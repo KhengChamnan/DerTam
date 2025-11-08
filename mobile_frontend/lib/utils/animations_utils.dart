@@ -11,6 +11,7 @@ class AnimationUtils {
     const end = Offset(0.0, 0.0);
     return _createAnimatedRoute(screen, begin, end);
   }
+
   ////
   /// Slide given screen from top to bottom
   ///
@@ -21,32 +22,33 @@ class AnimationUtils {
   }
 
   static Route<T> _createAnimatedRoute<T>(
-      Widget screen, Offset begin, Offset end) {
+    Widget screen,
+    Offset begin,
+    Offset end,
+  ) {
     return PageRouteBuilder<T>(
-      transitionDuration:
-          const Duration(milliseconds: transitionSpeed), // Animation speed
+      transitionDuration: const Duration(
+        milliseconds: transitionSpeed,
+      ), // Animation speed
       pageBuilder: (context, animation, secondaryAnimation) => screen,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        var tween = Tween(begin: begin, end: end)
-            .chain(CurveTween(curve: Curves.easeInOut));
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: Curves.easeInOut));
 
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
 
-
-
-
-
   ////
   /// Slide given screen from top to a fixed height (not fullscreen)
   ///
-  static Route<T> createTopSheetRoute<T>(Widget screen,
-      {double maxHeightFactor = 0.5}) {
+  static Route<T> createTopSheetRoute<T>(
+    Widget screen, {
+    double maxHeightFactor = 0.5,
+  }) {
     return PageRouteBuilder<T>(
       opaque: false, // Allows previous screen to be visible
       transitionDuration: const Duration(milliseconds: transitionSpeed),
@@ -55,7 +57,9 @@ class AnimationUtils {
           onTap: () => Navigator.pop(context), // Close when tapping outside
           child: Scaffold(
             // ignore: deprecated_member_use
-            backgroundColor: Colors.black.withOpacity(0.5), // Semi-transparent overlay
+            backgroundColor: Colors.black.withOpacity(
+              0.5,
+            ), // Semi-transparent overlay
             body: Align(
               alignment: Alignment.topCenter,
               child: FractionallySizedBox(
@@ -63,7 +67,9 @@ class AnimationUtils {
                 heightFactor: maxHeightFactor, // Customizable height
                 child: Material(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(20),
+                  ),
                   child: screen, // Embed your custom content
                 ),
               ),
@@ -72,13 +78,12 @@ class AnimationUtils {
         );
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        var tween = Tween(begin: const Offset(0, -1), end: Offset.zero)
-            .chain(CurveTween(curve: Curves.easeInOut));
+        var tween = Tween(
+          begin: const Offset(0, -1),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeInOut));
 
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }

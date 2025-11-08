@@ -11,7 +11,6 @@ class BudgetDetail {
   final String label;
   final String value;
   final String description;
-
   BudgetDetail(this.label, this.value, this.description);
 }
 
@@ -165,186 +164,207 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   void _showBudgetCardDetails({
-  required BuildContext context,
-  required String title,
-  required IconData icon,
-  required Color iconColor,
-  required List<BudgetDetail> details,
-  required String explanation,
-  required List<String> tips,
-}) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6,
-            maxWidth: MediaQuery.of(context).size.width * 0.7,
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required List<BudgetDetail> details,
+    required String explanation,
+    required List<String> tips,
+  }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Fixed Header
-              Container(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: title == 'Daily Budget'
-                            ? DertamColors.primaryDark
-                            : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, color: iconColor, size: 24),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: DertamColors.black,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Scrollable Content
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+              maxWidth: MediaQuery.of(context).size.width * 0.7,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Fixed Header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Row(
                     children: [
-                      // Use BudgetDetailItem
-                      ...details.map((detail) => BudgetDetailItem(
-                        label: detail.label,
-                        value: detail.value,
-                        description: detail.description,
-                      )),
-
-                      const SizedBox(height: 16),
-
-                      // Explanation
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: title == 'Daily Budget'
+                              ? DertamColors.primaryDark
+                              : Colors.grey[200],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  color: Colors.blue[700],
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'How it works',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              explanation,
-                              style: TextStyle(
-                                color: Colors.blue[800],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        child: Icon(icon, color: iconColor, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: DertamColors.black,
+                          ),
                         ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // Tips
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: tips.any((tip) => tip.contains('🚨') || tip.contains('⚠️'))
-                              ? Colors.orange[50]
-                              : Colors.green[50],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  tips.any((tip) => tip.contains('🚨'))
-                                      ? Icons.warning
-                                      : tips.any((tip) => tip.contains('⚠️'))
-                                      ? Icons.info
-                                      : Icons.check_circle,
-                                  color: tips.any((tip) => tip.contains('🚨') || tip.contains('⚠️'))
-                                      ? Colors.orange[700]
-                                      : Colors.green[700],
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Tips',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: tips.any((tip) => tip.contains('🚨') || tip.contains('⚠️'))
-                                        ? Colors.orange[700]
-                                        : Colors.green[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ...tips.map(
-                              (tip) => Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  tip,
-                                  style: TextStyle(
-                                    color: tips.any((tip) => tip.contains('🚨') || tip.contains('⚠️'))
-                                        ? Colors.orange[800]
-                                        : Colors.green[800],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                // Scrollable Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Use BudgetDetailItem
+                        ...details.map(
+                          (detail) => BudgetDetailItem(
+                            label: detail.label,
+                            value: detail.value,
+                            description: detail.description,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Explanation
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.blue[700],
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'How it works',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                explanation,
+                                style: TextStyle(
+                                  color: Colors.blue[800],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Tips
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color:
+                                tips.any(
+                                  (tip) =>
+                                      tip.contains('🚨') || tip.contains('⚠️'),
+                                )
+                                ? Colors.orange[50]
+                                : Colors.green[50],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    tips.any((tip) => tip.contains('🚨'))
+                                        ? Icons.warning
+                                        : tips.any((tip) => tip.contains('⚠️'))
+                                        ? Icons.info
+                                        : Icons.check_circle,
+                                    color:
+                                        tips.any(
+                                          (tip) =>
+                                              tip.contains('🚨') ||
+                                              tip.contains('⚠️'),
+                                        )
+                                        ? Colors.orange[700]
+                                        : Colors.green[700],
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Tips',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          tips.any(
+                                            (tip) =>
+                                                tip.contains('🚨') ||
+                                                tip.contains('⚠️'),
+                                          )
+                                          ? Colors.orange[700]
+                                          : Colors.green[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              ...tips.map(
+                                (tip) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    tip,
+                                    style: TextStyle(
+                                      color:
+                                          tips.any(
+                                            (tip) =>
+                                                tip.contains('🚨') ||
+                                                tip.contains('⚠️'),
+                                          )
+                                          ? Colors.orange[800]
+                                          : Colors.green[800],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   void _showExpenseDetails(Expense expense) {
     showModalBottomSheet(
@@ -359,7 +379,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ),
     );
   }
-
 
   String _getCurrencySymbol() {
     switch (widget.currency) {
@@ -727,7 +746,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
       // Floating Action Button
       floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddExpense, 
+        onPressed: _navigateToAddExpense,
         backgroundColor: DertamColors.primaryDark,
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
@@ -753,7 +772,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       ),
     );
 
-    // If an expense was added, refresh the budget
+    // If an expense was added, refresh the budgetz
     if (result == true) {
       setState(() {
         // Trigger a rebuild to refresh the data
@@ -763,31 +782,31 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   // Add method for editing expenses
-  void _navigateToEditExpense(Expense expense) async {
-    if (_budget == null) return;
+  // void _navigateToEditExpense(Expense expense) async {
+  //   if (_budget == null) return;
 
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddExpenseScreen(
-          selectedCurrency: widget.currency,
-          remainingBudget: _remainingBudget + expense.amount,
-          dailyBudget: widget.dailyBudget,
-          totalBudget: widget.totalBudget,
-          tripId: widget.tripId,
-          budgetId: _budget!.id,
-          tripStartDate: widget.tripStartDate, // Pass trip start date
-          tripEndDate: widget.tripEndDate, // Pass trip end date
-          expense: expense,
-          isEditing: true,
-        ),
-      ),
-    );
+  //   final result = await Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => AddExpenseScreen(
+  //         selectedCurrency: widget.currency,
+  //         remainingBudget: _remainingBudget + expense.amount,
+  //         dailyBudget: widget.dailyBudget,
+  //         totalBudget: widget.totalBudget,
+  //         tripId: widget.tripId,
+  //         budgetId: _budget!.id,
+  //         tripStartDate: widget.tripStartDate, // Pass trip start date
+  //         tripEndDate: widget.tripEndDate, // Pass trip end date
+  //         expense: expense,
+  //         isEditing: true,
+  //       ),
+  //     ),
+  //   );
 
-    if (result == true) {
-      setState(() {
-        _initializeBudget();
-      });
-    }
-  }
+  //   if (result == true) {
+  //     setState(() {
+  //       _initializeBudget();
+  //     });
+  //   }
+  // }
 }

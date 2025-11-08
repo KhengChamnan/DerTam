@@ -21,6 +21,7 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
   int _currentImageIndex = 0;
   late PageController _pageController;
   Timer? _autoPlayTimer;
+  int _numberOfRooms = 1;
 
   @override
   void initState() {
@@ -136,7 +137,6 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
         ),
       );
     }
-
     if (roomAsyncValue.state == AsyncValueState.empty) {
       return Scaffold(
         backgroundColor: DertamColors.backgroundWhite,
@@ -631,23 +631,69 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
                   // Booking footer with price and button
                   Row(
                     children: [
-                      RichText(
-                        text: TextSpan(
+                      // Room counter controls
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: DertamColors.primaryBlue.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
                           children: [
-                            TextSpan(
-                              text:
-                                  '\$${roomData.pricePerNight.toStringAsFixed(0)} ',
-                              style: DertamTextStyles.title.copyWith(
-                                color: DertamColors.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
+                            // Decrease button
+                            IconButton(
+                              onPressed: _numberOfRooms > 1
+                                  ? () {
+                                      setState(() {
+                                        _numberOfRooms--;
+                                      });
+                                    }
+                                  : null,
+                              icon: Icon(
+                                Icons.remove,
+                                color: _numberOfRooms > 1
+                                    ? DertamColors.primaryBlue
+                                    : Colors.grey,
+                                size: 20,
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
                               ),
                             ),
-                            TextSpan(
-                              text: 'nightly',
-                              style: DertamTextStyles.bodyMedium.copyWith(
-                                color: DertamColors.textSecondary,
-                                fontSize: 14,
+                            // Room count display
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Text(
+                                '$_numberOfRooms',
+                                style: DertamTextStyles.title.copyWith(
+                                  color: DertamColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            // Increase button
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _numberOfRooms++;
+                                });
+                              },
+                              icon: Icon(
+                                Icons.add,
+                                color: DertamColors.primaryBlue,
+                                size: 20,
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
                               ),
                             ),
                           ],
@@ -656,24 +702,18 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: roomData.isAvailable
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          DertamConfirmBooking(
-                                            roomType: roomData.roomType,
-                                            pricePerNight:
-                                                roomData.pricePerNight,
-                                            numberOfRooms: 2,
-                                            roomImage: roomData.imagesUrl,
-                                            maxGuests: roomData.maxGuests,
-                                          ),
-                                    ),
-                                  );
-                                }
-                              : null,
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DertamConfirmBooking(
+                                roomType: roomData.roomType,
+                                pricePerNight: roomData.pricePerNight,
+                                numberOfRooms: _numberOfRooms,
+                                roomImage: roomData.imagesUrl,
+                                maxGuests: roomData.maxGuests,
+                              ),
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DertamColors.primaryDark,
                             foregroundColor: Colors.white,
@@ -684,7 +724,7 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
                             elevation: 0,
                           ),
                           child: Text(
-                            roomData.isAvailable ? 'Book Now' : 'Not Available',
+                            'Book Now',
                             style: DertamTextStyles.buttonLarge.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

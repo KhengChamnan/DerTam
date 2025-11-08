@@ -7,6 +7,7 @@ class PlaceCategory {
     if (identical(this, other)) return true;
     return other is PlaceCategory && other.categoryId == categoryId;
   }
+
   @override
   int get hashCode => categoryId.hashCode;
   @override
