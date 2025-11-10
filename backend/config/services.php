@@ -41,4 +41,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL'),
     ],
 
+     'aba' => [
+        'merchant_id' => env('ABA_MERCHANT_ID'),
+        'api_key' => env('ABA_API_KEY'),
+        'purchase_endpoint' => env('ABA_PURCHASE_ENDPOINT'),
+        'return_url' => env('ABA_RETURN_URL'),
+        'cancel_url' => env('ABA_CANCEL_URL'),
+        'continue_success_url' => env('ABA_CONTINUE_SUCCESS_URL'),
+    ],
+
 ];

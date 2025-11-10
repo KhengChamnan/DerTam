@@ -22,10 +22,11 @@ use App\Http\Controllers\API\Hotel\PropertyFacilitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomPropertiesCrudController;
 use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
-use App\Http\Controllers\API\Hotel\BookingController;
 use App\Http\Controllers\API\Hotel\RoomController;
 use App\Http\Controllers\API\Trip\TripShareController;
 use App\Http\Controllers\API\Profile\ProfileController;
+use App\Http\Controllers\API\Booking\BookingController;
+use App\Http\Controllers\API\Booking\PaymentCallbackController;
 
 
 
@@ -85,7 +86,12 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 
-// Public booking GET routes
+
+// ABA PayWay payment return/callback routes (must be public - no auth)
+Route::prefix('payments/aba')->group(function () {
+    Route::post('/return', [PaymentCallbackController::class, 'handleCallback']);
+    Route::post('/cancel', [PaymentCallbackController::class, 'handleCancel']);
+});
 
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
@@ -102,25 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('profile/{id}', 'show');                    // Get specific user's profile by ID
     });
     
-    // Hotel booking routes
-    Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
-    Route::get('hotels/bookings', [BookingController::class, 'index']); // Get all bookings with filters
-    Route::patch('hotels/bookings/{booking_id}/status', [BookingController::class, 'updateStatus']); // Update booking status
-    Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
-    Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
-    Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
-    Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
-
-    
-    // Hotel booking routes
-    Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
-    Route::get('hotels/bookings', [BookingController::class, 'index']); // Get all bookings with filters
-    Route::patch('hotels/bookings/{booking_id}/status', [BookingController::class, 'updateStatus']); // Update booking status
-    Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
-    Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
-    Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
-    Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
-
+   
 
     // Trip management routes
     Route::controller(TripController::class)->group(function() {
@@ -155,6 +143,31 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('budgets/{budgetId}', 'updateBudget');       // Update budget
         Route::patch('expenses/{expenseId}', 'updateExpense');    // Update expense
         Route::delete('expenses/{expenseId}', 'deleteExpense');   // Delete expense
+    });
+
+    // Booking management routes (protected)
+    Route::prefix('booking')->group(function () {
+        // Create hotel booking with payment
+        Route::post('/create', [BookingController::class, 'createHotelBooking']);
+        
+        // Get user's bookings
+        Route::get('/my-bookings', [BookingController::class, 'getMyBookings']);
+        
+        // Get specific booking details
+        Route::get('/{id}', [BookingController::class, 'getBookingDetails']);
+        
+        // Cancel a booking
+        Route::post('/{id}/cancel', [BookingController::class, 'cancelBooking']);
+        
+        // Get upcoming hotel bookings
+        Route::get('/upcoming-hotels', [BookingController::class, 'getUpcomingHotels']);
+        
+        // Get booking statistics
+        Route::get('/statistics', [BookingController::class, 'getStatistics']);
+        
+        // Payment operations
+        Route::get('/payment/status/{transactionId}', [PaymentCallbackController::class, 'checkPaymentStatus']);
+        Route::post('/{bookingId}/retry-payment', [PaymentCallbackController::class, 'retryPayment']);
     });
 });
 
