@@ -1,0 +1,553 @@
+{
+	"info": {
+		"_postman_id": "booking-api-collection-2025",
+		"name": "Hotel Booking API Collection",
+		"description": "Complete API collection for hotel booking system with ABA PayWay integration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data.token) {",
+									"        pm.environment.set(\"auth_token\", jsonData.data.token);",
+									"        pm.environment.set(\"user_id\", jsonData.data.id);",
+									"        console.log(\"Token saved:\", jsonData.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "login"]
+						},
+						"description": "Login to get authentication token"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Booking Management",
+			"item": [
+				{
+					"name": "Create Hotel Booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data.booking) {",
+									"        pm.environment.set(\"booking_id\", jsonData.data.booking.id);",
+									"        pm.environment.set(\"transaction_id\", jsonData.data.payment.transaction_id);",
+									"        pm.environment.set(\"qr_string\", jsonData.data.payment.qr_string);",
+									"        pm.environment.set(\"abapay_deeplink\", jsonData.data.payment.abapay_deeplink);",
+									"        console.log(\"Booking ID:\", jsonData.data.booking.id);",
+									"        console.log(\"Transaction ID:\", jsonData.data.payment.transaction_id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"check_in\": \"2025-11-15\",\n    \"check_out\": \"2025-11-18\",\n    \"booking_items\": [\n        {\n            \"room_property_id\": 1,\n            \"quantity\": 2,\n            \"unit_price\": 50.00\n        },\n        {\n            \"room_property_id\": 2,\n            \"quantity\": 1,\n            \"unit_price\": 75.00\n        }\n    ],\n    \"currency\": \"USD\",\n    \"payment_option\": \"abapay_khqr_deeplink\",\n    \"firstname\": \"John\",\n    \"lastname\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"012345678\",\n    \"return_deeplink\": \"myapp://payment\",\n    \"lifetime\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/booking/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "create"]
+						},
+						"description": "Create a new hotel booking with payment initialization.\n\n**Required Fields:**\n- check_in: Date (YYYY-MM-DD, must be today or future)\n- check_out: Date (YYYY-MM-DD, must be after check_in)\n- booking_items: Array of room bookings\n  - room_property_id: ID of the room property\n  - quantity: Number of rooms\n  - unit_price: Price per room per night\n\n**Optional Fields:**\n- currency: USD or KHR (default: USD)\n- payment_option: abapay_khqr, abapay_khqr_deeplink, abapay_deeplink\n- firstname, lastname, email, phone: Customer info\n- return_deeplink: Mobile app deeplink for return\n- lifetime: QR code lifetime in minutes (default: 10)\n\n**Response:**\n- booking: Booking details with ID and status\n- payment: Payment details with QR code and deeplink\n\n**Calculation:**\n- Total = unit_price × quantity × nights\n- Nights = check_out - check_in"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"check_in\": \"2025-11-15\",\n    \"check_out\": \"2025-11-18\",\n    \"booking_items\": [\n        {\n            \"room_property_id\": 1,\n            \"quantity\": 2,\n            \"unit_price\": 50.00\n        }\n    ],\n    \"currency\": \"USD\",\n    \"payment_option\": \"abapay_khqr_deeplink\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/booking/create",
+									"host": ["{{base_url}}"],
+									"path": ["api", "booking", "create"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"message\": \"Hotel booking created successfully\",\n    \"data\": {\n        \"booking\": {\n            \"id\": 1,\n            \"total_amount\": 300.00,\n            \"currency\": \"USD\",\n            \"status\": \"pending\",\n            \"check_in\": \"2025-11-15\",\n            \"check_out\": \"2025-11-18\",\n            \"nights\": 3,\n            \"booking_items\": [\n                {\n                    \"booking_item_id\": 1,\n                    \"room_property_id\": 1,\n                    \"quantity\": 2,\n                    \"unit_price\": 50.00,\n                    \"total_price\": 300.00,\n                    \"check_in\": \"2025-11-15\",\n                    \"check_out\": \"2025-11-18\",\n                    \"nights\": 3\n                }\n            ]\n        },\n        \"payment\": {\n            \"id\": 1,\n            \"transaction_id\": \"BOOK1_ABC123XYZ\",\n            \"amount\": 300.00,\n            \"currency\": \"USD\",\n            \"status\": \"pending\",\n            \"qr_string\": \"base64_encoded_qr_string\",\n            \"abapay_deeplink\": \"abapay://checkout?tran_id=BOOK1_ABC123XYZ\",\n            \"payment_option\": \"abapay_khqr_deeplink\"\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get My Bookings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/booking/my-bookings?status=pending&page=1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "my-bookings"],
+							"query": [
+								{
+									"key": "status",
+									"value": "pending",
+									"description": "Filter by status: pending, confirmed, cancelled, refunded"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								}
+							]
+						},
+						"description": "Get all bookings for the authenticated user.\n\n**Query Parameters:**\n- status (optional): Filter by booking status\n  - pending: Payment not completed\n  - confirmed: Payment successful\n  - cancelled: Booking cancelled\n  - refunded: Payment refunded\n- page (optional): Page number (default: 1)\n\n**Response:**\n- Paginated list of bookings with:\n  - Booking items\n  - Hotel details (check-in, check-out, nights)\n  - Room property information\n  - Payment information"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Bookings - All",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/booking/my-bookings",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "my-bookings"]
+						},
+						"description": "Get all bookings without status filter"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Bookings - Confirmed",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/booking/my-bookings?status=confirmed",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "my-bookings"],
+							"query": [
+								{
+									"key": "status",
+									"value": "confirmed"
+								}
+							]
+						},
+						"description": "Get only confirmed bookings"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Booking Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/booking/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "{{booking_id}}"]
+						},
+						"description": "Get detailed information about a specific booking.\n\n**Path Parameter:**\n- id: Booking ID\n\n**Response:**\n- Full booking details including:\n  - Booking items with hotel details\n  - Room property information\n  - Payment method details\n  - Recent payment events (last 5)\n\n**Note:** User can only view their own bookings"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Booking",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/booking/{{booking_id}}/cancel",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "{{booking_id}}", "cancel"]
+						},
+						"description": "Cancel a booking.\n\n**Path Parameter:**\n- id: Booking ID\n\n**Behavior:**\n- Updates booking status to 'cancelled'\n- Marks any pending payments as 'failed'\n\n**Restrictions:**\n- Cannot cancel already cancelled bookings\n- Cannot cancel refunded bookings\n- User can only cancel their own bookings\n\n**Response:**\n- Success message with updated booking status"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment Management",
+			"item": [
+				{
+					"name": "Check Payment Status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/booking/payment/status/{{transaction_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "payment", "status", "{{transaction_id}}"]
+						},
+						"description": "Check the current status of a payment.\n\n**Path Parameter:**\n- transactionId: Transaction ID from payment creation\n\n**Use Case:**\n- Mobile app polls this endpoint every 2-3 seconds\n- Checks if payment completed after user scans QR or uses deeplink\n\n**Response:**\n- transaction_id: Payment transaction ID\n- payment_status: pending, success, failed\n- booking_status: pending, confirmed, cancelled\n- amount: Payment amount\n- currency: USD or KHR\n- payment_method: Payment method name\n- Timestamps\n\n**Note:** User can only check status of their own bookings"
+					},
+					"response": [
+						{
+							"name": "Payment Pending",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/booking/payment/status/BOOK1_ABC123XYZ",
+									"host": ["{{base_url}}"],
+									"path": ["api", "booking", "payment", "status", "BOOK1_ABC123XYZ"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"transaction_id\": \"BOOK1_ABC123XYZ\",\n        \"payment_status\": \"pending\",\n        \"booking_status\": \"pending\",\n        \"amount\": 300.00,\n        \"currency\": \"USD\",\n        \"payment_method\": \"ABA PayWay\",\n        \"created_at\": \"2025-11-10T10:30:00.000000Z\",\n        \"updated_at\": \"2025-11-10T10:30:00.000000Z\"\n    }\n}"
+						},
+						{
+							"name": "Payment Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/booking/payment/status/BOOK1_ABC123XYZ",
+									"host": ["{{base_url}}"],
+									"path": ["api", "booking", "payment", "status", "BOOK1_ABC123XYZ"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"transaction_id\": \"BOOK1_ABC123XYZ\",\n        \"payment_status\": \"success\",\n        \"booking_status\": \"confirmed\",\n        \"amount\": 300.00,\n        \"currency\": \"USD\",\n        \"payment_method\": \"ABA PayWay\",\n        \"created_at\": \"2025-11-10T10:30:00.000000Z\",\n        \"updated_at\": \"2025-11-10T10:32:00.000000Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Retry Payment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_option\": \"abapay_khqr_deeplink\",\n    \"firstname\": \"John\",\n    \"lastname\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"012345678\",\n    \"return_deeplink\": \"myapp://payment\",\n    \"lifetime\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/booking/{{booking_id}}/retry-payment",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "{{booking_id}}", "retry-payment"]
+						},
+						"description": "Retry payment for a failed or pending booking.\n\n**Path Parameter:**\n- bookingId: Booking ID\n\n**Optional Fields:**\n- payment_option: abapay_khqr, abapay_khqr_deeplink, abapay_deeplink\n- firstname, lastname, email, phone: Customer info\n- return_deeplink: Mobile app deeplink\n- lifetime: QR code lifetime in minutes\n\n**Restrictions:**\n- Booking must be in 'pending' status\n- Cannot retry confirmed bookings\n- User can only retry their own bookings\n\n**Response:**\n- New payment details with:\n  - New transaction_id\n  - New QR code\n  - New deeplink\n\n**Use Case:**\n- User's QR code expired\n- Payment failed and user wants to try again\n- User wants to use different payment option"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Callback (ABA Webhook)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "tran_id",
+									"value": "BOOK1_ABC123XYZ",
+									"type": "text"
+								},
+								{
+									"key": "status",
+									"value": "0",
+									"description": "0 = success, other = failed",
+									"type": "text"
+								},
+								{
+									"key": "amount",
+									"value": "300.00",
+									"type": "text"
+								},
+								{
+									"key": "hash",
+									"value": "generated_hash_by_aba",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/booking/payment/callback",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "payment", "callback"]
+						},
+						"description": "⚠️ **THIS IS A WEBHOOK - NOT CALLED BY YOUR APP**\n\nThis endpoint is automatically called by ABA PayWay server when payment completes.\n\n**Called By:** ABA PayWay Server (not your mobile app)\n\n**When:** After user completes payment in ABA Mobile app\n\n**Parameters:**\n- tran_id: Transaction ID\n- status: 0 = success, other = failed\n- amount: Payment amount\n- hash: Security hash from ABA\n\n**Behavior:**\n- If status = 0:\n  - Updates payment status to 'success'\n  - Updates booking status to 'confirmed'\n- If status ≠ 0:\n  - Updates payment status to 'failed'\n  - Booking remains 'pending'\n\n**Security:**\n- Public endpoint (no authentication)\n- Should verify hash in production\n- Logs all callback attempts\n\n**Configuration:**\n- Must be publicly accessible from internet\n- Set ABA_RETURN_URL in .env\n- For testing: Use ngrok or similar"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Cancel Callback (ABA Webhook)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "tran_id",
+									"value": "BOOK1_ABC123XYZ",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/booking/payment/cancel",
+							"host": ["{{base_url}}"],
+							"path": ["api", "booking", "payment", "cancel"]
+						},
+						"description": "⚠️ **THIS IS A WEBHOOK - NOT CALLED BY YOUR APP**\n\nThis endpoint is automatically called by ABA PayWay when payment is cancelled or times out.\n\n**Called By:** ABA PayWay Server\n\n**When:**\n- User cancels payment in ABA app\n- QR code expires\n- Payment times out\n\n**Behavior:**\n- Updates payment status to 'failed'\n- Booking remains 'pending' for retry\n\n**Configuration:**\n- Set ABA_CANCEL_URL in .env"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "booking_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "transaction_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "qr_string",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "abapay_deeplink",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

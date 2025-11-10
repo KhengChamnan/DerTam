@@ -1,0 +1,144 @@
+{
+	"info": {
+		"_postman_id": "place-detail-api-collection",
+		"name": "Place Detail API",
+		"description": "API endpoint for getting comprehensive place details including images, nearby hotels and restaurants using geographical proximity (Haversine formula)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Place Details (Complete)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/places/:placeId/details",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"places",
+						":placeId",
+						"details"
+					],
+					"variable": [
+						{
+							"key": "placeId",
+							"value": "1",
+							"description": "The ID of the place to get details for"
+						}
+					]
+				},
+				"description": "Get complete details about a specific place in a single organized response:\n\n**Returns:**\n- `placeDetail[]` - Full place information (name, description, ratings, coordinates, etc.)\n- `listOfImageUrl[]` - Array of image URLs\n- `imagePublicIds[]` - Array of Cloudinary public IDs\n- `hotelNearby[]` - Up to 5 nearby hotels (within 10km, category_id = 3)\n- `restaurantNearby[]` - Up to 5 nearby restaurants (within 10km, category_id = 2)\n\n**Nearby Search:**\n- Uses Haversine formula for accurate distance calculation\n- Sorted by distance (closest first), then rating (highest first)\n- Default radius: 10 km\n- Default limit: 5 results per category"
+			},
+			"response": [
+				{
+					"name": "Success Response",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/places/1/details",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"places",
+								"1",
+								"details"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"success\": true,\n    \"data\": {\n        \"placeDetail\": {\n            \"placeID\": 1,\n            \"name\": \"Angkor Wat\",\n            \"description\": \"Ancient temple complex and UNESCO World Heritage Site. The largest religious monument in the world.\",\n            \"category_id\": 1,\n            \"category_name\": \"Historical Sites\",\n            \"category_description\": \"Historical and cultural heritage sites\",\n            \"google_maps_link\": \"https://maps.google.com/?q=13.412469,103.866986\",\n            \"ratings\": 4.8,\n            \"reviews_count\": 1500,\n            \"entry_free\": false,\n            \"operating_hours\": {\n                \"monday\": \"5:00 AM - 6:00 PM\",\n                \"tuesday\": \"5:00 AM - 6:00 PM\",\n                \"wednesday\": \"5:00 AM - 6:00 PM\",\n                \"thursday\": \"5:00 AM - 6:00 PM\",\n                \"friday\": \"5:00 AM - 6:00 PM\",\n                \"saturday\": \"5:00 AM - 6:00 PM\",\n                \"sunday\": \"5:00 AM - 6:00 PM\"\n            },\n            \"best_season_to_visit\": \"Winter\",\n            \"province_id\": 1,\n            \"province_categoryName\": \"Siem Reap\",\n            \"province_description\": \"Siem Reap Province\",\n            \"latitude\": 13.412469,\n            \"longitude\": 103.866986,\n            \"created_at\": \"2025-01-01T00:00:00.000000Z\",\n            \"updated_at\": \"2025-10-15T10:30:00.000000Z\"\n        },\n        \"listOfImageUrl\": [\n            \"https://res.cloudinary.com/demo/image/upload/angkor1.jpg\",\n            \"https://res.cloudinary.com/demo/image/upload/angkor2.jpg\",\n            \"https://res.cloudinary.com/demo/image/upload/angkor3.jpg\"\n        ],\n        \"imagePublicIds\": [\n            \"places/angkor1\",\n            \"places/angkor2\",\n            \"places/angkor3\"\n        ],\n        \"hotelNearby\": [\n            {\n                \"placeID\": 25,\n                \"name\": \"Angkor Heritage Hotel\",\n                \"description\": \"Luxury hotel with temple views and traditional Khmer hospitality\",\n                \"category_id\": 3,\n                \"category_name\": \"Hotels\",\n                \"google_maps_link\": \"https://maps.google.com/?q=13.410000,103.865000\",\n                \"ratings\": 4.6,\n                \"reviews_count\": 890,\n                \"images_url\": [\"hotel1.jpg\", \"hotel2.jpg\"],\n                \"entry_free\": false,\n                \"operating_hours\": null,\n                \"province_id\": 1,\n                \"province_categoryName\": \"Siem Reap\",\n                \"latitude\": 13.410000,\n                \"longitude\": 103.865000,\n                \"distance\": 0.35,\n                \"distance_text\": \"0.35 km away\"\n            },\n            {\n                \"placeID\": 26,\n                \"name\": \"Royal Palace Resort\",\n                \"description\": \"Premium resort with pool and spa facilities\",\n                \"category_id\": 3,\n                \"category_name\": \"Hotels\",\n                \"ratings\": 4.7,\n                \"reviews_count\": 650,\n                \"distance\": 1.2,\n                \"distance_text\": \"1.2 km away\"\n            }\n        ],\n        \"restaurantNearby\": [\n            {\n                \"placeID\": 12,\n                \"name\": \"Traditional Khmer Restaurant\",\n                \"description\": \"Authentic Cambodian cuisine with cultural performances\",\n                \"category_id\": 2,\n                \"category_name\": \"Restaurants\",\n                \"google_maps_link\": \"https://maps.google.com/?q=13.415000,103.870000\",\n                \"ratings\": 4.5,\n                \"reviews_count\": 320,\n                \"images_url\": [\"restaurant1.jpg\"],\n                \"entry_free\": false,\n                \"operating_hours\": {\n                    \"monday\": \"10:00 AM - 10:00 PM\",\n                    \"tuesday\": \"10:00 AM - 10:00 PM\"\n                },\n                \"province_id\": 1,\n                \"province_categoryName\": \"Siem Reap\",\n                \"latitude\": 13.415000,\n                \"longitude\": 103.870000,\n                \"distance\": 0.85,\n                \"distance_text\": \"0.85 km away\"\n            },\n            {\n                \"placeID\": 15,\n                \"name\": \"Royal Palace Restaurant\",\n                \"description\": \"Fine dining with traditional Apsara dance performances\",\n                \"category_id\": 2,\n                \"category_name\": \"Restaurants\",\n                \"ratings\": 4.7,\n                \"reviews_count\": 580,\n                \"distance\": 1.5,\n                \"distance_text\": \"1.5 km away\"\n            }\n        ]\n    }\n}"
+				},
+				{
+					"name": "Place Not Found",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/places/9999/details",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"places",
+								"9999",
+								"details"
+							]
+						}
+					},
+					"status": "Not Found",
+					"code": 404,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"success\": false,\n    \"message\": \"Place not found\"\n}"
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		}
+	]
+}

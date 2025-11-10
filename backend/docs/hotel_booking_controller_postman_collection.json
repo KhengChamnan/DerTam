@@ -1,0 +1,700 @@
+{
+	"info": {
+		"_postman_id": "booking-controller-2025",
+		"name": "Hotel Booking Controller API",
+		"description": "Complete API collection for Hotel Booking Controller endpoints including create, read, update, cancel, and delete operations.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "hotel-booking-api"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Create Booking",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    var jsonData = pm.response.json();",
+							"    pm.environment.set(\"booking_id\", jsonData.data.booking_id);",
+							"    pm.environment.set(\"merchant_ref_no\", jsonData.data.merchant_ref_no);",
+							"    console.log(\"Booking created with ID: \" + jsonData.data.booking_id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"trip_id\": 1,\n    \"full_name\": \"John Doe\",\n    \"age\": 30,\n    \"gender\": \"Male\",\n    \"mobile\": \"+855123456789\",\n    \"email\": \"john.doe@example.com\",\n    \"id_number\": \"ABC123456\",\n    \"check_in\": \"2025-11-10\",\n    \"check_out\": \"2025-11-15\",\n    \"room_ids\": [1, 2],\n    \"payment_method\": \"KHQR\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings"
+					]
+				},
+				"description": "Create a new hotel booking. Requires authentication.\n\n**Request Body:**\n- `trip_id` (optional): Trip ID to associate with this booking\n- `full_name` (required): Guest full name\n- `age` (optional): Guest age (1-150)\n- `gender` (optional): Male, Female, or Other\n- `mobile` (optional): Contact phone number\n- `email` (optional): Contact email\n- `id_number` (optional): ID card number\n- `check_in` (required): Check-in date (YYYY-MM-DD, today or future)\n- `check_out` (required): Check-out date (YYYY-MM-DD, after check-in)\n- `room_ids` (required): Array of room property IDs (duplicates allowed for booking multiple rooms of same type)\n- `payment_method` (optional): KHQR, ABA_QR, Cash, or Acleda_Bank\n\n**Response (201):**\n- `booking_id`: Unique booking ID\n- `merchant_ref_no`: Merchant reference number\n- `full_name`: Guest name\n- `check_in`, `check_out`: Dates\n- `nights`: Number of nights\n- `total_amount`: Total booking amount\n- `status`: Booking status (pending)\n- `payment_status`: Payment status (pending)\n- `rooms`: Array of booked rooms\n- `trip`: Associated trip details"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Booking with Multiple Same Rooms",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    var jsonData = pm.response.json();",
+							"    pm.environment.set(\"booking_id\", jsonData.data.booking_id);",
+							"    pm.environment.set(\"merchant_ref_no\", jsonData.data.merchant_ref_no);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"full_name\": \"Jane Smith\",\n    \"age\": 28,\n    \"gender\": \"Female\",\n    \"mobile\": \"+855987654321\",\n    \"email\": \"jane.smith@example.com\",\n    \"id_number\": \"XYZ789012\",\n    \"check_in\": \"2025-11-20\",\n    \"check_out\": \"2025-11-25\",\n    \"room_ids\": [1, 1, 1],\n    \"payment_method\": \"ABA_QR\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings"
+					]
+				},
+				"description": "Example of booking multiple rooms of the same type. The `room_ids` array contains duplicate IDs (e.g., [1, 1, 1] to book 3 rooms of type 1)."
+			},
+			"response": []
+		},
+		{
+			"name": "Create Booking with ID Image Upload",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    var jsonData = pm.response.json();",
+							"    pm.environment.set(\"booking_id\", jsonData.data.booking_id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "trip_id",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "full_name",
+							"value": "Robert Johnson",
+							"type": "text"
+						},
+						{
+							"key": "age",
+							"value": "35",
+							"type": "text"
+						},
+						{
+							"key": "gender",
+							"value": "Male",
+							"type": "text"
+						},
+						{
+							"key": "mobile",
+							"value": "+855111222333",
+							"type": "text"
+						},
+						{
+							"key": "email",
+							"value": "robert.j@example.com",
+							"type": "text"
+						},
+						{
+							"key": "id_number",
+							"value": "ID2025001",
+							"type": "text"
+						},
+						{
+							"key": "image",
+							"type": "file",
+							"src": "/path/to/id_image.jpg",
+							"description": "Upload ID card image"
+						},
+						{
+							"key": "check_in",
+							"value": "2025-12-01",
+							"type": "text"
+						},
+						{
+							"key": "check_out",
+							"value": "2025-12-05",
+							"type": "text"
+						},
+						{
+							"key": "room_ids[]",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "room_ids[]",
+							"value": "2",
+							"type": "text"
+						},
+						{
+							"key": "payment_method",
+							"value": "Cash",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings"
+					]
+				},
+				"description": "Create booking with ID image file upload. Use multipart/form-data format. The image will be uploaded to Cloudinary and stored with the booking."
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Bookings",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings?per_page=15",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "pending",
+							"description": "Filter by booking status: pending, paid, cancelled",
+							"disabled": true
+						},
+						{
+							"key": "payment_status",
+							"value": "pending",
+							"description": "Filter by payment status: success, failed, pending",
+							"disabled": true
+						},
+						{
+							"key": "trip_id",
+							"value": "1",
+							"description": "Filter by trip ID",
+							"disabled": true
+						},
+						{
+							"key": "email",
+							"value": "john@example.com",
+							"description": "Filter by guest email (partial match)",
+							"disabled": true
+						},
+						{
+							"key": "merchant_ref_no",
+							"value": "BK20251101123456",
+							"description": "Filter by merchant reference number",
+							"disabled": true
+						},
+						{
+							"key": "per_page",
+							"value": "15",
+							"description": "Results per page (default: 15)"
+						}
+					]
+				},
+				"description": "Get all bookings for the authenticated user with optional filters.\n\n**Query Parameters:**\n- `status`: Filter by booking status (pending, paid, cancelled)\n- `payment_status`: Filter by payment status (success, failed, pending)\n- `trip_id`: Filter by trip ID\n- `email`: Filter by guest email (partial match)\n- `merchant_ref_no`: Filter by merchant reference number\n- `per_page`: Results per page (default: 15)\n\n**Response (200):**\n- `data`: Array of bookings with room details, property info, and trip info\n- `pagination`: Current page, last page, per page, total count, from, to"
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Bookings - Filter by Status",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings?status=paid&per_page=10",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "paid"
+						},
+						{
+							"key": "per_page",
+							"value": "10"
+						}
+					]
+				},
+				"description": "Get all paid bookings for the authenticated user."
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Bookings - Filter by Trip",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings?trip_id=1&payment_status=success",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings"
+					],
+					"query": [
+						{
+							"key": "trip_id",
+							"value": "1"
+						},
+						{
+							"key": "payment_status",
+							"value": "success"
+						}
+					]
+				},
+				"description": "Get all bookings associated with a specific trip that have successful payment."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Single Booking by ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}"
+					]
+				},
+				"description": "Get detailed information about a specific booking by ID.\n\n**Authentication:**\n- For authenticated users: Returns their own bookings only\n- For public access: Can view by merchant_ref_no (for payment verification)\n\n**Response (200):**\n- Complete booking details including guest info, dates, amounts\n- Room details with amenities and images\n- Associated trip information\n- Payment information\n- Calculated nights"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Single Booking by Merchant Ref (Public)",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{merchant_ref_no}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{merchant_ref_no}}"
+					]
+				},
+				"description": "Get booking details using merchant reference number without authentication. This is useful for payment verification flows.\n\nExample: `BK20251101123456`"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Booking Status",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"paid\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}/status",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}",
+						"status"
+					]
+				},
+				"description": "Update the status of a booking.\n\n**Request Body:**\n- `status` (required): Booking status - pending, paid, or cancelled\n\n**Response (200):**\n- `booking_id`: Updated booking ID\n- `status`: New status value"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Booking Status - Cancel",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"cancelled\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}/status",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}",
+						"status"
+					]
+				},
+				"description": "Cancel a booking by updating its status to 'cancelled'."
+			},
+			"response": []
+		},
+		{
+			"name": "Update Payment Status",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"payment_status\": \"success\",\n    \"tran_id\": \"TXN20251101001\",\n    \"payment_date\": \"2025-11-01 14:30:00\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}/payment",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}",
+						"payment"
+					]
+				},
+				"description": "Update the payment status of a booking.\n\n**Request Body:**\n- `payment_status` (required): success, failed, or pending\n- `tran_id` (optional): Transaction ID from payment gateway\n- `payment_date` (optional): Payment date and time\n\n**Note:** If payment_status is 'success', the booking status will automatically be updated to 'paid'.\n\n**Response (200):**\n- `booking_id`: Updated booking ID\n- `payment_status`: New payment status\n- `status`: Updated booking status"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Payment Status - Failed",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"payment_status\": \"failed\",\n    \"tran_id\": \"TXN20251101002\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}/payment",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}",
+						"payment"
+					]
+				},
+				"description": "Update payment status to failed with transaction ID."
+			},
+			"response": []
+		},
+		{
+			"name": "Cancel Booking",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}/cancel",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}",
+						"cancel"
+					]
+				},
+				"description": "Cancel a booking. This is a dedicated endpoint for cancellation.\n\n**Validation:**\n- Booking must exist and belong to the authenticated user\n- Cannot cancel if already cancelled\n\n**Response (200):**\n- `booking_id`: Cancelled booking ID\n- `status`: Updated status (cancelled)\n\n**Error (400):** If booking is already cancelled"
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Booking",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hotels/bookings/{{booking_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hotels",
+						"bookings",
+						"{{booking_id}}"
+					]
+				},
+				"description": "Permanently delete a booking. This is typically an admin operation.\n\n**Features:**\n- Deletes booking from database\n- Removes uploaded ID image from Cloudinary (if exists)\n- Cascade deletes associated booking_rooms records\n\n**Response (200):**\n- Success message confirming deletion\n\n**Error (404):** If booking not found or doesn't belong to authenticated user"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "your_bearer_token_here",
+			"type": "string"
+		},
+		{
+			"key": "booking_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "merchant_ref_no",
+			"value": "BK20251101123456",
+			"type": "string"
+		}
+	]
+}
