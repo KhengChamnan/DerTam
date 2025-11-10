@@ -52,8 +52,8 @@ class RoomSearchController extends Controller
             $query = RoomProperty::with([
                 'property.place:placeID,name,description,ratings,province_id,images_url',
                 'property.place.provinceCategory:province_categoryID,province_categoryName',
-                'property.facilities:facility_id,facility_name,images_url',
-                'amenities:amenity_id,amenity_name,images_url',
+                'property.facilities:facility_id,facility_name,image_url',
+                'amenities:amenity_id,amenity_name,image_url',
                 'rooms' => function($query) {
                     $query->where('is_available', true);
                 }
@@ -102,7 +102,7 @@ class RoomSearchController extends Controller
                         return [
                             'amenity_id' => $amenity->amenity_id,
                             'amenity_name' => $amenity->amenity_name,
-                            'images_url' => $amenity->images_url,
+                            'image_url' => $amenity->image_url,
                         ];
                     }),
                     'property' => [
@@ -119,7 +119,7 @@ class RoomSearchController extends Controller
                             return [
                                 'facility_id' => $facility->facility_id,
                                 'facility_name' => $facility->facility_name,
-                                'images_url' => $facility->images_url,
+                                'image_url' => $facility->image_url,
                             ];
                         }),
                     ],
