@@ -11,8 +11,8 @@ use App\Http\Controllers\Hotel\RoomController;
 use App\Http\Controllers\Hotel\RoomPropertyController;
 
 Route::get('/', function () {
-    //return response()->view('layouts.api-info');
-    return redirect()->route('login');
+    return response('Dertam API Hosting Server - Server is running successfully', 200)
+        ->header('Content-Type', 'text/plain');
 });
 
 // Route::get('/', function () {
