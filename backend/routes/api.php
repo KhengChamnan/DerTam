@@ -23,6 +23,7 @@ use App\Http\Controllers\API\Hotel\RoomPropertiesCrudController;
 use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomController;
+use App\Http\Controllers\API\Hotel\RoomSearchController;
 use App\Http\Controllers\API\Trip\TripShareController;
 use App\Http\Controllers\API\Profile\ProfileController;
 use App\Http\Controllers\API\Booking\BookingController;
@@ -85,6 +86,10 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+
+// Room search routes (public - no auth required)
+Route::post('rooms/search', [RoomSearchController::class, 'searchAvailableRooms']); // Search available rooms
+Route::post('rooms/availability-calendar', [RoomSearchController::class, 'getRoomAvailabilityCalendar']); // Get availability calendar
 
 
 // ABA PayWay payment return/callback routes (must be public - no auth)
