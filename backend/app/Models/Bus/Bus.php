@@ -19,6 +19,7 @@ class Bus extends Model
         'bus_name',
         'bus_plate',
         'seat_capacity',
+        'transportation_id',
     ];
 
     /**
@@ -28,7 +29,16 @@ class Bus extends Model
      */
     protected $casts = [
         'seat_capacity' => 'integer',
+        'transportation_id' => 'integer',
     ];
+
+    /**
+     * Get the transportation company this bus belongs to.
+     */
+    public function transportation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Transportation::class, 'transportation_id', 'id');
+    }
 
     /**
      * Get all seats for this bus.
@@ -44,5 +54,13 @@ class Bus extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(BusSchedule::class);
+    }
+
+    /**
+     * Get active schedules (scheduled status only).
+     */
+    public function activeSchedules(): HasMany
+    {
+        return $this->hasMany(BusSchedule::class)->where('status', 'scheduled');
     }
 }

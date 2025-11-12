@@ -47,6 +47,24 @@ class RolePermissionSeeder extends Seeder
             'manage own hotel bookings',
             'view own hotel analytics',
             
+            // Transportation management permissions
+            'view transportations',
+            'create transportations',
+            'edit transportations',
+            'delete transportations',
+            'manage transportation buses',
+            'view transportation analytics',
+            
+            // Transportation Owner specific permissions
+            'view own transportation dashboard',
+            'manage own transportation basic info',
+            'manage own transportation buses',
+            'manage own transportation routes',
+            'manage own transportation schedules',
+            'view own transportation bookings',
+            'manage own transportation bookings',
+            'view own transportation analytics',
+            
             // User management permissions
             'view users',
             'create users',
@@ -97,6 +115,19 @@ class RolePermissionSeeder extends Seeder
             'view own hotel analytics',
         ]);
 
+        // Transportation Owner role - limited transportation management permissions
+        $transportationOwnerRole = Role::firstOrCreate(['name' => 'transportation owner']);
+        $transportationOwnerRole->syncPermissions([
+            'view own transportation dashboard',
+            'manage own transportation basic info',
+            'manage own transportation buses',
+            'manage own transportation routes',
+            'manage own transportation schedules',
+            'view own transportation bookings',
+            'manage own transportation bookings',
+            'view own transportation analytics',
+        ]);
+
         // Admin role - moderate permissions
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $adminRole->syncPermissions([
@@ -109,6 +140,11 @@ class RolePermissionSeeder extends Seeder
             'edit hotels',
             'manage hotel rooms',
             'view hotel analytics',
+            'view transportations',
+            'create transportations',
+            'edit transportations',
+            'manage transportation buses',
+            'view transportation analytics',
             'view users',
             'create users',
             'edit users',
