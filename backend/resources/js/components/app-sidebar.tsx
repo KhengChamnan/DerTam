@@ -22,6 +22,7 @@ import {
     Shield,
     Home,
     DoorOpen,
+    Bus,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 
@@ -45,6 +46,12 @@ const mainNavItems: NavItem[] = [
         permissions: ["view hotels"],
     },
     {
+        title: "Transportation",
+        href: "/transportations",
+        icon: Bus,
+        permissions: ["view transportations"],
+    },
+    {
         title: "Users",
         href: "/users",
         icon: Users,
@@ -58,7 +65,6 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-// Hotel Owner specific navigation
 const hotelOwnerNavItems: NavItem[] = [
     {
         title: "Dashboard",
@@ -86,6 +92,39 @@ const hotelOwnerNavItems: NavItem[] = [
     },
 ];
 
+const transportationOwnerNavItems: NavItem[] = [
+    {
+        title: "Dashboard",
+        href: "/transportation-owner/dashboard",
+        icon: LayoutGrid,
+        roles: ["transportation owner"],
+    },
+    {
+        title: "My Companies",
+        href: "/transportation-owner/companies",
+        icon: Bus,
+        roles: ["transportation owner"],
+    },
+    {
+        title: "Buses",
+        href: "/transportation-owner/buses",
+        icon: Bus,
+        roles: ["transportation owner"],
+    },
+    {
+        title: "Schedules",
+        href: "/transportation-owner/schedules",
+        icon: Map,
+        roles: ["transportation owner"],
+    },
+    {
+        title: "Bookings",
+        href: "/transportation-owner/bookings",
+        icon: BookOpen,
+        roles: ["transportation owner"],
+    },
+];
+
 // const footerNavItems: NavItem[] = [
 //     {
 //         title: "Repository",
@@ -102,16 +141,18 @@ const hotelOwnerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
 
-    // Check if user is hotel owner
+    // Check if user is hotel owner or transportation owner
     const isHotelOwner = auth?.user?.roles?.some(
         (role) => role.name === "hotel owner"
+    );
+    const isTransportationOwner = auth?.user?.roles?.some(
+        (role) => role.name === "transportation owner"
     );
 
     // Filter function for navigation items
     const filterNavItems = (items: NavItem[]) =>
         items.filter((item) => {
             try {
-                // If user is not logged in, hide all items with permissions
                 if (!auth?.user) {
                     return !item.permissions && !item.roles;
                 }
@@ -142,13 +183,15 @@ export function AppSidebar() {
                     item.title,
                     error
                 );
-                return false; // Hide item if there's an error
+                return false;
             }
         });
 
     // Get navigation items based on user role
     const navigationItems = isHotelOwner
         ? filterNavItems(hotelOwnerNavItems)
+        : isTransportationOwner
+        ? filterNavItems(transportationOwnerNavItems)
         : filterNavItems(mainNavItems);
 
     return (
@@ -161,6 +204,8 @@ export function AppSidebar() {
                                 href={
                                     isHotelOwner
                                         ? "/hotel-owner/dashboard"
+                                        : isTransportationOwner
+                                        ? "/transportation-owner/dashboard"
                                         : dashboard()
                                 }
                                 prefetch

@@ -150,6 +150,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the transportation companies owned by this user
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ownedTransportations()
+    {
+        return $this->hasMany(\App\Models\Transportation::class, 'owner_user_id', 'id');
+    }
+
+    /**
      * Get user's role names as array
      *
      * @return array

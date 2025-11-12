@@ -9,6 +9,8 @@ use App\Http\Controllers\HotelController;
 use App\Http\Controllers\HotelOwnerController;
 use App\Http\Controllers\Hotel\RoomController;
 use App\Http\Controllers\Hotel\RoomPropertyController;
+use App\Http\Controllers\TransportationController;
+use App\Http\Controllers\TransportationOwnerController;
 
 Route::get('/', function () {
     //return response()->view('layouts.api-info');
@@ -30,6 +32,7 @@ Route::middleware([
     'verified',
     'admin.portal',
     'redirect.hotel.owners',
+    'redirect.transportation.owners',
 ])->group(function () {
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', function () {
@@ -100,6 +103,37 @@ Route::middleware([
         });
 
         // ============================================
+        //  TRANSPORTATION MANAGEMENT
+        // ============================================
+        Route::prefix('transportations')->name('transportations.')->group(function () {
+            Route::get('/', [TransportationController::class, 'index'])
+                ->middleware('permission:view transportations')
+                ->name('index');
+            Route::get('/create', [TransportationController::class, 'create'])
+                ->middleware('permission:create transportations')
+                ->name('create');
+            Route::post('/', [TransportationController::class, 'store'])
+                ->middleware('permission:create transportations')
+                ->name('store');
+            Route::get('/{id}', [TransportationController::class, 'show'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:view transportations')
+                ->name('show');
+            Route::get('/{id}/edit', [TransportationController::class, 'edit'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:edit transportations')
+                ->name('edit');
+            Route::put('/{id}', [TransportationController::class, 'update'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:edit transportations')
+                ->name('update');
+            Route::delete('/{id}', [TransportationController::class, 'destroy'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:delete transportations')
+                ->name('destroy');
+        });
+
+        // ============================================
         //  USER MANAGEMENT
         // ============================================
         Route::prefix('users')->name('users.')->group(function () {
@@ -153,7 +187,7 @@ Route::middleware([
                     Route::delete('/{room_property_id}', [RoomPropertyController::class, 'destroy'])->name('destroy');
                 });
             
-            // Individual Rooms Management (Separate from Room Types)
+            // Individual Rooms Management
             Route::prefix('rooms')
                 ->name('rooms.')
                 ->group(function () {
@@ -163,6 +197,20 @@ Route::middleware([
                     Route::put('/{room_id}', [RoomController::class, 'update'])->name('update');
                     Route::delete('/{room_id}', [RoomController::class, 'destroy'])->name('destroy');
                 });
+        });
+
+        // ============================================
+        //  TRANSPORTATION OWNER MANAGEMENT
+        // ============================================
+        Route::prefix('transportation-owner')->name('transportation-owner.')->middleware('role:transportation owner')->group(function () {
+            Route::get('/dashboard', [TransportationOwnerController::class, 'dashboard'])->name('dashboard');
+            Route::get('/companies', [TransportationOwnerController::class, 'index'])->name('companies.index');
+            Route::get('/companies/{id}', [TransportationOwnerController::class, 'show'])
+                ->middleware('transportation.owner')
+                ->name('companies.show');
+            Route::get('/buses', [TransportationOwnerController::class, 'buses'])->name('buses.index');
+            Route::get('/schedules', [TransportationOwnerController::class, 'schedules'])->name('schedules.index');
+            Route::get('/bookings', [TransportationOwnerController::class, 'bookings'])->name('bookings.index');
         });
 
         // ============================================

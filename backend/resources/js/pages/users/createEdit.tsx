@@ -275,25 +275,31 @@ export default function CreateEditUser({
                                                     <SelectValue placeholder="Select a role" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="superadmin">
+                                                    <SelectItem value="Super Admin">
                                                         <div className="flex items-center gap-2">
                                                             <div className="size-2 rounded-full bg-red-500"></div>
                                                             Super Admin
                                                         </div>
                                                     </SelectItem>
-                                                    <SelectItem value="admin">
+                                                    <SelectItem value="Admin">
                                                         <div className="flex items-center gap-2">
                                                             <div className="size-2 rounded-full bg-purple-500"></div>
                                                             Admin
                                                         </div>
                                                     </SelectItem>
-                                                    <SelectItem value="hotel owner">
+                                                    <SelectItem value="Hotel Owner">
                                                         <div className="flex items-center gap-2">
                                                             <div className="size-2 rounded-full bg-orange-500"></div>
                                                             Hotel Owner
                                                         </div>
                                                     </SelectItem>
-                                                    <SelectItem value="user">
+                                                    <SelectItem value="Transportation Owner">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="size-2 rounded-full bg-green-500"></div>
+                                                            Transportation Owner
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="User">
                                                         <div className="flex items-center gap-2">
                                                             <div className="size-2 rounded-full bg-blue-500"></div>
                                                             User
