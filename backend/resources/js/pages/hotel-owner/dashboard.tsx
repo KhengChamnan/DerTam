@@ -64,21 +64,45 @@ interface Stats {
 }
 
 interface RecentBooking {
+    id: number;
     booking_id: number;
-    full_name?: string;
-    check_in?: string;
-    check_out?: string;
-    total_amount?: number;
-    status?: string;
-    bookingRooms?: Array<{
-        roomProperty?: {
-            property?: {
-                place?: {
-                    name: string;
-                };
+    booking: {
+        id: number;
+        user_id: number;
+        total_amount: number;
+        currency: string;
+        status: "pending" | "confirmed" | "cancelled" | "completed";
+        created_at: string;
+        user?: {
+            id: number;
+            name: string;
+            email: string;
+            phone_number?: string;
+        };
+    };
+    room_property: {
+        room_properties_id: number;
+        room_type: string;
+        price_per_night: number;
+        property: {
+            property_id: number;
+            place?: {
+                placeID: number;
+                name: string;
             };
         };
-    }>;
+    };
+    hotel_details?: {
+        id: number;
+        check_in: string;
+        check_out: string;
+        nights: number;
+    };
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    created_at: string;
+    updated_at: string;
 }
 
 interface Props {
@@ -535,52 +559,55 @@ export default function HotelOwnerDashboard({
                     <CardContent>
                         <div className="space-y-4">
                             {recent_bookings.map((booking) => {
-                                const bookingRooms = booking.bookingRooms || [];
                                 const propertyName =
-                                    bookingRooms[0]?.roomProperty?.property
-                                        ?.place?.name || "Unknown Property";
+                                    booking.room_property?.property?.place
+                                        ?.name || "Unknown Property";
+                                const guestName =
+                                    booking.booking.user?.name ||
+                                    "Unknown Guest";
 
                                 return (
                                     <div
-                                        key={booking.booking_id}
+                                        key={booking.id}
                                         className="flex items-center justify-between p-3 border rounded-lg"
                                     >
                                         <div className="space-y-1">
                                             <p className="font-medium text-sm">
-                                                {booking.full_name ||
-                                                    "Unknown Guest"}
+                                                {guestName}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {propertyName}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                {booking.check_in
+                                                {booking.hotel_details?.check_in
                                                     ? new Date(
-                                                          booking.check_in
+                                                          booking.hotel_details.check_in
                                                       ).toLocaleDateString()
                                                     : "N/A"}{" "}
                                                 -{" "}
-                                                {booking.check_out
+                                                {booking.hotel_details
+                                                    ?.check_out
                                                     ? new Date(
-                                                          booking.check_out
+                                                          booking.hotel_details.check_out
                                                       ).toLocaleDateString()
                                                     : "N/A"}
                                             </p>
                                         </div>
                                         <div className="text-right space-y-1">
                                             <p className="font-medium text-sm">
-                                                ${booking.total_amount || 0}
+                                                ${booking.total_price || 0}
                                             </p>
                                             <Badge
                                                 variant={
-                                                    booking.status ===
+                                                    booking.booking.status ===
                                                     "confirmed"
                                                         ? "default"
                                                         : "secondary"
                                                 }
                                                 className="text-xs"
                                             >
-                                                {booking.status || "Unknown"}
+                                                {booking.booking.status ||
+                                                    "Unknown"}
                                             </Badge>
                                         </div>
                                     </div>

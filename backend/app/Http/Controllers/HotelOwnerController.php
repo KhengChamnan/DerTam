@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Hotel\Property;
 use App\Models\Hotel\RoomProperty;
 use App\Models\Hotel\Room;
-use App\Models\Hotel\BookingDetail;
+use App\Models\Booking\Booking;
+use App\Models\Booking\BookingItem;
+use App\Models\Booking\BookingHotelDetail;
+use App\Models\Payment\Payment;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,22 +37,36 @@ class HotelOwnerController extends Controller
             $q->where('owner_user_id', $user->id);
         })->where('is_available', true)->count();
         
-        $totalBookings = BookingDetail::whereHas('bookingRooms.roomProperty.property', function($q) use ($user) {
-            $q->where('owner_user_id', $user->id);
-        })->count();
+        // Count total bookings for this owner's properties
+        $totalBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->count();
         
-        $totalRevenue = BookingDetail::whereHas('bookingRooms.roomProperty.property', function($q) use ($user) {
-            $q->where('owner_user_id', $user->id);
-        })->where('payment_status', 'paid')->sum('total_amount');
+        // Calculate total revenue from successful payments
+        $totalRevenue = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereHas('booking.payments', function($q) {
+                $q->where('status', 'success');
+            })
+            ->sum('total_price');
         
-        // Recent bookings
-        $recentBookings = BookingDetail::whereHas('bookingRooms.roomProperty.property', function($q) use ($user) {
-            $q->where('owner_user_id', $user->id);
-        })
-        ->with(['bookingRooms.roomProperty.property.place'])
-        ->orderBy('created_at', 'desc')
-        ->limit(5)
-        ->get();
+        // Recent bookings with booking details
+        $recentBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with([
+                'booking.user',
+                'roomProperty.property.place',
+                'hotelDetails'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
         
         // Occupancy rate calculation (simplified)
         $occupancyRate = $totalRooms > 0 ? (($totalRooms - $availableRooms) / $totalRooms) * 100 : 0;
@@ -58,12 +75,15 @@ class HotelOwnerController extends Controller
         $avgDailyRate = $totalBookings > 0 ? $totalRevenue / $totalBookings : 0;
         
         // Recent revenue (last 7 days)
-        $recentRevenue = BookingDetail::whereHas('bookingRooms.roomProperty.property', function($q) use ($user) {
-            $q->where('owner_user_id', $user->id);
-        })
-        ->where('payment_status', 'paid')
-        ->where('created_at', '>=', now()->subDays(7))
-        ->sum('total_amount');
+        $recentRevenue = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereHas('booking.payments', function($q) {
+                $q->where('status', 'success');
+            })
+            ->where('created_at', '>=', now()->subDays(7))
+            ->sum('total_price');
         
         return Inertia::render('hotel-owner/dashboard', [
             'properties' => $properties,
@@ -121,13 +141,23 @@ class HotelOwnerController extends Controller
         
         // Property analytics
         $roomsCount = $property->roomProperties->count();
-        $bookingsCount = BookingDetail::whereHas('bookingRooms.roomProperty', function($q) use ($property) {
-            $q->where('property_id', $property->property_id);
-        })->count();
         
-        $revenue = BookingDetail::whereHas('bookingRooms.roomProperty', function($q) use ($property) {
-            $q->where('property_id', $property->property_id);
-        })->where('payment_status', 'paid')->sum('total_amount');
+        // Count bookings for this property
+        $bookingsCount = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty', function($q) use ($property) {
+                $q->where('property_id', $property->property_id);
+            })
+            ->count();
+        
+        // Calculate revenue from successful payments
+        $revenue = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty', function($q) use ($property) {
+                $q->where('property_id', $property->property_id);
+            })
+            ->whereHas('booking.payments', function($q) {
+                $q->where('status', 'success');
+            })
+            ->sum('total_price');
         
         // Convert to array and explicitly include relationships for Inertia serialization
         $propertyData = $property->toArray();
@@ -151,15 +181,35 @@ class HotelOwnerController extends Controller
     {
         $user = Auth::user();
         
-        $bookings = BookingDetail::whereHas('bookingRooms.roomProperty.property', function($q) use ($user) {
-            $q->where('owner_user_id', $user->id);
-        })
-        ->with([
-            'bookingRooms.roomProperty.property.place',
-            'user'
-        ])
-        ->orderBy('created_at', 'desc')
-        ->paginate(15);
+        // Get booking items for this owner's properties
+        $bookingItems = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with([
+                'booking.user',
+                'booking.payments',
+                'roomProperty.property.place',
+                'hotelDetails'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        // Transform booking items to include relevant booking information
+        $bookings = $bookingItems->through(function ($item) {
+            return [
+                'id' => $item->id,
+                'booking_id' => $item->booking_id,
+                'booking' => $item->booking,
+                'room_property' => $item->roomProperty,
+                'hotel_details' => $item->hotelDetails,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+                'total_price' => $item->total_price,
+                'created_at' => $item->created_at,
+                'updated_at' => $item->updated_at,
+            ];
+        });
         
         return Inertia::render('hotel-owner/bookings/index', [
             'bookings' => $bookings

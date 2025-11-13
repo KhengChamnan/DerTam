@@ -34,26 +34,50 @@ import {
 } from "lucide-react";
 
 interface Booking {
+    id: number;
     booking_id: number;
-    full_name: string;
-    email: string;
-    mobile: string;
-    check_in: string;
-    check_out: string;
-    total_amount: number;
-    status: "pending" | "paid" | "cancelled";
-    payment_status: "success" | "failed" | "pending";
-    property?: {
-        property_id: number;
-        place?: {
+    booking: {
+        id: number;
+        user_id: number;
+        total_amount: number;
+        currency: string;
+        status: "pending" | "confirmed" | "cancelled" | "completed";
+        created_at: string;
+        user?: {
+            id: number;
             name: string;
+            email: string;
+            phone_number?: string;
         };
+        payments?: Array<{
+            id: number;
+            status: "success" | "failed" | "pending" | "processing";
+            amount: number;
+        }>;
     };
-    rooms?: Array<{
+    room_property: {
+        room_properties_id: number;
         room_type: string;
         price_per_night: number;
-    }>;
+        property: {
+            property_id: number;
+            place?: {
+                placeID: number;
+                name: string;
+            };
+        };
+    };
+    hotel_details?: {
+        id: number;
+        check_in: string;
+        check_out: string;
+        nights: number;
+    };
+    quantity: number;
+    unit_price: number;
+    total_price: number;
     created_at: string;
+    updated_at: string;
 }
 
 interface PaginatedBookings {
@@ -129,8 +153,10 @@ export default function HotelOwnerBookingsIndex({
     }, [columnVisibility]);
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case "paid":
-                return <Badge variant="default">Paid</Badge>;
+            case "confirmed":
+                return <Badge variant="default">Confirmed</Badge>;
+            case "completed":
+                return <Badge variant="default">Completed</Badge>;
             case "pending":
                 return <Badge variant="secondary">Pending</Badge>;
             case "cancelled":
@@ -146,6 +172,8 @@ export default function HotelOwnerBookingsIndex({
                 return <Badge variant="default">Success</Badge>;
             case "pending":
                 return <Badge variant="secondary">Pending</Badge>;
+            case "processing":
+                return <Badge variant="secondary">Processing</Badge>;
             case "failed":
                 return <Badge variant="destructive">Failed</Badge>;
             default:
@@ -192,7 +220,8 @@ export default function HotelOwnerBookingsIndex({
                         <SelectContent>
                             <SelectItem value="all">All Status</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="paid">Paid</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                     </Select>
@@ -282,7 +311,7 @@ export default function HotelOwnerBookingsIndex({
                             <div
                                 className="grid gap-4 items-center"
                                 style={{
-                                    gridTemplateColumns: `1fr 2fr ${
+                                    gridTemplateColumns: `2fr ${
                                         columnVisibility.property ? "2fr" : ""
                                     } ${
                                         columnVisibility.checkIn ? "1.5fr" : ""
@@ -297,9 +326,6 @@ export default function HotelOwnerBookingsIndex({
                                     } 1.5fr`.trim(),
                                 }}
                             >
-                                <div className="text-sm font-medium">
-                                    Booking ID
-                                </div>
                                 <div className="text-sm font-medium">Guest</div>
                                 {columnVisibility.property && (
                                     <div className="text-sm font-medium">
@@ -342,13 +368,13 @@ export default function HotelOwnerBookingsIndex({
                         <div className="divide-y">
                             {bookings.data.map((booking) => (
                                 <div
-                                    key={booking.booking_id}
+                                    key={booking.id}
                                     className="p-4 hover:bg-muted/50"
                                 >
                                     <div
                                         className="grid gap-4 items-center"
                                         style={{
-                                            gridTemplateColumns: `1fr 2fr ${
+                                            gridTemplateColumns: `2fr ${
                                                 columnVisibility.property
                                                     ? "2fr"
                                                     : ""
@@ -371,42 +397,48 @@ export default function HotelOwnerBookingsIndex({
                                             } 1.5fr`.trim(),
                                         }}
                                     >
-                                        <div className="font-medium">
-                                            #{booking.booking_id}
-                                        </div>
                                         <div className="flex flex-col">
                                             <span className="font-medium">
-                                                {booking.full_name}
+                                                {booking.booking.user?.name ||
+                                                    "Unknown Guest"}
                                             </span>
                                             <span className="text-xs text-muted-foreground">
-                                                {booking.email}
+                                                {booking.booking.user?.email ||
+                                                    "N/A"}
                                             </span>
                                         </div>
                                         {columnVisibility.property && (
                                             <div className="text-sm">
-                                                {booking.property?.place
-                                                    ?.name || "Unknown"}
+                                                {booking.room_property?.property
+                                                    ?.place?.name || "Unknown"}
                                             </div>
                                         )}
                                         {columnVisibility.checkIn && (
                                             <div className="flex items-center gap-1 text-sm">
                                                 <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                {new Date(
-                                                    booking.check_in
-                                                ).toLocaleDateString()}
+                                                {booking.hotel_details?.check_in
+                                                    ? new Date(
+                                                          booking.hotel_details.check_in
+                                                      ).toLocaleDateString()
+                                                    : "N/A"}
                                             </div>
                                         )}
                                         {columnVisibility.checkOut && (
                                             <div className="flex items-center gap-1 text-sm">
                                                 <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                {new Date(
-                                                    booking.check_out
-                                                ).toLocaleDateString()}
+                                                {booking.hotel_details
+                                                    ?.check_out
+                                                    ? new Date(
+                                                          booking.hotel_details.check_out
+                                                      ).toLocaleDateString()
+                                                    : "N/A"}
                                             </div>
                                         )}
                                         <div className="font-semibold">
                                             $
-                                            {booking.total_amount.toLocaleString()}
+                                            {(
+                                                booking.total_price || 0
+                                            ).toLocaleString()}
                                         </div>
                                         {columnVisibility.bookedOn && (
                                             <div className="text-sm">
@@ -416,12 +448,16 @@ export default function HotelOwnerBookingsIndex({
                                             </div>
                                         )}
                                         <div>
-                                            {getStatusBadge(booking.status)}
+                                            {getStatusBadge(
+                                                booking.booking.status
+                                            )}
                                         </div>
                                         {columnVisibility.paymentStatus && (
                                             <div>
                                                 {getPaymentStatusBadge(
-                                                    booking.payment_status
+                                                    booking.booking
+                                                        .payments?.[0]
+                                                        ?.status || "pending"
                                                 )}
                                             </div>
                                         )}
@@ -437,14 +473,15 @@ export default function HotelOwnerBookingsIndex({
                                                     <Eye className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            {booking.mobile && (
+                                            {booking.booking.user
+                                                ?.phone_number && (
                                                 <Button
                                                     asChild
                                                     size="sm"
                                                     variant="outline"
                                                 >
                                                     <a
-                                                        href={`tel:${booking.mobile}`}
+                                                        href={`tel:${booking.booking.user.phone_number}`}
                                                     >
                                                         <Phone className="h-4 w-4" />
                                                     </a>

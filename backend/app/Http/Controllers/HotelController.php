@@ -6,7 +6,10 @@ use App\Models\Hotel\Property;
 use App\Models\Hotel\RoomProperty;
 use App\Models\Hotel\Facility;
 use App\Models\Hotel\Amenity;
-use App\Models\Hotel\BookingDetail;
+use App\Models\Booking\Booking;
+use App\Models\Booking\BookingItem;
+use App\Models\Booking\BookingHotelDetail;
+use App\Models\Payment\Payment;
 use App\Models\Place;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -417,12 +420,15 @@ class HotelController extends Controller
 
         DB::beginTransaction();
         try {
-            // Check if there are any active bookings
-            $activeBookings = BookingDetail::whereHas('bookingRooms', function ($query) use ($property) {
-                $query->whereHas('roomProperty', function ($q) use ($property) {
-                    $q->where('property_id', $property->property_id);
-                });
-            })->where('status', 'paid')->count();
+            // Check if there are any active bookings for this property's rooms
+            $activeBookings = BookingItem::where('item_type', 'hotel_room')
+                ->whereHas('roomProperty', function ($query) use ($property) {
+                    $query->where('property_id', $property->property_id);
+                })
+                ->whereHas('booking', function ($query) {
+                    $query->whereIn('status', ['pending', 'confirmed', 'processing']);
+                })
+                ->count();
 
             if ($activeBookings > 0) {
                 return back()->withErrors(['error' => 'Cannot delete hotel property with active bookings.']);
@@ -464,14 +470,38 @@ class HotelController extends Controller
      */
     public function dashboard()
     {
+        // Count hotel bookings (booking items with type 'hotel_room')
+        $totalHotelBookings = BookingItem::where('item_type', 'hotel_room')->count();
+        
+        // Count confirmed bookings
+        $confirmedBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('booking', function ($query) {
+                $query->where('status', 'confirmed');
+            })
+            ->count();
+        
+        // Count pending bookings
+        $pendingBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('booking', function ($query) {
+                $query->where('status', 'pending');
+            })
+            ->count();
+        
+        // Calculate total revenue from successful hotel bookings
+        $totalRevenue = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('booking.payments', function ($query) {
+                $query->where('status', 'success');
+            })
+            ->sum('total_price');
+        
         $stats = [
             'total_properties' => Property::count(),
             'total_rooms' => \App\Models\Hotel\Room::count(),
             'available_rooms' => \App\Models\Hotel\Room::where('is_available', true)->count(),
-            'total_bookings' => BookingDetail::count(),
-            'confirmed_bookings' => BookingDetail::where('status', 'paid')->count(),
-            'pending_bookings' => BookingDetail::where('status', 'pending')->count(),
-            'total_revenue' => BookingDetail::where('status', 'paid')->sum('total_amount'),
+            'total_bookings' => $totalHotelBookings,
+            'confirmed_bookings' => $confirmedBookings,
+            'pending_bookings' => $pendingBookings,
+            'total_revenue' => $totalRevenue,
         ];
 
         // Recent properties
@@ -525,19 +555,48 @@ class HotelController extends Controller
     {
         $property = Property::findOrFail($propertyId);
         
+        // Get all booking items for this property's rooms
+        $totalBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty', function ($query) use ($property) {
+                $query->where('property_id', $property->property_id);
+            })
+            ->count();
+        
+        // Get confirmed bookings
+        $confirmedBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty', function ($query) use ($property) {
+                $query->where('property_id', $property->property_id);
+            })
+            ->whereHas('booking', function ($query) {
+                $query->where('status', 'confirmed');
+            })
+            ->count();
+        
+        // Get pending bookings
+        $pendingBookings = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty', function ($query) use ($property) {
+                $query->where('property_id', $property->property_id);
+            })
+            ->whereHas('booking', function ($query) {
+                $query->where('status', 'pending');
+            })
+            ->count();
+        
+        // Calculate revenue from successful payments
+        $totalRevenue = BookingItem::where('item_type', 'hotel_room')
+            ->whereHas('roomProperty', function ($query) use ($property) {
+                $query->where('property_id', $property->property_id);
+            })
+            ->whereHas('booking.payments', function ($query) {
+                $query->where('status', 'success');
+            })
+            ->sum('total_price');
+        
         return [
-            'total_bookings' => BookingDetail::whereHas('bookingRooms.roomProperty', function ($query) use ($property) {
-                $query->where('property_id', $property->property_id);
-            })->count(),
-            'confirmed_bookings' => BookingDetail::whereHas('bookingRooms.roomProperty', function ($query) use ($property) {
-                $query->where('property_id', $property->property_id);
-            })->where('status', 'paid')->count(),
-            'pending_bookings' => BookingDetail::whereHas('bookingRooms.roomProperty', function ($query) use ($property) {
-                $query->where('property_id', $property->property_id);
-            })->where('status', 'pending')->count(),
-            'total_revenue' => BookingDetail::whereHas('bookingRooms.roomProperty', function ($query) use ($property) {
-                $query->where('property_id', $property->property_id);
-            })->where('status', 'paid')->sum('total_amount'),
+            'total_bookings' => $totalBookings,
+            'confirmed_bookings' => $confirmedBookings,
+            'pending_bookings' => $pendingBookings,
+            'total_revenue' => $totalRevenue,
         ];
     }
 }
