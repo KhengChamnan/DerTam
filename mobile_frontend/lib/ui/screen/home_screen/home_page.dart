@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/place/place_detail.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
+import 'package:mobile_frontend/ui/screen/chat_bot/chat_bot.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/home_slide_show.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/places_category.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/recommendation_place_card.dart';
@@ -36,6 +37,28 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: SizedBox(
+        width: 70, // set your width
+        height: 70, // set your height
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ChatBotScreen()),
+            );
+          },
+          backgroundColor: DertamColors.white,
+          shape: const CircleBorder(),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/images/bot_icon.png',
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -86,7 +109,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                     SizedBox(height: 16),
 
-                    
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -109,56 +131,68 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     SizedBox(height: 20),
-                    
+
                     // Custom Slideshow
                     HomeSlideShow(),
                     SizedBox(height: 20),
                     SizedBox(child: PlacesCategory()),
 
-
-                     Align(
+                    Align(
                       alignment: Alignment.centerLeft,
-                       child: ElevatedButton.icon(
-                         icon: Icon(Icons.restaurant, color: Colors.white, size: 18),
-                         label: const Text('Open Restaurant (Test)'),
-                         style: ElevatedButton.styleFrom(
-                           backgroundColor: DertamColors.primaryBlue,
-                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                         ),
-                         onPressed: () {
-                           // Create a test NearByRestaurant instance (adjust fields if your model differs)
-                           final testRestaurant = NearByRestaurant(
-                             placeID: 1,
-                             name: 'Malis Cambodian Cuisine',
-                             description: 'Experience authentic Cambodian flavors at Malis, where traditional recipes meet modern culinary techniques in a charming setting.',
-                             categoryName: 'Restaurant',
-                             reviewsCount: 250,
-                              entryFree: true,
-                              operatingHours: {
-                                'Mon-Fri': '10:00 AM - 10:00 PM',
-                                'Sat-Sun': '9:00 AM - 11:00 PM',
-                             },
-                             imagesUrl: ['https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800'],
-                             ratings: 4.6,
-                             googleMapsLink: 'Phnom Penh, Cambodia',
-                             provinceCategoryName: 'Phnom Penh',
-                             latitude: 11.5564, 
-                              longitude: 104.9282,
-                              distance: 2.5,
-                              distanceText: '2.5 km',
- 
-                           );
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          Icons.restaurant,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: const Text('Open Restaurant (Test)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: DertamColors.primaryBlue,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          // Create a test NearByRestaurant instance (adjust fields if your model differs)
+                          final testRestaurant = NearByRestaurant(
+                            placeID: 1,
+                            name: 'Malis Cambodian Cuisine',
+                            description:
+                                'Experience authentic Cambodian flavors at Malis, where traditional recipes meet modern culinary techniques in a charming setting.',
+                            categoryName: 'Restaurant',
+                            reviewsCount: 250,
+                            entryFree: true,
+                            operatingHours: {
+                              'Mon-Fri': '10:00 AM - 10:00 PM',
+                              'Sat-Sun': '9:00 AM - 11:00 PM',
+                            },
+                            imagesUrl: [
+                              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800',
+                            ],
+                            ratings: 4.6,
+                            googleMapsLink: 'Phnom Penh, Cambodia',
+                            provinceCategoryName: 'Phnom Penh',
+                            latitude: 11.5564,
+                            longitude: 104.9282,
+                            distance: 2.5,
+                            distanceText: '2.5 km',
+                          );
 
-                           Navigator.push(
-                             context,
-                             MaterialPageRoute(
-                               builder: (context) => RestaurantDetailScreen(restaurant: testRestaurant),
-                             ),
-                           );
-                         },
-                       ),
-                 ),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RestaurantDetailScreen(
+                                restaurant: testRestaurant,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                     // Place Recommendations
                     Text(
                       'Personalized Recommended',
