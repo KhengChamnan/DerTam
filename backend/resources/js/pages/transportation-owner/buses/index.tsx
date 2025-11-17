@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-    Empty,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-    EmptyDescription,
-} from "@/components/ui/empty";
-import {
     Select,
     SelectContent,
     SelectItem,
@@ -42,20 +35,15 @@ interface BusData {
     id: number;
     bus_name: string;
     bus_plate: string;
-    is_available: boolean;
-    status: string;
+    bus_type: string;
+    seat_capacity: number;
+    is_active: boolean;
     created_at: string;
-    bus_property?: {
+    transportation: {
         id: number;
-        bus_type: string;
-        seat_capacity: number;
-        image_url?: string;
-        transportation?: {
-            id: number;
-            place?: {
-                placeID: number;
-                name: string;
-            };
+        place?: {
+            placeID: number;
+            name: string;
         };
     };
     schedules?: BusSchedule[];
@@ -92,32 +80,6 @@ export default function TransportationOwnerBusesIndex({
     const [typeFilter, setTypeFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
 
-    // Client-side filtering for instant results
-    const filteredBuses = buses.data.filter((bus) => {
-        // Search filter
-        const searchLower = search.toLowerCase();
-        const matchesSearch =
-            search === "" ||
-            bus.bus_name.toLowerCase().includes(searchLower) ||
-            bus.bus_plate.toLowerCase().includes(searchLower) ||
-            bus.bus_property?.bus_type.toLowerCase().includes(searchLower) ||
-            bus.bus_property?.transportation?.place?.name
-                ?.toLowerCase()
-                .includes(searchLower);
-
-        // Type filter
-        const matchesType =
-            typeFilter === "all" ||
-            bus.bus_property?.bus_type.toLowerCase() ===
-                typeFilter.toLowerCase();
-
-        // Status filter
-        const matchesStatus =
-            statusFilter === "all" || bus.status === statusFilter;
-
-        return matchesSearch && matchesType && matchesStatus;
-    });
-
     const getBusTypeBadge = (type: string) => {
         const badgeColors: { [key: string]: string } = {
             standard: "default",
@@ -132,16 +94,11 @@ export default function TransportationOwnerBusesIndex({
         );
     };
 
-    const getStatusBadge = (status: string) => {
-        const variants: { [key: string]: any } = {
-            active: "default",
-            maintenance: "secondary",
-            retired: "outline",
-        };
-        return (
-            <Badge variant={variants[status] || "default"}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
+    const getStatusBadge = (isActive: boolean) => {
+        return isActive ? (
+            <Badge variant="default">Active</Badge>
+        ) : (
+            <Badge variant="secondary">Inactive</Badge>
         );
     };
 
@@ -210,32 +167,11 @@ export default function TransportationOwnerBusesIndex({
 
                 {/* Bus Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredBuses.map((bus) => (
+                    {buses.data.map((bus) => (
                         <Card
                             key={bus.id}
-                            className="hover:shadow-lg transition-shadow overflow-hidden"
+                            className="hover:shadow-lg transition-shadow"
                         >
-                            {/* Image Display */}
-                            {bus.bus_property?.image_url &&
-                                (() => {
-                                    try {
-                                        const images = JSON.parse(
-                                            bus.bus_property.image_url
-                                        );
-                                        return images.length > 0 ? (
-                                            <div className="h-48 overflow-hidden bg-muted">
-                                                <img
-                                                    src={images[0]}
-                                                    alt={bus.bus_name}
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            </div>
-                                        ) : null;
-                                    } catch (e) {
-                                        return null;
-                                    }
-                                })()}
-
                             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                 <div className="space-y-1">
                                     <CardTitle className="text-lg">
@@ -249,28 +185,22 @@ export default function TransportationOwnerBusesIndex({
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center gap-2">
-                                    {bus.bus_property &&
-                                        getBusTypeBadge(
-                                            bus.bus_property.bus_type
-                                        )}
-                                    {getStatusBadge(bus.status)}
+                                    {getBusTypeBadge(bus.bus_type)}
+                                    {getStatusBadge(bus.is_active)}
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-sm">
                                         <MapPin className="h-4 w-4 text-muted-foreground" />
                                         <span className="text-muted-foreground">
-                                            {bus.bus_property?.transportation
-                                                ?.place?.name ||
+                                            {bus.transportation.place?.name ||
                                                 "Unknown Company"}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
                                         <Users className="h-4 w-4 text-muted-foreground" />
                                         <span className="text-muted-foreground">
-                                            {bus.bus_property?.seat_capacity ||
-                                                0}{" "}
-                                            seats
+                                            {bus.seat_capacity} seats
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
@@ -316,24 +246,11 @@ export default function TransportationOwnerBusesIndex({
                                     </div>
                                 )}
 
-                                <div className="flex gap-2 pt-2">
+                                <div className="pt-2">
                                     <Button
                                         asChild
                                         variant="outline"
-                                        size="sm"
-                                        className="flex-1"
-                                    >
-                                        <Link
-                                            href={`/transportation-owner/buses/${bus.id}/edit`}
-                                        >
-                                            Edit
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        asChild
-                                        variant="default"
-                                        size="sm"
-                                        className="flex-1"
+                                        className="w-full"
                                     >
                                         <Link
                                             href={`/transportation-owner/buses/${bus.id}`}
@@ -348,47 +265,34 @@ export default function TransportationOwnerBusesIndex({
                 </div>
 
                 {/* Empty State */}
-                {filteredBuses.length === 0 && (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Bus className="size-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>
-                                {buses.data.length === 0
-                                    ? "No Buses Found"
-                                    : "No Matching Buses"}
-                            </EmptyTitle>
-                            <EmptyDescription>
-                                {buses.data.length === 0 ? (
-                                    <>
-                                        You don't have any buses in your fleet
-                                        yet. Contact your administrator to add
-                                        buses to your company.
-                                    </>
-                                ) : (
-                                    "No buses match your current filters. Try adjusting your search or filters."
-                                )}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
+                {buses.data.length === 0 && (
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <Bus className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                            <h3 className="text-lg font-semibold mb-2">
+                                No Buses Found
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                You don't have any buses in your fleet yet.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Contact your administrator to add buses to your
+                                company.
+                            </p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        {filteredBuses.length > 0 ? (
-                            <>
-                                Showing {filteredBuses.length} of {buses.total}{" "}
-                                bus(es)
-                                {(search ||
-                                    typeFilter !== "all" ||
-                                    statusFilter !== "all") &&
-                                    " (filtered)"}
-                            </>
-                        ) : (
-                            "No buses to display"
-                        )}
+                        Showing {(buses.current_page - 1) * buses.per_page + 1}{" "}
+                        to{" "}
+                        {Math.min(
+                            buses.current_page * buses.per_page,
+                            buses.total
+                        )}{" "}
+                        of {buses.total} bus(es).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">

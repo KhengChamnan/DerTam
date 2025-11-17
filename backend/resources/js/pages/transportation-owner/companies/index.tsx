@@ -4,14 +4,6 @@ import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-    Empty,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-    EmptyDescription,
-    EmptyContent,
-} from "@/components/ui/empty";
 import { Building2, Bus, Calendar, Star, Users, Edit } from "lucide-react";
 
 interface Company {
@@ -25,24 +17,17 @@ interface Company {
         reviews_count?: number;
         images_url?: string[];
     };
-    bus_properties?: Array<{
+    buses?: Array<{
         id: number;
-        bus_type: string;
-        bus_description?: string;
+        bus_name: string;
+        bus_plate: string;
         seat_capacity: number;
-        price_per_seat?: number;
-        image_url?: string;
-        amenities?: string;
-        buses?: Array<{
+        bus_type: string;
+        is_active: boolean;
+        schedules?: Array<{
             id: number;
-            bus_name: string;
-            bus_plate: string;
-            is_active: boolean;
-            schedules?: Array<{
-                id: number;
-                departure_time: string;
-                status: string;
-            }>;
+            departure_time: string;
+            status: string;
         }>;
     }>;
 }
@@ -57,41 +42,40 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
             <AppLayout>
                 <Head title="My Company" />
                 <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Building2 className="size-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>No Company Assigned</EmptyTitle>
-                            <EmptyDescription>
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                            <h3 className="text-lg font-semibold mb-2">
+                                No Company Assigned
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
                                 You don't have a transportation company assigned
-                                to your account yet. Contact your administrator
-                                to get a transportation company assigned to your
-                                account.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
+                                to your account yet.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Contact your administrator to get a
+                                transportation company assigned to your account.
+                            </p>
+                        </CardContent>
+                    </Card>
                 </div>
             </AppLayout>
         );
     }
 
-    const busProperties = company.bus_properties || [];
+    const buses = company.buses || [];
     const images = company.place?.images_url || [];
 
-    // Flatten buses from all bus properties
-    const allBuses = busProperties.flatMap((bp) => bp.buses || []);
-
-    const activeBuses = allBuses.filter((bus) => bus.is_active);
-    const totalSeats = busProperties.reduce(
-        (sum, bp) => sum + bp.seat_capacity * (bp.buses?.length || 0),
+    const activeBuses = buses.filter((bus) => bus.is_active);
+    const totalSeats = buses.reduce(
+        (sum, bus) => sum + (bus.seat_capacity || 0),
         0
     );
-    const totalSchedules = allBuses.reduce(
+    const totalSchedules = buses.reduce(
         (sum, bus) => sum + (bus.schedules?.length || 0),
         0
     );
-    const busTypes = busProperties.map((bp) => bp.bus_type);
+    const busTypes = Array.from(new Set(buses.map((b) => b.bus_type)));
 
     return (
         <AppLayout>
@@ -162,17 +146,22 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                                 {busTypes.length > 0 && (
                                     <div className="space-y-2">
                                         <h3 className="font-semibold">
-                                            Bus Types Available
+                                            Fleet Composition
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {busTypes.map((type, index) => (
-                                                <Badge
-                                                    key={index}
-                                                    variant="secondary"
-                                                >
-                                                    {type}
-                                                </Badge>
-                                            ))}
+                                            {busTypes.map((type) => {
+                                                const count = buses.filter(
+                                                    (b) => b.bus_type === type
+                                                ).length;
+                                                return (
+                                                    <Badge
+                                                        key={type}
+                                                        variant="secondary"
+                                                    >
+                                                        {count}x {type}
+                                                    </Badge>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -186,16 +175,16 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
-                                Bus Types
+                                Total Buses
                             </CardTitle>
                             <Bus className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {busProperties.length}
+                                {buses.length}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Templates configured
+                                Fleet vehicles
                             </p>
                         </CardContent>
                     </Card>
@@ -203,16 +192,16 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
-                                Total Buses
+                                Active Buses
                             </CardTitle>
                             <Bus className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-green-600">
-                                {allBuses.length}
+                                {activeBuses.length}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Fleet vehicles
+                                Currently operational
                             </p>
                         </CardContent>
                     </Card>
@@ -252,68 +241,50 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                     </Card>
                 </div>
 
-                {/* Bus Types Section */}
+                {/* Buses Section */}
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Bus Types</h2>
-                    <div className="flex gap-2">
-                        <Button asChild>
-                            <Link href="/transportation-owner/bus-properties/create">
-                                <Bus className="h-4 w-4 mr-2" />
-                                Add Bus Type
-                            </Link>
-                        </Button>
-                    </div>
+                    <h2 className="text-2xl font-bold">Fleet Management</h2>
+                    <Button asChild>
+                        <Link href="/transportation-owner/buses/create">
+                            <Bus className="h-4 w-4 mr-2" />
+                            Add New Bus
+                        </Link>
+                    </Button>
                 </div>
 
-                {busProperties.length > 0 ? (
+                {buses.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {busProperties.map((busProperty) => {
-                            const buses = busProperty.buses || [];
-                            const activeBusesForType = buses.filter(
-                                (b) => b.is_active
+                        {buses.map((bus) => {
+                            const busSchedules = bus.schedules || [];
+                            const activeSchedules = busSchedules.filter(
+                                (s) => s.status === "scheduled"
                             );
 
                             return (
                                 <Card
-                                    key={busProperty.id}
+                                    key={bus.id}
                                     className="hover:shadow-lg transition-shadow"
                                 >
-                                    {/* Image Display */}
-                                    {busProperty.image_url &&
-                                        (() => {
-                                            try {
-                                                const images = JSON.parse(
-                                                    busProperty.image_url
-                                                );
-                                                return images.length > 0 ? (
-                                                    <div className="h-48 overflow-hidden bg-muted">
-                                                        <img
-                                                            src={images[0]}
-                                                            alt={
-                                                                busProperty.bus_type
-                                                            }
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    </div>
-                                                ) : null;
-                                            } catch (e) {
-                                                return null;
-                                            }
-                                        })()}
-
                                     <CardHeader>
                                         <div className="flex items-start justify-between">
                                             <div className="space-y-1 flex-1">
                                                 <CardTitle className="text-lg">
-                                                    {busProperty.bus_type}
+                                                    {bus.bus_name}
                                                 </CardTitle>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {busProperty.seat_capacity}{" "}
-                                                    seats per bus
+                                                    {bus.bus_plate}
                                                 </p>
                                             </div>
-                                            <Badge variant="outline">
-                                                Template
+                                            <Badge
+                                                variant={
+                                                    bus.is_active
+                                                        ? "default"
+                                                        : "secondary"
+                                                }
+                                            >
+                                                {bus.is_active
+                                                    ? "Active"
+                                                    : "Inactive"}
                                             </Badge>
                                         </div>
                                     </CardHeader>
@@ -323,18 +294,10 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <p className="text-sm text-muted-foreground">
-                                                    Total Buses
+                                                    Type
                                                 </p>
-                                                <p className="font-semibold">
-                                                    {buses.length}
-                                                </p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-sm text-muted-foreground">
-                                                    Active
-                                                </p>
-                                                <p className="font-semibold text-green-600">
-                                                    {activeBusesForType.length}
+                                                <p className="font-semibold capitalize">
+                                                    {bus.bus_type}
                                                 </p>
                                             </div>
                                             <div className="space-y-1">
@@ -342,56 +305,29 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                                                     Capacity
                                                 </p>
                                                 <p className="font-semibold">
-                                                    {busProperty.seat_capacity}{" "}
-                                                    seats
+                                                    {bus.seat_capacity} seats
                                                 </p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-sm text-muted-foreground">
-                                                    Total Seats
+                                                    Schedules
                                                 </p>
                                                 <p className="font-semibold">
-                                                    {busProperty.seat_capacity *
-                                                        buses.length}
+                                                    {busSchedules.length}
                                                 </p>
                                             </div>
-                                            {busProperty.price_per_seat && (
-                                                <div className="space-y-1">
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Price per seat
-                                                    </p>
-                                                    <p className="font-semibold">
-                                                        $
-                                                        {
-                                                            busProperty.price_per_seat
-                                                        }
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        {busProperty.amenities && (
-                                            <div className="flex flex-wrap gap-1 pt-2">
-                                                {JSON.parse(
-                                                    busProperty.amenities
-                                                ).map(
-                                                    (
-                                                        amenity: string,
-                                                        idx: number
-                                                    ) => (
-                                                        <Badge
-                                                            key={idx}
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                        >
-                                                            {amenity}
-                                                        </Badge>
-                                                    )
-                                                )}
+                                            <div className="space-y-1">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Active
+                                                </p>
+                                                <p className="font-semibold">
+                                                    {activeSchedules.length}
+                                                </p>
                                             </div>
-                                        )}
+                                        </div>
 
                                         {/* Actions */}
-                                        <div className="flex gap-2 pt-2 border-t mt-2">
+                                        <div className="flex gap-2 pt-2 border-t">
                                             <Button
                                                 asChild
                                                 size="sm"
@@ -399,22 +335,10 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                                                 className="flex-1"
                                             >
                                                 <Link
-                                                    href={`/transportation-owner/bus-properties/${busProperty.id}/edit`}
+                                                    href={`/transportation-owner/buses/${bus.id}/edit`}
                                                 >
                                                     <Edit className="h-4 w-4 mr-2" />
-                                                    Edit Type
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                asChild
-                                                size="sm"
-                                                className="flex-1"
-                                            >
-                                                <Link
-                                                    href={`/transportation-owner/buses/create?type=${busProperty.id}`}
-                                                >
-                                                    <Bus className="h-4 w-4 mr-2" />
-                                                    Add Bus
+                                                    Edit Bus
                                                 </Link>
                                             </Button>
                                         </div>
@@ -424,25 +348,23 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                         })}
                     </div>
                 ) : (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Bus className="size-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>No Bus Types Yet</EmptyTitle>
-                            <EmptyDescription>
-                                Start by adding bus types to your fleet.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <Bus className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                            <h3 className="text-lg font-semibold mb-2">
+                                No Buses Yet
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                Start by adding buses to your fleet.
+                            </p>
                             <Button asChild>
-                                <Link href="/transportation-owner/bus-properties/create">
+                                <Link href="/transportation-owner/buses/create">
                                     <Bus className="h-4 w-4 mr-2" />
-                                    Add Your First Bus Type
+                                    Add Your First Bus
                                 </Link>
                             </Button>
-                        </EmptyContent>
-                    </Empty>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </AppLayout>

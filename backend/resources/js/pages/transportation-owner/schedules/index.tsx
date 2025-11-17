@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-    Empty,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-    EmptyDescription,
-} from "@/components/ui/empty";
-import {
     Select,
     SelectContent,
     SelectItem,
@@ -23,8 +16,6 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -37,24 +28,10 @@ import {
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
-    Pencil,
-    Trash2,
     Bus,
     MapPin,
     Users,
-    MoreHorizontal,
 } from "lucide-react";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface BusSchedule {
     id: number;
@@ -79,10 +56,10 @@ interface BusSchedule {
     };
     route: {
         id: number;
-        from_location: string;
-        to_location: string;
-        distance_km?: number;
-        duration_hours?: number;
+        origin: string;
+        destination: string;
+        distance?: number;
+        duration?: number;
     };
     bookings?: Array<{
         id: number;
@@ -165,36 +142,6 @@ export default function TransportationOwnerSchedulesIndex({
         );
     }, [columnVisibility]);
 
-    // Filter schedules in real-time on the client side
-    const filteredSchedules = schedules.data.filter((schedule) => {
-        // Status filter
-        if (statusFilter !== "all" && schedule.status !== statusFilter) {
-            return false;
-        }
-
-        // Search filter - search across bus name, plate, and route
-        if (search.trim() !== "") {
-            const searchLower = search.toLowerCase();
-            const matchesBusName = schedule.bus.bus_name
-                .toLowerCase()
-                .includes(searchLower);
-            const matchesBusPlate = schedule.bus.bus_plate
-                .toLowerCase()
-                .includes(searchLower);
-            const matchesRoute =
-                schedule.route.from_location
-                    .toLowerCase()
-                    .includes(searchLower) ||
-                schedule.route.to_location.toLowerCase().includes(searchLower);
-
-            if (!matchesBusName && !matchesBusPlate && !matchesRoute) {
-                return false;
-            }
-        }
-
-        return true;
-    });
-
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "scheduled":
@@ -208,20 +155,6 @@ export default function TransportationOwnerSchedulesIndex({
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
-    };
-
-    // Helper to parse datetime string as local time
-    const parseAsLocalTime = (dateString: string) => {
-        // Parse the datetime string as local time, not UTC
-        const dateParts = dateString.replace(" ", "T").split(/[-T:]/);
-        return new Date(
-            parseInt(dateParts[0]), // year
-            parseInt(dateParts[1]) - 1, // month (0-indexed)
-            parseInt(dateParts[2]), // day
-            parseInt(dateParts[3] || "0"), // hours
-            parseInt(dateParts[4] || "0"), // minutes
-            parseInt(dateParts[5] || "0") // seconds
-        );
     };
 
     const getAvailabilityBadge = (
@@ -392,7 +325,7 @@ export default function TransportationOwnerSchedulesIndex({
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div
-                                className="grid gap-8 items-center "
+                                className="grid gap-4 items-center"
                                 style={{
                                     gridTemplateColumns: `${
                                         columnVisibility.bus ? "2fr" : ""
@@ -452,7 +385,7 @@ export default function TransportationOwnerSchedulesIndex({
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {filteredSchedules.map((schedule) => {
+                            {schedules.data.map((schedule) => {
                                 const bookedSeats =
                                     schedule.bookings?.length || 0;
                                 const availableSeats =
@@ -505,15 +438,13 @@ export default function TransportationOwnerSchedulesIndex({
                                             )}
                                             {columnVisibility.route && (
                                                 <div className="flex items-center gap-1 text-sm">
+                                                    <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                                     <span className="truncate">
-                                                        {
-                                                            schedule.route
-                                                                .from_location
-                                                        }{" "}
+                                                        {schedule.route.origin}{" "}
                                                         →{" "}
                                                         {
                                                             schedule.route
-                                                                .to_location
+                                                                .destination
                                                         }
                                                     </span>
                                                 </div>
@@ -522,42 +453,21 @@ export default function TransportationOwnerSchedulesIndex({
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-1 text-sm">
                                                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.departure_time
-                                                                );
-                                                            return `${
-                                                                date.getMonth() +
-                                                                1
-                                                            }/${date.getDate()}/${date.getFullYear()}`;
-                                                        })()}
+                                                        {new Date(
+                                                            schedule.departure_time
+                                                        ).toLocaleDateString()}
                                                     </div>
                                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.departure_time
-                                                                );
-                                                            const hours =
-                                                                date.getHours();
-                                                            const minutes =
-                                                                date.getMinutes();
-                                                            const ampm =
-                                                                hours >= 12
-                                                                    ? "PM"
-                                                                    : "AM";
-                                                            const displayHours =
-                                                                hours % 12 ||
-                                                                12;
-                                                            return `${displayHours}:${minutes
-                                                                .toString()
-                                                                .padStart(
-                                                                    2,
-                                                                    "0"
-                                                                )} ${ampm}`;
-                                                        })()}
+                                                        {new Date(
+                                                            schedule.departure_time
+                                                        ).toLocaleTimeString(
+                                                            [],
+                                                            {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            }
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -565,42 +475,21 @@ export default function TransportationOwnerSchedulesIndex({
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-1 text-sm">
                                                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.arrival_time
-                                                                );
-                                                            return `${
-                                                                date.getMonth() +
-                                                                1
-                                                            }/${date.getDate()}/${date.getFullYear()}`;
-                                                        })()}
+                                                        {new Date(
+                                                            schedule.arrival_time
+                                                        ).toLocaleDateString()}
                                                     </div>
                                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.arrival_time
-                                                                );
-                                                            const hours =
-                                                                date.getHours();
-                                                            const minutes =
-                                                                date.getMinutes();
-                                                            const ampm =
-                                                                hours >= 12
-                                                                    ? "PM"
-                                                                    : "AM";
-                                                            const displayHours =
-                                                                hours % 12 ||
-                                                                12;
-                                                            return `${displayHours}:${minutes
-                                                                .toString()
-                                                                .padStart(
-                                                                    2,
-                                                                    "0"
-                                                                )} ${ampm}`;
-                                                        })()}
+                                                        {new Date(
+                                                            schedule.arrival_time
+                                                        ).toLocaleTimeString(
+                                                            [],
+                                                            {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            }
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -625,111 +514,17 @@ export default function TransportationOwnerSchedulesIndex({
                                                 )}
                                             </div>
                                             <div className="flex gap-2">
-                                                <Link
-                                                    href={`/transportation-owner/schedules/${schedule.id}/edit`}
+                                                <Button
+                                                    asChild
+                                                    size="sm"
+                                                    variant="outline"
                                                 >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
+                                                    <Link
+                                                        href={`/transportation-owner/schedules/${schedule.id}`}
                                                     >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                        >
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/transportation-owner/schedules/${schedule.id}`}
-                                                            >
-                                                                View details
-                                                                <Eye className="ml-2 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/transportation-owner/schedules/${schedule.id}/edit`}
-                                                            >
-                                                                Edit schedule
-                                                                <Pencil className="ml-5 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger
-                                                                asChild
-                                                            >
-                                                                <DropdownMenuItem
-                                                                    onSelect={(
-                                                                        e
-                                                                    ) =>
-                                                                        e.preventDefault()
-                                                                    }
-                                                                    className="text-red-600 focus:text-red-600"
-                                                                >
-                                                                    Delete
-                                                                    schedule
-                                                                </DropdownMenuItem>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>
-                                                                        Are you
-                                                                        absolutely
-                                                                        sure?
-                                                                    </AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This
-                                                                        action
-                                                                        cannot
-                                                                        be
-                                                                        undone.
-                                                                        This
-                                                                        will
-                                                                        permanently
-                                                                        delete
-                                                                        the
-                                                                        schedule
-                                                                        and
-                                                                        remove
-                                                                        all its
-                                                                        data
-                                                                        from our
-                                                                        servers.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>
-                                                                        Cancel
-                                                                    </AlertDialogCancel>
-                                                                    <AlertDialogAction
-                                                                        onClick={() =>
-                                                                            router.delete(
-                                                                                `/transportation-owner/schedules/${schedule.id}`
-                                                                            )
-                                                                        }
-                                                                        className="bg-red-600 hover:bg-red-700"
-                                                                    >
-                                                                        Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -740,41 +535,35 @@ export default function TransportationOwnerSchedulesIndex({
                 </div>
 
                 {/* Empty State */}
-                {filteredSchedules.length === 0 && (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Calendar className="size-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>No Schedules Found</EmptyTitle>
-                            <EmptyDescription>
-                                {schedules.data.length === 0 ? (
-                                    <>
-                                        You don't have any schedules for your
-                                        buses yet. Schedules will appear here
-                                        once they are created for your buses.
-                                    </>
-                                ) : (
-                                    "No schedules match your current filters. Try adjusting your search or status filter."
-                                )}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
+                {schedules.data.length === 0 && (
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                            <h3 className="text-lg font-semibold mb-2">
+                                No Schedules Found
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                You don't have any schedules for your buses yet.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Schedules will appear here once they are created
+                                for your buses.
+                            </p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        {filteredSchedules.length > 0 ? (
-                            <>
-                                Showing {filteredSchedules.length} of{" "}
-                                {schedules.total} schedule(s)
-                                {(search || statusFilter !== "all") &&
-                                    " (filtered)"}
-                            </>
-                        ) : (
-                            "No schedules to display"
-                        )}
+                        Showing{" "}
+                        {(schedules.current_page - 1) * schedules.per_page + 1}{" "}
+                        to{" "}
+                        {Math.min(
+                            schedules.current_page * schedules.per_page,
+                            schedules.total
+                        )}{" "}
+                        of {schedules.total} schedule(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
