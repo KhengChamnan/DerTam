@@ -434,3 +434,22 @@ class PageLink {
     return {'url': url, 'label': label, 'active': active};
   }
 }
+
+// Model for single booking detail API response
+class BookingDetailResponse {
+  final bool success;
+  final BookingItem data;
+
+  BookingDetailResponse({required this.success, required this.data});
+
+  factory BookingDetailResponse.fromJson(Map<String, dynamic> json) {
+    return BookingDetailResponse(
+      success: json['success'] as bool,
+      data: BookingItem.fromJson(json['data'] as Map<String, dynamic>),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'success': success, 'data': data.toJson()};
+  }
+}

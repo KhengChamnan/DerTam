@@ -25,7 +25,7 @@ class ApiEndpoint {
   static const String hotelBooking = '/api/booking/create';
   static const String searchAvailableRooms = '/api/rooms/search';
   static const String getAllBookings = '/api/booking/my-bookings';
-  static const String getBookingDetail = '/api/booking/{{booking_id}}';
+  static const String getBookingDetail = '/api/booking';
   static const String cancelBooking = '/api/booking/{{booking_id}}/cancel';
   //Trip Endpoints
   static const String createTrip = '/api/trips';

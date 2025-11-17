@@ -3,6 +3,7 @@ import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/screen/profile/widget/dertam_booking_detail.dart';
 import 'package:provider/provider.dart';
 
 class DertamBookingScreen extends StatefulWidget {
@@ -34,7 +35,6 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
 
   List<BookingItem> _getAllBookings(List<BookingListResponse>? responses) {
     if (responses == null || responses.isEmpty) return [];
-
     // Extract all booking items from all responses
     List<BookingItem> allItems = [];
     for (var response in responses) {
@@ -191,9 +191,7 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
 
 class _BookingList extends StatelessWidget {
   final List<BookingItem> bookings;
-
   const _BookingList({required this.bookings});
-
   @override
   Widget build(BuildContext context) {
     if (bookings.isEmpty) {
@@ -226,9 +224,7 @@ class _BookingList extends StatelessWidget {
 
 class _BookingCard extends StatelessWidget {
   final BookingItem booking;
-
   const _BookingCard({required this.booking});
-
   String _getDateRange() {
     if (booking.bookingItems.isEmpty) return 'N/A';
     final hotelDetails = booking.bookingItems.first.hotelDetails;
@@ -236,6 +232,7 @@ class _BookingCard extends StatelessWidget {
     final checkOut = DateTime.parse(hotelDetails.checkOut);
     return '${checkIn.day}/${checkIn.month}/${checkIn.year} - ${checkOut.day}/${checkOut.month}/${checkOut.year}';
   }
+
   String _getRoomInfo() {
     if (booking.bookingItems.isEmpty) return 'No rooms';
     final totalRooms = booking.bookingItems.fold<int>(
@@ -249,11 +246,11 @@ class _BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Booking ID: ${booking.id} • \$${booking.totalAmount} ${booking.currency}',
-            ),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                DertamBookingDetailScreen(bookingId: booking.id.toString()),
           ),
         );
       },

@@ -17,6 +17,7 @@ class HotelProvider extends ChangeNotifier {
   AsyncValue<HotelBookingResponse> _createBooking = AsyncValue.empty();
   AsyncValue<SearchRoomResponse> _searchAvailableRooms = AsyncValue.empty();
   AsyncValue<List<BookingListResponse>> _hoteBookingList = AsyncValue.empty();
+  AsyncValue<BookingDetailResponse> _hotelBookingDetail = AsyncValue.empty();
 
   // Getters hotel
   AsyncValue<HotelDetail> get hotelDetail => _hotelDetail;
@@ -26,6 +27,8 @@ class HotelProvider extends ChangeNotifier {
   AsyncValue<SearchRoomResponse> get searchAvailableRooms =>
       _searchAvailableRooms;
   AsyncValue<List<BookingListResponse>> get bookingList => _hoteBookingList;
+  AsyncValue<BookingDetailResponse> get hotelBookingDetail =>
+      _hotelBookingDetail;
 
   Future<void> fetchHotelDetail(String hotelId) async {
     _hotelDetail = AsyncValue.loading();
@@ -92,6 +95,7 @@ class HotelProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
   Future<List<BookingListResponse>> fetchAllHotelBookings() async {
     _hoteBookingList = AsyncValue.loading();
     notifyListeners();
@@ -102,6 +106,23 @@ class HotelProvider extends ChangeNotifier {
       return bookings;
     } catch (e) {
       _hoteBookingList = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<BookingDetailResponse> fetchHotelBookingDetail(
+    String bookingId,
+  ) async {
+    _hotelBookingDetail = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final bookingDetail = await repository.getBookingDetails(bookingId);
+      _hotelBookingDetail = AsyncValue.success(bookingDetail);
+      notifyListeners();
+      return bookingDetail;
+    } catch (e) {
+      _hotelBookingDetail = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }

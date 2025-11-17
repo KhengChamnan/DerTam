@@ -6,14 +6,11 @@ import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/screen/trip/dertam_trip_planning_screen.dart';
-
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
-
   @override
   State<FavoriteScreen> createState() => _FavoriteScreenState();
 }
-
 class _FavoriteScreenState extends State<FavoriteScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
@@ -22,7 +19,6 @@ class _FavoriteScreenState extends State<FavoriteScreen>
   String _selectedCategory = 'All';
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
-
   // Categories for filtering
   final List<Map<String, dynamic>> _categories = [
     {'id': 0, 'name': 'All', 'icon': Icons.apps},
@@ -32,7 +28,6 @@ class _FavoriteScreenState extends State<FavoriteScreen>
     {'id': 4, 'name': 'Attraction', 'icon': Icons.attractions},
     {'id': 5, 'name': 'Nature', 'icon': Icons.nature},
   ];
-
   @override
   void initState() {
     super.initState();

@@ -220,25 +220,35 @@ class LaravelHotelApiRepository extends HotelRepository {
   }
 
   @override
-  Future<HotelBookingResponse> getBookingDetails(String bookingId) async {
+  Future<BookingDetailResponse> getBookingDetails(String bookingId) async {
     try {
       final token = await repository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
       final headers = _getAuthHeaders(token);
+
+      // Replace the placeholder with the actual booking ID
+
       final response = await FetchingData.getData(
         '${ApiEndpoint.getBookingDetail}/$bookingId',
         headers,
       );
+
+      print(
+        '📊 [DEBUG] Booking detail response status: ${response.statusCode}',
+      );
+      print('📊 [DEBUG] Booking detail response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        return HotelBookingResponse.fromJson(json.decode(response.body));
+        return BookingDetailResponse.fromJson(json.decode(response.body));
       } else {
         throw Exception(
           'Failed to load booking details: ${response.statusCode}',
         );
       }
     } catch (e) {
+      print('❌ [ERROR] Error fetching booking details: $e');
       rethrow;
     }
   }
