@@ -206,10 +206,11 @@ class LaravelHotelApiRepository extends HotelRepository {
         headers,
       );
       if (response.statusCode == 200) {
-        final List<dynamic> jsonResponse = json.decode(response.body);
-        return jsonResponse
-            .map((item) => BookingListResponse.fromJson(item))
-            .toList();
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        // The API returns: {success: true, data: {current_page, data: [...]}}
+        // We need to extract the BookingListResponse which wraps the paginated data
+        return [BookingListResponse.fromJson(jsonResponse)];
       } else {
         throw Exception('Failed to load bookings: ${response.statusCode}');
       }

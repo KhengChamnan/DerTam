@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
-import 'package:mobile_frontend/models/booking/bus_booking_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:provider/provider.dart';
 
 class DertamBookingScreen extends StatefulWidget {
   const DertamBookingScreen({super.key});
@@ -12,14 +15,15 @@ class DertamBookingScreen extends StatefulWidget {
 class _DertamBookingScreenState extends State<DertamBookingScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<Booking> _bookings = [];
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadBookings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final hotelProvider = context.read<HotelProvider>();
+      hotelProvider.fetchAllHotelBookings();
+    });
   }
 
   @override
@@ -28,35 +32,60 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
     super.dispose();
   }
 
-  Future<void> _loadBookings() async {
-    // TODO: Replace with actual API call
-    await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {
-      _bookings = _getMockBookings();
-      _isLoading = false;
-    });
+  List<BookingItem> _getAllBookings(List<BookingListResponse>? responses) {
+    if (responses == null || responses.isEmpty) return [];
+
+    // Extract all booking items from all responses
+    List<BookingItem> allItems = [];
+    for (var response in responses) {
+      if (response.success && response.data.data.isNotEmpty) {
+        allItems.addAll(response.data.data);
+      }
+    }
+    return allItems;
   }
 
   @override
   Widget build(BuildContext context) {
+    final hotelProvider = context.watch<HotelProvider>();
+    final bookingListState = hotelProvider.bookingList;
+
     return Scaffold(
       backgroundColor: DertamColors.white,
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_outlined,
-            color: Colors.black,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: DertamColors.primaryBlue.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
-          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'My booking',
           style: DertamTextStyles.subtitle.copyWith(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: DertamColors.primaryBlue,
             fontSize: 24,
           ),
         ),
@@ -71,15 +100,18 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
               children: [
                 Container(
                   height: 48,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Color(0xFF020202), width: 1),
+                      bottom: BorderSide(
+                        color: DertamColors.primaryBlue,
+                        width: 1,
+                      ),
                     ),
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: const Color(0xFF020202),
-                    unselectedLabelColor: const Color(0xFF020202),
+                    labelColor: DertamColors.primaryBlue,
+                    unselectedLabelColor: DertamColors.primaryBlue,
                     labelStyle: DertamTextStyles.bodyMedium.copyWith(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
@@ -90,7 +122,7 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
                       fontWeight: FontWeight.w400,
                       fontSize: 14,
                     ),
-                    indicatorColor: const Color(0xFF020202),
+                    indicatorColor: DertamColors.primaryBlue,
                     indicatorWeight: 2,
                     indicatorSize: TabBarIndicatorSize.tab,
                     tabs: const [
@@ -105,14 +137,49 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
           ),
           // Tab Content
           Expanded(
-            child: _isLoading
+            child: bookingListState.state == AsyncValueState.loading
                 ? const Center(child: CircularProgressIndicator())
+                : bookingListState.state == AsyncValueState.error
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading bookings',
+                          style: DertamTextStyles.body.copyWith(
+                            color: Colors.red[600],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            context
+                                .read<HotelProvider>()
+                                .fetchAllHotelBookings();
+                          },
+                          child: Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildBookingList(_bookings),
-                      _buildBookingList(_getBusBookings()),
-                      _buildBookingList(_getHotelBookings()),
+                      _BookingList(
+                        bookings: _getAllBookings(bookingListState.data),
+                      ),
+                      _BookingList(
+                        bookings: [],
+                      ), // Bus bookings - not implemented yet
+                      _BookingList(
+                        bookings: _getAllBookings(bookingListState.data),
+                      ),
                     ],
                   ),
           ),
@@ -120,8 +187,15 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
       ),
     );
   }
+}
 
-  Widget _buildBookingList(List<Booking> bookings) {
+class _BookingList extends StatelessWidget {
+  final List<BookingItem> bookings;
+
+  const _BookingList({required this.bookings});
+
+  @override
+  Widget build(BuildContext context) {
     if (bookings.isEmpty) {
       return Center(
         child: Column(
@@ -137,7 +211,6 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
         ),
       );
     }
-
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
       itemCount: bookings.length,
@@ -149,92 +222,39 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
       },
     );
   }
-
-  // Mock data - replace with actual data from your backend
-  List<Booking> _getMockBookings() {
-    return [
-      Booking(
-        id: '67890abc',
-        userId: 'user123',
-        type: BookingType.bus,
-        bookingDate: DateTime.now(),
-        startDate: DateTime(2025, 10, 24),
-        endDate: DateTime(2025, 10, 30),
-        fromLocation: 'Phnom Penh',
-        toLocation: 'Siem Reap',
-        totalAmount: 25.0,
-        status: BookingStatus.confirmed,
-        busCompany: 'Mekong Express',
-        seatNumber: 'A12',
-      ),
-      Booking(
-        id: '67891def',
-        userId: 'user123',
-        type: BookingType.bus,
-        bookingDate: DateTime.now(),
-        startDate: DateTime(2025, 10, 24),
-        endDate: DateTime(2025, 10, 30),
-        fromLocation: 'Phnom Penh',
-        toLocation: 'Siem Reap',
-        totalAmount: 25.0,
-        status: BookingStatus.completed,
-        busCompany: 'Giant Ibis',
-        seatNumber: 'B08',
-      ),
-      Booking(
-        id: '67892ghi',
-        userId: 'user123',
-        type: BookingType.bus,
-        bookingDate: DateTime.now(),
-        startDate: DateTime(2025, 10, 24),
-        endDate: DateTime(2025, 10, 30),
-        fromLocation: 'Phnom Penh',
-        toLocation: 'Siem Reap',
-        totalAmount: 25.0,
-        status: BookingStatus.completed,
-        busCompany: 'Virak Buntham',
-        seatNumber: 'C15',
-      ),
-      Booking(
-        id: '67893jkl',
-        userId: 'user123',
-        type: BookingType.hotel,
-        bookingDate: DateTime.now(),
-        startDate: DateTime(2025, 11, 5),
-        endDate: DateTime(2025, 11, 10),
-        hotelName: 'Raffles Hotel Le Royal',
-        roomType: 'Deluxe Suite',
-        totalAmount: 450.0,
-        status: BookingStatus.pending,
-        numberOfGuests: 2,
-      ),
-    ];
-  }
-
-  List<Booking> _getBusBookings() {
-    return _bookings
-        .where((booking) => booking.type == BookingType.bus)
-        .toList();
-  }
-
-  List<Booking> _getHotelBookings() {
-    return _bookings
-        .where((booking) => booking.type == BookingType.hotel)
-        .toList();
-  }
 }
 
 class _BookingCard extends StatelessWidget {
-  final Booking booking;
+  final BookingItem booking;
 
   const _BookingCard({required this.booking});
+
+  String _getDateRange() {
+    if (booking.bookingItems.isEmpty) return 'N/A';
+    final hotelDetails = booking.bookingItems.first.hotelDetails;
+    final checkIn = DateTime.parse(hotelDetails.checkIn);
+    final checkOut = DateTime.parse(hotelDetails.checkOut);
+    return '${checkIn.day}/${checkIn.month}/${checkIn.year} - ${checkOut.day}/${checkOut.month}/${checkOut.year}';
+  }
+  String _getRoomInfo() {
+    if (booking.bookingItems.isEmpty) return 'No rooms';
+    final totalRooms = booking.bookingItems.fold<int>(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
+    return '$totalRooms room(s) • ${booking.bookingItems.first.hotelDetails.nights} night(s)';
+  }
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('View details for ${booking.displayId}')),
+          SnackBar(
+            content: Text(
+              'Booking ID: ${booking.id} • \$${booking.totalAmount} ${booking.currency}',
+            ),
+          ),
         );
       },
       borderRadius: BorderRadius.circular(10),
@@ -257,9 +277,7 @@ class _BookingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                booking.type == BookingType.bus
-                    ? Icons.directions_bus
-                    : Icons.hotel,
+                Icons.hotel,
                 color: DertamColors.primaryPurple,
                 size: 27,
               ),
@@ -272,31 +290,31 @@ class _BookingCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    booking.displayId,
+                    'Booking #${booking.id}',
                     style: DertamTextStyles.bodyMedium.copyWith(
                       fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: Colors.black,
+                      color: DertamColors.primaryBlue,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    booking.dateRange,
+                    _getDateRange(),
                     style: DertamTextStyles.bodySmall.copyWith(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
-                      color: Colors.black,
+                      color: DertamColors.primaryBlue,
                     ),
                   ),
                   Text(
-                    booking.routeOrLocation,
+                    _getRoomInfo(),
                     style: DertamTextStyles.bodySmall.copyWith(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
-                      color: Colors.black,
+                      color: DertamColors.primaryBlue,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -318,7 +336,7 @@ class _BookingCard extends StatelessWidget {
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w400,
                     fontSize: 12,
-                    color: Colors.black,
+                    color: DertamColors.primaryBlue,
                   ),
                 ),
               ),
@@ -329,29 +347,33 @@ class _BookingCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.completed:
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
         return const Color(0xFFE4E6E8);
-      case BookingStatus.confirmed:
+      case 'confirmed':
         return const Color(0x6178F192); // rgba(120,241,146,0.38)
-      case BookingStatus.pending:
+      case 'pending':
         return const Color(0xFFFFF4E6);
-      case BookingStatus.cancelled:
+      case 'cancelled':
         return const Color(0xFFFFE6E6);
+      default:
+        return const Color(0xFFE4E6E8);
     }
   }
 
-  String _getStatusText(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.completed:
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
         return 'Completed';
-      case BookingStatus.confirmed:
-        return 'Confirm';
-      case BookingStatus.pending:
+      case 'confirmed':
+        return 'Confirmed';
+      case 'pending':
         return 'Pending';
-      case BookingStatus.cancelled:
+      case 'cancelled':
         return 'Cancelled';
+      default:
+        return status;
     }
   }
 }
