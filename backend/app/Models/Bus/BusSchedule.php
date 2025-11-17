@@ -24,6 +24,7 @@ class BusSchedule extends Model
         'price',
         'available_seats',
         'status',
+        'notes',
     ];
 
     /**
