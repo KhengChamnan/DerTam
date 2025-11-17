@@ -1,4 +1,5 @@
-import 'package:mobile_frontend/models/booking/hotel_booking_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_request.dart';
 import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
@@ -14,7 +15,7 @@ abstract class HotelRepository {
     List<Room> bookingItems,
     String paymentOption,
   );
-  Future<List<HotelBookingResponse>> getAllBooking();
+  Future<List<BookingListResponse>> getAllHotelBooking();
   Future<HotelBookingResponse> getBookingDetails(String bookingId);
   Future<void> cancelBooking(String bookingId);
   Future<void> deleteBooking(String bookingId);

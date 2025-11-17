@@ -3,7 +3,8 @@ import 'package:mobile_frontend/data/network/api_constant.dart';
 import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/hotel_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_request.dart';
 import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
@@ -193,7 +194,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   }
 
   @override
-  Future<List<HotelBookingResponse>> getAllBooking() async {
+  Future<List<BookingListResponse>> getAllHotelBooking() async {
     try {
       final token = await repository.getToken();
       if (token == null) {
@@ -207,7 +208,7 @@ class LaravelHotelApiRepository extends HotelRepository {
       if (response.statusCode == 200) {
         final List<dynamic> jsonResponse = json.decode(response.body);
         return jsonResponse
-            .map((item) => HotelBookingResponse.fromJson(item))
+            .map((item) => BookingListResponse.fromJson(item))
             .toList();
       } else {
         throw Exception('Failed to load bookings: ${response.statusCode}');

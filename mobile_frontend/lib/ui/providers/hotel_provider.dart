@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/hotel_repository.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_request.dart';
 import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
@@ -15,6 +16,7 @@ class HotelProvider extends ChangeNotifier {
   AsyncValue<Room> _roomDetail = AsyncValue.empty();
   AsyncValue<HotelBookingResponse> _createBooking = AsyncValue.empty();
   AsyncValue<SearchRoomResponse> _searchAvailableRooms = AsyncValue.empty();
+  AsyncValue<List<BookingListResponse>> _hoteBookingList = AsyncValue.empty();
 
   // Getters hotel
   AsyncValue<HotelDetail> get hotelDetail => _hotelDetail;
@@ -23,6 +25,7 @@ class HotelProvider extends ChangeNotifier {
   AsyncValue<HotelBookingResponse> get createBookingState => _createBooking;
   AsyncValue<SearchRoomResponse> get searchAvailableRooms =>
       _searchAvailableRooms;
+  AsyncValue<List<BookingListResponse>> get bookingList => _hoteBookingList;
 
   Future<void> fetchHotelDetail(String hotelId) async {
     _hotelDetail = AsyncValue.loading();
@@ -85,6 +88,20 @@ class HotelProvider extends ChangeNotifier {
     } catch (e) {
       print('Booking Error: $e');
       _createBooking = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+  Future<List<BookingListResponse>> fetchAllHotelBookings() async {
+    _hoteBookingList = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final bookings = await repository.getAllHotelBooking();
+      _hoteBookingList = AsyncValue.success(bookings);
+      notifyListeners();
+      return bookings;
+    } catch (e) {
+      _hoteBookingList = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }

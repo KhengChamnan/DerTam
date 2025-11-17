@@ -27,7 +27,6 @@ class HotelBookingResponse {
 class HotelBookingData {
   final Booking booking;
   final AbaResponse abaResponse;
-
   HotelBookingData({required this.booking, required this.abaResponse});
 
   factory HotelBookingData.fromJson(Map<String, dynamic> json) {
@@ -38,7 +37,6 @@ class HotelBookingData {
       ),
     );
   }
-
   Map<String, dynamic> toJson() {
     return {'booking': booking.toJson(), 'aba_response': abaResponse.toJson()};
   }

@@ -233,7 +233,6 @@ class _BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // TODO: Navigate to booking details
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('View details for ${booking.displayId}')),
         );
