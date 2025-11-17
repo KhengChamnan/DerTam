@@ -208,8 +208,22 @@ Route::middleware([
             Route::get('/companies/{id}', [TransportationOwnerController::class, 'show'])
                 ->middleware('transportation.owner')
                 ->name('companies.show');
+            
+            // Bus Management
             Route::get('/buses', [TransportationOwnerController::class, 'buses'])->name('buses.index');
+            Route::get('/buses/create', [TransportationOwnerController::class, 'createBus'])->name('buses.create');
+            Route::post('/buses', [TransportationOwnerController::class, 'storeBus'])->name('buses.store');
+            Route::get('/buses/{id}/edit', [TransportationOwnerController::class, 'editBus'])->name('buses.edit');
+            Route::put('/buses/{id}', [TransportationOwnerController::class, 'updateBus'])->name('buses.update');
+            
+            // Schedule Management
             Route::get('/schedules', [TransportationOwnerController::class, 'schedules'])->name('schedules.index');
+            Route::get('/schedules/create', [TransportationOwnerController::class, 'createSchedule'])->name('schedules.create');
+            Route::post('/schedules', [TransportationOwnerController::class, 'storeSchedule'])->name('schedules.store');
+            Route::get('/schedules/{id}/edit', [TransportationOwnerController::class, 'editSchedule'])->name('schedules.edit');
+            Route::put('/schedules/{id}', [TransportationOwnerController::class, 'updateSchedule'])->name('schedules.update');
+            
+            // Bookings
             Route::get('/bookings', [TransportationOwnerController::class, 'bookings'])->name('bookings.index');
         });
 
