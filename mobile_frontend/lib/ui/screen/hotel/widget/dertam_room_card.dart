@@ -6,10 +6,12 @@ import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 class DertamRoomCard extends StatelessWidget {
   final Room room;
   final VoidCallback? onCheckAvailability;
+  final VoidCallback? onAddToCart;
   const DertamRoomCard({
     super.key,
     required this.room,
     this.onCheckAvailability,
+    this.onAddToCart,
   });
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/booking/location.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_available_buses.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_date_button.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_date_button_with_icon.dart';
@@ -9,6 +10,7 @@ import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/utils/animations_utils.dart';
+import 'package:provider/provider.dart';
 
 class DertamBusBookingScreen extends StatefulWidget {
   const DertamBusBookingScreen({super.key});
@@ -95,6 +97,8 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final userData = authProvider.userInfo;
     return Scaffold(
       backgroundColor: DertamColors.backgroundWhite,
       body: SafeArea(
@@ -113,9 +117,10 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                       height: 40,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(9999),
-                        image: const DecorationImage(
+                        image: DecorationImage(
                           image: NetworkImage(
-                            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+                            userData.data?.imageUrl ??
+                                'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
                           ),
                           fit: BoxFit.cover,
                         ),
@@ -139,7 +144,7 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                               ),
                             ),
                             Text(
-                              'Saduni Silva!',
+                              userData.data?.name ?? 'User',
                               style: DertamTextStyles.body.copyWith(
                                 fontWeight: FontWeight.w400,
                                 color: const Color.fromARGB(255, 37, 30, 30),

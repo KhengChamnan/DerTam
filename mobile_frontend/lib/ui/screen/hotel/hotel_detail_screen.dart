@@ -4,6 +4,7 @@ import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_booking_room_screen.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_room_card.dart';
+import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_search_room_result.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_select_date.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_hotel_facility.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
@@ -17,8 +18,6 @@ class HotelDetailScreen extends StatefulWidget {
 }
 
 class _HotelDetailScreenState extends State<HotelDetailScreen> {
-  bool _isFavorite = false;
-
   @override
   void initState() {
     super.initState();
@@ -177,7 +176,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
           // App Bar with image
           SliverAppBar(
             expandedHeight: 250,
-            pinned: true,
+            pinned: false,
+            floating: false,
+
             backgroundColor: DertamColors.white,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -204,39 +205,39 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                 ),
               ),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: DertamColors.black.withOpacity(0.1),
-                        spreadRadius: 0,
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      _isFavorite ? Iconsax.heart5 : Iconsax.heart,
-                      color: _isFavorite
-                          ? Colors.red
-                          : DertamColors.primaryDark,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isFavorite = !_isFavorite;
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ],
+            // actions: [
+            //   Padding(
+            //     padding: const EdgeInsets.all(8.0),
+            //     child: Container(
+            //       decoration: BoxDecoration(
+            //         color: Colors.white,
+            //         shape: BoxShape.circle,
+            //         boxShadow: [
+            //           BoxShadow(
+            //             color: DertamColors.black.withOpacity(0.1),
+            //             spreadRadius: 0,
+            //             blurRadius: 8,
+            //             offset: const Offset(0, 2),
+            //           ),
+            //         ],
+            //       ),
+            //       child: IconButton(
+            //         icon: Icon(
+            //           _isFavorite ? Iconsax.heart5 : Iconsax.heart,
+            //           color: _isFavorite
+            //               ? Colors.red
+            //               : DertamColors.primaryDark,
+            //           size: 20,
+            //         ),
+            //         onPressed: () {
+            //           setState(() {
+            //             _isFavorite = !_isFavorite;
+            //           });
+            //         },
+            //       ),
+            //     ),
+            //   ),
+            // ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -365,18 +366,8 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: DertamSpacings.s),
-                  // Description
-                  Text(
-                    hotel.place.description.isNotEmpty
-                        ? hotel.place.description
-                        : 'No description available',
-                    style: DertamTextStyles.bodyMedium.copyWith(
-                      color: Colors.grey[700],
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: DertamSpacings.m),
                   // Location
                   Row(
                     children: [
@@ -471,6 +462,23 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                         ),
                       ),
                     ),
+                    onAddToCart: () {
+                      // TODO: Implement cart functionality with provider
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${room.roomType} added to cart!',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: DertamColors.primaryBlue,
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 }, childCount: hotel.roomProperties.length),
               ),
@@ -503,14 +511,71 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
             ),
           ),
           onPressed: () async {
-            final result = await DertamSelectDateDialog.show(context);
+            final result = await DertamSelectDate.show(context);
             if (result != null) {
+              final DateTime checkInDate = result['checkInDate'] as DateTime;
+              final DateTime checkOutDate = result['checkOutDate'] as DateTime;
+              final int guestCount = result['guestCount'] as int;
+              final int numberOfNights = result['numberOfNights'] as int;
+
               print(
-                'Searching for ${result['guestCount']} guests\n'
-                'Check-in: ${result['checkInDate']}\n'
-                'Check-out: ${result['checkOutDate']}\n'
-                'Nights: ${result['numberOfNights']}',
+                'Searching for $guestCount guests\n'
+                'Check-in: $checkInDate\n'
+                'Check-out: $checkOutDate\n'
+                'Nights: $numberOfNights',
               );
+
+              try {
+                final searchResults = await hotelProvider.searchAvailableRoom(
+                  checkInDate,
+                  checkOutDate,
+                  guestCount,
+                  numberOfNights,
+                );
+
+                if (mounted && searchResults.rooms.isNotEmpty) {
+                  // Navigate to search results screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DertamSearchRoomResult(),
+                    ),
+                  );
+                } else if (mounted) {
+                  // Show no results message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'No available rooms found for the selected dates',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.orange,
+                      duration: const Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Failed to search rooms: ${e.toString()}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  );
+                }
+              }
             }
           },
           child: Text(

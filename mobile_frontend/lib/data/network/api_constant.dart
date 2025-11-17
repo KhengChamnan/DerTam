@@ -1,13 +1,13 @@
 class ApiEndpoint {
   static const String baseUrl = 'https://g9-capstone-project-ll.onrender.com';
   // Auth Endpoints
-  static const String login = '$baseUrl/api/login';
-  static const String register = '$baseUrl/api/register';
-  static const String logout = '$baseUrl/api/logout';
-  static const String forgotPassword = '$baseUrl/api/forgot-password';
-  static const String resetPassword = '$baseUrl/api/reset-password';
-  static const String verifyPin = '$baseUrl/api/verify/pin';
-  static const String googleSignIn = '$baseUrl/api/auth/google';
+  static const String login = '/api/login';
+  static const String register = '/api/register';
+  static const String logout = '/api/logout';
+  static const String forgotPassword = '/api/forgot-password';
+  static const String resetPassword = '/api/reset-password';
+  static const String verifyPin = '/api/verify/pin';
+  static const String googleSignIn = '/api/auth/google';
   static const String userInfo = '/api/profile';
 
   // Place Endpoints
@@ -22,14 +22,14 @@ class ApiEndpoint {
   static const String getListHotel = '/api/hotels/properties';
   static const String hotelDetails = '/api/hotel-details';
   static const String roomDetails = '/api/rooms';
-  static const String createBooking = '/api/hotels/bookings';
-  static const String getAllBookings = '/api/hotels/bookings';
-  static const String getSingleBookingById = '/api/hotels/bookings';
-
-  static const String deleteBooking = '/api/hotels/bookings';
+  static const String hotelBooking = '/api/booking/create';
+  static const String searchAvailableRooms = '/api/rooms/search';
+  static const String getAllBookings = '/api/booking/my-bookings';
+  static const String getBookingDetail = '/api/booking/{{booking_id}}';
+  static const String cancelBooking = '/api/booking/{{booking_id}}/cancel';
   //Trip Endpoints
   static const String createTrip = '/api/trips';
-  static const String getTrips = '/api/trips';
+  static const String getListOfTrips = '/api/trips';
   static const String getTripDays = '/api/trips'; // Here we need the trip Id
   static const String addPlaceToTripDay = '/api/trip-days/1/places';
   static const String getTripDetails = '/api/trip-days/7/places';

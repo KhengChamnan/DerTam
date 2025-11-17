@@ -26,7 +26,7 @@ class TripDetailScreen extends StatefulWidget {
 }
 
 class _TripDetailScreenState extends State<TripDetailScreen> {
-  Map<DateTime, List<Map<String, dynamic>>> _organizedPlaces = {};
+  final Map<DateTime, List<Map<String, dynamic>>> _organizedPlaces = {};
 
   @override
   void initState() {
@@ -249,7 +249,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 ],
               ),
               child: IconButton(
-                icon: Icon(Icons.arrow_back, color: DertamColors.black),
+                icon: Icon(
+                  Icons.arrow_back_ios_rounded,
+                  color: DertamColors.primaryBlue,
+                ),
                 onPressed: () => Navigator.pop(context),
                 padding: EdgeInsets.zero,
               ),
@@ -495,7 +498,7 @@ class AvatarStack extends StatelessWidget {
     final visibleUsers = users.take(maxVisibleAvatars).toList();
     final remainingCount = users.length - maxVisibleAvatars;
 
-    return Container(
+    return SizedBox(
       width: _calculateTotalWidth(),
       height: 32, // Original height
       child: Stack(
@@ -511,7 +514,7 @@ class AvatarStack extends StatelessWidget {
                 isCurrentUser: user['isCurrentUser'] ?? false,
               ),
             );
-          }).toList(),
+          }),
 
           // +X indicator for remaining users
           if (remainingCount > 0)
@@ -651,7 +654,6 @@ class TripDayCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: DertamSpacings.m),
-
           // Places list
           if (places.isEmpty)
             Container(
@@ -676,7 +678,7 @@ class TripDayCard extends StatelessWidget {
                     ? () => onDeletePlace!(item)
                     : null,
               );
-            }).toList(),
+            }),
         ],
       ),
     );

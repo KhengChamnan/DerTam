@@ -277,14 +277,6 @@ class _SelectPlaceScreenState extends State<SelectPlaceScreen> {
         'addedAt': DateTime.now(),
       });
     });
-
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     content: Text('${place.name} added to ${_formatDate(selectedDate)}'),
-    //     backgroundColor: Colors.green,
-    //     duration: Duration(seconds: 2),
-    //   ),
-    // );
   }
 
   void _removePlaceFromTrip(Place place) {
@@ -337,7 +329,7 @@ class _SelectPlaceScreenState extends State<SelectPlaceScreen> {
         backgroundColor: DertamColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.black),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: DertamColors.black),
           onPressed: () =>
               Navigator.pop(context, _addedPlaces), // Return updated places
         ),
@@ -345,7 +337,7 @@ class _SelectPlaceScreenState extends State<SelectPlaceScreen> {
           widget.preSelectedDate != null
               ? 'Edit ${_formatEditDate(widget.preSelectedDate!)}'
               : widget.tripName,
-          style: DertamTextStyles.title.copyWith(color: DertamColors.black),
+          style: DertamTextStyles.title.copyWith(color: DertamColors.primaryBlue),
         ),
         centerTitle: true,
       ),

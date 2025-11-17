@@ -1,5 +1,5 @@
 import 'package:mobile_frontend/models/hotel/facilities.dart';
-import 'package:mobile_frontend/models/hotel/hotel_booking_response.dart';
+import 'package:mobile_frontend/models/hotel/search_room.dart';
 import 'package:mobile_frontend/models/province/province_category_detail.dart';
 
 class HotelList {

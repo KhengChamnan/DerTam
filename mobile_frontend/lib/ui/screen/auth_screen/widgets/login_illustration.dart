@@ -16,7 +16,7 @@ class LoginIllustration extends StatelessWidget {
     return SizedBox(
       height: height,
       child: Image.asset(
-        'assets/images/login_welcome.png',
+        'assets/images/dertam_logo.png',
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           // Fallback if image not found

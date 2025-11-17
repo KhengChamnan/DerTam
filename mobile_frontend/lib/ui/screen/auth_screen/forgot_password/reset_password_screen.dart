@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
@@ -43,7 +44,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     borderRadius: BorderRadius.circular(14.217),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back_ios_new),
                     iconSize: 24,
                     color: DertamColors.black,
                     onPressed: () => Navigator.pop(context),
@@ -53,6 +54,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
 
               const SizedBox(height: DertamSpacings.xxl * 3),
+              // Illustration
+              const LoginIllustration(),
+
+              SizedBox(height: DertamSpacings.s),
 
               // Title
               Center(

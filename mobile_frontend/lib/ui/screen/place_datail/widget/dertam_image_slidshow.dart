@@ -124,7 +124,7 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
 
         // Back Button
         Positioned(
-          top: 40,
+          top: 32,
           left: 16,
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
@@ -134,7 +134,11 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
                 color: Colors.white.withOpacity(0.9),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new, size: 20),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                size: 20,
+                color: DertamColors.primaryBlue,
+              ),
             ),
           ),
         ),
@@ -142,7 +146,7 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
         // Thumbnail Gallery on Left Side (Vertical)
         Positioned(
           left: 16,
-          bottom: 20,
+          bottom: 4,
           child: Container(
             width: 70,
             constraints: const BoxConstraints(
@@ -249,22 +253,19 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
                 'Route',
                 style: DertamTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
+                  fontSize: 16,
                   color: DertamColors.primaryDark,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
                 foregroundColor: DertamColors.primaryDark,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
-                  vertical: 16,
+                  vertical: 18,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
-                  side: BorderSide(
-                    color: DertamColors.primaryDark.withOpacity(0.6),
-                    width: 1.5,
-                  ),
+                  side: BorderSide(color: DertamColors.primaryDark, width: 0.5),
                 ),
                 elevation: 8,
               ),

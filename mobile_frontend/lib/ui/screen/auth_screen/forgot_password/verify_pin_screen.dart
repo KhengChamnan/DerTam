@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/forgot_password/reset_password_screen.dart';
+import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/dertam_apptheme.dart';
 
@@ -152,7 +153,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                     borderRadius: BorderRadius.circular(14.217),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back_ios_new),
                     iconSize: 24,
                     color: DertamColors.black,
                     onPressed: () => Navigator.pop(context),
@@ -162,7 +163,9 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
               ),
 
               const SizedBox(height: DertamSpacings.xxl * 3),
-
+              // Illustration
+              const LoginIllustration(),
+              SizedBox(height: DertamSpacings.s),
               // Title
               Center(
                 child: Text(

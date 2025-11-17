@@ -97,7 +97,7 @@ class FetchingData {
     }
   }
 
-  static Future<http.Response> getDate(
+  static Future<http.Response> getData(
     String provideUrl,
     Map<String, String> param,
   ) async {

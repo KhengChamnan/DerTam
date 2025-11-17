@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/ui/screen/trip/trip_detail.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_detail.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/select_place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/trip_place_card.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
@@ -205,12 +205,12 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
         backgroundColor: DertamColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.black),
+          icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.primaryBlue),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Review Your Trip',
-          style: DertamTextStyles.subtitle.copyWith(color: DertamColors.black),
+          style: DertamTextStyles.subtitle.copyWith(color: DertamColors.primaryBlue),
         ),
         centerTitle: true,
       ),

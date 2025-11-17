@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_profile.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_setting_screen.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
@@ -10,10 +12,58 @@ import '../../theme/dertam_apptheme.dart';
 
 class UserProfile extends StatelessWidget {
   const UserProfile({super.key});
-
   @override
   Widget build(BuildContext context) {
     final authProvider = context.read<AuthProvider>();
+    final userData = authProvider.userInfo;
+    Widget userInfo;
+    switch (userData.state) {
+      case AsyncValueState.loading:
+        userInfo = const Center(child: CircularProgressIndicator());
+        break;
+      case AsyncValueState.error:
+        userInfo = Center(child: Text('Error: ${userData.error}'));
+        break;
+      case AsyncValueState.empty:
+        userInfo = Center(
+          child: Text('Welcome, ${userData.data?.name ?? 'User'}'),
+        );
+        break;
+      case AsyncValueState.success:
+        userInfo = Center(
+          child: Column(
+            children: [
+              Container(
+                width: 139,
+                height: 139,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey[300],
+                  image: DecorationImage(
+                    image: NetworkImage(
+                      userData.data?.imageUrl ??
+                          'https://res.cloudinary.com/dd4hzavnw/image/upload/v1761235874/room_properties/emssdtl4jfv65qavecze.png',
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // User Name
+              Text(
+                userData.data?.name ?? 'User not Available',
+                style: DertamTextStyles.subtitle.copyWith(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: const Color.fromARGB(255, 6, 4, 3),
+                  fontSize: 24,
+                ),
+              ),
+            ],
+          ),
+        );
+        break;
+    }
     return Scaffold(
       backgroundColor: DertamColors.white,
       appBar: AppBar(
@@ -38,32 +88,9 @@ class UserProfile extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  // Profile Image
-                  Container(
-                    width: 139,
-                    height: 139,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey[300],
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://res.cloudinary.com/dd4hzavnw/image/upload/v1761235874/room_properties/emssdtl4jfv65qavecze.png',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // User Name
-                  Text(
-                    'Mokey',
-                    style: DertamTextStyles.subtitle.copyWith(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF262422),
-                      fontSize: 20,
-                    ),
-                  ),
+
+                  /// User infomation
+                  userInfo,
                   const SizedBox(height: 28),
                   // Menu Items
                   Padding(
@@ -131,7 +158,16 @@ class UserProfile extends StatelessWidget {
                                     child: const Text('Cancel'),
                                   ),
                                   TextButton(
-                                    onPressed: () => authProvider.logout(),
+                                    onPressed: () {
+                                      authProvider.logout();
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              DertamLoginScreen(),
+                                        ),
+                                      );
+                                    },
                                     child: const Text(
                                       'Log out',
                                       style: TextStyle(color: Colors.red),

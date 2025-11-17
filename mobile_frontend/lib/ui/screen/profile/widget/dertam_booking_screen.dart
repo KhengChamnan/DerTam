@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
-import 'package:mobile_frontend/models/booking/booking.dart';
+import 'package:mobile_frontend/models/booking/bus_booking_response.dart';
 
 class DertamBookingScreen extends StatefulWidget {
   const DertamBookingScreen({super.key});

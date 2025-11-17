@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
@@ -133,9 +134,11 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
 
   /// Handle navigation back to login screen
   void _handleAccountExist() {
-    Navigator.pop(context);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => DertamLoginScreen()),
+    );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

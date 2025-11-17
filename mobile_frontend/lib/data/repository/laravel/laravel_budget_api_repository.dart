@@ -51,7 +51,7 @@ class LaravelBudgetApiRepository implements BudgetRepository {
         throw Exception('User is not authenticated');
       }
       final headers = _getAuthHeaders(token);
-      final response = await FetchingData.getDate(
+      final response = await FetchingData.getData(
         '/api/trips/$tripId/budget',
         headers,
       );
@@ -103,15 +103,19 @@ class LaravelBudgetApiRepository implements BudgetRepository {
       if (token == null) {
         throw Exception('User is not authenticated');
       }
+      final body = {
+        'amount': amount,
+        'currency': currency,
+        'date': date.toIso8601String(),
+        'description': description,
+        'category_id': categoryId,
+      };
       final headers = _getAuthHeaders(token);
-      final response =
-          await FetchingData.postData('/api/budgets/$budgetId/expenses', {
-            'amount': amount,
-            'currency': currency,
-            'date': date.toIso8601String(),
-            'description': description,
-            'category_id': categoryId,
-          }, headers);
+      final response = await FetchingData.postData(
+        '/api/budgets/$budgetId/expenses',
+        body,
+        headers,
+      );
       if (response.statusCode == 201) {
         print('Expense added successfully');
       } else {

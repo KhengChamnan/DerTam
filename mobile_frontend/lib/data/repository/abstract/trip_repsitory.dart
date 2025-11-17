@@ -7,8 +7,12 @@ abstract class TripRepository {
     DateTime endDate,
   );
   Future<List<Trip>> getListOfTrip();
-  Future<Trip> getTripDetails();
-  Future<void> addPlaceToTrip(String placeId);
+  Future<Trip> getTripDetails(String tripId);
+  Future<void> addPlaceToTrip(
+    List<int> placeIds,
+    String tripDayId, {
+    List<String>? notes,
+  });
   Future<void> removePlaceFromTrip(String placeId);
   Future<void> updateTrip(String tripId);
   Future<void> cancelTrip(String tripId);

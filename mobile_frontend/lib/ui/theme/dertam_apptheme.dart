@@ -116,7 +116,7 @@ class DertamTextStyles {
   static TextStyle title = const TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.w500,
-    fontFamily: 'Inter',
+    fontFamily: 'Poppins',
   );
 
   static TextStyle subtitle = const TextStyle(

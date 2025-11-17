@@ -8,18 +8,12 @@ import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import '../../../theme/dertam_apptheme.dart';
 import '../../../widgets/inputs/dertam_text_field.dart';
 import '../../../widgets/actions/dertam_button.dart';
+import '../../../widgets/display/dertam_error_dialog.dart';
 import '../../../../utils/validation.dart';
+import '../../../../utils/error_message_helper.dart';
 import '../widgets/login_illustration.dart';
 import '../widgets/login_google_button.dart';
 
-///
-/// Login screen that allows users to:
-/// - Enter their email and password to sign in
-/// - Toggle password visibility
-/// - Navigate to forgot password screen
-/// - Sign in with Google
-/// - Navigate to registration screen
-///
 class DertamLoginScreen extends StatefulWidget {
   const DertamLoginScreen({super.key});
 
@@ -42,41 +36,33 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
   /// Handles sign in button press
   Future<void> _handleSignIn() async {
     if (!_formKey.currentState!.validate()) return;
-
     // Get auth provider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
     // Call login method
     await authProvider.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
-
     // Check result after login
     if (!mounted) return;
-
     final loginValue = authProvider.loginValue;
 
     if (loginValue?.state == AsyncValueState.success) {
       // Success - Show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loginValue!.data!.name),
-          backgroundColor: Colors.green,
-        ),
-      );
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomePage()),
       );
     } else if (loginValue?.state == AsyncValueState.error) {
-      // Error - Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loginValue!.error.toString()),
-          backgroundColor: Colors.red,
-        ),
+      // Error - Show error dialog with user-friendly message
+      final userFriendlyMessage = ErrorMessageHelper.getUserFriendlyMessage(
+        loginValue!.error,
+      );
+
+      DertamErrorDialog.show(
+        context: context,
+        title: 'Login Failed',
+        message: userFriendlyMessage,
       );
     }
   }
@@ -108,20 +94,22 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
         MaterialPageRoute(builder: (context) => HomePage()),
       );
     } else if (googleSignInValue?.state == AsyncValueState.error) {
-      // Error - Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(googleSignInValue!.error.toString()),
-          backgroundColor: Colors.red,
-        ),
+      // Error - Show error dialog with user-friendly message
+      final userFriendlyMessage = ErrorMessageHelper.getUserFriendlyMessage(
+        googleSignInValue!.error,
+      );
+
+      DertamErrorDialog.show(
+        context: context,
+        title: 'Google Sign In Failed',
+        message: userFriendlyMessage,
       );
     }
   }
 
   /// Handles navigation to register screen
   void _handleRegister() {
-    // TODO: Navigate to register screen
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const DertamRegisterScreen()),
     );
@@ -140,12 +128,10 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
               child: Column(
                 children: [
                   SizedBox(height: DertamSpacings.xxl),
-
                   // Illustration
                   const LoginIllustration(),
 
-                  SizedBox(height: DertamSpacings.xl),
-
+                  SizedBox(height: DertamSpacings.s),
                   // Login title
                   Text(
                     'Log In',
@@ -154,9 +140,7 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
                       fontFamily: 'Roboto',
                     ),
                   ),
-
                   SizedBox(height: DertamSpacings.l),
-
                   // Email field
                   DertamTextField(
                     hintText: 'Email',
@@ -222,7 +206,6 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
                   ),
 
                   SizedBox(height: DertamSpacings.m),
-
                   // Google sign in button
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {

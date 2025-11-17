@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:mobile_frontend/data/network/fetching_data.dart';
@@ -85,10 +84,8 @@ class LaravelAuthApiRepository extends AuthRepository {
       _debugLog('Returning cached token (length: ${_cachedToken!.length})');
       return _cachedToken;
     }
-
     _debugLog('No cached token, checking secure storage');
     _cachedToken = await _storage.read(key: _tokenKey);
-
     if (_cachedToken == null || _cachedToken!.isEmpty) {
       _debugLog('❌ No token found in secure storage');
     } else {
@@ -96,7 +93,6 @@ class LaravelAuthApiRepository extends AuthRepository {
         '✅ Token retrieved from secure storage (length: ${_cachedToken!.length})',
       );
     }
-
     return _cachedToken;
   }
 
@@ -191,15 +187,13 @@ class LaravelAuthApiRepository extends AuthRepository {
   Future<User> login(String email, String password) async {
     try {
       _debugLog('Attempting login with email: $email');
-
       // 1 - Prepare request body
       final body = AuthDto.loginToJson(email, password);
-
       // 2 - Send POST request
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.login),
-        headers: await _getHeaders(),
-        body: json.encode(body),
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.login,
+        await _getHeaders(),
+        body,
       );
 
       _debugLog('Login response status code: ${response.statusCode}');
@@ -248,12 +242,11 @@ class LaravelAuthApiRepository extends AuthRepository {
       // 1 - Prepare request body
       final body = AuthDto.registerToJson(name, email, password);
       body['password_confirmation'] = confirmPassword;
-
       // 2 - Send POST request
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.register),
-        headers: await _getHeaders(),
-        body: json.encode(body),
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.register,
+        await _getHeaders(),
+        body,
       );
 
       _logger.info('Registration response status code: ${response.statusCode}');
@@ -289,37 +282,29 @@ class LaravelAuthApiRepository extends AuthRepository {
   Future<User> sendPasswordResetEmail(String email) async {
     try {
       _debugLog('Sending password reset email to: $email');
-
       // 1 - Prepare request body
       final body = AuthDto.resetPasswordToJson(email);
-
       // 2 - Send POST request
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.forgotPassword),
-        headers: await _getHeaders(),
-        body: json.encode(body),
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.forgotPassword,
+        await _getHeaders(),
+        body,
       );
-
       _logger.info(
         'Password reset email response status code: ${response.statusCode}',
       );
       _logger.info('Password reset email response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseBody = json.decode(response.body);
         final data = responseBody['data'];
-
         _debugLog('✅ Password reset email sent successfully');
-
         // Return user data if available, otherwise return empty user
         if (data != null && data is Map) {
           return User.fromJson(Map<String, dynamic>.from(data));
         }
-
         // Return a minimal user object since this is just a password reset request
         return User(id: 0, name: '', email: email);
       }
-
       throw _handleErrorResponse(response, 'Password reset email');
     } catch (e) {
       _debugLog('❌ Password reset email error: $e');
@@ -335,23 +320,19 @@ class LaravelAuthApiRepository extends AuthRepository {
       // 1 - Prepare request body
       final body = AuthDto.verifyPinToJson(email, pin);
       // 2 - Send POST request
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.verifyPin),
-        headers: await _getHeaders(),
-        body: json.encode(body),
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.verifyPin,
+        await _getHeaders(),
+        body,
       );
-
       _logger.info(
         'PIN verification response status code: ${response.statusCode}',
       );
       _logger.info('PIN verification response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseBody = json.decode(response.body);
         final data = responseBody['data'];
-
         _debugLog('✅ PIN verified successfully');
-
         // Return user data if available
         if (data != null && data is Map) {
           return User.fromJson(Map<String, dynamic>.from(data));
@@ -377,10 +358,10 @@ class LaravelAuthApiRepository extends AuthRepository {
       final body = {'email': email, 'newPassword': newPassword};
 
       // 2 - Send POST request
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.resetPassword),
-        headers: await _getHeaders(),
-        body: json.encode(body),
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.resetPassword,
+        await _getHeaders(),
+        body,
       );
 
       _logger.info(
@@ -417,26 +398,20 @@ class LaravelAuthApiRepository extends AuthRepository {
       _debugLog('Attempting logout');
 
       // 1 - Send POST request with token
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.logout),
-        headers: await _getHeaders(includeToken: true),
+      final response = await FetchingData.postWithHeaderOnly(
+        ApiEndpoint.logout,
+        await _getHeaders(includeToken: true),
       );
-
       _logger.info('Logout response status code: ${response.statusCode}');
-
       // 2 - Delete token from storage regardless of response
       await deleteToken();
-
       // 3 - Sign out from Google to clear cached account
       await _googleSignIn.signOut();
-
       _debugLog('✅ Logout successful');
     } catch (e) {
       _debugLog('❌ Logout error: $e');
-
       // Delete token even if request fails
       await deleteToken();
-
       // Also try to sign out from Google even if request fails
       try {
         await _googleSignIn.signOut();
@@ -455,33 +430,26 @@ class LaravelAuthApiRepository extends AuthRepository {
       _debugLog('Attempting Google sign in');
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
       if (googleUser == null) {
         _debugLog('❌ Google sign in cancelled by user');
         throw Exception('Google sign in cancelled');
       }
-
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-
       if (googleAuth.accessToken == null) {
         _debugLog('❌ Failed to get Google authentication');
         throw Exception('Failed to get Google authentication');
       }
-
       _logger.info(
         'Attempting Google sign in with token type: ${googleAuth.accessToken!.startsWith('ya29') ? 'access_token' : 'id_token'}',
       );
       _logger.info('Token length: ${googleAuth.accessToken!.length}');
 
       // Send access token to Laravel backend
-      final response = await http.post(
-        Uri.parse(ApiEndpoint.googleSignIn),
-        headers: await _getHeaders(),
-        body: jsonEncode({
-          'social_type': 'google',
-          'token': googleAuth.accessToken,
-        }),
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.googleSignIn,
+        await _getHeaders(),
+        {'social_type': 'google', 'token': googleAuth.accessToken},
       );
 
       _logger.info('Google sign in response: ${response.statusCode}');
@@ -552,6 +520,7 @@ class LaravelAuthApiRepository extends AuthRepository {
     try {
       _logger.info('Attempting logout');
       _cachedToken = null;
+      deleteToken();
     } catch (e) {
       _logger.severe('Logout error: $e');
       rethrow;
@@ -561,25 +530,51 @@ class LaravelAuthApiRepository extends AuthRepository {
   @override
   Future<User> getUserInfo() async {
     try {
+      _debugLog('Getting user info...');
       final token = await getToken();
+
       if (token == null || token.isEmpty) {
+        _debugLog('❌ No authentication token found');
         throw Exception('No authentication token found');
       }
-      final response = await FetchingData.getDate(
+
+      _debugLog('Token found, length: ${token.length}');
+      _debugLog('Making API request to: ${ApiEndpoint.userInfo}');
+
+      final headers = _getAuthHeaders(token);
+      _debugLog('Request headers: $headers');
+
+      final response = await FetchingData.getData(
         ApiEndpoint.userInfo,
-        _getAuthHeaders(token),
+        headers,
       );
+
+      _debugLog('Response status code: ${response.statusCode}');
+      _debugLog('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         final jsonData = jsonResponse['data'];
         if (jsonData == null) {
+          _debugLog('❌ Response does not contain "data" field');
           throw Exception('Response does not contain "data" field');
         }
+        _debugLog('✅ User info retrieved successfully');
         return User.fromJson(jsonData);
+      } else if (response.statusCode == 404) {
+        _debugLog('❌ 404 Error - Endpoint not found or user not found');
+        throw Exception(
+          'Failed to load user info: User endpoint not found (404)',
+        );
+      } else if (response.statusCode == 401) {
+        _debugLog('❌ 401 Error - Unauthorized, token may be invalid');
+        throw Exception('Failed to load user info: Unauthorized (401)');
       } else {
+        _debugLog('❌ Error: ${response.statusCode}');
         throw Exception('Failed to load user info: ${response.statusCode}');
       }
     } catch (e) {
+      _debugLog('❌ getUserInfo exception: $e');
       rethrow;
     }
   }

@@ -31,13 +31,10 @@ class _TripDateScreenState extends State<TripDateScreen> {
       );
       return;
     }
-
     setState(() {
       _isLoading = true;
     });
-
     await Future.delayed(const Duration(seconds: 2));
-
     if (mounted) {
       final tripId = DateTime.now().millisecondsSinceEpoch.toString();
       final newTrip = {
@@ -118,12 +115,12 @@ class _TripDateScreenState extends State<TripDateScreen> {
         backgroundColor: DertamColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.black),
+          icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.tripName,
-          style: DertamTextStyles.title.copyWith(color: DertamColors.black),
+          style: DertamTextStyles.title.copyWith(color: DertamColors.primaryBlue),
         ),
         centerTitle: true,
       ),

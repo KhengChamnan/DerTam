@@ -3,7 +3,6 @@ import 'package:mobile_frontend/models/place/place.dart';
 
 /// Data Transfer Object for Place model
 class PlaceDto {
-  /// Convert API/Database JSON to Place model
   static Place fromJson(Map<String, dynamic> json) {
     try {
       return Place(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/hotel_repository.dart';
-import 'package:mobile_frontend/models/hotel/hotel_datial.dart';
+import 'package:mobile_frontend/models/booking/hotel_booking_response.dart';
+import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
+import 'package:mobile_frontend/models/hotel/search_room.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 
 class HotelProvider extends ChangeNotifier {
@@ -11,11 +13,16 @@ class HotelProvider extends ChangeNotifier {
   AsyncValue<HotelDetail> _hotelDetail = AsyncValue.empty();
   AsyncValue<List<HotelList>> _hotelList = AsyncValue.empty();
   AsyncValue<Room> _roomDetail = AsyncValue.empty();
+  AsyncValue<HotelBookingResponse> _createBooking = AsyncValue.empty();
+  AsyncValue<SearchRoomResponse> _searchAvailableRooms = AsyncValue.empty();
 
   // Getters hotel
   AsyncValue<HotelDetail> get hotelDetail => _hotelDetail;
   AsyncValue<List<HotelList>> get hotelList => _hotelList;
   AsyncValue<Room> get roomDetail => _roomDetail;
+  AsyncValue<HotelBookingResponse> get createBookingState => _createBooking;
+  AsyncValue<SearchRoomResponse> get searchAvailableRooms =>
+      _searchAvailableRooms;
 
   Future<void> fetchHotelDetail(String hotelId) async {
     _hotelDetail = AsyncValue.loading();
@@ -57,35 +64,54 @@ class HotelProvider extends ChangeNotifier {
     }
   }
 
-  // Future<void> bookHotel(
-  //   String fullName,
-  //   String age,
-  //   String gender,
-  //   String mobileNumber,
-  //   String email,
-  //   String idNumber,
-  //   String idImage,
-  //   DateTime checkinDate,
-  //   DateTime checkoutDate,
-  //   String paymentMethod,
-  //   String roomId,
-  // ) async {
-  //   try {
-  //     await repository.createBooking(
-  //       fullName,
-  //       age,
-  //       gender,
-  //       mobileNumber,
-  //       email,
-  //       idNumber,
-  //       idImage,
-  //       checkinDate,
-  //       checkoutDate,
-  //       paymentMethod,
-  //       roomId,
-  //     );
-  //   } catch (e) {
-  //     rethrow;
-  //   }
-  // }
+  Future<HotelBookingResponse> createBooking(
+    DateTime checkIn,
+    DateTime checkOut,
+    List<Room> bookingItems,
+    String paymentOption,
+  ) async {
+    _createBooking = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final hotelBookingResponse = await repository.createBooking(
+        checkIn,
+        checkOut,
+        bookingItems,
+        paymentOption,
+      );
+      _createBooking = AsyncValue.success(hotelBookingResponse);
+      notifyListeners();
+      return hotelBookingResponse;
+    } catch (e) {
+      print('Booking Error: $e');
+      _createBooking = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<SearchRoomResponse> searchAvailableRoom(
+    DateTime checkIn,
+    DateTime checkOut,
+    int guests,
+    int nights,
+  ) async {
+    _searchAvailableRooms = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final searchResults = await repository.searchAvailableRooms(
+        checkIn,
+        checkOut,
+        guests,
+        nights,
+      );
+      _searchAvailableRooms = AsyncValue.success(searchResults);
+      notifyListeners();
+      return searchResults;
+    } catch (e) {
+      _searchAvailableRooms = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
 }
