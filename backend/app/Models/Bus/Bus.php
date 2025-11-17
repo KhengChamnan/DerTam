@@ -20,8 +20,12 @@ class Bus extends Model
     protected $fillable = [
         'bus_name',
         'bus_plate',
+        'bus_type',
         'seat_capacity',
+        'is_active',
         'transportation_id',
+        'description',
+        'features',
     ];
 
     /**
@@ -32,6 +36,7 @@ class Bus extends Model
     protected $casts = [
         'seat_capacity' => 'integer',
         'transportation_id' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     /**
