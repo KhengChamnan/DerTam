@@ -25,8 +25,9 @@ use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomController;
 use App\Http\Controllers\API\Trip\TripShareController;
 use App\Http\Controllers\API\Profile\ProfileController;
-use App\Http\Controllers\API\Booking\BookingController;
-use App\Http\Controllers\API\Booking\PaymentCallbackController;
+use App\Http\Controllers\API\Booking\HotelBookingController;
+use App\Http\Controllers\API\Booking\BusBookingController;
+use App\Http\Controllers\API\Payment\PaymentCallbackController;
 
 
 
@@ -147,23 +148,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Booking management routes (protected)
     Route::prefix('booking')->group(function () {
-        // Create hotel booking with payment
-        Route::post('/create', [BookingController::class, 'createHotelBooking']);
+        // Hotel booking routes
+        Route::prefix('hotel')->group(function () {
+            Route::post('/create', [HotelBookingController::class, 'createHotelBooking']);
+            Route::get('/my-bookings', [HotelBookingController::class, 'getMyHotelBookings']);
+            Route::get('/{id}', [HotelBookingController::class, 'getHotelBookingDetails']);
+            Route::post('/{id}/cancel', [HotelBookingController::class, 'cancelHotelBooking']);
+        });
         
-        // Get user's bookings
-        Route::get('/my-bookings', [BookingController::class, 'getMyBookings']);
-        
-        // Get specific booking details
-        Route::get('/{id}', [BookingController::class, 'getBookingDetails']);
-        
-        // Cancel a booking
-        Route::post('/{id}/cancel', [BookingController::class, 'cancelBooking']);
-        
-        // Get upcoming hotel bookings
-        Route::get('/upcoming-hotels', [BookingController::class, 'getUpcomingHotels']);
-        
-        // Get booking statistics
-        Route::get('/statistics', [BookingController::class, 'getStatistics']);
+        // Bus booking routes
+        Route::post('/bus/create', [BusBookingController::class, 'createBusBooking']);
         
         // Payment operations
         Route::get('/payment/status/{transactionId}', [PaymentCallbackController::class, 'checkPaymentStatus']);

@@ -2,25 +2,21 @@
 
 namespace App\Http\Controllers\API\Booking;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\API\Payment\BasePaymentController;
 use App\Models\Booking\Booking;
 use App\Models\Booking\BookingItem;
 use App\Models\Booking\BookingHotelDetail;
-use App\Models\Payment\Payment;
-use App\Models\Payment\PaymentMethod;
 use App\Services\AbaPayWayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
-class BookingController extends Controller
+class HotelBookingController extends BasePaymentController
 {
-    protected $abaService;
-
     public function __construct(AbaPayWayService $abaService)
     {
-        $this->abaService = $abaService;
+        parent::__construct($abaService);
     }
 
     /**
@@ -105,44 +101,33 @@ class BookingController extends Controller
     }
 
     /**
-     * Create payment record
+     * Build success response for hotel booking
      */
-    private function createPayment(int $bookingId, float $amount, string $currency): Payment
+    private function buildSuccessResponse(Booking $booking, array $createdItems, Request $request, int $nights, array $abaData): \Illuminate\Http\JsonResponse
     {
-        $paymentMethod = PaymentMethod::firstOrCreate(
-            ['provider_key' => 'aba_payway'],
-            [
-                'name' => 'ABA PayWay',
-                'is_active' => true,
-            ]
-        );
-
-        // Generate unique transaction ID (max 20 characters for ABA PayWay)
-        // Format: BK{bookingId}{uniqid} - similar to PaymentExample.php
-        $uniqPart = strtoupper(uniqid());
-        $tranId = 'BK' . $bookingId . $uniqPart;
-        
-        // Ensure it doesn't exceed 20 characters
-        if (strlen($tranId) > 20) {
-            // Trim from the middle of uniqid to keep booking ID intact
-            $maxUniqLength = 20 - 2 - strlen($bookingId); // 20 - 'BK' - bookingId length
-            $uniqPart = substr($uniqPart, 0, $maxUniqLength);
-            $tranId = 'BK' . $bookingId . $uniqPart;
-        }
-
-        return Payment::create([
-            'booking_id' => $bookingId,
-            'payment_method_id' => $paymentMethod->id,
-            'amount' => $amount,
-            'currency' => $currency,
-            'status' => 'pending',
-            'provider_transaction_id' => $tranId,  // Changed from 'transaction_id' to 'provider_transaction_id'
-        ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Hotel booking created successfully',
+            'data' => [
+                'booking' => [
+                    'id' => $booking->id,
+                    'total_amount' => $booking->total_amount,
+                    'currency' => $booking->currency,
+                    'status' => $booking->status,
+                    'check_in' => $request->check_in,
+                    'check_out' => $request->check_out,
+                    'nights' => $nights,
+                    'booking_items' => $createdItems,
+                ],
+                // Return complete ABA PayWay response
+                'aba_response' => $abaData,
+            ],
+        ], 201);
     }
 
     /**
      * Create a new hotel booking with payment
-     * POST /api/booking/create
+     * POST /api/booking/hotel/create
      */
     public function createHotelBooking(Request $request)
     {
@@ -195,8 +180,11 @@ class BookingController extends Controller
             // Create payment
             $payment = $this->createPayment($booking->id, $totalAmount, $currency);
 
+            // Prepare ABA items for payment
+            $abaItems = $this->prepareAbaItems($request->booking_items, $nights);
+
             // Process ABA PayWay payment
-            $abaResponse = $this->processAbaPayment($request, $payment, $nights);
+            $abaResponse = $this->processAbaPayment($request, $payment, $abaItems);
 
             if (!$abaResponse['success']) {
                 DB::rollBack();
@@ -221,7 +209,7 @@ class BookingController extends Controller
             // Payment initiated successfully - payload will be saved when status is checked in callback
             DB::commit();
 
-            return $this->buildSuccessResponse($booking, $payment, $createdItems, $request, $nights, $abaResponse['data']);
+            return $this->buildSuccessResponse($booking, $createdItems, $request, $nights, $abaResponse['data']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -239,75 +227,19 @@ class BookingController extends Controller
     }
 
     /**
-     * Process ABA PayWay payment
+     * Get user's hotel bookings
+     * GET /api/booking/hotel/my-bookings
      */
-    private function processAbaPayment(Request $request, Payment $payment, int $nights): array
-    {
-        $user = auth()->user();
-        $abaItems = $this->prepareAbaItems($request->booking_items, $nights);
-
-        $abaData = [
-            'tran_id' => $payment->provider_transaction_id,  // Changed from transaction_id
-            'amount' => $payment->amount,
-            'currency' => $payment->currency,
-            'payment_option' => $request->payment_option ?? 'abapay_khqr_deeplink',
-            'firstname' => $request->firstname ?? $user->name ?? 'Customer',
-            'lastname' => $request->lastname ?? '',
-            'email' => $request->email ?? $user->email ?? 'customer@example.com',
-            'phone' => $request->phone ?? $user->phone ?? '012345678',
-            'return_deeplink' => $request->return_deeplink ?? 'myapp://payment',
-            'lifetime' => $request->lifetime ?? 10,
-            'items' => $abaItems,
-        ];
-
-        // Log transaction ID details
-        Log::info('Booking Payment - Transaction ID Details', [
-            'transaction_id' => $payment->provider_transaction_id,  // Changed from transaction_id
-            'length' => strlen($payment->provider_transaction_id),
-            'is_alphanumeric' => ctype_alnum($payment->provider_transaction_id),
-            'booking_id' => $payment->booking_id,
-            'amount' => $payment->amount,
-        ]);
-
-        return $this->abaService->createPurchase($abaData);
-    }
-
-    /**
-     * Build success response
-     */
-    private function buildSuccessResponse(Booking $booking, Payment $payment, array $createdItems, Request $request, int $nights, array $abaData): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'message' => 'Hotel booking created successfully',
-            'data' => [
-                'booking' => [
-                    'id' => $booking->id,
-                    'total_amount' => $booking->total_amount,
-                    'currency' => $booking->currency,
-                    'status' => $booking->status,
-                    'check_in' => $request->check_in,
-                    'check_out' => $request->check_out,
-                    'nights' => $nights,
-                    'booking_items' => $createdItems,
-                ],
-                // Return complete ABA PayWay response
-                'aba_response' => $abaData,
-            ],
-        ], 201);
-    }
-
-    /**
-     * Get user's bookings
-     * GET /api/booking/my-bookings
-     */
-    public function getMyBookings(Request $request)
+    public function getMyHotelBookings(Request $request)
     {
         try {
             $userId = auth()->id();
             $status = $request->query('status'); // pending, confirmed, cancelled, refunded
 
             $query = Booking::where('user_id', $userId)
+                ->whereHas('bookingItems', function($q) {
+                    $q->where('item_type', 'hotel_room');
+                })
                 ->with([
                     'bookingItems.hotelDetails',
                     'bookingItems.roomProperty.property',
@@ -341,16 +273,19 @@ class BookingController extends Controller
     }
 
     /**
-     * Get booking details by ID
-     * GET /api/booking/{id}
+     * Get hotel booking details by ID
+     * GET /api/booking/hotel/{id}
      */
-    public function getBookingDetails($id)
+    public function getHotelBookingDetails($id)
     {
         try {
             $userId = auth()->id();
             
             $booking = Booking::where('id', $id)
                 ->where('user_id', $userId)
+                ->whereHas('bookingItems', function($q) {
+                    $q->where('item_type', 'hotel_room');
+                })
                 ->with([
                     'bookingItems.hotelDetails',
                     'bookingItems.roomProperty.property',
@@ -364,7 +299,7 @@ class BookingController extends Controller
             if (!$booking) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Booking not found',
+                    'message' => 'Hotel booking not found',
                 ], 404);
             }
 
@@ -374,23 +309,23 @@ class BookingController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to fetch booking details', [
+            Log::error('Failed to fetch hotel booking details', [
                 'booking_id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch booking details',
+                'message' => 'Failed to fetch hotel booking details',
             ], 500);
         }
     }
 
     /**
-     * Cancel a booking
-     * POST /api/booking/{id}/cancel
+     * Cancel a hotel booking
+     * POST /api/booking/hotel/{id}/cancel
      */
-    public function cancelBooking($id)
+    public function cancelHotelBooking($id)
     {
         DB::beginTransaction();
         try {
@@ -398,26 +333,29 @@ class BookingController extends Controller
             
             $booking = Booking::where('id', $id)
                 ->where('user_id', $userId)
+                ->whereHas('bookingItems', function($q) {
+                    $q->where('item_type', 'hotel_room');
+                })
                 ->first();
 
             if (!$booking) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Booking not found',
+                    'message' => 'Hotel booking not found',
                 ], 404);
             }
 
             if ($booking->isCancelled()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Booking is already cancelled',
+                    'message' => 'Hotel booking is already cancelled',
                 ], 400);
             }
 
             if ($booking->isRefunded()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Booking has been refunded',
+                    'message' => 'Hotel booking has been refunded',
                 ], 400);
             }
 
@@ -431,7 +369,7 @@ class BookingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Booking cancelled successfully',
+                'message' => 'Hotel booking cancelled successfully',
                 'data' => [
                     'booking_id' => $booking->id,
                     'status' => $booking->status,
@@ -440,17 +378,15 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to cancel booking', [
+            Log::error('Failed to cancel hotel booking', [
                 'booking_id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to cancel booking',
+                'message' => 'Failed to cancel hotel booking',
             ], 500);
         }
     }
-
- 
 }
