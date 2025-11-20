@@ -1,0 +1,214 @@
+{
+	"info": {
+		"_postman_id": "bus-schedule-api-collection",
+		"name": "Bus Schedule API",
+		"description": "API endpoints for searching bus schedules and viewing upcoming journeys",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Search Bus Schedules",
+			"item": [
+				{
+					"name": "Search - Today",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/search?from_location=Phnom Penh&to_location=Siem Reap&date_filter=today",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "search"],
+							"query": [
+								{
+									"key": "from_location",
+									"value": "Phnom Penh",
+									"description": "Starting location"
+								},
+								{
+									"key": "to_location",
+									"value": "Siem Reap",
+									"description": "Destination location"
+								},
+								{
+									"key": "date_filter",
+									"value": "today",
+									"description": "Options: today, tomorrow, other"
+								}
+							]
+						},
+						"description": "Search for bus schedules departing today"
+					},
+					"response": []
+				},
+				{
+					"name": "Search - Tomorrow",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/search?from_location=Phnom Penh&to_location=Siem Reap&date_filter=tomorrow",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "search"],
+							"query": [
+								{
+									"key": "from_location",
+									"value": "Phnom Penh",
+									"description": "Starting location"
+								},
+								{
+									"key": "to_location",
+									"value": "Siem Reap",
+									"description": "Destination location"
+								},
+								{
+									"key": "date_filter",
+									"value": "tomorrow",
+									"description": "Filter for tomorrow's schedules"
+								}
+							]
+						},
+						"description": "Search for bus schedules departing tomorrow"
+					},
+					"response": []
+				},
+				{
+					"name": "Search - Specific Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/search?from_location=Phnom Penh&to_location=Siem Reap&date_filter=other&specific_date=2025-12-25",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "search"],
+							"query": [
+								{
+									"key": "from_location",
+									"value": "Phnom Penh",
+									"description": "Starting location"
+								},
+								{
+									"key": "to_location",
+									"value": "Siem Reap",
+									"description": "Destination location"
+								},
+								{
+									"key": "date_filter",
+									"value": "other",
+									"description": "Use specific date"
+								},
+								{
+									"key": "specific_date",
+									"value": "2025-12-25",
+									"description": "Date in Y-m-d format (required when date_filter=other)"
+								}
+							]
+						},
+						"description": "Search for bus schedules on a specific date"
+					},
+					"response": []
+				},
+				{
+					"name": "Search - All Routes (No Date Filter)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/search?from_location=Battambang&to_location=Sihanoukville",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "search"],
+							"query": [
+								{
+									"key": "from_location",
+									"value": "Battambang",
+									"description": "Starting location"
+								},
+								{
+									"key": "to_location",
+									"value": "Sihanoukville",
+									"description": "Destination location"
+								}
+							]
+						},
+						"description": "Search for bus schedules with default date filter (today)"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for searching bus schedules with various filters"
+		},
+		{
+			"name": "Upcoming Journeys",
+			"item": [
+				{
+					"name": "Get Upcoming Journeys - Default",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/upcoming-journeys",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "upcoming-journeys"]
+						},
+						"description": "Get upcoming bus journeys with default limit (10)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Journeys - Custom Limit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/upcoming-journeys?limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "upcoming-journeys"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Number of journeys to return (default: 10)"
+								}
+							]
+						},
+						"description": "Get upcoming bus journeys with custom limit"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Journeys - Limited to 5",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bus/upcoming-journeys?limit=5",
+							"host": ["{{base_url}}"],
+							"path": ["bus", "upcoming-journeys"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5",
+									"description": "Get only 5 upcoming journeys"
+								}
+							]
+						},
+						"description": "Get 5 upcoming bus journeys for quick preview"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for viewing upcoming bus journeys (public access)"
+		}
+	]
+}

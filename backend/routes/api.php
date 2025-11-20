@@ -28,6 +28,7 @@ use App\Http\Controllers\API\Profile\ProfileController;
 use App\Http\Controllers\API\Booking\HotelBookingController;
 use App\Http\Controllers\API\Booking\BusBookingController;
 use App\Http\Controllers\API\Payment\PaymentCallbackController;
+use App\Http\Controllers\API\Bus\BusScheduleController;
 
 
 
@@ -86,6 +87,11 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+
+// Public bus schedule search route
+Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
+Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
+
 
 
 // ABA PayWay payment return/callback routes (must be public - no auth)

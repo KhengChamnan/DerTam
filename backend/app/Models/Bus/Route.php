@@ -2,9 +2,11 @@
 
 namespace App\Models\Bus;
 
+use App\Models\ProvinceCategory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Route extends Model
 {
@@ -31,6 +33,22 @@ class Route extends Model
         'distance_km' => 'decimal:2',
         'duration_hours' => 'decimal:2',
     ];
+
+    /**
+     * Get the starting province for this route.
+     */
+    public function fromLocation(): BelongsTo
+    {
+        return $this->belongsTo(ProvinceCategory::class, 'from_location', 'province_categoryID');
+    }
+
+    /**
+     * Get the destination province for this route.
+     */
+    public function toLocation(): BelongsTo
+    {
+        return $this->belongsTo(ProvinceCategory::class, 'to_location', 'province_categoryID');
+    }
 
     /**
      * Get all schedules for this route.

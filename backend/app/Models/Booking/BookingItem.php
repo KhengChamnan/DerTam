@@ -7,6 +7,7 @@ use App\Models\Hotel\RoomProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BookingItem extends Model
@@ -92,5 +93,16 @@ class BookingItem extends Model
     public function roomProperty(): BelongsTo
     {
         return $this->belongsTo(RoomProperty::class, 'item_id', 'room_properties_id');
+    }
+
+    /**
+     * Get the seat bookings for bus bookings (if item_type is bus_seat).
+     *
+     * @return HasMany
+     */
+    public function seatBookings(): HasMany
+    {
+        return $this->hasMany(\App\Models\Bus\SeatBooking::class, 'booking_id', 'booking_id')
+            ->where('seat_id', $this->item_id);
     }
 }
