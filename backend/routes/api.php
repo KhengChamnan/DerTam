@@ -118,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trips/{tripId}', 'show');    // Get specific trip with days
         Route::get('trip-days/{tripDayId}/places', 'getTripDayPlaces'); // Get all places for a trip day
         Route::post('trip-days/{tripDayId}/places', 'addPlacesToDay'); // Add places to a trip day
+        Route::post('/add-places/{trip_id}', 'addPlaces');
     });
 
     // Trip place selection routes (for adding places to trips)
