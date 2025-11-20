@@ -1,44 +1,35 @@
-# Stage 1: Build frontend assets with Node
-FROM node:20 as node_builder
+# Stage 1: Composer dependencies
+FROM composer:2 AS vendor
 
 WORKDIR /app
-COPY package*.json vite.config.* ./
-COPY resources ./resources
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-RUN npm install
-RUN npm run build
-
-# Stage 2: Build PHP app with Composer and PHP-FPM
+# Stage 2: PHP runtime
 FROM php:8.2-fpm
 
-# Install system dependencies
+# Install PHP extensions
 RUN apt-get update && apt-get install -y \
-    git curl unzip libpq-dev libonig-dev libzip-dev zip libpng-dev libjpeg-dev libfreetype6-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql mbstring zip \
+    git unzip libpq-dev libzip-dev libpng-dev \
+    && docker-php-ext-install pdo pdo_mysql zip \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy Laravel files
+# Copy Laravel project
 COPY . .
 
-# Copy built assets from Node stage
-COPY --from=node_builder /app/public/build ./public/build
+# Copy vendor from Composer stage
+COPY --from=vendor /app/vendor ./vendor
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Set permissions
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
-# Set correct permissions for Laravel storage and cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
+# Expose port
 EXPOSE 8000
 
+# Commands to optimize and run API
 CMD php artisan config:clear && \
-    php artisan migrate --force && \
     php artisan optimize && \
-    php artisan serve --host=0.0.0.0 --port=$PORT
+    php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
