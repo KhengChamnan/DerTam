@@ -155,11 +155,23 @@ class TripController extends Controller
             // Combine both lists
             $trips = $ownedTrips->merge($sharedTrips)->sortByDesc('created_at')->values();
 
-            // Get trip days count for each trip
+            // Get trip days count and a random place image for each trip
             foreach ($trips as $trip) {
                 $trip->days_count = DB::table('trip_days')
                     ->where('trip_id', $trip->trip_id)
                     ->count();
+
+                // Get a random place image from the trip
+                $randomPlace = DB::table('trip_places')
+                    ->join('trip_days', 'trip_places.trip_day_id', '=', 'trip_days.trip_day_id')
+                    ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                    ->where('trip_days.trip_id', $trip->trip_id)
+                    ->whereNotNull('places.images_url')
+                    ->select('places.images_url')
+                    ->inRandomOrder()
+                    ->first();
+
+                $trip->cover_image = $randomPlace ? $randomPlace->images_url : null;
             }
 
             return response()->json([
