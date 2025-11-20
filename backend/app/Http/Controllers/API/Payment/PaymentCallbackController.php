@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API\Booking;
+namespace App\Http\Controllers\API\Payment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking\Booking;
@@ -9,6 +9,8 @@ use App\Services\AbaPayWayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;   
+use App\Models\Payment\PaymentMethod;
 
 class PaymentCallbackController extends Controller
 {
@@ -242,7 +244,7 @@ class PaymentCallbackController extends Controller
      */
     public function retryPayment($bookingId, Request $request)
     {
-        $validator = \Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'payment_option' => 'nullable|string|in:abapay_khqr,abapay_khqr_deeplink,abapay_deeplink',
             'firstname' => 'nullable|string|max:255',
             'lastname' => 'nullable|string|max:255',
@@ -288,7 +290,7 @@ class PaymentCallbackController extends Controller
             }
 
             // Get payment method
-            $paymentMethod = \App\Models\Payment\PaymentMethod::where('code', 'aba_payway')->first();
+            $paymentMethod = PaymentMethod::where('code', 'aba_payway')->first();
 
             if (!$paymentMethod) {
                 return response()->json([
