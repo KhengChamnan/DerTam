@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+} from "@/components/ui/empty";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -84,6 +91,32 @@ export default function TransportationOwnerBusesIndex({
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
+
+    // Client-side filtering for instant results
+    const filteredBuses = buses.data.filter((bus) => {
+        // Search filter
+        const searchLower = search.toLowerCase();
+        const matchesSearch =
+            search === "" ||
+            bus.bus_name.toLowerCase().includes(searchLower) ||
+            bus.bus_plate.toLowerCase().includes(searchLower) ||
+            bus.bus_property?.bus_type.toLowerCase().includes(searchLower) ||
+            bus.bus_property?.transportation?.place?.name
+                ?.toLowerCase()
+                .includes(searchLower);
+
+        // Type filter
+        const matchesType =
+            typeFilter === "all" ||
+            bus.bus_property?.bus_type.toLowerCase() ===
+                typeFilter.toLowerCase();
+
+        // Status filter
+        const matchesStatus =
+            statusFilter === "all" || bus.status === statusFilter;
+
+        return matchesSearch && matchesType && matchesStatus;
+    });
 
     const getBusTypeBadge = (type: string) => {
         const badgeColors: { [key: string]: string } = {
@@ -177,7 +210,7 @@ export default function TransportationOwnerBusesIndex({
 
                 {/* Bus Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {buses.data.map((bus) => (
+                    {filteredBuses.map((bus) => (
                         <Card
                             key={bus.id}
                             className="hover:shadow-lg transition-shadow overflow-hidden"
@@ -315,34 +348,47 @@ export default function TransportationOwnerBusesIndex({
                 </div>
 
                 {/* Empty State */}
-                {buses.data.length === 0 && (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Bus className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Buses Found
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
-                                You don't have any buses in your fleet yet.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Contact your administrator to add buses to your
-                                company.
-                            </p>
-                        </CardContent>
-                    </Card>
+                {filteredBuses.length === 0 && (
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Bus className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>
+                                {buses.data.length === 0
+                                    ? "No Buses Found"
+                                    : "No Matching Buses"}
+                            </EmptyTitle>
+                            <EmptyDescription>
+                                {buses.data.length === 0 ? (
+                                    <>
+                                        You don't have any buses in your fleet
+                                        yet. Contact your administrator to add
+                                        buses to your company.
+                                    </>
+                                ) : (
+                                    "No buses match your current filters. Try adjusting your search or filters."
+                                )}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {(buses.current_page - 1) * buses.per_page + 1}{" "}
-                        to{" "}
-                        {Math.min(
-                            buses.current_page * buses.per_page,
-                            buses.total
-                        )}{" "}
-                        of {buses.total} bus(es).
+                        {filteredBuses.length > 0 ? (
+                            <>
+                                Showing {filteredBuses.length} of {buses.total}{" "}
+                                bus(es)
+                                {(search ||
+                                    typeFilter !== "all" ||
+                                    statusFilter !== "all") &&
+                                    " (filtered)"}
+                            </>
+                        ) : (
+                            "No buses to display"
+                        )}
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">

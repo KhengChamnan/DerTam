@@ -18,8 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar, ArrowLeft, Bus, MapPin, Clock, Save } from "lucide-react";
+import { Calendar, ArrowLeft, Bus, Clock, Save } from "lucide-react";
 import { toast } from "sonner";
 
 interface BusData {
@@ -61,34 +60,28 @@ export default function TransportationOwnerSchedulesCreateEdit({
 }: Props) {
     const isEditing = !!schedule;
 
-    // Get current date and time in the format required for datetime-local input
-    const now = new Date();
-    const localDateTime = new Date(
-        now.getTime() - now.getTimezoneOffset() * 60000
-    )
-        .toISOString()
-        .slice(0, 16);
+    // Helper function to format datetime for input field
+    const formatDateTimeLocal = (
+        dateString: string | null | undefined
+    ): string => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         bus_id: schedule?.bus_id || "",
         route_id: schedule?.route_id || "",
         departure_time: schedule?.departure_time
-            ? new Date(
-                  new Date(schedule.departure_time).getTime() -
-                      new Date(schedule.departure_time).getTimezoneOffset() *
-                          60000
-              )
-                  .toISOString()
-                  .slice(0, 16)
-            : localDateTime,
+            ? formatDateTimeLocal(schedule.departure_time)
+            : "",
         arrival_time: schedule?.arrival_time
-            ? new Date(
-                  new Date(schedule.arrival_time).getTime() -
-                      new Date(schedule.arrival_time).getTimezoneOffset() *
-                          60000
-              )
-                  .toISOString()
-                  .slice(0, 16)
+            ? formatDateTimeLocal(schedule.arrival_time)
             : "",
         price: schedule?.price || "",
         status: schedule?.status || "scheduled",
@@ -119,12 +112,10 @@ export default function TransportationOwnerSchedulesCreateEdit({
             const arrivalDate = new Date(
                 departureDate.getTime() + route.duration * 60000
             );
-            const arrivalDateTime = new Date(
-                arrivalDate.getTime() - arrivalDate.getTimezoneOffset() * 60000
-            )
-                .toISOString()
-                .slice(0, 16);
-            setData("arrival_time", arrivalDateTime);
+            setData(
+                "arrival_time",
+                formatDateTimeLocal(arrivalDate.toISOString())
+            );
         }
     };
 
@@ -137,12 +128,10 @@ export default function TransportationOwnerSchedulesCreateEdit({
             const arrivalDate = new Date(
                 departureDate.getTime() + selectedRoute.duration * 60000
             );
-            const arrivalDateTime = new Date(
-                arrivalDate.getTime() - arrivalDate.getTimezoneOffset() * 60000
-            )
-                .toISOString()
-                .slice(0, 16);
-            setData("arrival_time", arrivalDateTime);
+            setData(
+                "arrival_time",
+                formatDateTimeLocal(arrivalDate.toISOString())
+            );
         }
     };
 
@@ -295,18 +284,22 @@ export default function TransportationOwnerSchedulesCreateEdit({
                                     {/* Departure Time */}
                                     <div>
                                         <Label htmlFor="departure_time">
-                                            Departure Time *
+                                            Departure Date & Time *
                                         </Label>
-                                        <Input
-                                            id="departure_time"
-                                            type="datetime-local"
-                                            value={data.departure_time}
-                                            onChange={(e) =>
-                                                handleDepartureTimeChange(
-                                                    e.target.value
-                                                )
-                                            }
-                                        />
+                                        <div className="relative">
+                                            <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                id="departure_time"
+                                                type="datetime-local"
+                                                value={data.departure_time}
+                                                onChange={(e) =>
+                                                    handleDepartureTimeChange(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="pl-10"
+                                            />
+                                        </div>
                                         {errors.departure_time && (
                                             <p className="text-sm text-red-500 mt-1">
                                                 {errors.departure_time}
@@ -317,19 +310,23 @@ export default function TransportationOwnerSchedulesCreateEdit({
                                     {/* Arrival Time */}
                                     <div>
                                         <Label htmlFor="arrival_time">
-                                            Arrival Time *
+                                            Arrival Date & Time *
                                         </Label>
-                                        <Input
-                                            id="arrival_time"
-                                            type="datetime-local"
-                                            value={data.arrival_time}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "arrival_time",
-                                                    e.target.value
-                                                )
-                                            }
-                                        />
+                                        <div className="relative">
+                                            <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                id="arrival_time"
+                                                type="datetime-local"
+                                                value={data.arrival_time}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "arrival_time",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="pl-10"
+                                            />
+                                        </div>
                                         {errors.arrival_time && (
                                             <p className="text-sm text-red-500 mt-1">
                                                 {errors.arrival_time}
@@ -346,7 +343,7 @@ export default function TransportationOwnerSchedulesCreateEdit({
                                             id="price"
                                             type="number"
                                             min="0"
-                                            step="0.01"
+                                            step="1"
                                             value={data.price}
                                             onChange={(e) =>
                                                 setData("price", e.target.value)
@@ -416,100 +413,6 @@ export default function TransportationOwnerSchedulesCreateEdit({
                             </Button>
                         </div>
                     </form>
-                </div>
-
-                {/* Summary Sidebar */}
-                <div className="space-y-6">
-                    {/* Bus Summary */}
-                    {selectedBus && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Bus className="h-4 w-4" />
-                                    Selected Bus
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Name
-                                    </p>
-                                    <p className="font-medium">
-                                        {selectedBus.bus_name}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Plate Number
-                                    </p>
-                                    <p className="font-medium">
-                                        {selectedBus.bus_plate}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Seat Capacity
-                                    </p>
-                                    <p className="font-medium">
-                                        {selectedBus.seat_capacity} seats
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Route Summary */}
-                    {selectedRoute && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <MapPin className="h-4 w-4" />
-                                    Selected Route
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Origin
-                                    </p>
-                                    <p className="font-medium">
-                                        {selectedRoute.origin}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Destination
-                                    </p>
-                                    <p className="font-medium">
-                                        {selectedRoute.destination}
-                                    </p>
-                                </div>
-                                {selectedRoute.distance && (
-                                    <div>
-                                        <p className="text-muted-foreground">
-                                            Distance
-                                        </p>
-                                        <p className="font-medium">
-                                            {selectedRoute.distance} km
-                                        </p>
-                                    </div>
-                                )}
-                                {selectedRoute.duration && (
-                                    <div>
-                                        <p className="text-muted-foreground">
-                                            Estimated Duration
-                                        </p>
-                                        <p className="font-medium">
-                                            {Math.floor(
-                                                selectedRoute.duration / 60
-                                            )}
-                                            h {selectedRoute.duration % 60}m
-                                        </p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             </div>
         </AppLayout>

@@ -404,13 +404,62 @@ class TransportationOwnerController extends Controller
             'bus.busProperty.transportation:id,placeID',
             'bus.busProperty.transportation.place:placeID,name',
             'route:id,from_location,to_location,distance_km,duration_hours',
+            'route.fromProvince:province_categoryID,province_categoryName',
+            'route.toProvince:province_categoryID,province_categoryName',
             'bookings'
         ])
         ->orderBy('departure_time', 'desc')
         ->paginate(15);
         
+        // Map route province names
+        $schedules->getCollection()->transform(function($schedule) {
+            if ($schedule->route) {
+                $schedule->route->from_location = $schedule->route->fromProvince->province_categoryName ?? $schedule->route->from_location;
+                $schedule->route->to_location = $schedule->route->toProvince->province_categoryName ?? $schedule->route->to_location;
+                unset($schedule->route->fromProvince);
+                unset($schedule->route->toProvince);
+            }
+            return $schedule;
+        });
+        
         return Inertia::render('transportation-owner/schedules/index', [
             'schedules' => $schedules
+        ]);
+    }
+
+    /**
+     * Show schedule details
+     */
+    public function showSchedule($id): Response
+    {
+        $user = Auth::user();
+        
+        $schedule = BusSchedule::whereHas('bus.busProperty.transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })
+        ->with([
+            'bus:id,bus_name,bus_plate,bus_property_id,description,is_available,status',
+            'bus.busProperty:id,bus_type,seat_capacity,image_url,amenities,features,price_per_seat,transportation_id',
+            'bus.busProperty.transportation:id,placeID',
+            'bus.busProperty.transportation.place:placeID,name',
+            'route:id,from_location,to_location,distance_km,duration_hours',
+            'route.fromProvince:province_categoryID,province_categoryName',
+            'route.toProvince:province_categoryID,province_categoryName',
+            'bookings.user:id,name,email,phone',
+            'bookings.seats',
+        ])
+        ->findOrFail($id);
+        
+        // Map route province names
+        if ($schedule->route) {
+            $schedule->route->from_location = $schedule->route->fromProvince->province_categoryName ?? $schedule->route->from_location;
+            $schedule->route->to_location = $schedule->route->toProvince->province_categoryName ?? $schedule->route->to_location;
+            unset($schedule->route->fromProvince);
+            unset($schedule->route->toProvince);
+        }
+        
+        return Inertia::render('transportation-owner/schedules/show', [
+            'schedule' => $schedule
         ]);
     }
 
@@ -594,12 +643,18 @@ class TransportationOwnerController extends Controller
         });
         
         // Get all available routes
-        $routes = \App\Models\Bus\Route::select('id', 'from_location as origin', 'to_location as destination', 'distance_km as distance', 'duration_hours as duration')
+        $routes = \App\Models\Bus\Route::with(['fromProvince:province_categoryID,province_categoryName', 'toProvince:province_categoryID,province_categoryName'])
             ->get()
             ->map(function($route) {
                 // Convert duration from hours to minutes for frontend
-                $route->duration = $route->duration ? (int)($route->duration * 60) : null;
-                return $route;
+                $duration = $route->duration_hours ? (int)($route->duration_hours * 60) : null;
+                return [
+                    'id' => $route->id,
+                    'origin' => $route->fromProvince->province_categoryName ?? 'Unknown',
+                    'destination' => $route->toProvince->province_categoryName ?? 'Unknown',
+                    'distance' => $route->distance_km,
+                    'duration' => $duration,
+                ];
             });
         
         return Inertia::render('transportation-owner/schedules/createEdit', [
@@ -670,12 +725,18 @@ class TransportationOwnerController extends Controller
         });
         
         // Get all available routes
-        $routes = \App\Models\Bus\Route::select('id', 'from_location as origin', 'to_location as destination', 'distance_km as distance', 'duration_hours as duration')
+        $routes = \App\Models\Bus\Route::with(['fromProvince:province_categoryID,province_categoryName', 'toProvince:province_categoryID,province_categoryName'])
             ->get()
             ->map(function($route) {
                 // Convert duration from hours to minutes for frontend
-                $route->duration = $route->duration ? (int)($route->duration * 60) : null;
-                return $route;
+                $duration = $route->duration_hours ? (int)($route->duration_hours * 60) : null;
+                return [
+                    'id' => $route->id,
+                    'origin' => $route->fromProvince->province_categoryName ?? 'Unknown',
+                    'destination' => $route->toProvince->province_categoryName ?? 'Unknown',
+                    'distance' => $route->distance_km,
+                    'duration' => $duration,
+                ];
             });
         
         return Inertia::render('transportation-owner/schedules/createEdit', [
@@ -723,5 +784,29 @@ class TransportationOwnerController extends Controller
         
         return redirect()->route('transportation-owner.schedules.index')
             ->with('success', 'Schedule updated successfully.');
+    }
+
+    /**
+     * Delete a schedule
+     */
+    public function destroySchedule($id)
+    {
+        $user = Auth::user();
+        
+        $schedule = BusSchedule::whereHas('bus.busProperty.transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })
+        ->findOrFail($id);
+        
+        // Check if schedule has any bookings
+        if ($schedule->bookings && $schedule->bookings->count() > 0) {
+            return redirect()->route('transportation-owner.schedules.index')
+                ->with('error', 'Cannot delete schedule with existing bookings. Please cancel or complete all bookings first.');
+        }
+        
+        $schedule->delete();
+        
+        return redirect()->route('transportation-owner.schedules.index')
+            ->with('success', 'Schedule deleted successfully.');
     }
 }
