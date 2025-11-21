@@ -30,6 +30,7 @@ class Booking extends Model
         'total_amount',
         'currency',
         'status',
+        'expires_at',
     ];
 
     /**
