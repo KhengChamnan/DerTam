@@ -42,6 +42,7 @@ class Booking extends Model
         'total_amount' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     /**

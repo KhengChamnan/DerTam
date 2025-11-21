@@ -20,7 +20,10 @@ class ExpireBookings extends Command
             ->where('expires_at', '<', now())
             ->get();
 
+        Log::info("Found " . $expiredBookings->count() . " expired bookings");
+
         if ($expiredBookings->isEmpty()) {
+            Log::info("No expired bookings found");
             return;
         }
 
@@ -30,10 +33,10 @@ class ExpireBookings extends Command
                 // 1. Delete the seat reservations so others can book them
                 SeatBooking::where('booking_id', $booking->id)->delete();
                 
-                // 2. Delete the expired booking record
-                $booking->delete();
+                // 2. Update booking status to 'expired' (or delete it based on your preference)
+                $booking->update(['status' => 'expired']);
                 
-                Log::info("Booking {$booking->id} expired and deleted.");
+                Log::info("Booking {$booking->id} expired and seats released.");
                 DB::commit();
             } catch (\Exception $e) {
                 DB::rollBack();
