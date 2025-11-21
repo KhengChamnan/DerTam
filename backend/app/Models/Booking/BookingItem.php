@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Bus\SeatBooking;
 
 class BookingItem extends Model
 {
@@ -102,7 +103,7 @@ class BookingItem extends Model
      */
     public function seatBookings(): HasMany
     {
-        return $this->hasMany(\App\Models\Bus\SeatBooking::class, 'booking_id', 'booking_id')
+        return $this->hasMany(SeatBooking::class, 'booking_id', 'booking_id')
             ->where('seat_id', $this->item_id);
     }
 }
