@@ -64,7 +64,7 @@ class BusBookingController extends BasePaymentController
             $alreadyBooked = SeatBooking::where('schedule_id', $request->schedule_id)
                 ->whereIn('seat_id', $request->seat_ids)
                 ->whereHas('booking', function($query) {
-                    $query->whereIn('status', ['pending', 'confirmed']);
+                    $query->whereIn('status', [ 'confirmed']);
                 })
                 ->exists();
 
@@ -85,6 +85,7 @@ class BusBookingController extends BasePaymentController
                 'total_amount' => $totalAmount,
                 'currency' => $currency,
                 'status' => 'pending',
+                'expires_at' => now()->addMinutes(10),
             ]);
 
             // Create booking items for each seat

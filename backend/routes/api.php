@@ -177,3 +177,13 @@ Route::get('/upload', function () {
 });
 Route::post('/upload', [MediaController::class, 'upload']);
 
+Route::get('/cron-job-run', function (Request $request) {
+
+    // This tells Laravel: "Run the logic defined in routes/console.php NOW"
+    Artisan::call('schedule:run');
+
+    return response()->json([
+        'message' => 'Scheduler executed',
+        'output' => Artisan::output()
+    ]);
+});
