@@ -228,8 +228,10 @@ Route::middleware([
             Route::get('/schedules', [TransportationOwnerController::class, 'schedules'])->name('schedules.index');
             Route::get('/schedules/create', [TransportationOwnerController::class, 'createSchedule'])->name('schedules.create');
             Route::post('/schedules', [TransportationOwnerController::class, 'storeSchedule'])->name('schedules.store');
+            Route::get('/schedules/{id}', [TransportationOwnerController::class, 'showSchedule'])->name('schedules.show');
             Route::get('/schedules/{id}/edit', [TransportationOwnerController::class, 'editSchedule'])->name('schedules.edit');
             Route::put('/schedules/{id}', [TransportationOwnerController::class, 'updateSchedule'])->name('schedules.update');
+            Route::delete('/schedules/{id}', [TransportationOwnerController::class, 'destroySchedule'])->name('schedules.destroy');
             
             // Bookings
             Route::get('/bookings', [TransportationOwnerController::class, 'bookings'])->name('bookings.index');
