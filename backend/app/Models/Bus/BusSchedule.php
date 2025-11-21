@@ -63,4 +63,25 @@ class BusSchedule extends Model
     {
         return $this->hasMany(SeatBooking::class, 'schedule_id');
     }
+
+    /**
+     * Get the real-time count of available seats for this schedule.
+     * Calculates: Total bus seats - Seats with active bookings (pending or confirmed).
+     *
+     * @return int Number of available seats
+     */
+    public function getAvailableSeatsCount(): int
+    {
+        // Get total seats for this bus
+        $totalSeats = BusSeat::where('bus_id', $this->bus_id)->count();
+        
+        // Get count of booked seats with active bookings
+        $bookedSeats = SeatBooking::where('schedule_id', $this->id)
+            ->whereHas('booking', function($query) {
+                $query->whereIn('status', ['pending', 'confirmed']);
+            })
+            ->count();
+        
+        return max(0, $totalSeats - $bookedSeats);
+    }
 }

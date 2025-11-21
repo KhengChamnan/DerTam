@@ -2,6 +2,7 @@
 
 namespace App\Models\Bus;
 
+use App\Models\Booking\Booking;
 use App\Models\Hotel\BookingDetail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -44,13 +45,14 @@ class SeatBooking extends Model
         'updated_at' => 'datetime',
     ];
 
-    // /**
-    //  * Get the booking detail for this bus seat booking.
-    //  */
-    // public function booking(): BelongsTo
-    // {
-    //     return $this->belongsTo(BookingDetail::class, 'booking_id', 'booking_id');
-    // }
+    /**
+     * Get the booking for this seat booking.
+     * This relationship is crucial for checking booking status (pending, confirmed, cancelled, refunded)
+     */
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class, 'booking_id', 'id');
+    }
 
     /**
      * Get the schedule for this booking.

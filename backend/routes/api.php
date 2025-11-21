@@ -36,6 +36,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/bus/provinces', [BusScheduleController::class, 'getProvinces']);
+Route::get('/bus/schedule/{id}', [BusScheduleController::class, 'getScheduleDetail']);
 
 Route::controller(RegisterController::class)->group(function(){
     Route::post('register', 'register');
