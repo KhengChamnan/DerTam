@@ -30,10 +30,10 @@ class ExpireBookings extends Command
                 // 1. Delete the seat reservations so others can book them
                 SeatBooking::where('booking_id', $booking->id)->delete();
                 
-                // 2. Update booking status to 'expired' (or delete it based on your preference)
-                $booking->update(['status' => 'expired']);
+                // 2. Delete the expired booking record
+                $booking->delete();
                 
-                Log::info("Booking {$booking->id} expired and seats released.");
+                Log::info("Booking {$booking->id} expired and deleted.");
                 DB::commit();
             } catch (\Exception $e) {
                 DB::rollBack();
