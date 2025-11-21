@@ -167,11 +167,11 @@ class TripController extends Controller
                     ->join('places', 'trip_places.place_id', '=', 'places.placeID')
                     ->where('trip_days.trip_id', $trip->trip_id)
                     ->whereNotNull('places.images_url')
-                    ->select('places.images_url')
+                    ->select(DB::raw("JSON_UNQUOTE(JSON_EXTRACT(places.images_url, '$[0]')) as image_url"))
                     ->inRandomOrder()
                     ->first();
 
-                $trip->cover_image = $randomPlace ? $randomPlace->images_url : null;
+                $trip->image_url = $randomPlace ? $randomPlace->image_url : null;
             }
 
             return response()->json([
