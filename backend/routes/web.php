@@ -209,10 +209,18 @@ Route::middleware([
                 ->middleware('transportation.owner')
                 ->name('companies.show');
             
+            // Bus Property (Type) Management
+            Route::get('/bus-properties', [TransportationOwnerController::class, 'busProperties'])->name('bus-properties.index');
+            Route::get('/bus-properties/create', [TransportationOwnerController::class, 'createBusProperty'])->name('bus-properties.create');
+            Route::post('/bus-properties', [TransportationOwnerController::class, 'storeBusProperty'])->name('bus-properties.store');
+            Route::get('/bus-properties/{id}/edit', [TransportationOwnerController::class, 'editBusProperty'])->name('bus-properties.edit');
+            Route::put('/bus-properties/{id}', [TransportationOwnerController::class, 'updateBusProperty'])->name('bus-properties.update');
+            
             // Bus Management
             Route::get('/buses', [TransportationOwnerController::class, 'buses'])->name('buses.index');
             Route::get('/buses/create', [TransportationOwnerController::class, 'createBus'])->name('buses.create');
             Route::post('/buses', [TransportationOwnerController::class, 'storeBus'])->name('buses.store');
+            Route::get('/buses/{id}', [TransportationOwnerController::class, 'showBus'])->name('buses.show');
             Route::get('/buses/{id}/edit', [TransportationOwnerController::class, 'editBus'])->name('buses.edit');
             Route::put('/buses/{id}', [TransportationOwnerController::class, 'updateBus'])->name('buses.update');
             
