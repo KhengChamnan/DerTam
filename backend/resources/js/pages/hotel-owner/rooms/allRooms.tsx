@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+    EmptyContent,
+} from "@/components/ui/empty";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -507,37 +515,41 @@ export default function AllRooms({ rooms }: Props) {
 
                 {/* Empty State - No rooms at all */}
                 {data.length === 0 && (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <DoorOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Rooms Found
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <DoorOpen className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Rooms Found</EmptyTitle>
+                            <EmptyDescription>
                                 You haven't created any individual rooms yet.
-                            </p>
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
                             <Button asChild>
                                 <Link href="/hotel-owner/properties">
                                     <Home className="h-4 w-4 mr-2" />
                                     Go to My Hotel
                                 </Link>
                             </Button>
-                        </CardContent>
-                    </Card>
+                        </EmptyContent>
+                    </Empty>
                 )}
 
                 {/* Empty State - No filtered results */}
                 {data.length > 0 && filteredData.length === 0 && (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Matching Rooms
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Search className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Matching Rooms</EmptyTitle>
+                            <EmptyDescription>
                                 No rooms match your current filters. Try
                                 adjusting your search criteria.
-                            </p>
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
                             <Button
                                 variant="outline"
                                 onClick={() => {
@@ -549,8 +561,8 @@ export default function AllRooms({ rooms }: Props) {
                             >
                                 Clear All Filters
                             </Button>
-                        </CardContent>
-                    </Card>
+                        </EmptyContent>
+                    </Empty>
                 )}
 
                 {/* Pagination */}

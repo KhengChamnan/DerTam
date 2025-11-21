@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+} from "@/components/ui/empty";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -72,10 +79,10 @@ interface BusSchedule {
     };
     route: {
         id: number;
-        origin: string;
-        destination: string;
-        distance?: number;
-        duration?: number;
+        from_location: string;
+        to_location: string;
+        distance_km?: number;
+        duration_hours?: number;
     };
     bookings?: Array<{
         id: number;
@@ -158,6 +165,36 @@ export default function TransportationOwnerSchedulesIndex({
         );
     }, [columnVisibility]);
 
+    // Filter schedules in real-time on the client side
+    const filteredSchedules = schedules.data.filter((schedule) => {
+        // Status filter
+        if (statusFilter !== "all" && schedule.status !== statusFilter) {
+            return false;
+        }
+
+        // Search filter - search across bus name, plate, and route
+        if (search.trim() !== "") {
+            const searchLower = search.toLowerCase();
+            const matchesBusName = schedule.bus.bus_name
+                .toLowerCase()
+                .includes(searchLower);
+            const matchesBusPlate = schedule.bus.bus_plate
+                .toLowerCase()
+                .includes(searchLower);
+            const matchesRoute =
+                schedule.route.from_location
+                    .toLowerCase()
+                    .includes(searchLower) ||
+                schedule.route.to_location.toLowerCase().includes(searchLower);
+
+            if (!matchesBusName && !matchesBusPlate && !matchesRoute) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "scheduled":
@@ -171,6 +208,20 @@ export default function TransportationOwnerSchedulesIndex({
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
+    };
+
+    // Helper to parse datetime string as local time
+    const parseAsLocalTime = (dateString: string) => {
+        // Parse the datetime string as local time, not UTC
+        const dateParts = dateString.replace(" ", "T").split(/[-T:]/);
+        return new Date(
+            parseInt(dateParts[0]), // year
+            parseInt(dateParts[1]) - 1, // month (0-indexed)
+            parseInt(dateParts[2]), // day
+            parseInt(dateParts[3] || "0"), // hours
+            parseInt(dateParts[4] || "0"), // minutes
+            parseInt(dateParts[5] || "0") // seconds
+        );
     };
 
     const getAvailabilityBadge = (
@@ -341,7 +392,7 @@ export default function TransportationOwnerSchedulesIndex({
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div
-                                className="grid gap-4 items-center"
+                                className="grid gap-8 items-center "
                                 style={{
                                     gridTemplateColumns: `${
                                         columnVisibility.bus ? "2fr" : ""
@@ -401,7 +452,7 @@ export default function TransportationOwnerSchedulesIndex({
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {schedules.data.map((schedule) => {
+                            {filteredSchedules.map((schedule) => {
                                 const bookedSeats =
                                     schedule.bookings?.length || 0;
                                 const availableSeats =
@@ -454,13 +505,15 @@ export default function TransportationOwnerSchedulesIndex({
                                             )}
                                             {columnVisibility.route && (
                                                 <div className="flex items-center gap-1 text-sm">
-                                                    <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                                     <span className="truncate">
-                                                        {schedule.route.origin}{" "}
+                                                        {
+                                                            schedule.route
+                                                                .from_location
+                                                        }{" "}
                                                         →{" "}
                                                         {
                                                             schedule.route
-                                                                .destination
+                                                                .to_location
                                                         }
                                                     </span>
                                                 </div>
@@ -469,21 +522,42 @@ export default function TransportationOwnerSchedulesIndex({
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-1 text-sm">
                                                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        {new Date(
-                                                            schedule.departure_time
-                                                        ).toLocaleDateString()}
+                                                        {(() => {
+                                                            const date =
+                                                                parseAsLocalTime(
+                                                                    schedule.departure_time
+                                                                );
+                                                            return `${
+                                                                date.getMonth() +
+                                                                1
+                                                            }/${date.getDate()}/${date.getFullYear()}`;
+                                                        })()}
                                                     </div>
                                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
-                                                        {new Date(
-                                                            schedule.departure_time
-                                                        ).toLocaleTimeString(
-                                                            [],
-                                                            {
-                                                                hour: "2-digit",
-                                                                minute: "2-digit",
-                                                            }
-                                                        )}
+                                                        {(() => {
+                                                            const date =
+                                                                parseAsLocalTime(
+                                                                    schedule.departure_time
+                                                                );
+                                                            const hours =
+                                                                date.getHours();
+                                                            const minutes =
+                                                                date.getMinutes();
+                                                            const ampm =
+                                                                hours >= 12
+                                                                    ? "PM"
+                                                                    : "AM";
+                                                            const displayHours =
+                                                                hours % 12 ||
+                                                                12;
+                                                            return `${displayHours}:${minutes
+                                                                .toString()
+                                                                .padStart(
+                                                                    2,
+                                                                    "0"
+                                                                )} ${ampm}`;
+                                                        })()}
                                                     </div>
                                                 </div>
                                             )}
@@ -491,21 +565,42 @@ export default function TransportationOwnerSchedulesIndex({
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-1 text-sm">
                                                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        {new Date(
-                                                            schedule.arrival_time
-                                                        ).toLocaleDateString()}
+                                                        {(() => {
+                                                            const date =
+                                                                parseAsLocalTime(
+                                                                    schedule.arrival_time
+                                                                );
+                                                            return `${
+                                                                date.getMonth() +
+                                                                1
+                                                            }/${date.getDate()}/${date.getFullYear()}`;
+                                                        })()}
                                                     </div>
                                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
-                                                        {new Date(
-                                                            schedule.arrival_time
-                                                        ).toLocaleTimeString(
-                                                            [],
-                                                            {
-                                                                hour: "2-digit",
-                                                                minute: "2-digit",
-                                                            }
-                                                        )}
+                                                        {(() => {
+                                                            const date =
+                                                                parseAsLocalTime(
+                                                                    schedule.arrival_time
+                                                                );
+                                                            const hours =
+                                                                date.getHours();
+                                                            const minutes =
+                                                                date.getMinutes();
+                                                            const ampm =
+                                                                hours >= 12
+                                                                    ? "PM"
+                                                                    : "AM";
+                                                            const displayHours =
+                                                                hours % 12 ||
+                                                                12;
+                                                            return `${displayHours}:${minutes
+                                                                .toString()
+                                                                .padStart(
+                                                                    2,
+                                                                    "0"
+                                                                )} ${ampm}`;
+                                                        })()}
                                                     </div>
                                                 </div>
                                             )}
@@ -645,35 +740,41 @@ export default function TransportationOwnerSchedulesIndex({
                 </div>
 
                 {/* Empty State */}
-                {schedules.data.length === 0 && (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Schedules Found
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
-                                You don't have any schedules for your buses yet.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Schedules will appear here once they are created
-                                for your buses.
-                            </p>
-                        </CardContent>
-                    </Card>
+                {filteredSchedules.length === 0 && (
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Calendar className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Schedules Found</EmptyTitle>
+                            <EmptyDescription>
+                                {schedules.data.length === 0 ? (
+                                    <>
+                                        You don't have any schedules for your
+                                        buses yet. Schedules will appear here
+                                        once they are created for your buses.
+                                    </>
+                                ) : (
+                                    "No schedules match your current filters. Try adjusting your search or status filter."
+                                )}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing{" "}
-                        {(schedules.current_page - 1) * schedules.per_page + 1}{" "}
-                        to{" "}
-                        {Math.min(
-                            schedules.current_page * schedules.per_page,
-                            schedules.total
-                        )}{" "}
-                        of {schedules.total} schedule(s).
+                        {filteredSchedules.length > 0 ? (
+                            <>
+                                Showing {filteredSchedules.length} of{" "}
+                                {schedules.total} schedule(s)
+                                {(search || statusFilter !== "all") &&
+                                    " (filtered)"}
+                            </>
+                        ) : (
+                            "No schedules to display"
+                        )}
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">

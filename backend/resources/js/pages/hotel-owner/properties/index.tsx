@@ -5,6 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+    EmptyContent,
+} from "@/components/ui/empty";
+import {
     Hotel,
     Eye,
     Settings,
@@ -63,22 +71,19 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
             <AppLayout>
                 <Head title="My Hotel" />
                 <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Hotel className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Property Assigned
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Hotel className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Property Assigned</EmptyTitle>
+                            <EmptyDescription>
                                 You don't have a hotel property assigned to your
-                                account yet.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Contact your administrator to get a hotel
-                                property assigned to your account.
-                            </p>
-                        </CardContent>
-                    </Card>
+                                account yet. Contact your administrator to get a
+                                hotel property assigned to your account.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 </div>
             </AppLayout>
         );
@@ -410,16 +415,18 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
                         })}
                     </div>
                 ) : (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Bed className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Room Types Configured
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Bed className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Room Types Configured</EmptyTitle>
+                            <EmptyDescription>
                                 Start by adding room types to your hotel
                                 property.
-                            </p>
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
                             <Button asChild>
                                 <Link
                                     href={`/hotel-owner/properties/${property.property_id}/room-properties/create`}
@@ -428,8 +435,8 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
                                     Add Your First Room Type
                                 </Link>
                             </Button>
-                        </CardContent>
-                    </Card>
+                        </EmptyContent>
+                    </Empty>
                 )}
             </div>
         </AppLayout>

@@ -39,4 +39,20 @@ class Route extends Model
     {
         return $this->hasMany(BusSchedule::class);
     }
+
+    /**
+     * Get the from location (origin province).
+     */
+    public function fromProvince()
+    {
+        return $this->belongsTo(\App\Models\ProvinceCategory::class, 'from_location', 'province_categoryID');
+    }
+
+    /**
+     * Get the to location (destination province).
+     */
+    public function toProvince()
+    {
+        return $this->belongsTo(\App\Models\ProvinceCategory::class, 'to_location', 'province_categoryID');
+    }
 }
