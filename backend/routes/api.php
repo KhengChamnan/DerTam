@@ -28,6 +28,7 @@ use App\Http\Controllers\API\Profile\ProfileController;
 use App\Http\Controllers\API\Booking\HotelBookingController;
 use App\Http\Controllers\API\Booking\BusBookingController;
 use App\Http\Controllers\API\Payment\PaymentCallbackController;
+use App\Http\Controllers\API\Bus\BusScheduleController;
 
 
 
@@ -35,6 +36,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/bus/provinces', [BusScheduleController::class, 'getProvinces']);
+Route::get('/bus/schedule/{id}', [BusScheduleController::class, 'getScheduleDetail']);
 
 Route::controller(RegisterController::class)->group(function(){
     Route::post('register', 'register');
@@ -86,6 +89,11 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+
+// Public bus schedule search route
+Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
+Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
+
 
 
 // ABA PayWay payment return/callback routes (must be public - no auth)

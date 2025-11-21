@@ -10,7 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-
+use App\Models\Bus\BusSeat;
+use App\Models\Bus\SeatBooking;
 class BusBookingController extends BasePaymentController
 {
     public function __construct(AbaPayWayService $abaService)
@@ -47,7 +48,7 @@ class BusBookingController extends BasePaymentController
             $schedule = \App\Models\Bus\BusSchedule::with(['bus', 'route'])->findOrFail($request->schedule_id);
             
             // Verify seats belong to the bus in this schedule
-            $validSeatIds = \App\Models\Bus\BusSeat::where('bus_id', $schedule->bus_id)
+            $validSeatIds = BusSeat::where('bus_id', $schedule->bus_id)
                 ->whereIn('id', $request->seat_ids)
                 ->pluck('id')
                 ->toArray();
@@ -59,9 +60,12 @@ class BusBookingController extends BasePaymentController
                 ], 400);
             }
 
-            // Check if seats are already booked for this schedule
-            $alreadyBooked = \App\Models\Bus\SeatBooking::where('schedule_id', $request->schedule_id)
+            // Check if seats are already booked for this schedule with active bookings
+            $alreadyBooked = SeatBooking::where('schedule_id', $request->schedule_id)
                 ->whereIn('seat_id', $request->seat_ids)
+                ->whereHas('booking', function($query) {
+                    $query->whereIn('status', ['pending', 'confirmed']);
+                })
                 ->exists();
 
             if ($alreadyBooked) {
@@ -96,18 +100,18 @@ class BusBookingController extends BasePaymentController
                 ]);
 
                 // Create seat booking record
-                \App\Models\Bus\SeatBooking::create([
+                SeatBooking::create([
                     'booking_id' => $booking->id,
                     'schedule_id' => $request->schedule_id,
                     'seat_id' => $seatId,
                     'price' => $pricePerSeat,
                 ]);
 
-                $seat = \App\Models\Bus\BusSeat::find($seatId);
+                $seat = BusSeat::find($seatId);
                 $createdItems[] = [
                     'booking_item_id' => $bookingItem->id,
                     'seat_id' => $seatId,
-                    'seat_number' => $seat->seat_number,
+                    'seat_number' => $seat->column_label . $seat->row,
                     'price' => $pricePerSeat,
                 ];
             }

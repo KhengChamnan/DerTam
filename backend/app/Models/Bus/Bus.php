@@ -2,8 +2,10 @@
 
 namespace App\Models\Bus;
 
+use App\Models\Transportation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Bus extends Model
@@ -35,9 +37,9 @@ class Bus extends Model
     /**
      * Get the transportation company this bus belongs to.
      */
-    public function transportation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function transportation(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Transportation::class, 'transportation_id', 'id');
+        return $this->belongsTo(Transportation::class, 'transportation_id', 'id');
     }
 
     /**
