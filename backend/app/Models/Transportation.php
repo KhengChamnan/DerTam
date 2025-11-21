@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Models\Bus\Bus;
+use App\Models\Bus\BusProperty;
 use App\Models\User;
 use App\Models\Place;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Transportation extends Model
 {
@@ -45,21 +47,42 @@ class Transportation extends Model
     }
 
     /**
-     * Get all buses owned by this transportation company.
+     * Get all bus properties (types) for this transportation company.
      */
-    public function buses(): HasMany
+    public function busProperties(): HasMany
     {
-        return $this->hasMany(Bus::class, 'transportation_id', 'id');
+        return $this->hasMany(BusProperty::class, 'transportation_id', 'id');
+    }
+
+    /**
+     * Get all buses owned by this transportation company (through bus properties).
+     */
+    public function buses(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Bus::class,
+            BusProperty::class,
+            'transportation_id', // Foreign key on bus_properties table
+            'bus_property_id',   // Foreign key on buses table
+            'id',                // Local key on transportations table
+            'id'                 // Local key on bus_properties table
+        );
     }
 
     /**
      * Get active buses (buses with at least one scheduled trip).
      */
-    public function activeBuses(): HasMany
+    public function activeBuses(): HasManyThrough
     {
-        return $this->hasMany(Bus::class, 'transportation_id', 'id')
-            ->whereHas('schedules', function ($query) {
-                $query->where('status', 'scheduled');
-            });
+        return $this->hasManyThrough(
+            Bus::class,
+            BusProperty::class,
+            'transportation_id',
+            'bus_property_id',
+            'id',
+            'id'
+        )->whereHas('schedules', function ($query) {
+            $query->where('status', 'scheduled');
+        });
     }
 }

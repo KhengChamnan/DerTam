@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, useForm, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Bed, Save } from "lucide-react";
+import { ArrowLeft, Bed, Save, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface Property {
     property_id: number;
@@ -55,36 +56,107 @@ export default function CreateEditRoomProperty({
         price_per_night: roomProperty?.price_per_night || 0,
         images_url: roomProperty?.images_url || [],
         amenity_ids: roomProperty?.amenities?.map((a) => a.amenity_id) || [],
+        images: [] as File[],
     });
 
     const [imageInput, setImageInput] = useState("");
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (isEditing) {
-            put(
-                `/hotel-owner/properties/${property.property_id}/room-properties/${roomProperty.room_properties_id}`
+            router.post(
+                `/hotel-owner/properties/${property.property_id}/room-properties/${roomProperty.room_properties_id}`,
+                { ...data, _method: "PUT" },
+                {
+                    forceFormData: true,
+                    onSuccess: () => {
+                        toast.success("Room type updated successfully!");
+                    },
+                    onError: () => {
+                        toast.error("Failed to update room type.");
+                    },
+                }
             );
         } else {
             post(
-                `/hotel-owner/properties/${property.property_id}/room-properties`
+                `/hotel-owner/properties/${property.property_id}/room-properties`,
+                {
+                    forceFormData: true,
+                    onSuccess: () => {
+                        toast.success("Room type created successfully!");
+                    },
+                    onError: () => {
+                        toast.error("Failed to create room type.");
+                    },
+                }
             );
         }
     };
 
-    const handleAddImage = () => {
-        if (imageInput.trim()) {
-            setData("images_url", [...data.images_url, imageInput.trim()]);
-            setImageInput("");
+    const handleImageUrlChange = (value: string) => {
+        setImageInput(value);
+
+        // Auto-add image if the value looks like a complete URL
+        if (
+            value.trim() &&
+            (value.startsWith("http://") || value.startsWith("https://"))
+        ) {
+            const imagePattern =
+                /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i;
+            const isImageUrl =
+                imagePattern.test(value) ||
+                value.includes("image") ||
+                value.includes("img");
+
+            if (isImageUrl) {
+                setData("images_url", [...data.images_url, value.trim()]);
+                setImageInput("");
+            }
         }
     };
 
-    const handleRemoveImage = (index: number) => {
-        setData(
-            "images_url",
-            data.images_url.filter((_, i) => i !== index)
+    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        const newFiles = Array.from(files).filter((file) =>
+            file.type.startsWith("image/")
         );
+
+        setData("images", [...data.images, ...newFiles]);
+
+        // Create preview URLs for display
+        newFiles.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const previewUrl = reader.result as string;
+                setData("images_url", [...data.images_url, previewUrl]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const openFileBrowser = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleRemoveImage = (index: number) => {
+        const newImages = data.images_url.filter((_, i) => i !== index);
+        setData("images_url", newImages);
+
+        // If removing a preview image, also remove from files
+        const existingImagesCount = roomProperty?.images_url?.length || 0;
+        if (index >= existingImagesCount) {
+            const fileIndex = index - existingImagesCount;
+            const newFiles = data.images.filter((_, i) => i !== fileIndex);
+            setData("images", newFiles);
+        }
     };
 
     const handleAmenityToggle = (amenityId: number) => {
@@ -255,47 +327,69 @@ export default function CreateEditRoomProperty({
 
                             {/* Images */}
                             <div className="space-y-2">
-                                <Label>Room Images (URLs)</Label>
+                                <Label>Room Images</Label>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+
                                 <div className="flex gap-2">
                                     <Input
                                         value={imageInput}
                                         onChange={(e) =>
-                                            setImageInput(e.target.value)
+                                            handleImageUrlChange(e.target.value)
                                         }
-                                        placeholder="https://example.com/image.jpg"
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onPaste={(e) => {
+                                            const pastedText =
+                                                e.clipboardData.getData("text");
+                                            if (pastedText.startsWith("http")) {
+                                                handleImageUrlChange(
+                                                    pastedText
+                                                );
+                                            }
+                                        }}
+                                        placeholder="Paste image URL here (auto-adds)"
+                                        className="flex-1"
                                     />
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={handleAddImage}
+                                        onClick={openFileBrowser}
                                     >
-                                        Add
+                                        Upload Files
                                     </Button>
                                 </div>
                                 {data.images_url.length > 0 && (
-                                    <div className="space-y-2 mt-2">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
                                         {data.images_url.map((url, index) => (
                                             <div
                                                 key={index}
-                                                className="flex items-center gap-2 p-2 bg-gray-50 rounded"
+                                                className="relative group"
                                             >
                                                 <img
                                                     src={url}
                                                     alt={`Room ${index + 1}`}
-                                                    className="h-12 w-12 object-cover rounded"
+                                                    className="w-full h-32 object-cover rounded border"
                                                 />
-                                                <span className="flex-1 text-sm truncate">
-                                                    {url}
-                                                </span>
                                                 <Button
                                                     type="button"
-                                                    variant="ghost"
-                                                    size="sm"
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     onClick={() =>
                                                         handleRemoveImage(index)
                                                     }
                                                 >
-                                                    Remove
+                                                    <X className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ))}
