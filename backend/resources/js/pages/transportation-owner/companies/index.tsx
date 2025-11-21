@@ -4,6 +4,14 @@ import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+    EmptyContent,
+} from "@/components/ui/empty";
 import { Building2, Bus, Calendar, Star, Users, Edit } from "lucide-react";
 
 interface Company {
@@ -49,22 +57,20 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
             <AppLayout>
                 <Head title="My Company" />
                 <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Company Assigned
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Building2 className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Company Assigned</EmptyTitle>
+                            <EmptyDescription>
                                 You don't have a transportation company assigned
-                                to your account yet.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Contact your administrator to get a
-                                transportation company assigned to your account.
-                            </p>
-                        </CardContent>
-                    </Card>
+                                to your account yet. Contact your administrator
+                                to get a transportation company assigned to your
+                                account.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 </div>
             </AppLayout>
         );
@@ -418,23 +424,25 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                         })}
                     </div>
                 ) : (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Bus className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Bus Types Yet
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Bus className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Bus Types Yet</EmptyTitle>
+                            <EmptyDescription>
                                 Start by adding bus types to your fleet.
-                            </p>
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
                             <Button asChild>
                                 <Link href="/transportation-owner/bus-properties/create">
                                     <Bus className="h-4 w-4 mr-2" />
                                     Add Your First Bus Type
                                 </Link>
                             </Button>
-                        </CardContent>
-                    </Card>
+                        </EmptyContent>
+                    </Empty>
                 )}
             </div>
         </AppLayout>

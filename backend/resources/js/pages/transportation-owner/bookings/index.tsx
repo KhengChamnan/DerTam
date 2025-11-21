@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+} from "@/components/ui/empty";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -524,21 +531,19 @@ export default function TransportationOwnerBookingsIndex({
 
                 {/* Empty State */}
                 {bookings.data.length === 0 && (
-                    <Card>
-                        <CardContent className="text-center py-12">
-                            <Bus className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <h3 className="text-lg font-semibold mb-2">
-                                No Bookings Found
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Bus className="size-6" />
+                            </EmptyMedia>
+                            <EmptyTitle>No Bookings Found</EmptyTitle>
+                            <EmptyDescription>
                                 You don't have any bookings for your buses yet.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
                                 Bookings will appear here once passengers start
                                 making reservations.
-                            </p>
-                        </CardContent>
-                    </Card>
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 )}
 
                 {/* Footer */}
