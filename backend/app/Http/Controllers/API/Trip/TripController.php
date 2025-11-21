@@ -241,7 +241,7 @@ class TripController extends Controller
                         'places.description',
                         'places.google_maps_link',
                         'places.ratings',
-                        'places.images_url'
+                        'places.images_url as image_url'
                     )
                     ->orderBy('trip_places.created_at', 'asc')
                     ->get();
