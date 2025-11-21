@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Transportation;
 use App\Models\Bus\Bus;
+use App\Models\Bus\BusProperty;
 use App\Models\Bus\BusSchedule;
 use App\Models\Bus\SeatBooking;
 use Inertia\Inertia;
@@ -56,9 +57,14 @@ class TransportationOwnerController extends Controller
         ->get();
         
         // Utilization rate calculation
-        $totalSeats = Bus::whereHas('transportation', function($q) use ($user) {
-            $q->where('owner_user_id', $user->id);
-        })->sum('seat_capacity');
+        $totalSeats = Bus::with('busProperty')
+            ->whereHas('transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->get()
+            ->sum(function($bus) {
+                return $bus->busProperty ? $bus->busProperty->seat_capacity : 0;
+            });
         
         $bookedSeats = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
@@ -107,7 +113,7 @@ class TransportationOwnerController extends Controller
         $company = Transportation::where('owner_user_id', $user->id)
             ->with([
                 'place',
-                'buses.schedules',
+                'busProperties.buses.schedules',
             ])
             ->first();
         
@@ -157,26 +163,205 @@ class TransportationOwnerController extends Controller
     }
     
     /**
+     * Show all bus properties (types)
+     */
+    public function busProperties()
+    {
+        // Redirect to companies index where bus types are displayed
+        return redirect()->route('transportation-owner.companies.index');
+    }
+
+    /**
+     * Show the form for creating a new bus property
+     */
+    public function createBusProperty(): Response
+    {
+        return Inertia::render('transportation-owner/bus-properties/createEdit');
+    }
+
+    /**
+     * Store a newly created bus property
+     */
+    public function storeBusProperty(Request $request)
+    {
+        $user = Auth::user();
+        
+        $transportation = Transportation::where('owner_user_id', $user->id)->first();
+        
+        if (!$transportation) {
+            return back()->withErrors(['error' => 'No transportation company found for this user.']);
+        }
+        
+        $validated = $request->validate([
+            'bus_type' => 'required|string|max:255',
+            'bus_description' => 'nullable|string',
+            'seat_capacity' => 'required|integer|min:1|max:100',
+            'price_per_seat' => 'nullable|numeric|min:0',
+            'features' => 'nullable|string',
+            'amenities' => 'nullable|string',
+            'images_url' => 'nullable|array',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
+            'seat_layout' => 'nullable|string',
+        ]);
+        
+        $allImageUrls = [];
+        
+        // Handle existing image URLs
+        if (!empty($validated['images_url'])) {
+            $allImageUrls = array_filter($validated['images_url'], function($url) {
+                return filter_var($url, FILTER_VALIDATE_URL);
+            });
+        }
+        
+        // Handle file uploads
+        if ($request->hasFile('images')) {
+            $mediaController = new \App\Http\Controllers\MediaController();
+            try {
+                $uploadResult = $mediaController->uploadMultipleFiles(
+                    $request->file('images'),
+                    'bus_properties'
+                );
+                $allImageUrls = array_merge($allImageUrls, $uploadResult['urls']);
+            } catch (\Exception $e) {
+                return back()->withErrors(['images' => 'Failed to upload images: ' . $e->getMessage()]);
+            }
+        }
+        
+        $busProperty = BusProperty::create([
+            'transportation_id' => $transportation->id,
+            'bus_type' => $validated['bus_type'],
+            'bus_description' => $validated['bus_description'] ?? null,
+            'seat_capacity' => $validated['seat_capacity'],
+            'price_per_seat' => $validated['price_per_seat'],
+            'features' => $validated['features'] ?? null,
+            'amenities' => $validated['amenities'] ?? null,
+            'image_url' => !empty($allImageUrls) ? json_encode($allImageUrls) : null,
+            'seat_layout' => $validated['seat_layout'] ?? null,
+        ]);
+        
+        return redirect()->route('transportation-owner.bus-properties.index')
+            ->with('success', 'Bus type created successfully.');
+    }
+
+    /**
+     * Show the form for editing a bus property
+     */
+    public function editBusProperty($id): Response
+    {
+        $user = Auth::user();
+        
+        $busProperty = BusProperty::whereHas('transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })
+        ->findOrFail($id);
+        
+        return Inertia::render('transportation-owner/bus-properties/createEdit', [
+            'busProperty' => $busProperty
+        ]);
+    }
+
+    /**
+     * Update the specified bus property
+     */
+    public function updateBusProperty(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        $busProperty = BusProperty::whereHas('transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })
+        ->findOrFail($id);
+        
+        $validated = $request->validate([
+            'bus_type' => 'required|string|max:255',
+            'bus_description' => 'nullable|string',
+            'seat_capacity' => 'required|integer|min:1|max:100',
+            'price_per_seat' => 'required|numeric|min:0',
+            'features' => 'nullable|string',
+            'amenities' => 'nullable|string',
+            'images_url' => 'nullable|array',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
+            'seat_layout' => 'nullable|string',
+        ]);
+        
+        $allImageUrls = [];
+        
+        // Handle existing image URLs
+        if (!empty($validated['images_url'])) {
+            $allImageUrls = array_filter($validated['images_url'], function($url) {
+                return filter_var($url, FILTER_VALIDATE_URL);
+            });
+        }
+        
+        // Handle file uploads
+        if ($request->hasFile('images')) {
+            $mediaController = new \App\Http\Controllers\MediaController();
+            try {
+                $uploadResult = $mediaController->uploadMultipleFiles(
+                    $request->file('images'),
+                    'bus_properties'
+                );
+                $allImageUrls = array_merge($allImageUrls, $uploadResult['urls']);
+            } catch (\Exception $e) {
+                return back()->withErrors(['images' => 'Failed to upload images: ' . $e->getMessage()]);
+            }
+        }
+        
+        $validated['image_url'] = !empty($allImageUrls) ? json_encode($allImageUrls) : null;
+        unset($validated['images_url']);
+        unset($validated['images']);
+        
+        $busProperty->update($validated);
+        
+        return redirect()->route('transportation-owner.bus-properties.index')
+            ->with('success', 'Bus type updated successfully.');
+    }
+
+    /**
      * Show all buses across all companies
      */
     public function buses(): Response
     {
         $user = Auth::user();
         
-        $buses = Bus::whereHas('transportation', function($q) use ($user) {
+        $transportation = Transportation::where('owner_user_id', $user->id)->first();
+        
+        if (!$transportation) {
+            return Inertia::render('transportation-owner/buses/index', [
+                'buses' => [],
+                'busProperties' => []
+            ]);
+        }
+        
+        $buses = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
         ->with([
-            'transportation:id,placeID',
-            'transportation.place:placeID,name',
+            'busProperty',
+            'busProperty.transportation',
+            'busProperty.transportation.place',
             'schedules' => function($q) {
                 $q->where('status', 'scheduled')->orderBy('departure_time', 'desc')->limit(5);
             }
         ])
         ->paginate(12);
         
+        // Ensure relationships are loaded on paginated items
+        $buses->getCollection()->load([
+            'busProperty',
+            'busProperty.transportation',
+            'busProperty.transportation.place'
+        ]);
+        
+        $busProperties = BusProperty::where('transportation_id', $transportation->id)
+            ->select('id', 'bus_type')
+            ->get();
+        
         return Inertia::render('transportation-owner/buses/index', [
-            'buses' => $buses
+            'buses' => $buses,
+            'busProperties' => $busProperties
         ]);
     }
     
@@ -210,13 +395,14 @@ class TransportationOwnerController extends Controller
     {
         $user = Auth::user();
         
-        $schedules = BusSchedule::whereHas('bus.transportation', function($q) use ($user) {
+        $schedules = BusSchedule::whereHas('bus.busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
         ->with([
-            'bus:id,bus_name,bus_plate,transportation_id,seat_capacity',
-            'bus.transportation:id,placeID',
-            'bus.transportation.place:placeID,name',
+            'bus:id,bus_name,bus_plate,bus_property_id',
+            'bus.busProperty:id,seat_capacity,transportation_id',
+            'bus.busProperty.transportation:id,placeID',
+            'bus.busProperty.transportation.place:placeID,name',
             'route:id,from_location,to_location,distance_km,duration_hours',
             'bookings'
         ])
@@ -233,7 +419,19 @@ class TransportationOwnerController extends Controller
      */
     public function createBus(): Response
     {
-        return Inertia::render('transportation-owner/buses/createEdit');
+        $user = Auth::user();
+        
+        $transportation = Transportation::where('owner_user_id', $user->id)->first();
+        
+        $busProperties = $transportation 
+            ? BusProperty::where('transportation_id', $transportation->id)
+                ->select('id', 'bus_type', 'seat_capacity', 'price_per_seat')
+                ->get()
+            : collect([]);
+        
+        return Inertia::render('transportation-owner/buses/createEdit', [
+            'busProperties' => $busProperties
+        ]);
     }
 
     /**
@@ -251,28 +449,69 @@ class TransportationOwnerController extends Controller
         }
         
         $validated = $request->validate([
+            'bus_property_id' => 'required|exists:bus_properties,id',
             'bus_name' => 'required|string|max:255',
             'bus_plate' => 'required|string|max:255|unique:buses,bus_plate',
-            'bus_type' => 'required|string|in:standard,luxury,sleeper,vip',
-            'seat_capacity' => 'required|integer|min:1|max:100',
-            'is_active' => 'boolean',
             'description' => 'nullable|string',
-            'features' => 'nullable|string',
+            'is_available' => 'boolean',
+            'status' => 'string|in:active,maintenance,retired',
         ]);
+        
+        // Verify bus property belongs to user's company
+        $busProperty = BusProperty::where('id', $validated['bus_property_id'])
+            ->where('transportation_id', $transportation->id)
+            ->firstOrFail();
         
         $bus = Bus::create([
+            'bus_property_id' => $validated['bus_property_id'],
             'bus_name' => $validated['bus_name'],
             'bus_plate' => $validated['bus_plate'],
-            'bus_type' => $validated['bus_type'],
-            'seat_capacity' => $validated['seat_capacity'],
-            'is_active' => $validated['is_active'] ?? true,
-            'transportation_id' => $transportation->id,
             'description' => $validated['description'] ?? null,
-            'features' => $validated['features'] ?? null,
+            'is_available' => $validated['is_available'] ?? true,
+            'status' => $validated['status'] ?? 'active',
         ]);
         
+        // Seats are automatically created via Bus model boot method
+        
         return redirect()->route('transportation-owner.buses.index')
-            ->with('success', 'Bus created successfully.');
+            ->with('success', 'Bus created successfully with ' . $bus->seat_count . ' seats!');
+    }
+
+    /**
+     * Show a specific bus details
+     */
+    public function showBus($id): Response
+    {
+        $user = Auth::user();
+        
+        $bus = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })
+        ->with([
+            'busProperty',
+            'busProperty.transportation',
+            'busProperty.transportation.place',
+            'seats' => function($q) {
+                $q->orderBy('seat_number');
+            },
+            'schedules' => function($q) {
+                $q->orderBy('departure_time', 'desc')->limit(10);
+            },
+            'schedules.route',
+            'schedules.bookings'
+        ])
+        ->findOrFail($id);
+        
+        // Ensure all relationships are loaded
+        $bus->load([
+            'busProperty',
+            'busProperty.transportation',
+            'busProperty.transportation.place'
+        ]);
+        
+        return Inertia::render('transportation-owner/buses/show', [
+            'bus' => $bus
+        ]);
     }
 
     /**
@@ -282,13 +521,21 @@ class TransportationOwnerController extends Controller
     {
         $user = Auth::user();
         
-        $bus = Bus::whereHas('transportation', function($q) use ($user) {
+        $transportation = Transportation::where('owner_user_id', $user->id)->first();
+        
+        $bus = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
+        ->with('busProperty')
         ->findOrFail($id);
         
+        $busProperties = BusProperty::where('transportation_id', $transportation->id)
+            ->select('id', 'bus_type', 'seat_capacity', 'price_per_seat')
+            ->get();
+        
         return Inertia::render('transportation-owner/buses/createEdit', [
-            'bus' => $bus
+            'bus' => $bus,
+            'busProperties' => $busProperties
         ]);
     }
 
@@ -299,20 +546,26 @@ class TransportationOwnerController extends Controller
     {
         $user = Auth::user();
         
-        $bus = Bus::whereHas('transportation', function($q) use ($user) {
+        $transportation = Transportation::where('owner_user_id', $user->id)->first();
+        
+        $bus = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
         ->findOrFail($id);
         
         $validated = $request->validate([
+            'bus_property_id' => 'required|exists:bus_properties,id',
             'bus_name' => 'required|string|max:255',
             'bus_plate' => 'required|string|max:255|unique:buses,bus_plate,' . $id,
-            'bus_type' => 'required|string|in:standard,luxury,sleeper,vip',
-            'seat_capacity' => 'required|integer|min:1|max:100',
-            'is_active' => 'boolean',
             'description' => 'nullable|string',
-            'features' => 'nullable|string',
+            'is_available' => 'boolean',
+            'status' => 'string|in:active,maintenance,retired',
         ]);
+        
+        // Verify bus property belongs to user's company
+        BusProperty::where('id', $validated['bus_property_id'])
+            ->where('transportation_id', $transportation->id)
+            ->firstOrFail();
         
         $bus->update($validated);
         
@@ -328,11 +581,17 @@ class TransportationOwnerController extends Controller
         $user = Auth::user();
         
         // Get user's buses
-        $buses = Bus::whereHas('transportation', function($q) use ($user) {
+        $buses = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
-        ->select('id', 'bus_name', 'bus_plate', 'seat_capacity')
-        ->get();
+        ->with('busProperty:id,seat_capacity')
+        ->select('id', 'bus_name', 'bus_plate', 'bus_property_id')
+        ->get()
+        ->map(function($bus) {
+            $bus->seat_capacity = $bus->busProperty?->seat_capacity ?? 0;
+            unset($bus->busProperty);
+            return $bus;
+        });
         
         // Get all available routes
         $routes = \App\Models\Bus\Route::select('id', 'from_location as origin', 'to_location as destination', 'distance_km as distance', 'duration_hours as duration')
@@ -363,13 +622,13 @@ class TransportationOwnerController extends Controller
             'arrival_time' => 'required|date|after:departure_time',
             'price' => 'required|numeric|min:0',
             'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
-            'notes' => 'nullable|string',
         ]);
         
-        // Verify bus belongs to user
-        $bus = Bus::whereHas('transportation', function($q) use ($user) {
+        // Verify bus belongs to user and get seat capacity
+        $bus = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
+        ->with('busProperty:id,seat_capacity')
         ->findOrFail($validated['bus_id']);
         
         $schedule = BusSchedule::create([
@@ -379,8 +638,6 @@ class TransportationOwnerController extends Controller
             'arrival_time' => $validated['arrival_time'],
             'price' => $validated['price'],
             'status' => $validated['status'],
-            'available_seats' => $bus->seat_capacity,
-            'notes' => $validated['notes'] ?? null,
         ]);
         
         return redirect()->route('transportation-owner.schedules.index')
@@ -400,11 +657,17 @@ class TransportationOwnerController extends Controller
         ->findOrFail($id);
         
         // Get user's buses
-        $buses = Bus::whereHas('transportation', function($q) use ($user) {
+        $buses = Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
-        ->select('id', 'bus_name', 'bus_plate', 'seat_capacity')
-        ->get();
+        ->with('busProperty:id,seat_capacity')
+        ->select('id', 'bus_name', 'bus_plate', 'bus_property_id')
+        ->get()
+        ->map(function($bus) {
+            $bus->seat_capacity = $bus->busProperty?->seat_capacity ?? 0;
+            unset($bus->busProperty);
+            return $bus;
+        });
         
         // Get all available routes
         $routes = \App\Models\Bus\Route::select('id', 'from_location as origin', 'to_location as destination', 'distance_km as distance', 'duration_hours as duration')
@@ -441,16 +704,22 @@ class TransportationOwnerController extends Controller
             'arrival_time' => 'required|date|after:departure_time',
             'price' => 'required|numeric|min:0',
             'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
-            'notes' => 'nullable|string',
         ]);
         
         // Verify bus belongs to user
-        Bus::whereHas('transportation', function($q) use ($user) {
+        Bus::whereHas('busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
         ->findOrFail($validated['bus_id']);
         
-        $schedule->update($validated);
+        $schedule->update([
+            'bus_id' => $validated['bus_id'],
+            'route_id' => $validated['route_id'],
+            'departure_time' => $validated['departure_time'],
+            'arrival_time' => $validated['arrival_time'],
+            'price' => $validated['price'],
+            'status' => $validated['status'],
+        ]);
         
         return redirect()->route('transportation-owner.schedules.index')
             ->with('success', 'Schedule updated successfully.');

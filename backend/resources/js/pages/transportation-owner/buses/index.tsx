@@ -35,15 +35,20 @@ interface BusData {
     id: number;
     bus_name: string;
     bus_plate: string;
-    bus_type: string;
-    seat_capacity: number;
-    is_active: boolean;
+    is_available: boolean;
+    status: string;
     created_at: string;
-    transportation: {
+    bus_property?: {
         id: number;
-        place?: {
-            placeID: number;
-            name: string;
+        bus_type: string;
+        seat_capacity: number;
+        image_url?: string;
+        transportation?: {
+            id: number;
+            place?: {
+                placeID: number;
+                name: string;
+            };
         };
     };
     schedules?: BusSchedule[];
@@ -94,11 +99,16 @@ export default function TransportationOwnerBusesIndex({
         );
     };
 
-    const getStatusBadge = (isActive: boolean) => {
-        return isActive ? (
-            <Badge variant="default">Active</Badge>
-        ) : (
-            <Badge variant="secondary">Inactive</Badge>
+    const getStatusBadge = (status: string) => {
+        const variants: { [key: string]: any } = {
+            active: "default",
+            maintenance: "secondary",
+            retired: "outline",
+        };
+        return (
+            <Badge variant={variants[status] || "default"}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Badge>
         );
     };
 
@@ -170,8 +180,29 @@ export default function TransportationOwnerBusesIndex({
                     {buses.data.map((bus) => (
                         <Card
                             key={bus.id}
-                            className="hover:shadow-lg transition-shadow"
+                            className="hover:shadow-lg transition-shadow overflow-hidden"
                         >
+                            {/* Image Display */}
+                            {bus.bus_property?.image_url &&
+                                (() => {
+                                    try {
+                                        const images = JSON.parse(
+                                            bus.bus_property.image_url
+                                        );
+                                        return images.length > 0 ? (
+                                            <div className="h-48 overflow-hidden bg-muted">
+                                                <img
+                                                    src={images[0]}
+                                                    alt={bus.bus_name}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </div>
+                                        ) : null;
+                                    } catch (e) {
+                                        return null;
+                                    }
+                                })()}
+
                             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                 <div className="space-y-1">
                                     <CardTitle className="text-lg">
@@ -185,22 +216,28 @@ export default function TransportationOwnerBusesIndex({
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center gap-2">
-                                    {getBusTypeBadge(bus.bus_type)}
-                                    {getStatusBadge(bus.is_active)}
+                                    {bus.bus_property &&
+                                        getBusTypeBadge(
+                                            bus.bus_property.bus_type
+                                        )}
+                                    {getStatusBadge(bus.status)}
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-sm">
                                         <MapPin className="h-4 w-4 text-muted-foreground" />
                                         <span className="text-muted-foreground">
-                                            {bus.transportation.place?.name ||
+                                            {bus.bus_property?.transportation
+                                                ?.place?.name ||
                                                 "Unknown Company"}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
                                         <Users className="h-4 w-4 text-muted-foreground" />
                                         <span className="text-muted-foreground">
-                                            {bus.seat_capacity} seats
+                                            {bus.bus_property?.seat_capacity ||
+                                                0}{" "}
+                                            seats
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
@@ -246,11 +283,24 @@ export default function TransportationOwnerBusesIndex({
                                     </div>
                                 )}
 
-                                <div className="pt-2">
+                                <div className="flex gap-2 pt-2">
                                     <Button
                                         asChild
                                         variant="outline"
-                                        className="w-full"
+                                        size="sm"
+                                        className="flex-1"
+                                    >
+                                        <Link
+                                            href={`/transportation-owner/buses/${bus.id}/edit`}
+                                        >
+                                            Edit
+                                        </Link>
+                                    </Button>
+                                    <Button
+                                        asChild
+                                        variant="default"
+                                        size="sm"
+                                        className="flex-1"
                                     >
                                         <Link
                                             href={`/transportation-owner/buses/${bus.id}`}

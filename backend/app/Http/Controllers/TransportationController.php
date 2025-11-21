@@ -64,7 +64,9 @@ class TransportationController extends Controller
         // Transform transportations for display
         $transportations->getCollection()->transform(function ($transportation) {
             $totalBuses = $transportation->buses->count();
-            $totalCapacity = $transportation->buses->sum('seat_capacity');
+            $totalCapacity = $transportation->buses->sum(function($bus) {
+                return $bus->busProperty ? $bus->busProperty->seat_capacity : 0;
+            });
             $activeRoutesCount = $transportation->buses()
                 ->whereHas('schedules', function ($q) {
                     $q->where('status', 'scheduled');
@@ -177,13 +179,16 @@ class TransportationController extends Controller
         $transportation = Transportation::with([
             'place.provinceCategory:province_categoryID,province_categoryName',
             'owner:id,name,email,phone_number',
-            'buses:id,bus_name,bus_plate,seat_capacity,transportation_id,created_at',
+            'buses:id,bus_name,bus_plate,bus_property_id,transportation_id,created_at',
+            'buses.busProperty:id,seat_capacity',
             'buses.schedules:id,bus_id,route_id,departure_time,arrival_time,price,status'
         ])->findOrFail($id);
 
         // Calculate statistics
         $totalBuses = $transportation->buses->count();
-        $totalCapacity = $transportation->buses->sum('seat_capacity');
+        $totalCapacity = $transportation->buses->sum(function($bus) {
+            return $bus->busProperty ? $bus->busProperty->seat_capacity : 0;
+        });
         $activeBuses = $transportation->buses->filter(function ($bus) {
             return $bus->schedules->where('status', 'scheduled')->count() > 0;
         })->count();

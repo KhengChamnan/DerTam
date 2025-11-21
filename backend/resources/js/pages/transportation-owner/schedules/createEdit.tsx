@@ -92,7 +92,6 @@ export default function TransportationOwnerSchedulesCreateEdit({
             : "",
         price: schedule?.price || "",
         status: schedule?.status || "scheduled",
-        notes: schedule?.notes || "",
     });
 
     const [selectedBus, setSelectedBus] = useState<BusData | null>(
@@ -394,35 +393,6 @@ export default function TransportationOwnerSchedulesCreateEdit({
                                             </p>
                                         )}
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Additional Information */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Additional Information</CardTitle>
-                                <CardDescription>
-                                    Optional details about this schedule
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div>
-                                    <Label htmlFor="notes">Notes</Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={data.notes}
-                                        onChange={(e) =>
-                                            setData("notes", e.target.value)
-                                        }
-                                        placeholder="Additional notes about this schedule (optional)"
-                                        rows={3}
-                                    />
-                                    {errors.notes && (
-                                        <p className="text-sm text-red-500 mt-1">
-                                            {errors.notes}
-                                        </p>
-                                    )}
                                 </div>
                             </CardContent>
                         </Card>

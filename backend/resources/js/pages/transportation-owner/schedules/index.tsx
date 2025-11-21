@@ -16,6 +16,8 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -28,10 +30,24 @@ import {
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
+    Pencil,
+    Trash2,
     Bus,
     MapPin,
     Users,
+    MoreHorizontal,
 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface BusSchedule {
     id: number;
@@ -514,17 +530,111 @@ export default function TransportationOwnerSchedulesIndex({
                                                 )}
                                             </div>
                                             <div className="flex gap-2">
-                                                <Button
-                                                    asChild
-                                                    size="sm"
-                                                    variant="outline"
+                                                <Link
+                                                    href={`/transportation-owner/schedules/${schedule.id}/edit`}
                                                 >
-                                                    <Link
-                                                        href={`/transportation-owner/schedules/${schedule.id}`}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                     >
-                                                        <Eye className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/transportation-owner/schedules/${schedule.id}`}
+                                                            >
+                                                                View details
+                                                                <Eye className="ml-2 h-4 w-4" />
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/transportation-owner/schedules/${schedule.id}/edit`}
+                                                            >
+                                                                Edit schedule
+                                                                <Pencil className="ml-5 h-4 w-4" />
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger
+                                                                asChild
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onSelect={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.preventDefault()
+                                                                    }
+                                                                    className="text-red-600 focus:text-red-600"
+                                                                >
+                                                                    Delete
+                                                                    schedule
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>
+                                                                        Are you
+                                                                        absolutely
+                                                                        sure?
+                                                                    </AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This
+                                                                        action
+                                                                        cannot
+                                                                        be
+                                                                        undone.
+                                                                        This
+                                                                        will
+                                                                        permanently
+                                                                        delete
+                                                                        the
+                                                                        schedule
+                                                                        and
+                                                                        remove
+                                                                        all its
+                                                                        data
+                                                                        from our
+                                                                        servers.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>
+                                                                        Cancel
+                                                                    </AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        onClick={() =>
+                                                                            router.delete(
+                                                                                `/transportation-owner/schedules/${schedule.id}`
+                                                                            )
+                                                                        }
+                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                    >
+                                                                        Delete
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </div>
                                     </div>
