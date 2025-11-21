@@ -1,4 +1,4 @@
-import type { Route } from "./+types/trip-plan";
+import type { Route } from "./+types/trip_plan";
 import TripPlanningPage from "../pages/trip/trip_plan";
 
 export function meta({}: Route.MetaArgs) {

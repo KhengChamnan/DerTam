@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus, X, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, X, ChevronRight, Edit2 } from 'lucide-react';
+import Navigation from '../../components/navigation';
 
 interface Place {
   id: number;
@@ -110,24 +111,8 @@ export default function TripPlanningPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#01005B' }}>Plan Your Trip</h1>
-            <p className="text-sm text-gray-600 mt-1">Create your perfect Cambodia itinerary</p>
-          </div>
-          {step !== 'setup' && (
-            <button
-              onClick={() => setStep('review')}
-              className="px-6 py-2.5 rounded-lg text-white font-medium transition-all shadow-md hover:shadow-lg"
-              style={{ backgroundColor: '#01005B' }}
-            >
-              Review Trip
-            </button>
-          )}
-        </div>
-      </header>
+      {/* Navigation */}
+      <Navigation activeNav="Plan Trip" />
 
       {/* Progress Steps */}
       {step !== 'setup' && (

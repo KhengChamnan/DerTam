@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Heart, Star, MapPin, DollarSign, Search, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Star, MapPin, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import Carousel from '../../components/carousel';
+import Navigation from '../../components/navigation';
 
 // Hero carousel images
 const heroImages = [
@@ -32,17 +33,12 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [eventFavorites, setEventFavorites] = useState<number[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [currentEventPage, setCurrentEventPage] = useState(0);
-  const [activeNav, setActiveNav] = useState('Home'); // Add this state
 
   // Filter destinations based on category
   const filteredDestinations = mockDestinations.filter(dest => {
     const matchesCategory = selectedCategory === 'All' || dest.category === selectedCategory;
-    const matchesSearch = dest.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         dest.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesCategory;
   });
 
   // Toggle favorite
@@ -77,87 +73,8 @@ export default function HomePage() {
 
   return (
     <div className="font-sans min-h-screen bg-white">
-      {/* Header */}
-      <header className="flex justify-between items-center px-16 py-4 border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-12">
-          <img src="/images/logo.png" alt="DerTam Logo" className="h-12" />
-          
-          {/* Redesigned Navigation */}
-          <nav className="flex gap-2">
-            {['Home', 'Plan Trip', 'Bus Booking', 'Hotel'].map((item) => (
-              <a
-                key={item}
-                href={item === 'Plan Trip' ? '/trip-plan' : item === 'Home' ? '/' : '#'}
-                onClick={(e) => {
-                  if (item !== 'Plan Trip' && item !== 'Home') {
-                    e.preventDefault();
-                    setActiveNav(item);
-                  }
-                }}
-                className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 group
-                  ${activeNav === item 
-                    ? 'text-[#01005B]' 
-                    : 'text-gray-600 hover:text-[#01005B]'
-                  }`}
-              >
-                {item}
-                {/* Animated underline */}
-                <span 
-                  className={`absolute bottom-0 left-0 h-0.5 bg-[#01005B] transition-all duration-300
-                    ${activeNav === item 
-                      ? 'w-full' 
-                      : 'w-0 group-hover:w-full'
-                    }`}
-                />
-              </a>
-            ))}
-          </nav>
-        </div>
-
-        {/* Right side actions */}
-        <div className="flex items-center gap-4">
-          {/* Search with dropdown */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowSearch(!showSearch)}
-              className={`bg-transparent border-none cursor-pointer flex items-center justify-center w-10 h-10 rounded-full transition-all
-                ${showSearch ? 'bg-gray-100 text-[#01005B]' : 'hover:bg-gray-100 hover:text-[#01005B]'}`}
-            >
-              <Search size={20} />
-            </button>
-            {showSearch && (
-              <input
-                type="text"
-                placeholder="Search destinations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="absolute right-0 top-12 px-4 py-3 border border-gray-300 rounded-lg shadow-lg w-72 focus:outline-none focus:border-[#01005B] focus:ring-2 focus:ring-[#01005B]/20"
-                autoFocus
-              />
-            )}
-          </div>
-
-          {/* Language selector */}
-          <button className="bg-transparent border-none cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 hover:text-[#01005B] transition-all">
-            <Globe size={18} />
-            <span className="text-sm font-medium">EN</span>
-          </button>
-
-          {/* Divider */}
-          <div className="h-8 w-px bg-gray-300" />
-
-          {/* Auth buttons */}
-          <button className="bg-transparent border-none text-gray-700 px-5 py-2 rounded-lg cursor-pointer font-medium hover:bg-gray-100 hover:text-[#01005B] transition-all">
-            Sign In
-          </button>
-          <button 
-            className="text-white border-none px-6 py-2.5 rounded-lg cursor-pointer font-medium transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5" 
-            style={{ backgroundColor: '#01005B' }}
-          >
-            Get Started
-          </button>
-        </div>
-      </header>
+      {/* Navigation */}
+      <Navigation activeNav="Home" />
 
       {/* Hero Section with Carousel */}
       <section className="relative overflow-hidden">
