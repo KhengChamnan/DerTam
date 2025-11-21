@@ -128,6 +128,7 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
         // ABA QR - Show QR code on screen
         final qrString = bookingResponse.data?.abaResponse.qrString;
         final qrImage = bookingResponse.data?.abaResponse.qrImage;
+        final bookingId = bookingResponse.data?.booking.id;
 
         // Validate QR data is available
         if (qrString == null || qrString.isEmpty) {
@@ -144,6 +145,7 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
               builder: (context) => DertamQrCodeScreen(
                 qrData: qrString, // Use qrString instead of qrImage
                 qrImage: qrImage, // Pass the base64 image separately if needed
+                bookingId: bookingId.toString(),
               ),
             ),
           );

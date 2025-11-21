@@ -205,39 +205,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                 ),
               ),
             ),
-            // actions: [
-            //   Padding(
-            //     padding: const EdgeInsets.all(8.0),
-            //     child: Container(
-            //       decoration: BoxDecoration(
-            //         color: Colors.white,
-            //         shape: BoxShape.circle,
-            //         boxShadow: [
-            //           BoxShadow(
-            //             color: DertamColors.black.withOpacity(0.1),
-            //             spreadRadius: 0,
-            //             blurRadius: 8,
-            //             offset: const Offset(0, 2),
-            //           ),
-            //         ],
-            //       ),
-            //       child: IconButton(
-            //         icon: Icon(
-            //           _isFavorite ? Iconsax.heart5 : Iconsax.heart,
-            //           color: _isFavorite
-            //               ? Colors.red
-            //               : DertamColors.primaryDark,
-            //           size: 20,
-            //         ),
-            //         onPressed: () {
-            //           setState(() {
-            //             _isFavorite = !_isFavorite;
-            //           });
-            //         },
-            //       ),
-            //     ),
-            //   ),
-            // ],
+            
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,

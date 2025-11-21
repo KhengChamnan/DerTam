@@ -5,7 +5,7 @@ import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
-import 'package:mobile_frontend/ui/screen/trip/dertam_trip_planning_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
   @override
@@ -1216,7 +1216,7 @@ class _PlaceDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: MediaQuery.of(context).size.height * 0.8,
       child: Column(
         children: [

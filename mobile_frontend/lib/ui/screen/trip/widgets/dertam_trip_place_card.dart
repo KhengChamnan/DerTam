@@ -106,7 +106,7 @@ class TripPlaceCard extends StatelessWidget {
           margin: EdgeInsets.only(bottom: DertamSpacings.m),
           height: 100, // Same height as card
           decoration: BoxDecoration(
-            color: Colors.red,
+            color: DertamColors.red,
             borderRadius: BorderRadius.circular(12),
           ),
           alignment: Alignment.centerRight,

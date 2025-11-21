@@ -1,20 +1,15 @@
-import 'package:mobile_frontend/models/trips/trips.dart';
+import 'package:mobile_frontend/models/trips/confirm_trip_response.dart';
+import 'package:mobile_frontend/models/trips/create_trip_response.dart';
 
 abstract class TripRepository {
-  Future<void> createTrip(
+  Future<TripResponse> createTrip(
     String tripName,
     DateTime startDate,
     DateTime endDate,
   );
-  Future<List<Trip>> getListOfTrip();
-  Future<Trip> getTripDetails(String tripId);
-  Future<void> addPlaceToTrip(
-    List<int> placeIds,
-    String tripDayId, {
-    List<String>? notes,
-  });
-  Future<void> removePlaceFromTrip(String placeId);
-  Future<void> updateTrip(String tripId);
-  Future<void> cancelTrip(String tripId);
-  Future<void> confirmTrip(String tripId);
+  Future<ConfirmTripResponse> confirmTrip(
+    String tripId,
+    Map<String, List<int>> dayPlaceIds,
+  );
+  Future<ConfirmTripResponse> getTripDetail(String tripId);
 }

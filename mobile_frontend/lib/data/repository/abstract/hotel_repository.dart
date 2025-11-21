@@ -17,7 +17,7 @@ abstract class HotelRepository {
   );
   Future<List<BookingListResponse>> getAllHotelBooking();
   Future<BookingDetailResponse> getBookingDetails(String bookingId);
-  Future<void> cancelBooking(String bookingId);
+  Future<void> cancelHotelBooking(String bookingId);
   Future<void> deleteBooking(String bookingId);
   Future<SearchRoomResponse> searchAvailableRooms(
     DateTime checkIn,

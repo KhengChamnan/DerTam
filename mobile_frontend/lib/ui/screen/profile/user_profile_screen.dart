@@ -22,7 +22,24 @@ class UserProfile extends StatelessWidget {
         userInfo = const Center(child: CircularProgressIndicator());
         break;
       case AsyncValueState.error:
-        userInfo = Center(child: Text('Error: ${userData.error}'));
+        userInfo = Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Lost connection. Failed to load user infomation',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => authProvider.getUserInfo(),
+                child: Text('Retry'),
+              ),
+            ],
+          ),
+        );
         break;
       case AsyncValueState.empty:
         userInfo = Center(
@@ -55,7 +72,7 @@ class UserProfile extends StatelessWidget {
                 style: DertamTextStyles.subtitle.copyWith(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w600,
-                  color: const Color.fromARGB(255, 6, 4, 3),
+                  color: DertamColors.primaryBlue,
                   fontSize: 24,
                 ),
               ),

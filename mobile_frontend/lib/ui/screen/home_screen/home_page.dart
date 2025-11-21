@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/widget/dertam_search_place_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/home_slide_show.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/places_category.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/recommendation_place_card.dart';
@@ -11,6 +12,7 @@ import 'package:mobile_frontend/ui/screen/home_screen/widget/upcoming_even.dart'
 import 'package:mobile_frontend/ui/screen/place_datail/place_detailed.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -65,7 +67,6 @@ class _HomePageState extends State<HomePage> {
                       Consumer<AuthProvider>(
                         builder: (context, authProvider, child) {
                           final userInfo = authProvider.userInfo;
-      
                           // Handle loading state
                           if (userInfo.state == AsyncValueState.loading) {
                             return SizedBox(
@@ -109,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }
-      
+
                           // Handle empty state
                           if (userInfo.state == AsyncValueState.empty ||
                               userInfo.data == null) {
@@ -155,12 +156,18 @@ class _HomePageState extends State<HomePage> {
                                 icon: Icon(Icons.search),
                                 color: DertamColors.primaryBlue,
                                 iconSize: 28,
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    AnimationUtils.createBottomToTopRoute(
+                                      DertamSearchPlaceScreen(),
+                                    ),
+                                  );
+                                },
                               ),
                               SizedBox(width: 8),
                               IconButton(
                                 icon: Icon(Icons.notifications_none_outlined),
-                                color: Colors.grey[600],
+                                color: DertamColors.neutralLight,
                                 iconSize: 28,
                                 onPressed: () {},
                               ),
@@ -168,7 +175,7 @@ class _HomePageState extends State<HomePage> {
                           );
                         },
                       ),
-      
+
                       SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -211,7 +218,7 @@ class _HomePageState extends State<HomePage> {
                         builder: (context, placeProvider, child) {
                           final recommendedPlaces =
                               placeProvider.recommendedPlaces;
-      
+
                           // Handle loading state
                           if (recommendedPlaces.state ==
                               AsyncValueState.loading) {
@@ -225,7 +232,8 @@ class _HomePageState extends State<HomePage> {
                             );
                           }
                           // Handle error state
-                          if (recommendedPlaces.state == AsyncValueState.error) {
+                          if (recommendedPlaces.state ==
+                              AsyncValueState.error) {
                             return SizedBox(
                               height: 280,
                               child: Center(
@@ -256,9 +264,10 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }
-      
+
                           // Handle empty state
-                          if (recommendedPlaces.state == AsyncValueState.empty ||
+                          if (recommendedPlaces.state ==
+                                  AsyncValueState.empty ||
                               recommendedPlaces.data == null ||
                               recommendedPlaces.data!.isEmpty) {
                             return SizedBox(
@@ -271,7 +280,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }
-      
+
                           // Handle success state
                           return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -296,7 +305,7 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
                       SizedBox(height: 20),
-      
+
                       // Upcoming Events
                       Text(
                         'Upcoming Event',
@@ -307,11 +316,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       SizedBox(height: 10),
-      
+
                       Consumer<PlaceProvider>(
                         builder: (context, placeProvider, child) {
                           final upcomingEvents = placeProvider.upcomingEvents;
-      
+
                           // Handle loading state
                           if (upcomingEvents.state == AsyncValueState.loading) {
                             return SizedBox(
@@ -323,7 +332,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }
-      
+
                           // Handle error state
                           if (upcomingEvents.state == AsyncValueState.error) {
                             return SizedBox(
@@ -356,7 +365,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }
-      
+
                           // Handle empty state
                           if (upcomingEvents.state == AsyncValueState.empty ||
                               upcomingEvents.data == null ||
@@ -371,13 +380,15 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }
-      
+
                           // Handle success state
                           return SizedBox(
                             height: 260,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               physics: const BouncingScrollPhysics(),
                               itemCount: upcomingEvents.data!.length,
                               itemBuilder: (context, index) {

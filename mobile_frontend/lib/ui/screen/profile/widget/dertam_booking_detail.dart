@@ -113,29 +113,27 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
   Widget _buildBookingContent(BookingDetailResponse bookingResponse) {
     // The API now returns a single booking item directly
     final booking = bookingResponse.data;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Booking Status Card
-          _buildStatusCard(booking),
+          _BookingStatusCard(booking: booking),
           const SizedBox(height: 20),
-
           // Booking Information
-          _buildSectionTitle('Booking Information'),
+          _SectionTitle(title: 'Booking Information'),
           const SizedBox(height: 12),
-          _buildInfoCard(booking),
+          _BookingInfoCard(booking: booking),
           const SizedBox(height: 20),
 
           // Room Details
-          _buildSectionTitle('Room Details'),
+          _SectionTitle(title: 'Room Details'),
           const SizedBox(height: 12),
           ...booking.bookingItems.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _buildRoomCard(item),
+              child: _RoomDetailCard(item: item),
             ),
           ),
           const SizedBox(height: 20),
@@ -143,8 +141,17 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildStatusCard(BookingItem booking) {
+// Private reusable stateless widgets
+
+class _BookingStatusCard extends StatelessWidget {
+  final BookingItem booking;
+
+  const _BookingStatusCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -205,7 +212,33 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Icons.check_circle;
+      case 'confirmed':
+        return Icons.verified;
+      case 'pending':
+        return Icons.hourglass_empty;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.info;
+    }
+  }
+
+  String _getStatusText(String status) {
+    return status[0].toUpperCase() + status.substring(1).toLowerCase();
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+
+  const _SectionTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     return Text(
       title,
       style: DertamTextStyles.title.copyWith(
@@ -216,23 +249,29 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildInfoCard(BookingItem booking) {
+class _BookingInfoCard extends StatelessWidget {
+  final BookingItem booking;
+
+  const _BookingInfoCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
     final createdDate = DateTime.parse(booking.createdAt);
     final formattedDate = DateFormat(
       'MMM dd, yyyy • HH:mm',
     ).format(createdDate);
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: DertamColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E6E8), width: 1),
+        border: Border.all(color: DertamColors.white, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: DertamColors.primaryBlue.withOpacity(0.05),
             spreadRadius: 0,
             blurRadius: 10,
             offset: const Offset(0, 2),
@@ -241,41 +280,51 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.badge_outlined, 'Booking ID', '#${booking.id}'),
-          const Divider(height: 24),
-          _buildInfoRow(Icons.person_outline, 'User ID', '#${booking.userId}'),
-          const Divider(height: 24),
-          _buildInfoRow(
-            Icons.calendar_today_outlined,
-            'Booked Date',
-            formattedDate,
+          _InfoRow(
+            icon: Icons.badge_outlined,
+            label: 'Booking ID',
+            value: '#${booking.id}',
           ),
           const Divider(height: 24),
-          _buildInfoRow(
-            Icons.check_circle_outline,
-            'Status',
-            _getStatusText(booking.status),
+          _InfoRow(
+            icon: Icons.calendar_today_outlined,
+            label: 'Booked Date',
+            value: formattedDate,
+          ),
+          const Divider(height: 24),
+          _InfoRow(
+            icon: Icons.check_circle_outline,
+            label: 'Status',
+            value: _getStatusText(booking.status),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRoomCard(BookingItemDetail item) {
+  String _getStatusText(String status) {
+    return status[0].toUpperCase() + status.substring(1).toLowerCase();
+  }
+}
+
+class _RoomDetailCard extends StatelessWidget {
+  final BookingItemDetail item;
+  const _RoomDetailCard({required this.item});
+  @override
+  Widget build(BuildContext context) {
     final checkIn = DateTime.parse(item.hotelDetails.checkIn);
     final checkOut = DateTime.parse(item.hotelDetails.checkOut);
     final formattedCheckIn = DateFormat('MMM dd, yyyy').format(checkIn);
     final formattedCheckOut = DateFormat('MMM dd, yyyy').format(checkOut);
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: DertamColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE4E6E8), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: DertamColors.primaryBlue.withOpacity(0.05),
             spreadRadius: 0,
             blurRadius: 10,
             offset: const Offset(0, 2),
@@ -300,8 +349,12 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     height: 180,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.hotel, size: 60, color: Colors.grey[400]),
+                    color: DertamColors.backgroundLight,
+                    child: Icon(
+                      Icons.hotel,
+                      size: 60,
+                      color: DertamColors.neutralLighter,
+                    ),
                   );
                 },
               ),
@@ -339,19 +392,19 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
                 // Room Features
                 Row(
                   children: [
-                    _buildFeatureChip(
-                      Icons.people_outline,
-                      '${item.roomProperty.maxGuests} Guests',
+                    _FeatureChip(
+                      icon: Icons.people_outline,
+                      label: '${item.roomProperty.maxGuests} Guests',
                     ),
                     const SizedBox(width: 8),
-                    _buildFeatureChip(
-                      Icons.bed_outlined,
-                      '${item.roomProperty.numberOfBed} Beds',
+                    _FeatureChip(
+                      icon: Icons.bed_outlined,
+                      label: '${item.roomProperty.numberOfBed} Beds',
                     ),
                     const SizedBox(width: 8),
-                    _buildFeatureChip(
-                      Icons.straighten_outlined,
-                      '${item.roomProperty.roomSize} m²',
+                    _FeatureChip(
+                      icon: Icons.straighten_outlined,
+                      label: '${item.roomProperty.roomSize} m²',
                     ),
                   ],
                 ),
@@ -428,7 +481,6 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 // Quantity and Price
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -460,8 +512,21 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Icon(icon, size: 20, color: DertamColors.primaryBlue),
@@ -493,8 +558,16 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
       ],
     );
   }
+}
 
-  Widget _buildFeatureChip(IconData icon, String label) {
+class _FeatureChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _FeatureChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -518,25 +591,5 @@ class _DertamBookingDetailScreenState extends State<DertamBookingDetailScreen> {
         ],
       ),
     );
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return Icons.check_circle;
-      case 'confirmed':
-        return Icons.verified;
-      case 'pending':
-        return Icons.hourglass_empty;
-      case 'cancelled':
-        return Icons.cancel;
-      default:
-        return Icons.info;
-    }
-  }
-
-
-  String _getStatusText(String status) {
-    return status[0].toUpperCase() + status.substring(1).toLowerCase();
   }
 }

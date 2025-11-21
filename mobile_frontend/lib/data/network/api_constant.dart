@@ -29,11 +29,9 @@ class ApiEndpoint {
   static const String cancelBooking = '/api/booking/{{booking_id}}/cancel';
   //Trip Endpoints
   static const String createTrip = '/api/trips';
-  static const String getListOfTrips = '/api/trips';
-  static const String getTripDays = '/api/trips'; // Here we need the trip Id
-  static const String addPlaceToTripDay = '/api/trip-days/1/places';
-  static const String getTripDetails = '/api/trip-days/7/places';
-  static const String getAllPlacesForTripPlanning = '/api/trip-planning/places';
+  static const String addPlaceToTripDay =
+      '/api/add-places'; // Have to put trip ID
+  static const String getTripDetail = '/api/trips';
 
   // Social sharing Endpoints
   static const String generateShareableLink =

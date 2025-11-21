@@ -1,12 +1,15 @@
 import 'dart:convert';
+
 import 'package:mobile_frontend/data/network/api_constant.dart';
 import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/trip_repsitory.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
-import 'package:mobile_frontend/models/trips/trips.dart';
+import 'package:mobile_frontend/models/trips/create_trip_response.dart';
+import 'package:mobile_frontend/models/trips/confirm_trip_response.dart';
 
 class LaravelTripApiRepository implements TripRepository {
   late LaravelAuthApiRepository repository;
+  LaravelTripApiRepository(this.repository);
   final _baseHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -17,142 +20,158 @@ class LaravelTripApiRepository implements TripRepository {
   };
 
   @override
-  Future<void> createTrip(
+  Future<TripResponse> createTrip(
     String tripName,
     DateTime startDate,
     DateTime endDate,
   ) async {
+    print('\n🚀 [DEBUG] createTrip called');
+    print('📝 [DEBUG] Trip Name: $tripName');
+    print('📅 [DEBUG] Start Date: $startDate');
+    print('📅 [DEBUG] End Date: $endDate');
+
     try {
       final token = await repository.getToken();
+      print(
+        '🔑 [DEBUG] Token retrieved: ${token != null ? "Yes (${token.substring(0, 20)}...)" : "No"}',
+      );
+
       if (token == null) {
+        print('❌ [DEBUG] User is not authenticated');
         throw Exception('User is not authenticated');
       }
+
       final body = {
-        'name': tripName,
+        'trip_name': tripName,
         'start_date': startDate.toIso8601String(),
         'end_date': endDate.toIso8601String(),
       };
+      print('📦 [DEBUG] Request body: ${json.encode(body)}');
+
       final header = _getAuthHeaders(token);
+      print('📋 [DEBUG] Request headers: ${header.keys.join(", ")}');
+      print('🌐 [DEBUG] Endpoint: ${ApiEndpoint.createTrip}');
+
       final response = await FetchingData.postData(
         ApiEndpoint.createTrip,
         body,
         header,
       );
-      if (response.statusCode == 200) {
-        print('✅ Trip has been created successfully! ${response.body}');
+
+      print('📡 [DEBUG] Response status code: ${response.statusCode}');
+      print('📄 [DEBUG] Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        final jsonResponse = response.body;
+        final trip = TripResponse.fromJson(json.decode(jsonResponse));
+        print('✅ [DEBUG] Trip created successfully: ${trip.trip?.tripName}');
+        return trip;
       } else {
+        print('❌ [DEBUG] Failed with status: ${response.statusCode}');
         print('❌ [DEBUG] Error response body: ${response.body}');
         throw Exception('Failed to create trip: ${response.statusCode}');
       }
     } catch (e) {
+      print('💥 [DEBUG] Exception in createTrip: $e');
+      print('📚 [DEBUG] Stack trace: ${StackTrace.current}');
       rethrow;
     }
   }
 
   @override
-  Future<void> updateTrip(String tripId) async {
-    // TODO: implement updateTrip
-    throw UnimplementedError();
+  Future<ConfirmTripResponse> confirmTrip(
+    String tripId,
+    Map<String, List<int>> dayPlaceIds,
+  ) async {
+    print('\n🚀 [DEBUG] confirmTrip called');
+    print('🆔 [DEBUG] Trip ID: $tripId');
+    print('📦 [DEBUG] Day Place IDs: $dayPlaceIds');
+
+    try {
+      final token = await repository.getToken();
+      print(
+        '🔑 [DEBUG] Token retrieved: ${token != null ? "Yes (${token.substring(0, 20)}...)" : "No"}',
+      );
+
+      if (token == null) {
+        print('❌ [DEBUG] User is not authenticated');
+        throw Exception('User is not authenticated');
+      }
+
+      // Build the body structure according to API specification
+      // {"day1": {"place_ids": [4,5]}, "day2": {"place_ids": [6,7]}, ...}
+      final body = <String, Map<String, List<int>>>{};
+      dayPlaceIds.forEach((day, placeIds) {
+        body[day] = {'place_ids': placeIds};
+      });
+
+      print('📦 [DEBUG] Request body: ${json.encode(body)}');
+
+      final header = _getAuthHeaders(token);
+      print('📋 [DEBUG] Request headers: ${header.keys.join(", ")}');
+
+      final endpoint = '${ApiEndpoint.addPlaceToTripDay}/$tripId';
+      print('🌐 [DEBUG] Endpoint: $endpoint');
+
+      final response = await FetchingData.postData(endpoint, body, header);
+
+      print('📡 [DEBUG] Response status code: ${response.statusCode}');
+      print('📄 [DEBUG] Response body: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final jsonResponse = response.body;
+        final confirmResponse = ConfirmTripResponse.fromJson(
+          json.decode(jsonResponse),
+        );
+        print(
+          '✅ [DEBUG] Trip confirmed successfully for trip ID: ${confirmResponse.data.tripId}',
+        );
+        return confirmResponse;
+      } else {
+        print('❌ [DEBUG] Failed with status: ${response.statusCode}');
+        print('❌ [DEBUG] Error response body: ${response.body}');
+        throw Exception('Failed to confirm trip: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('💥 [DEBUG] Exception in confirmTrip: $e');
+      print('📚 [DEBUG] Stack trace: ${StackTrace.current}');
+      rethrow;
+    }
   }
 
   @override
-  Future<void> removePlaceFromTrip(String placeId) async {
-    // TODO: implement removePlaceFromTrip
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> addPlaceToTrip(
-    List<int> placeIds,
-    String tripDayId, {
-    List<String>? notes,
-  }) async {
+  Future<ConfirmTripResponse> getTripDetail(String tripId) async {
     try {
       final token = await repository.getToken();
       if (token == null) {
-        throw Exception('User is not authenticated');
+        throw Exception('Token is not found!');
       }
-      final body = {'place_ids': placeIds, 'notes': notes ?? []};
       final header = _getAuthHeaders(token);
-      final response = await FetchingData.postData(
-        '/api/trip-days/$tripDayId/places',
-        body,
+      final getTripDetailResponse = await FetchingData.getData(
+        '${ApiEndpoint.getTripDetail}/$tripId',
         header,
       );
-      if (response.statusCode == 200) {
+      print(
+        '📡 [DEBUG] Response status code: ${getTripDetailResponse.statusCode}',
+      );
+      print('📄 [DEBUG] Response body: ${getTripDetailResponse.body}');
+      if (getTripDetailResponse.statusCode == 200) {
+        final jsonResponse = getTripDetailResponse.body;
+        final tripDetail = ConfirmTripResponse.fromJson(
+          json.decode(jsonResponse),
+        );
+        return tripDetail;
+      } else {
         print(
-          '✅ Places have been added to trip successfully! ${response.body}',
+          '❌ [DEBUG] Failed with status: ${getTripDetailResponse.statusCode}',
         );
-      } else {
-        print('❌ [DEBUG] Error response body: ${response.body}');
-        throw Exception('Failed to add places to trip: ${response.statusCode}');
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> cancelTrip(String tripId) async {
-    // TODO: implement cancelTrip
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<Trip>> getListOfTrip() async {
-    try {
-      final token = await repository.getToken();
-      if (token == null) {
-        throw Exception('User is not authenticated');
-      }
-      final response = await FetchingData.getData(
-        ApiEndpoint.getListOfTrips,
-        _getAuthHeaders(token),
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonData = json.decode(response.body);
-        final trips = jsonData.map((json) => Trip.fromJson(json)).toList();
-        return trips;
-      } else {
-        print('❌ [DEBUG] Error response body: ${response.body}');
-        throw Exception('Failed to fetch trips: ${response.statusCode}');
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<Trip> getTripDetails(String tripId) async {
-    try {
-      final token = await repository.getToken();
-      if (token == null) {
-        throw Exception('User is not authenticated');
-      }
-      final tripDetailResponse = await FetchingData.getData(
-        '${ApiEndpoint.getTripDetails}/$tripId',
-        _getAuthHeaders(token),
-      );
-      if (tripDetailResponse.statusCode == 200) {
-        final trips = json
-            .decode(tripDetailResponse.body)
-            .map((json) => Trip.fromJson(json))
-            .toList();
-        return trips;
-      } else {
-        print('❌ [DEBUG] Error response body: ${tripDetailResponse.body}');
+        print('❌ [DEBUG] Error response body: ${getTripDetailResponse.body}');
         throw Exception(
-          'Failed to fetch trips: ${tripDetailResponse.statusCode}',
+          'Failed to confirm trip: ${getTripDetailResponse.statusCode}',
         );
       }
     } catch (e) {
       rethrow;
     }
-  }
-
-  @override
-  Future<void> confirmTrip(String tripId) async {
-    // TODO: implement confirmTrip
-    throw UnimplementedError();
   }
 }

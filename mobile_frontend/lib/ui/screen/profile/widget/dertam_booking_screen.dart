@@ -287,7 +287,7 @@ class _BookingCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Booking #${booking.id}',
+                    '#${booking.payments.first.providerTransactionId}',
                     style: DertamTextStyles.bodyMedium.copyWith(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w600,

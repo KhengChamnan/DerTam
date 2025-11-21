@@ -26,7 +26,6 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<HotelDetail> getHotelDetails(String hotelId) async {
     try {
-      print('🔍 [DEBUG] getHotelDetails called with hotelId: $hotelId');
       print('🔍 [DEBUG] API endpoint: ${ApiEndpoint.hotelDetails}/$hotelId');
       final response = await FetchingData.getData(
         '${ApiEndpoint.hotelDetails}/$hotelId',
@@ -41,16 +40,11 @@ class LaravelHotelApiRepository extends HotelRepository {
         if (jsonData == null) {
           throw Exception('Response does not contain "data" field');
         }
-        print(
-          '📦 [DEBUG] Has property_id: ${jsonData.containsKey('property_id')}',
-        );
-        print('📦 [DEBUG] Has place: ${jsonData.containsKey('place')}');
+ 
         if (jsonData.containsKey('place')) {
           print('📦 [DEBUG] Place name: ${jsonData['place']['name']}');
         }
         final hotelDetailResponse = HotelDetail.fromJson(jsonData);
-        print('✅ [DEBUG] Successfully parsed HotelDetail object');
-        print('✅ [DEBUG] Parsed place name: ${hotelDetailResponse.place.name}');
         return hotelDetailResponse;
       } else {
         throw Exception('Failed to load hotel details: ${response.statusCode}');
@@ -254,7 +248,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   }
 
   @override
-  Future<void> cancelBooking(String bookingId) async {
+  Future<void> cancelHotelBooking(String bookingId) async {
     try {
       final token = await repository.getToken();
       if (token == null) {

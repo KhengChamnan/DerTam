@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
-import 'package:mobile_frontend/ui/screen/trip/widgets/select_place.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_add_place_to_trip.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/calender.dart';
+import 'package:provider/provider.dart';
 
 class TripDateScreen extends StatefulWidget {
   final String tripName;
-
   const TripDateScreen({super.key, required this.tripName});
-
   @override
   State<TripDateScreen> createState() => _TripDateScreenState();
 }
@@ -18,15 +18,14 @@ class _TripDateScreenState extends State<TripDateScreen> {
   DateTime? _endDate;
   DateTime _currentMonth = DateTime.now();
   bool _isLoading = false;
-
-  final List<Map<String, dynamic>> _mockTrips = [];
-
   Future<void> _createTrip() async {
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please select both start and end dates'),
-          backgroundColor: Colors.red,
+          backgroundColor: DertamColors.red,
         ),
       );
       return;
@@ -36,42 +35,20 @@ class _TripDateScreenState extends State<TripDateScreen> {
     });
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      final tripId = DateTime.now().millisecondsSinceEpoch.toString();
-      final newTrip = {
-        'id': tripId,
-        'tripName': widget.tripName,
-        'startDate': _startDate!.toIso8601String(),
-        'endDate': _endDate!.toIso8601String(),
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-
-      _mockTrips.add(newTrip);
-
+      await tripProvider.createTripPlan(
+        widget.tripName,
+        _startDate!,
+        _endDate!,
+      );
       setState(() {
         _isLoading = false;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Trip "${widget.tripName}" created successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
-        ),
-      );
-
       await Future.delayed(Duration(milliseconds: 500));
 
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => SelectPlaceScreen(
-              tripId: tripId,
-              tripName: widget.tripName,
-              startDate: _startDate!,
-              endDate: _endDate!,
-            ),
-          ),
+          MaterialPageRoute(builder: (context) => DertamAddPlaceToTrip()),
         );
       }
     }
@@ -120,7 +97,9 @@ class _TripDateScreenState extends State<TripDateScreen> {
         ),
         title: Text(
           widget.tripName,
-          style: DertamTextStyles.title.copyWith(color: DertamColors.primaryBlue),
+          style: DertamTextStyles.title.copyWith(
+            color: DertamColors.primaryBlue,
+          ),
         ),
         centerTitle: true,
       ),

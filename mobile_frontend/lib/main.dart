@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_hotel_api_repository.dart';
+import 'package:mobile_frontend/data/repository/laravel/laravel_trip_api_repository.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
+import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/screen/splash/spalsh_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
@@ -15,6 +17,7 @@ import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 void main() {
   final authRepository = LaravelAuthApiRepository();
   final hotelRepository = LaravelHotelApiRepository(authRepository);
+  final tripRepository = LaravelTripApiRepository(authRepository);
   runApp(
     MultiProvider(
       providers: [
@@ -27,6 +30,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => HotelProvider(repository: hotelRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TripProvider(tripRepository: tripRepository),
         ),
       ],
       child: MyApp(),
@@ -61,7 +67,6 @@ class _MyAppState extends State<MyApp> {
   // Handle deep links
   Future<void> _initDeepLinkListener() async {
     _appLinks = AppLinks();
-
     // Handle links when app is already running
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (Uri uri) {
@@ -100,7 +105,6 @@ class _MyAppState extends State<MyApp> {
           MaterialPageRoute(builder: (context) => HomePage()),
           (route) => false,
         );
-
         // Show success message
         Future.delayed(const Duration(milliseconds: 500), () {
           final context = navigatorKey.currentContext;

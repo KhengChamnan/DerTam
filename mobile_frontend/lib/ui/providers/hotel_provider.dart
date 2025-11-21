@@ -152,4 +152,12 @@ class HotelProvider extends ChangeNotifier {
       rethrow;
     }
   }
+  Future<void> cancelHotelBooking(String bookingId) async {
+    try {
+      await repository.cancelHotelBooking(bookingId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

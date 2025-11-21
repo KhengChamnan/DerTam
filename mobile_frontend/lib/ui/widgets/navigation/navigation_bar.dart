@@ -4,7 +4,7 @@ import 'package:mobile_frontend/ui/screen/bus_booking/dertam_bus_booking_screen.
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/screen/hotel/dertam_hotel_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/user_profile_screen.dart';
-import 'package:mobile_frontend/ui/screen/trip/dertam_trip_planning_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class Navigationbar extends StatelessWidget {
