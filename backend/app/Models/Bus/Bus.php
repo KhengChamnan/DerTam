@@ -23,12 +23,9 @@ class Bus extends Model
         'bus_property_id',
         'bus_name',
         'bus_plate',
-        'bus_type',
-        'seat_capacity',
-        'is_active',
-        'transportation_id',
         'description',
-        'features',
+        'is_available',
+        'status',
     ];
 
     /**
@@ -37,9 +34,8 @@ class Bus extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'seat_capacity' => 'integer',
-        'transportation_id' => 'integer',
-        'is_active' => 'boolean',
+        'bus_property_id' => 'integer',
+        'is_available' => 'boolean',
     ];
 
     /**

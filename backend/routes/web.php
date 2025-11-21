@@ -220,6 +220,7 @@ Route::middleware([
             Route::get('/buses', [TransportationOwnerController::class, 'buses'])->name('buses.index');
             Route::get('/buses/create', [TransportationOwnerController::class, 'createBus'])->name('buses.create');
             Route::post('/buses', [TransportationOwnerController::class, 'storeBus'])->name('buses.store');
+            Route::get('/buses/{id}', [TransportationOwnerController::class, 'showBus'])->name('buses.show');
             Route::get('/buses/{id}/edit', [TransportationOwnerController::class, 'editBus'])->name('buses.edit');
             Route::put('/buses/{id}', [TransportationOwnerController::class, 'updateBus'])->name('buses.update');
             
