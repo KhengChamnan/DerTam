@@ -28,6 +28,7 @@ class RoomSearchController extends Controller
             'guests' => 'required|integer|min:1|max:20',
             'property_id' => 'nullable|exists:properties,property_id',
             'place_id' => 'nullable|exists:places,placeID',
+            'province_category_id' => 'nullable|exists:province_categories,province_categoryID',
         ]);
 
         if ($validator->fails()) {
@@ -43,6 +44,7 @@ class RoomSearchController extends Controller
         $guests = $request->guests;
         $propertyId = $request->property_id;
         $placeId = $request->place_id;
+        $provinceCategoryId = $request->province_category_id;
 
         // Calculate number of nights
         $nights = $checkIn->diffInDays($checkOut);
@@ -69,6 +71,13 @@ class RoomSearchController extends Controller
             if ($placeId) {
                 $query->whereHas('property', function($q) use ($placeId) {
                     $q->where('place_id', $placeId);
+                });
+            }
+
+            // Filter by province category if specified
+            if ($provinceCategoryId) {
+                $query->whereHas('property.place', function($q) use ($provinceCategoryId) {
+                    $q->where('province_id', $provinceCategoryId);
                 });
             }
 
