@@ -90,6 +90,7 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+Route::post('/rooms/search', [App\Http\Controllers\API\Hotel\RoomSearchController::class, 'searchAvailableRooms']);
 
 // Public bus schedule search route
 Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
