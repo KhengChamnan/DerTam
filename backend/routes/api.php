@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\SocialAuthController;
@@ -94,7 +95,7 @@ Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
 Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
 
-
+Route::get('expense-categories', [ExpenseController::class, 'getExpenseCategories']); // Get all expense categories
 
 // ABA PayWay payment return/callback routes (must be public - no auth)
 Route::prefix('payments/aba')->group(function () {

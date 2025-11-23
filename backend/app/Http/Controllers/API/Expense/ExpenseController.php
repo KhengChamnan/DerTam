@@ -71,6 +71,10 @@ class ExpenseController extends Controller
             $totalSpent = $budget->expenses()->sum('amount');
             $remainingBudget = $budget->total_budget - $totalSpent;
 
+            // Calculate daily budget
+            $totalTripDays = $trip->tripDays()->count();
+            $dailyBudget = $totalTripDays > 0 ? $remainingBudget / $totalTripDays : 0;
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -80,6 +84,7 @@ class ExpenseController extends Controller
                     'currency' => $budget->currency,
                     'total_spent' => (float) $totalSpent,
                     'remaining_budget' => (float) $remainingBudget,
+                    'daily_budget' => (float) $dailyBudget,
                     'description' => $budget->description,
                     'expenses' => $budget->expenses->map(function ($expense) {
                         return [
@@ -181,6 +186,10 @@ class ExpenseController extends Controller
             $totalSpent = collect($expenses)->sum('amount');
             $remainingBudget = $budget->total_budget - $totalSpent;
 
+            // Calculate daily budget
+            $totalTripDays = $trip->tripDays()->count();
+            $dailyBudget = $totalTripDays > 0 ? $remainingBudget / $totalTripDays : 0;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Budget created successfully',
@@ -191,6 +200,7 @@ class ExpenseController extends Controller
                     'currency' => $budget->currency,
                     'total_spent' => (float) $totalSpent,
                     'remaining_budget' => (float) $remainingBudget,
+                    'daily_budget' => (float) $dailyBudget,
                     'description' => $budget->description,
                     'expenses' => collect($expenses)->map(function ($expense) {
                         return [
@@ -435,6 +445,10 @@ class ExpenseController extends Controller
             $totalSpent = $budget->expenses()->sum('amount');
             $remainingBudget = $budget->total_budget - $totalSpent;
 
+            // Calculate daily budget
+            $totalTripDays = $budget->trip->tripDays()->count();
+            $dailyBudget = $totalTripDays > 0 ? $remainingBudget / $totalTripDays : 0;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Budget updated successfully',
@@ -445,6 +459,7 @@ class ExpenseController extends Controller
                     'currency' => $budget->currency,
                     'total_spent' => (float) $totalSpent,
                     'remaining_budget' => (float) $remainingBudget,
+                    'daily_budget' => (float) $dailyBudget,
                     'description' => $budget->description,
                     'expenses' => $budget->expenses->map(function ($expense) {
                         return [
@@ -476,6 +491,33 @@ class ExpenseController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating budget: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all expense categories
+     *
+     * @return JsonResponse
+     */
+    public function getExpenseCategories(): JsonResponse
+    {
+        try {
+            $categories = ExpenseCategory::all();
+
+            return response()->json([
+                'success' => true,
+                'data' => $categories->map(function ($category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->category_name,
+                    ];
+                }),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching expense categories: ' . $e->getMessage(),
             ], 500);
         }
     }
