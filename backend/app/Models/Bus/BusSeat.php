@@ -137,56 +137,5 @@ class BusSeat extends Model
         return $availability;
     }
 
-    /**
-     * Check if seat is booked for a specific schedule.
-     * @deprecated Use getSeatAvailability() instead for proper booking status checking
-     */
-    public function isBookedForSchedule(int $scheduleId): bool
-    {
-        return $this->bookings()
-            ->where('schedule_id', $scheduleId)
-            ->whereHas('booking', function($query) {
-                $query->whereIn('status', ['pending', 'confirmed']);
-            })
-            ->exists();
-    }
-
-    /**
-     * Get booking for a specific schedule.
-     */
-    public function getBookingForSchedule(int $scheduleId)
-    {
-        return $this->bookings()
-            ->where('schedule_id', $scheduleId)
-            ->where('status', '!=', 'cancelled')
-            ->first();
-    }
-
-    /**
-     * Get available seats for a schedule.
-     * Only excludes seats with active bookings (pending or confirmed status).
-     */
-    public static function availableForSchedule(int $busId, int $scheduleId)
-    {
-        return self::where('bus_id', $busId)
-            ->whereDoesntHave('bookings', function ($query) use ($scheduleId) {
-                $query->where('schedule_id', $scheduleId)
-                    ->whereHas('booking', function($q) {
-                        $q->whereIn('status', ['pending', 'confirmed']);
-                    });
-            })
-            ->orderBy('seat_number')
-            ->get();
-    }
-
-    /**
-     * Get seat display name (includes level for sleeper buses).
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        if ($this->level) {
-            return "Seat {$this->seat_number} ({$this->level})";
-        }
-        return "Seat {$this->seat_number}";
-    }
+ 
 }

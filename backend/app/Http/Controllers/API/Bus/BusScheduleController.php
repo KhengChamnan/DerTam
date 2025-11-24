@@ -92,15 +92,14 @@ class BusScheduleController extends Controller
                 return [
                     'id' => $schedule->id,
                     'bus_name' => $schedule->bus->bus_name,
+                    'bus_type'=> $schedule->bus->busProperty->bus_type ?? 'N/A',
                     'transportation_company' => $schedule->bus->transportation->name ?? 'N/A',
                     'from_location' => $schedule->route->fromLocation->province_categoryName ?? 'N/A',
-                    'from_location_id' => $schedule->route->from_location,
                     'to_location' => $schedule->route->toLocation->province_categoryName ?? 'N/A',
-                    'to_location_id' => $schedule->route->to_location,
-                    'departure_time' => $schedule->departure_time->format('g A, D'),
+                    'departure_time' => $schedule->departure_time->format('H:i:s'),
                     'departure_date' => $schedule->departure_time->format('Y.m.d'),
-                    'departure_datetime' => $schedule->departure_time,
-                    'arrival_time' => $schedule->arrival_time,
+                    'arrival_time' => $schedule->arrival_time->format('H:i:s'),
+                    'arrival_date' => $schedule->arrival_time->format('Y.m.d'),
                     'price' => $schedule->price,
                     'available_seats' => $schedule->getAvailableSeatsCount(),
                     'duration_hours' => $schedule->route->duration_hours,
@@ -112,11 +111,6 @@ class BusScheduleController extends Controller
                 'data' => [
                     'schedules' => $schedules,
                     'total' => $schedules->count(),
-                    'search_params' => [
-                        'from' => $request->from_location,
-                        'to' => $request->to_location,
-                        'date_filter' => $dateFilter ?? 'all',
-                    ],
                 ],
             ]);
 
