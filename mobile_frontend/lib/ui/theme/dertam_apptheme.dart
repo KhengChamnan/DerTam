@@ -10,6 +10,7 @@ class DertamColors {
   static Color primaryPurple = const Color(0xFF5740AD);
   static Color purple = const Color(0xFF5740AD);
   static Color backgroundAccent = const Color(0xFFEDEDED);
+  static Color red = const Color(0xFFFF0000);
 
   // Gradient colors for buttons
   static Color gradientStart1 = const Color(0xFF2C41EE);
@@ -116,7 +117,7 @@ class DertamTextStyles {
   static TextStyle title = const TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.w500,
-    fontFamily: 'Inter',
+    fontFamily: 'Poppins',
   );
 
   static TextStyle subtitle = const TextStyle(

@@ -16,7 +16,7 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   @override
   Future<List<PlaceCategory>> getCategory() async {
     try {
-      final response = await FetchingData.getDate(
+      final response = await FetchingData.getData(
         ApiEndpoint.categories,
         _baseHeaders,
       );
@@ -37,7 +37,7 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   @override
   Future<List<Place>> getRecommendedPlaces() async {
     try {
-      final response = await FetchingData.getDate(
+      final response = await FetchingData.getData(
         ApiEndpoint.recommendedPlaces,
         _baseHeaders,
       );
@@ -75,6 +75,7 @@ class LaravelPlaceApiRepository implements PlaceRepository {
       rethrow;
     }
   }
+
   @override
   Future<PlaceDetailData> getPlaceDetails(String placeId) async {
     try {
@@ -84,7 +85,7 @@ class LaravelPlaceApiRepository implements PlaceRepository {
       print('🔍 [DEBUG] Endpoint: $endpoint');
       print('🔍 [DEBUG] Headers: $_baseHeaders');
 
-      final response = await FetchingData.getDate(endpoint, _baseHeaders);
+      final response = await FetchingData.getData(endpoint, _baseHeaders);
 
       print('🔍 [DEBUG] Response status code: ${response.statusCode}');
       print('🔍 [DEBUG] Response body: ${response.body}');
@@ -120,7 +121,7 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   @override
   Future<List<Place>> getUpcomingEvents() async {
     try {
-      final response = await FetchingData.getDate(
+      final response = await FetchingData.getData(
         ApiEndpoint.upcomingEvents,
         _baseHeaders,
       );

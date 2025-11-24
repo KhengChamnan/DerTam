@@ -1,12 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_user_info.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:provider/provider.dart';
 
 class DertamEditProfile extends StatelessWidget {
   const DertamEditProfile({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final userData = authProvider.userInfo;
+    Widget userInfo;
+    switch (userData.state) {
+      case AsyncValueState.loading:
+        userInfo = const Center(child: CircularProgressIndicator());
+        break;
+      case AsyncValueState.error:
+        userInfo = Center(child: Text('Error: ${userData.error}'));
+        break;
+      case AsyncValueState.empty:
+        userInfo = Center(
+          child: Text('Welcome, ${userData.data?.name ?? 'User'}'),
+        );
+        break;
+      case AsyncValueState.success:
+        userInfo = Center(
+          child: Column(
+            children: [
+              // Profile photo section
+              Center(
+                child: Stack(
+                  children: [
+                    // Profile image
+                    Container(
+                      width: 139,
+                      height: 139,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey[300],
+                        image: DecorationImage(
+                          image: NetworkImage(
+                            userData.data?.imageUrl ??
+                                'https://res.cloudinary.com/dd4hzavnw/image/upload/v1761235874/room_properties/emssdtl4jfv65qavecze.png',
+                          ),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    // Edit icon
+                    Positioned(
+                      right: 0,
+                      bottom: 8,
+                      child: Container(
+                        width: 31,
+                        height: 31,
+                        decoration: BoxDecoration(
+                          color: DertamColors.primaryBlue,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: DertamColors.white,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.edit,
+                          color: DertamColors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // User Name
+              Text(
+                userData.data?.name ?? 'User not Available',
+                style: DertamTextStyles.subtitle.copyWith(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF262422),
+                  fontSize: 24,
+                ),
+              ),
+            ],
+          ),
+        );
+        break;
+    }
+
     return Scaffold(
       backgroundColor: DertamColors.white,
       appBar: AppBar(
@@ -19,72 +103,20 @@ class DertamEditProfile extends StatelessWidget {
         centerTitle: true,
         title: Text(
           'Setting',
-          style: TextStyle(
+          style: DertamTextStyles.subtitle.copyWith(
             fontFamily: 'Poppins',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: DertamColors.black,
+            fontWeight: FontWeight.bold,
+            color: DertamColors.primaryBlue,
+            fontSize: 24,
           ),
         ),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 30),
-            // Profile photo section
-            Center(
-              child: Stack(
-                children: [
-                  // Profile image
-                  Container(
-                    width: 139,
-                    height: 139,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey[300],
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://res.cloudinary.com/dd4hzavnw/image/upload/v1761235874/room_properties/emssdtl4jfv65qavecze.png',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  // Edit icon
-                  Positioned(
-                    right: 0,
-                    bottom: 8,
-                    child: Container(
-                      width: 31,
-                      height: 31,
-                      decoration: BoxDecoration(
-                        color: DertamColors.primaryBlue,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: DertamColors.white, width: 2),
-                      ),
-                      child: Icon(
-                        Icons.edit,
-                        color: DertamColors.white,
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 13),
-            // User name
-            Text(
-              'Mokey',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF262422),
-                letterSpacing: 0.04,
-              ),
-            ),
-            const SizedBox(height: 51),
+            const SizedBox(height: 16),
+            userInfo,
+            const SizedBox(height: 24),
             // Settings menu container
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 13),

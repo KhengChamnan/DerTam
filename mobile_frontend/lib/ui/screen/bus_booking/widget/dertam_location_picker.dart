@@ -4,7 +4,7 @@ import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class DertamLocationPicker extends StatefulWidget {
   final Location?
-  initLocation; // The picker can be triguer with an existing location name
+  initLocation; 
 
   const DertamLocationPicker({super.key, this.initLocation});
 
@@ -115,9 +115,7 @@ class _DertamLocationPickerState extends State<DertamLocationPicker> {
   }
 }
 
-///
-/// This tile represents an item in the list of past entered ride inputs
-///s
+
 class LocationTile extends StatelessWidget {
   final Location location;
   final Function(Location location) onSelected;
@@ -130,7 +128,7 @@ class LocationTile extends StatelessWidget {
 
   String get title => location.name;
 
-  String get subTitle => 'Sri Lanka'; // For now, hardcode Sri Lanka
+  String get subTitle => 'Sri Lanka'; 
 
   @override
   Widget build(BuildContext context) {
@@ -160,12 +158,6 @@ class LocationTile extends StatelessWidget {
   }
 }
 
-///
-///  The Search bar combines the search input + the navigation back button
-///  A clear button appears when search contains some text.
-///
-///  The Search bar combines the search input + the navigation back button
-///  A clear button appears when search contains some text.
 class DertamSearchBar extends StatefulWidget {
   const DertamSearchBar({
     super.key,

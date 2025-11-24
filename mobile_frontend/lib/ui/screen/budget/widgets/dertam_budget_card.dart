@@ -36,7 +36,7 @@ class BudgetCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: DertamColors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -64,9 +64,9 @@ class BudgetCard extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Amount
             Text(
               '$currencySymbol ${amount.toStringAsFixed(0)}',
@@ -76,20 +76,17 @@ class BudgetCard extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 4),
-            
+
             // Subtitle
             Text(
               subtitle,
-              style: TextStyle(
-                color: textColor.withOpacity(0.7),
-                fontSize: 12,
-              ),
+              style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 12),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Progress Bar
             ClipRRect(
               borderRadius: BorderRadius.circular(4),

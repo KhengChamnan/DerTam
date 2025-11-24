@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/forgot_password/reset_password_screen.dart';
+import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/dertam_apptheme.dart';
 
@@ -26,12 +27,9 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     6,
     (index) => TextEditingController(),
   );
-  
+
   // Focus nodes for each PIN digit
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-    (index) => FocusNode(),
-  );
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
   @override
   void dispose() {
@@ -55,32 +53,29 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     return pin.length == 6;
   }
 
-Future<void> _handleConfirm() async {
+  Future<void> _handleConfirm() async {
     if (!isPinComplete) return;
 
     // Get auth provider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     // Call login method
-    await authProvider.verifyPin(
-      widget.email,
-      pin,
-    );
+    await authProvider.verifyPin(widget.email, pin);
 
     // Check result after login
     if (!mounted) return;
 
     final response = authProvider.verifyPinValue;
-    
+
     if (response?.state == AsyncValueState.success) {
       // Success - Show message
-  
-      
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => ResetPasswordScreen(email: widget.email)),
+        MaterialPageRoute(
+          builder: (context) => ResetPasswordScreen(email: widget.email),
+        ),
       );
-
     } else if (response?.state == AsyncValueState.error) {
       // Error - Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -92,12 +87,11 @@ Future<void> _handleConfirm() async {
     }
   }
 
-
   /// Handle resending the PIN
   Future<void> _handleResendPin() async {
     // Get auth provider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     // Call send password reset email again
     await authProvider.sendPasswordResetEmail(widget.email);
 
@@ -105,14 +99,13 @@ Future<void> _handleConfirm() async {
     if (!mounted) return;
 
     final response = authProvider.forgotPasswordValue;
-    
+
     if (response?.state == AsyncValueState.success) {
       // Clear PIN fields
       for (var controller in _controllers) {
         controller.clear();
       }
       _focusNodes[0].requestFocus();
-      
     } else if (response?.state == AsyncValueState.error) {
       // Error - Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -160,7 +153,7 @@ Future<void> _handleConfirm() async {
                     borderRadius: BorderRadius.circular(14.217),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back_ios_new),
                     iconSize: 24,
                     color: DertamColors.black,
                     onPressed: () => Navigator.pop(context),
@@ -168,9 +161,11 @@ Future<void> _handleConfirm() async {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: DertamSpacings.xxl * 3),
-              
+              // Illustration
+              const LoginIllustration(),
+              SizedBox(height: DertamSpacings.s),
               // Title
               Center(
                 child: Text(
@@ -181,13 +176,15 @@ Future<void> _handleConfirm() async {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: DertamSpacings.l),
-              
+
               // Description
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.m),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DertamSpacings.m,
+                  ),
                   child: Text(
                     'Please check your email and enter the 6-digit verification code below.',
                     textAlign: TextAlign.center,
@@ -198,12 +195,14 @@ Future<void> _handleConfirm() async {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: DertamSpacings.xxl),
-              
+
               // PIN input fields
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.s),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DertamSpacings.s,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: List.generate(6, (index) {
@@ -211,14 +210,16 @@ Future<void> _handleConfirm() async {
                   }),
                 ),
               ),
-              
+
               const SizedBox(height: DertamSpacings.xxl),
-              
+
               // Confirm button
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
-                  final isLoading = authProvider.verifyPinValue?.state == AsyncValueState.loading;
-                  
+                  final isLoading =
+                      authProvider.verifyPinValue?.state ==
+                      AsyncValueState.loading;
+
                   return Container(
                     width: double.infinity,
                     height: 53,
@@ -227,7 +228,9 @@ Future<void> _handleConfirm() async {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: TextButton(
-                      onPressed: (isPinComplete && !isLoading) ? _handleConfirm : null,
+                      onPressed: (isPinComplete && !isLoading)
+                          ? _handleConfirm
+                          : null,
                       style: TextButton.styleFrom(
                         foregroundColor: DertamColors.white,
                         shape: RoundedRectangleBorder(
@@ -240,7 +243,9 @@ Future<void> _handleConfirm() async {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : Text(
@@ -254,9 +259,9 @@ Future<void> _handleConfirm() async {
                   );
                 },
               ),
-              
+
               const SizedBox(height: DertamSpacings.l),
-              
+
               // Resend PIN text
               Center(
                 child: RichText(
@@ -298,10 +303,7 @@ Future<void> _handleConfirm() async {
       height: 53,
       decoration: BoxDecoration(
         color: DertamColors.white,
-        border: Border.all(
-          color: const Color(0xFFD9D9D9),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFD9D9D9), width: 1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Center(
@@ -320,9 +322,7 @@ Future<void> _handleConfirm() async {
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
           ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           onChanged: (value) => _onPinChanged(index, value),
           onTap: () {
             // Select all text when tapping

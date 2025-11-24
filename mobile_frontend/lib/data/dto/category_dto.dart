@@ -12,12 +12,10 @@ class CategoryDTO {
       rethrow;
     }
   }
+
   static Map<String, dynamic> toJson(PlaceCategory category) {
     try {
-      return {
-        'id': category.categoryId,
-        'name': category.categoryName,
-      };
+      return {'id': category.categoryId, 'name': category.categoryName};
     } catch (e) {
       print('Error converting PlaceCategory to JSON: $e');
       rethrow;

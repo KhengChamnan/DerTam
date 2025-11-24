@@ -4,14 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
-import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_confiirm_booking.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_confirm_booking.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_room_amenity.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:provider/provider.dart';
 
 class DertamBookingRoomScreen extends StatefulWidget {
   final int roomId;
-  const DertamBookingRoomScreen({super.key, required this.roomId});
+  final DateTime? checkIn;
+  final DateTime? checkOut;
+  const DertamBookingRoomScreen({
+    super.key,
+    required this.roomId,
+    this.checkIn,
+    this.checkOut,
+  });
   @override
   State<DertamBookingRoomScreen> createState() =>
       _DertamBookingHotelScreenState();
@@ -21,6 +29,7 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
   int _currentImageIndex = 0;
   late PageController _pageController;
   Timer? _autoPlayTimer;
+  int _numberOfRooms = 1;
 
   @override
   void initState() {
@@ -136,7 +145,6 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
         ),
       );
     }
-
     if (roomAsyncValue.state == AsyncValueState.empty) {
       return Scaffold(
         backgroundColor: DertamColors.backgroundWhite,
@@ -188,7 +196,8 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
           // AppBar with image carousel
           SliverAppBar(
             expandedHeight: 250,
-            pinned: true,
+            pinned: false,
+            floating: false,
             backgroundColor: DertamColors.white,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -215,6 +224,36 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
                 ),
               ),
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 0,
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.home,
+                      color: DertamColors.primaryDark,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => HomePage()),
+                    ),
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -629,77 +668,120 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
                   const SizedBox(height: DertamSpacings.l),
 
                   // Booking footer with price and button
-                  Row(
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text:
-                                  '\$${roomData.pricePerNight.toStringAsFixed(0)} ',
-                              style: DertamTextStyles.title.copyWith(
-                                color: DertamColors.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'nightly',
-                              style: DertamTextStyles.bodyMedium.copyWith(
-                                color: DertamColors.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: roomData.isAvailable
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          DertamConfirmBooking(
-                                            roomType: roomData.roomType,
-                                            pricePerNight:
-                                                roomData.pricePerNight,
-                                            numberOfRooms: 2,
-                                            roomImage: roomData.imagesUrl,
-                                            maxGuests: roomData.maxGuests,
-                                          ),
-                                    ),
-                                  );
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: DertamColors.primaryDark,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            roomData.isAvailable ? 'Book Now' : 'Not Available',
-                            style: DertamTextStyles.buttonLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: DertamSpacings.l),
                 ],
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            // Room counter controls
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: DertamColors.primaryBlue.withOpacity(0.3),
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  // Decrease button
+                  IconButton(
+                    onPressed: _numberOfRooms > 1
+                        ? () {
+                            setState(() {
+                              _numberOfRooms--;
+                            });
+                          }
+                        : null,
+                    icon: Icon(
+                      Icons.remove,
+                      color: _numberOfRooms > 1
+                          ? DertamColors.primaryBlue
+                          : Colors.grey,
+                      size: 20,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                  ),
+                  // Room count display
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      '$_numberOfRooms',
+                      style: DertamTextStyles.title.copyWith(
+                        color: DertamColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  // Increase button
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _numberOfRooms++;
+                      });
+                    },
+                    icon: Icon(
+                      Icons.add,
+                      color: DertamColors.primaryBlue,
+                      size: 20,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DertamConfirmBooking(
+                      roomType: roomData.roomType,
+                      pricePerNight: roomData.pricePerNight,
+                      roomImage: roomData.imagesUrl,
+                      maxGuests: roomData.maxGuests,
+                      checkIn: widget.checkIn,
+                      checkOut: widget.checkOut,
+                      room: roomData, 
+                    ),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: DertamColors.primaryDark,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Book Now',
+                  style: DertamTextStyles.buttonLarge.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

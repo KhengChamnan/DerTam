@@ -33,57 +33,72 @@ class DertamTextField extends StatefulWidget {
 }
 
 class _DertamTextFieldState extends State<DertamTextField> {
-  bool _obscureText = true;                               // Password visibility state
+  bool _obscureText = true; // Password visibility state
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 53,
-      decoration: BoxDecoration(
-        color: DertamColors.white,
-        borderRadius: BorderRadius.circular(DertamSpacings.radiusLarge),
-        border: Border.all(
-          color: const Color(0xFFD9D9D9),
-          width: 1,
+    return TextFormField(
+      controller: widget.controller,
+      obscureText: widget.isPassword ? _obscureText : false,
+      keyboardType: widget.keyboardType,
+      validator: widget.validator,
+      onChanged: widget.onChanged,
+      enabled: widget.enabled,
+      style: DertamTextStyles.body.copyWith(color: DertamColors.textPrimary),
+      decoration: InputDecoration(
+        hintText: widget.hintText,
+        hintStyle: DertamTextStyles.bodyMedium.copyWith(
+          color: Colors.black.withOpacity(0.61),
         ),
-      ),
-      child: TextFormField(
-        controller: widget.controller,
-        obscureText: widget.isPassword ? _obscureText : false,
-        keyboardType: widget.keyboardType,
-        validator: widget.validator,
-        onChanged: widget.onChanged,
-        enabled: widget.enabled,
-        style: DertamTextStyles.body.copyWith(
-          color: DertamColors.textPrimary,
+        prefixIcon: widget.prefixIcon,
+        suffixIcon: widget.isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: DertamColors.primaryDark,
+                  size: DertamSize.icon,
+                ),
+                onPressed: () {
+                  // Toggle password visibility
+                  setState(() {
+                    _obscureText = !_obscureText;
+                  });
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: DertamColors.white,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: DertamSpacings.l,
+          vertical: DertamSpacings.m,
         ),
-        decoration: InputDecoration(
-          hintText: widget.hintText,
-          hintStyle: DertamTextStyles.bodyMedium.copyWith(
-            color: Colors.black.withOpacity(0.61),
+        // Border styling
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(DertamSpacings.radius),
+          borderSide: BorderSide(color: DertamColors.neutralLighter, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(DertamSpacings.radius),
+          borderSide: BorderSide(color: DertamColors.primaryDark, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(DertamSpacings.radius),
+          borderSide: BorderSide(color: Colors.red, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(DertamSpacings.radius),
+          borderSide: BorderSide(color: Colors.red, width: 1.5),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(DertamSpacings.radius),
+          borderSide: BorderSide(
+            color: DertamColors.neutralLighter.withOpacity(0.5),
+            width: 1,
           ),
-          prefixIcon: widget.prefixIcon,
-          suffixIcon: widget.isPassword
-              ? IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility : Icons.visibility_off,
-                    color: DertamColors.primaryDark,
-                    size: DertamSize.icon,
-                  ),
-                  onPressed: () {
-                    // Toggle password visibility
-                    setState(() {
-                      _obscureText = !_obscureText;
-                    });
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: DertamSpacings.l,
-            vertical: DertamSpacings.m,
-          ),
         ),
+        // Error styling
+        errorStyle: TextStyle(color: Colors.red, fontSize: 12, height: 0.8),
+        errorMaxLines: 2,
       ),
     );
   }

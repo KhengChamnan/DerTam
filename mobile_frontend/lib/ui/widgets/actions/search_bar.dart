@@ -1,14 +1,9 @@
-
-
 import 'package:flutter/material.dart';
 
 class TamSearchbar extends StatefulWidget {
   final VoidCallback onSearchTap;
 
-  const TamSearchbar({
-    super.key,
-    required this.onSearchTap,
-  });
+  const TamSearchbar({super.key, required this.onSearchTap});
 
   @override
   State<TamSearchbar> createState() => _TamSearchbarState();
@@ -39,7 +34,6 @@ class _TamSearchbarState extends State<TamSearchbar> {
               ),
             ),
           ),
-          
         ],
       ),
     );

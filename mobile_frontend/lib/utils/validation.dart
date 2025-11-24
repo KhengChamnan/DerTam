@@ -13,7 +13,7 @@ class Validation {
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email';
     }
-    return null;                                          // Email is valid
+    return null; // Email is valid
   }
 
   /// Validates password format
@@ -25,16 +25,19 @@ class Validation {
     if (value.length < 6) {
       return 'Password must be at least 6 characters';
     }
-    return null;                                          // Password is valid
+    return null; // Password is valid
   }
 
   /// Validates required field
   /// Returns error message if empty, null if valid
-  static String? validateRequired(String? value, {String fieldName = 'This field'}) {
+  static String? validateRequired(
+    String? value, {
+    String fieldName = 'This field',
+  }) {
     if (value == null || value.isEmpty) {
       return '$fieldName is required';
     }
-    return null;                                          // Field is not empty
+    return null; // Field is not empty
   }
 
   /// Validates phone number format
@@ -47,31 +50,39 @@ class Validation {
     if (!phoneRegex.hasMatch(value)) {
       return 'Please enter a valid phone number';
     }
-    return null;                                          // Phone number is valid
+    return null; // Phone number is valid
   }
 
   /// Validates minimum length
   /// Returns error message if too short, null if valid
-  static String? validateMinLength(String? value, int minLength, {String fieldName = 'This field'}) {
+  static String? validateMinLength(
+    String? value,
+    int minLength, {
+    String fieldName = 'This field',
+  }) {
     if (value == null || value.isEmpty) {
       return '$fieldName is required';
     }
     if (value.length < minLength) {
       return '$fieldName must be at least $minLength characters';
     }
-    return null;                                          // Meets minimum length
+    return null; // Meets minimum length
   }
 
   /// Validates maximum length
   /// Returns error message if too long, null if valid
-  static String? validateMaxLength(String? value, int maxLength, {String fieldName = 'This field'}) {
+  static String? validateMaxLength(
+    String? value,
+    int maxLength, {
+    String fieldName = 'This field',
+  }) {
     if (value == null || value.isEmpty) {
-      return null;                                        // Empty is acceptable for max length
+      return null; // Empty is acceptable for max length
     }
     if (value.length > maxLength) {
       return '$fieldName must not exceed $maxLength characters';
     }
-    return null;                                          // Within maximum length
+    return null; // Within maximum length
   }
 
   /// Validates password confirmation
@@ -83,7 +94,7 @@ class Validation {
     if (value != password) {
       return 'Passwords do not match';
     }
-    return null;                                          // Passwords match
+    return null; // Passwords match
   }
 
   /// Validates username format (alphanumeric and underscore only)
@@ -99,19 +110,22 @@ class Validation {
     if (!usernameRegex.hasMatch(value)) {
       return 'Username can only contain letters, numbers, and underscores';
     }
-    return null;                                          // Username is valid
+    return null; // Username is valid
   }
 
   /// Validates numeric input
   /// Returns error message if not a number, null if valid
-  static String? validateNumeric(String? value, {String fieldName = 'This field'}) {
+  static String? validateNumeric(
+    String? value, {
+    String fieldName = 'This field',
+  }) {
     if (value == null || value.isEmpty) {
       return '$fieldName is required';
     }
     if (double.tryParse(value) == null) {
       return '$fieldName must be a number';
     }
-    return null;                                          // Value is numeric
+    return null; // Value is numeric
   }
 
   /// Validates URL format
@@ -121,11 +135,11 @@ class Validation {
       return 'Please enter a URL';
     }
     final urlRegex = RegExp(
-      r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$'
+      r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$',
     );
     if (!urlRegex.hasMatch(value)) {
       return 'Please enter a valid URL';
     }
-    return null;                                          // URL is valid
+    return null; // URL is valid
   }
 }

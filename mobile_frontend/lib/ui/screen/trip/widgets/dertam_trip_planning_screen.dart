@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_text_field.dart';
-import 'package:mobile_frontend/ui/screen/trip/widgets/trip_date_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_select_date.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 
 class TripPlanning extends StatefulWidget {

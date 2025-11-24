@@ -107,7 +107,6 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
     final placeDetailData = placeProvider.placeDetail;
     // final hotelData = hotelProvider.hotels;
     Widget content;
-    print('mean konleng dek ot ${placeDetailData.data}');
     switch (placeDetailData.state) {
       case AsyncValueState.empty:
         content = SizedBox(
@@ -203,93 +202,90 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
         slivers: [
           SliverAppBar(
             expandedHeight: 320,
-            pinned: true,
+            floating: false,
+            pinned: false,
             backgroundColor: DertamColors.white,
-            leading: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      spreadRadius: 0,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new,
-                    color: DertamColors.primaryDark,
-                    size: 20,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ),
+            automaticallyImplyLeading: false,
+
             flexibleSpace: FlexibleSpaceBar(
               background: DertamImageSlideshow(
                 images: placeDetailData.data?.listOfImageUrl ?? [],
               ),
             ),
           ),
-          // Place Information
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title and Rating
-                  Row(
+          // Place Information - Sticky Header
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _PlaceInfoHeaderDelegate(
+              minHeight: 90,
+              maxHeight: 90,
+              child: Container(
+                color: DertamColors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          placeDetailData.data?.placeDetail.name ??
-                              'Not Available',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              placeDetailData.data?.placeDetail.ratings
-                                      .toString() ??
-                                  '0.0',
+                      // Title and Rating
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              placeDetailData.data?.placeDetail.name ??
+                                  'Not Available',
                               style: const TextStyle(
+                                fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  placeDetailData.data?.placeDetail.ratings
+                                          .toString() ??
+                                      '0.0',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-
+                ),
+              ),
+            ),
+          ),
+          // Description Section
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   // Location
                   Row(
                     children: [
@@ -304,14 +300,102 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 20),
+                  ), // Quick Info Cards
+                  const SizedBox(height: 16),
 
-                  // Description Section
+                  SizedBox(
+                    height: 110,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      children: [
+                        SizedBox(
+                          width: 160,
+                          child: DertamDetailInfo(
+                            icon: Iconsax.clock,
+                            title: 'Opening Hours',
+                            value: () {
+                              final operatingHours = placeDetailData
+                                  .data
+                                  ?.placeDetail
+                                  .operatingHours;
+
+                              if (operatingHours == null ||
+                                  operatingHours.isEmpty) {
+                                return 'Not Available';
+                              }
+
+                              // Get current day of week (lowercase, 3 letters)
+                              final now = DateTime.now();
+                              final dayNames = [
+                                'mon',
+                                'tue',
+                                'wed',
+                                'thu',
+                                'fri',
+                                'sat',
+                                'sun',
+                              ];
+                              final currentDay = dayNames[now.weekday - 1];
+
+                              // Get hours for current day
+                              final todayHours = operatingHours[currentDay];
+
+                              if (todayHours != null) {
+                                return 'Today: $todayHours';
+                              } else {
+                                return 'Not Available';
+                              }
+                            }(),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 160,
+                          child: DertamDetailInfo(
+                            icon: Iconsax.ticket,
+                            title: 'Entry Fee',
+                            value:
+                                placeDetailData.data?.placeDetail.entryFree ==
+                                    true
+                                ? 'Free'
+                                : 'Paid',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 160,
+                          child: DertamDetailInfo(
+                            icon: Iconsax.calendar,
+                            title: 'Best Season',
+                            value:
+                                placeDetailData
+                                    .data
+                                    ?.placeDetail
+                                    .bestSeasonToVisit ??
+                                'Not Available',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 160,
+                          child: DertamDetailInfo(
+                            icon: Iconsax.people,
+                            title: 'Reviews',
+                            value:
+                                '${placeDetailData.data?.placeDetail.reviewsCount ?? 0}+',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
                   const Text(
                     'Description',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
+
                   const SizedBox(height: 10),
                   Text(
                     placeDetailData.data?.placeDetail.description ??
@@ -324,65 +408,6 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Quick Info Cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DertamDetailInfo(
-                          icon: Iconsax.clock,
-                          title: 'Opening Hours',
-                          value:
-                              placeDetailData
-                                  .data
-                                  ?.placeDetail
-                                  .operatingHours
-                                  .entries
-                                  .map((e) => '${e.key}: ${e.value}')
-                                  .join(', ') ??
-                              'Not Available',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DertamDetailInfo(
-                          icon: Iconsax.ticket,
-                          title: 'Entry Fee',
-                          value:
-                              placeDetailData.data?.placeDetail.entryFree ==
-                                  true
-                              ? 'Free'
-                              : 'Paid',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DertamDetailInfo(
-                          icon: Iconsax.calendar,
-                          title: 'Best Season',
-                          value:
-                              placeDetailData
-                                  .data
-                                  ?.placeDetail
-                                  .bestSeasonToVisit ??
-                              'Not Available',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DertamDetailInfo(
-                          icon: Iconsax.people,
-                          title: 'Reviews',
-                          value:
-                              '${placeDetailData.data?.placeDetail.reviewsCount ?? 0}+',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
                   Text(
                     'Nearby Places',
                     style: TextStyle(
@@ -544,5 +569,40 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
         ],
       ),
     );
+  }
+}
+
+// Custom SliverPersistentHeaderDelegate for sticky place info
+class _PlaceInfoHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  _PlaceInfoHeaderDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.child,
+  });
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_PlaceInfoHeaderDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        child != oldDelegate.child;
   }
 }

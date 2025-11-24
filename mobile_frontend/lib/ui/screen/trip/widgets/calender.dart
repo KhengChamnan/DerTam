@@ -35,7 +35,7 @@ class CalendarWidget extends StatelessWidget {
             onPreviousMonth: onPreviousMonth,
             onNextMonth: onNextMonth,
           ),
-          
+
           // Calendar Grid
           CalendarGrid(
             currentMonth: currentMonth,
@@ -78,10 +78,7 @@ class CalendarHeader extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          IconButton(
-            onPressed: onNextMonth,
-            icon: Icon(Icons.chevron_right),
-          ),
+          IconButton(onPressed: onNextMonth, icon: Icon(Icons.chevron_right)),
         ],
       ),
     );
@@ -89,8 +86,18 @@ class CalendarHeader extends StatelessWidget {
 
   String _getMonthYearString(DateTime date) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -112,7 +119,11 @@ class CalendarGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daysInMonth = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
+    final daysInMonth = DateTime(
+      currentMonth.year,
+      currentMonth.month + 1,
+      0,
+    ).day;
     final firstDayOfMonth = DateTime(currentMonth.year, currentMonth.month, 1);
     final startingWeekday = firstDayOfMonth.weekday % 7;
 
@@ -127,18 +138,22 @@ class CalendarGrid extends StatelessWidget {
           // Weekday headers
           const WeekdayHeaders(),
           SizedBox(height: 8),
-          
+
           // Calendar days
           ...List.generate(6, (weekIndex) {
             final weekWidgets = List.generate(7, (dayIndex) {
               final dayNumber = weekIndex * 7 + dayIndex - startingWeekday + 1;
-              
+
               if (dayNumber < 1 || dayNumber > daysInMonth) {
                 return SizedBox(width: 35, height: 35);
               }
-              
-              final date = DateTime(currentMonth.year, currentMonth.month, dayNumber);
-              
+
+              final date = DateTime(
+                currentMonth.year,
+                currentMonth.month,
+                dayNumber,
+              );
+
               return CalendarDay(
                 date: date,
                 startDate: startDate,
@@ -146,7 +161,7 @@ class CalendarGrid extends StatelessWidget {
                 onTap: () => onDateSelected(date),
               );
             });
-            
+
             // Only show rows that have at least one valid day
             if (weekWidgets.any((widget) => widget is CalendarDay)) {
               return Padding(
@@ -160,7 +175,7 @@ class CalendarGrid extends StatelessWidget {
               return SizedBox.shrink();
             }
           }).where((widget) => widget is! SizedBox || (widget).height != null),
-          
+
           SizedBox(height: DertamSpacings.s),
         ],
       ),
@@ -176,19 +191,21 @@ class WeekdayHeaders extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-          .map((day) => SizedBox(
-                width: 35,
-                child: Center(
-                  child: Text(
-                    day,
-                    style: DertamTextStyles.bodyMedium.copyWith(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
+          .map(
+            (day) => SizedBox(
+              width: 35,
+              child: Center(
+                child: Text(
+                  day,
+                  style: DertamTextStyles.bodyMedium.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
                   ),
                 ),
-              ))
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -211,7 +228,8 @@ class CalendarDay extends StatelessWidget {
   bool get isSelected => _isDateSelected(date);
   bool get isInRange => _isDateInRange(date);
   bool get isToday => _isToday(date);
-  bool get isPastDate => date.isBefore(DateTime.now().subtract(Duration(days: 1)));
+  bool get isPastDate =>
+      date.isBefore(DateTime.now().subtract(Duration(days: 1)));
 
   @override
   Widget build(BuildContext context) {
@@ -225,12 +243,12 @@ class CalendarDay extends StatelessWidget {
           color: isPastDate
               ? Colors.grey[200]
               : isSelected
-                  ? DertamColors.primaryDark
-                  : isInRange
-                      ? DertamColors.primaryDark.withOpacity(0.3)
-                      : isToday
-                          ? Colors.blue[100]
-                          : Colors.transparent,
+              ? DertamColors.primaryDark
+              : isInRange
+              ? DertamColors.primaryDark.withOpacity(0.3)
+              : isToday
+              ? Colors.blue[100]
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(17.5),
         ),
         child: Center(
@@ -240,12 +258,12 @@ class CalendarDay extends StatelessWidget {
               color: isPastDate
                   ? Colors.grey[400]
                   : isSelected
-                      ? DertamColors.white
-                      : isInRange
-                          ? DertamColors.primaryDark
-                          : DertamColors.black,
-              fontWeight: isSelected || isToday 
-                  ? FontWeight.w600 
+                  ? DertamColors.white
+                  : isInRange
+                  ? DertamColors.primaryDark
+                  : DertamColors.black,
+              fontWeight: isSelected || isToday
+                  ? FontWeight.w600
                   : FontWeight.normal,
               fontSize: 14,
             ),
@@ -257,7 +275,7 @@ class CalendarDay extends StatelessWidget {
 
   bool _isDateSelected(DateTime date) {
     return (startDate != null && _isSameDay(date, startDate!)) ||
-           (endDate != null && _isSameDay(date, endDate!));
+        (endDate != null && _isSameDay(date, endDate!));
   }
 
   bool _isDateInRange(DateTime date) {
@@ -272,7 +290,7 @@ class CalendarDay extends StatelessWidget {
 
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 }

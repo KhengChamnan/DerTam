@@ -82,6 +82,7 @@ class PlaceProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
   Future<void> getPlaceDetail(String placeId) async {
     _placeDetail = AsyncValue.loading();
     notifyListeners();

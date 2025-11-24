@@ -44,8 +44,60 @@ class FetchingData {
       rethrow;
     }
   }
+  static Future<http.Response> updateData(
+    String provideUrl,
+    Map<String, String> param,
+    Map<String, dynamic> parBody,
+  ) async {
+    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
+    dynamic requestBody;
+    if (param.containsKey('Content-Type') &&
+        param['Content-Type'] == 'application/json') {
+      requestBody = json.encode(parBody);
+    } else {
+      requestBody = parBody;
+    }
+    try {
+      final response = await http
+          .patch(url, headers: param, body: requestBody)
+          .timeout(const Duration(seconds: 30));
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
 
-  static Future<http.Response> getDate(
+  static Future<http.Response> postWithHeaderOnly(
+    String provideUrl,
+    Map<String, String> headers,
+  ) async {
+    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
+    try {
+      final response = await http
+          .post(url, headers: headers)
+          .timeout(const Duration(seconds: 30));
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<http.Response> deleteData(
+    String provideUrl,
+    Map<String, String> headers,
+  ) async {
+    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
+    try {
+      final response = await http
+          .delete(url, headers: headers)
+          .timeout(const Duration(seconds: 30));
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<http.Response> getData(
     String provideUrl,
     Map<String, String> param,
   ) async {

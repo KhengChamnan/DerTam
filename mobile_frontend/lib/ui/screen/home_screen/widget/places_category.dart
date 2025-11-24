@@ -45,12 +45,23 @@ class _PlacesCategoryState extends State<PlacesCategory> {
 
         if (categoriesAsync.state == AsyncValueState.error) {
           return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Text(
-                'Error loading categories: ${categoriesAsync.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Colors.red),
+                SizedBox(height: 16),
+                Text(
+                  'Lost connection failed to place category!',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<PlaceProvider>().fetchPlaceCategories();
+                  },
+                  child: Text('Retry'),
+                ),
+              ],
             ),
           );
         }

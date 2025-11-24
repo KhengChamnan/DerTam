@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/dertam_bus_booking_screen.dart';
-import 'package:mobile_frontend/ui/screen/favorite/favorite_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/screen/hotel/dertam_hotel_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/user_profile_screen.dart';
-import 'package:mobile_frontend/ui/screen/trip/dertam_trip_planning_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/dertam_trip_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class Navigationbar extends StatelessWidget {
@@ -24,10 +24,10 @@ class Navigationbar extends StatelessWidget {
         screen = const DertamBusBookingScreen();
         break;
       case 2:
-        screen = const TripPlanning();
+        screen = const DertamTripScreen();
         break;
       case 3:
-        screen = const FavoriteScreen();
+        screen = const DertamHotelScreen();
         break;
       case 4:
         screen = const UserProfile();
@@ -90,12 +90,12 @@ class Navigationbar extends StatelessWidget {
                 ),
                 NavigationDestination(
                   icon: Icon(
-                    Iconsax.heart,
+                    Icons.hotel,
                     color: currentIndex == 3
                         ? DertamColors.primaryBlue
                         : Colors.grey,
                   ),
-                  label: 'Favorite',
+                  label: 'Hotel booking',
                 ),
                 NavigationDestination(
                   icon: Icon(

@@ -3,7 +3,6 @@ import 'package:mobile_frontend/models/place/place.dart';
 
 /// Data Transfer Object for Place model
 class PlaceDto {
-  /// Convert API/Database JSON to Place model
   static Place fromJson(Map<String, dynamic> json) {
     try {
       return Place(
@@ -13,7 +12,8 @@ class PlaceDto {
         categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
         googleMapsLink: json['google_maps_link']?.toString() ?? '',
         ratings: double.tryParse(json['ratings']?.toString() ?? '0.0') ?? 0.0,
-        reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? '0') ?? 0,
+        reviewsCount:
+            int.tryParse(json['reviews_count']?.toString() ?? '0') ?? 0,
         imagesUrl: json['image_url']?.toString() ?? '',
         imagePublicIds: json['image_public_ids']?.toString() ?? '',
         entryFree: json['entry_free'] == 1 || json['entry_free'] == true,
@@ -21,7 +21,8 @@ class PlaceDto {
         bestSeasonToVisit: json['best_season_to_visit']?.toString() ?? 'Summer',
         provinceId: int.tryParse(json['province_id']?.toString() ?? '0') ?? 0,
         latitude: double.tryParse(json['latitude']?.toString() ?? '0.0') ?? 0.0,
-        longitude: double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
+        longitude:
+            double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
         createdAt: _parseDateTime(json['created_at']),
         updatedAt: _parseDateTime(json['updated_at']),
         locationName: json['location']?.toString() ?? '',
@@ -62,7 +63,7 @@ class PlaceDto {
 
   static Map<String, dynamic> _parseJsonMap(dynamic value) {
     if (value == null) return {};
-    
+
     if (value is String) {
       try {
         final decoded = jsonDecode(value);
@@ -73,18 +74,18 @@ class PlaceDto {
         print('Error parsing JSON map: $e');
       }
     }
-    
+
     if (value is Map) {
       return Map<String, dynamic>.from(value);
     }
-    
+
     return {};
   }
 
   /// Parse date string to DateTime
   static DateTime _parseDateTime(dynamic value) {
     if (value == null) return DateTime.now();
-    
+
     if (value is String) {
       try {
         return DateTime.parse(value);
@@ -92,11 +93,11 @@ class PlaceDto {
         print('Error parsing DateTime: $e');
       }
     }
-    
+
     if (value is DateTime) {
       return value;
     }
-    
+
     return DateTime.now();
   }
 }

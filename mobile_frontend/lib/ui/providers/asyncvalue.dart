@@ -14,5 +14,24 @@ class AsyncValue<T> {
 
   factory AsyncValue.error(Object error) =>
       AsyncValue._(error: error, state: AsyncValueState.error);
+
   factory AsyncValue.empty() => AsyncValue._(state: AsyncValueState.empty);
+
+  R when<R>({
+    required R Function() empty,
+    required R Function() loading,
+    required R Function(Object error) error,
+    required R Function(T data) success,
+  }) {
+    switch (state) {
+      case AsyncValueState.empty:
+        return empty();
+      case AsyncValueState.loading:
+        return loading();
+      case AsyncValueState.error:
+        return error(this.error!);
+      case AsyncValueState.success:
+        return success(data as T);
+    }
+  }
 }

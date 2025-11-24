@@ -15,6 +15,7 @@ class AuthProvider extends ChangeNotifier {
   AsyncValue<User>? resetPasswordValue;
   AsyncValue<User>? googleSignInValue;
   AsyncValue<String?> _userToken = AsyncValue.empty();
+  AsyncValue<User> _userInfo = AsyncValue.empty();
 
   // User state
   String? _authToken;
@@ -26,9 +27,11 @@ class AuthProvider extends ChangeNotifier {
 
   /// Get authentication token
   String? get authToken => _authToken;
+  // Get user Info
+  AsyncValue<User> get userInfo => _userInfo;
+
   /// Get current user
   User? get currentUser => _currentUser;
-  /// Get user token
   AsyncValue<String?> get userToken => _userToken;
   Future<void> initializeAuth() async {
     final token = await authRepository.getToken();
@@ -83,7 +86,6 @@ class AuthProvider extends ChangeNotifier {
   ) async {
     registerValue = AsyncValue.loading();
     notifyListeners();
-
     try {
       final user = await authRepository.register(
         name,
@@ -167,39 +169,43 @@ class AuthProvider extends ChangeNotifier {
       googleSignInValue = AsyncValue.error(error);
       _isAuthenticated = false;
     }
-
-    // 6 - Notify listeners
     notifyListeners();
   }
 
-  /// Logout user
+/// Get user Information
+  Future<void> getUserInfo() async {
+    _userInfo = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final user = await authRepository.getUserInfo();
+      _userInfo = AsyncValue.success(user);
+    } catch (error) {
+      debugPrint('❌ Error getting current user in provider: $error');
+      _userInfo = AsyncValue.error(error);
+    }
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     try {
-      // Call repository to logout
       await authRepository.logOut();
       debugPrint('✅ Logout successful in provider');
     } catch (error) {
-      // Log error but continue with local logout
       debugPrint('❌ Logout error in provider: $error');
     } finally {
-      // Clear local auth state
       _authToken = null;
       _currentUser = null;
       _isAuthenticated = false;
-
-      // Clear all async values
       loginValue = null;
       registerValue = null;
       forgotPasswordValue = null;
       verifyPinValue = null;
       resetPasswordValue = null;
       googleSignInValue = null;
-
       notifyListeners();
     }
   }
 
-  /// Clear specific async value (useful for resetting state)
   void clearLoginValue() {
     loginValue = null;
     notifyListeners();

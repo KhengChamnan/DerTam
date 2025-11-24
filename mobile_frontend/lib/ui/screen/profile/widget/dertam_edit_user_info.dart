@@ -67,9 +67,9 @@ class _DertamEditUserInfoState extends State<DertamEditUserInfo> {
           'Edit Profile',
           style: DertamTextStyles.subtitle.copyWith(
             fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: DertamColors.black,
-            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: DertamColors.primaryBlue,
+            fontSize: 24,
           ),
         ),
         centerTitle: true,

@@ -5,7 +5,11 @@ class RecommendationPlaceCard extends StatelessWidget {
   final Place place;
   final VoidCallback onTap;
 
-  const RecommendationPlaceCard({super.key, required this.place, required this.onTap});
+  const RecommendationPlaceCard({
+    super.key,
+    required this.place,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

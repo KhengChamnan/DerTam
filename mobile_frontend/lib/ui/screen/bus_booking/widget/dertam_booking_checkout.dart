@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
 import '../../../theme/dertam_apptheme.dart';
 import '../../../widgets/actions/dertam_button.dart';
 import '../../../widgets/inputs/dertam_text_field.dart';
@@ -210,7 +211,6 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                             ),
                           ],
                         ),
-              
                       ],
                     ),
                   ),
@@ -299,9 +299,8 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                         ),
 
                         const SizedBox(height: 16),
-
                         // Payment Options
-                        _PaymentOptionItem(
+                        PaymentOptionItem(
                           value: 'khqr',
                           label: 'KH QR',
                           imagePath: 'assets/images/bakong.jpg',
@@ -314,7 +313,7 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        _PaymentOptionItem(
+                        PaymentOptionItem(
                           value: 'cash',
                           label: 'Cash',
                           imagePath: 'assets/images/cash.jpg',
@@ -326,7 +325,7 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        _PaymentOptionItem(
+                        PaymentOptionItem(
                           value: 'aba',
                           label: 'ABA Bank',
                           imagePath: 'assets/images/aba.jpg',
@@ -338,7 +337,7 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        _PaymentOptionItem(
+                        PaymentOptionItem(
                           value: 'acelida',
                           label: 'Acelida Bank',
                           imagePath: 'assets/images/aceleda.jpg',
@@ -400,13 +399,10 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
       _showErrorSnackBar('Please enter your mobile number');
       return;
     }
-
     if (_emailController.text.isEmpty) {
       _showErrorSnackBar('Please enter your email');
       return;
     }
-
-    // TODO: Implement booking processing
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -431,85 +427,4 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
 /// Private reusable widget for displaying a payment option item.
 /// Shows payment method logo, label, and selection indicator.
 ///
-class _PaymentOptionItem extends StatelessWidget {
-  final String value;
-  final String label;
-  final String imagePath;
-  final bool isSelected;
-  final bool hasCheckMark;
-  final VoidCallback onTap;
 
-  const _PaymentOptionItem({
-    required this.value,
-    required this.label,
-    required this.imagePath,
-    required this.isSelected,
-    required this.onTap,
-    this.hasCheckMark = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          // Payment method image/icon
-          Container(
-            width: 40,
-            height: 40,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  Icons.payment,
-                  color: DertamColors.primaryBlue,
-                  size: 24,
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: DertamSpacings.m),
-
-          // Label
-          Expanded(
-            child: Text(
-              label,
-              style: DertamTextStyles.bodyMedium.copyWith(
-                color: DertamColors.black,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-
-          // Radio Button or Check Mark
-          if (hasCheckMark && isSelected)
-            Icon(Icons.check_circle, color: DertamColors.primaryBlue, size: 18)
-          else
-            Container(
-              width: 15,
-              height: 15,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? DertamColors.primaryBlue
-                      : Colors.grey.shade400,
-                  width: 2,
-                ),
-                color: isSelected
-                    ? DertamColors.primaryBlue
-                    : Colors.transparent,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}

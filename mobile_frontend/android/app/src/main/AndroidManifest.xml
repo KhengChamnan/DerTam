@@ -26,6 +26,14 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Handles myapp:// URLs -->
+                <data android:scheme="myapp" android:host="payment" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -46,5 +54,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Allow opening ABA Mobile Bank app -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="abamobilebank" />
+        </intent>
+        <!-- Allow checking if ABA app is installed -->
+        <package android:name="com.paygo24.ibank" />
     </queries>
 </manifest>

@@ -1,21 +1,25 @@
 class User {
-  final String userId;
+  final int id;
   final String name;
   final String email;
+  final int? age;
   final String? googleId;
   final String? avatar;
   final String? password;
+  final String? imageUrl;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? token;
   final String? confirmPassword;
 
   User({
-    required this.userId,
+    required this.id,
     required this.name,
     required this.email,
+    this.imageUrl,
     this.googleId,
     this.avatar,
+    this.age,
     this.password,
     this.confirmPassword,
     this.createdAt,
@@ -24,9 +28,11 @@ class User {
   });
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      userId: json['user_id'] ?? '',
+      id: json['id'] ?? 0,
       name: json['name'] ?? '',
       email: json['email'] ?? '',
+      age: json['age'] ?? 0,
+      imageUrl: json['profile_image_url'] ?? '',
       googleId: json['googole_id'] ?? '',
       avatar: json['avatar'] ?? '',
       password: json['password'] ?? '',
@@ -38,20 +44,6 @@ class User {
           ? DateTime.parse(json['updated_at'])
           : null,
       token: json['token'] ?? '',
-    );
-  }
-  factory User.toJson(User user) {
-    return User(
-      userId: user.userId,
-      name: user.name,
-      email: user.email,
-      googleId: user.googleId,
-      avatar: user.avatar,
-      password: user.password,
-      confirmPassword: user.confirmPassword,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      token: user.token,
     );
   }
 }

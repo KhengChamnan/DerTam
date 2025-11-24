@@ -31,7 +31,6 @@ class AuthErrorDialog {
             textAlign: TextAlign.center,
           ),
           actions: [
-            
             SizedBox(
               width: double.infinity,
               child: TextButton(
