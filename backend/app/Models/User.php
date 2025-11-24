@@ -35,6 +35,12 @@ class User extends Authenticatable
         'phone_number',
         'status',
         'last_login_at',
+        'google_id',
+        'avatar',
+        'age',
+        'gender',
+        'profile_image_url',
+        'profile_image_public_id',
     ];
 
     /**
@@ -69,6 +75,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'age' => 'integer',
         ];
     }
 
@@ -133,6 +140,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the properties owned by this user
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ownedProperties()
+    {
+        return $this->hasMany(\App\Models\Hotel\Property::class, 'owner_user_id', 'id');
+    }
+
+    /**
+     * Get the transportation companies owned by this user
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ownedTransportations()
+    {
+        return $this->hasMany(\App\Models\Transportation::class, 'owner_user_id', 'id');
+    }
+
+    /**
      * Get user's role names as array
      *
      * @return array
@@ -150,5 +177,15 @@ class User extends Authenticatable
     public function getPermissionNamesAttribute(): array
     {
         return $this->getAllPermissions()->pluck('name')->toArray();
+    }
+
+    /**
+     * Get the trips the user is viewing (shared with them).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function tripViewers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TripViewer::class, 'user_id', 'id');
     }
 }

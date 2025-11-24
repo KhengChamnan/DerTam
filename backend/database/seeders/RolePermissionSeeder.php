@@ -28,12 +28,50 @@ class RolePermissionSeeder extends Seeder
             'delete places',
             'import places',
             
+            // Hotel management permissions
+            'view hotels',
+            'create hotels',
+            'edit hotels',
+            'delete hotels',
+            'manage hotel rooms',
+            'view hotel analytics',
+            
+            // Hotel Owner specific permissions
+            'view own hotel dashboard',
+            'manage own hotel basic info',
+            'manage own hotel rooms',
+            'manage own hotel amenities',
+            'manage own hotel facilities',
+            'manage own hotel pricing',
+            'view own hotel bookings',
+            'manage own hotel bookings',
+            'view own hotel analytics',
+            
+            // Transportation management permissions
+            'view transportations',
+            'create transportations',
+            'edit transportations',
+            'delete transportations',
+            'manage transportation buses',
+            'view transportation analytics',
+            
+            // Transportation Owner specific permissions
+            'view own transportation dashboard',
+            'manage own transportation basic info',
+            'manage own transportation buses',
+            'manage own transportation routes',
+            'manage own transportation schedules',
+            'view own transportation bookings',
+            'manage own transportation bookings',
+            'view own transportation analytics',
+            
             // User management permissions
             'view users',
             'create users',
             'edit users',
             'delete users',
             'assign roles',
+            'assign hotel ownership',
             
             // Role management permissions
             'view roles',
@@ -63,6 +101,33 @@ class RolePermissionSeeder extends Seeder
             'view places',
         ]);
 
+        // Hotel Owner role - limited hotel management permissions
+        $hotelOwnerRole = Role::firstOrCreate(['name' => 'hotel owner']);
+        $hotelOwnerRole->syncPermissions([
+            'view own hotel dashboard',
+            'manage own hotel basic info',
+            'manage own hotel rooms',
+            'manage own hotel amenities',
+            'manage own hotel facilities',
+            'manage own hotel pricing',
+            'view own hotel bookings',
+            'manage own hotel bookings',
+            'view own hotel analytics',
+        ]);
+
+        // Transportation Owner role - limited transportation management permissions
+        $transportationOwnerRole = Role::firstOrCreate(['name' => 'transportation owner']);
+        $transportationOwnerRole->syncPermissions([
+            'view own transportation dashboard',
+            'manage own transportation basic info',
+            'manage own transportation buses',
+            'manage own transportation routes',
+            'manage own transportation schedules',
+            'view own transportation bookings',
+            'manage own transportation bookings',
+            'view own transportation analytics',
+        ]);
+
         // Admin role - moderate permissions
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $adminRole->syncPermissions([
@@ -70,10 +135,21 @@ class RolePermissionSeeder extends Seeder
             'create places',
             'edit places',
             'import places',
+            'view hotels',
+            'create hotels',
+            'edit hotels',
+            'manage hotel rooms',
+            'view hotel analytics',
+            'view transportations',
+            'create transportations',
+            'edit transportations',
+            'manage transportation buses',
+            'view transportation analytics',
             'view users',
             'create users',
             'edit users',
             'assign roles',
+            'assign hotel ownership',
             'view roles',
             'create roles',
             'edit roles',

@@ -61,6 +61,26 @@ class Trip extends Model
     }
 
     /**
+     * Get the trip shares for the trip.
+     *
+     * @return HasMany
+     */
+    public function tripShares(): HasMany
+    {
+        return $this->hasMany(TripShare::class, 'trip_id', 'trip_id');
+    }
+
+    /**
+     * Get the viewers of the trip (users who accessed it via share link).
+     *
+     * @return HasMany
+     */
+    public function viewers(): HasMany
+    {
+        return $this->hasMany(TripViewer::class, 'trip_id', 'trip_id');
+    }
+
+    /**
      * Get the duration of the trip in days.
      *
      * @return int|null The duration of the trip in days, or null if dates are missing.

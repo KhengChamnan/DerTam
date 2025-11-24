@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\SocialAuthController;
@@ -22,14 +23,22 @@ use App\Http\Controllers\API\Hotel\PropertyFacilitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomPropertiesCrudController;
 use App\Http\Controllers\API\Hotel\AmenitiesCrudController;
 use App\Http\Controllers\API\Hotel\RoomAmenitiesCrudController;
-use App\Http\Controllers\API\Hotel\BookingController;
 use App\Http\Controllers\API\Hotel\RoomController;
+use App\Http\Controllers\API\Trip\TripShareController;
+use App\Http\Controllers\API\Profile\ProfileController;
+use App\Http\Controllers\API\Booking\HotelBookingController;
+use App\Http\Controllers\API\Booking\BusBookingController;
+use App\Http\Controllers\API\Payment\PaymentCallbackController;
+use App\Http\Controllers\API\Bus\BusScheduleController;
+
 
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/bus/provinces', [BusScheduleController::class, 'getProvinces']);
+Route::get('/bus/schedule/{id}', [BusScheduleController::class, 'getScheduleDetail']);
 
 Route::controller(RegisterController::class)->group(function(){
     Route::post('register', 'register');
@@ -81,42 +90,43 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
+Route::post('/rooms/search', [App\Http\Controllers\API\Hotel\RoomSearchController::class, 'searchAvailableRooms']);
 
-// Public booking GET routes
+// Public bus schedule search route
+Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
+Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
+
+Route::get('expense-categories', [ExpenseController::class, 'getExpenseCategories']); // Get all expense categories
+
+// ABA PayWay payment return/callback routes (must be public - no auth)
+Route::prefix('payments/aba')->group(function () {
+    Route::post('/return', [PaymentCallbackController::class, 'handleCallback']);
+    Route::post('/cancel', [PaymentCallbackController::class, 'handleCancel']);
+});
 
 // Protected create endpoint for places (requires Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('places', [PlaceCreateController::class, 'store']);
     
-    // Hotel property routes
-    Route::post('hotels/properties', [HotelCrudController::class, 'store']);
-    Route::delete('hotels/properties/{property_id}', [HotelCrudController::class, 'destroy']);
-    Route::post('hotels/facilities', [FacilitiesCrudController::class, 'store']);
-    Route::post('hotels/room-properties', [RoomPropertiesCrudController::class, 'store']);
-    Route::post('hotels/amenities', [AmenitiesCrudController::class, 'store']);
-    Route::delete('hotels/amenities/{id}', [AmenitiesCrudController::class, 'destroy']);
-    Route::post('hotels/room-amenities', [RoomAmenitiesCrudController::class, 'store']);
-    Route::post('hotels/property-facilities', [PropertyFacilitiesCrudController::class, 'store']);
-
-
+    // Profile management routes
+    Route::controller(ProfileController::class)->group(function() {
+        Route::get('profile', 'index');                        // Get authenticated user's profile
+        Route::post('profile', 'update');                      // Update authenticated user's profile
+        Route::delete('profile', 'destroy');                   // Delete authenticated user's account
+        Route::post('profile/change-password', 'changePassword'); // Change password
+        Route::post('profile/update-image', 'updateProfileImage'); // Update profile image
+        Route::delete('profile/delete-image', 'deleteProfileImage'); // Delete profile image
+        Route::get('profile/{id}', 'show');                    // Get specific user's profile by ID
+    });
     
-    // Hotel booking routes
-    Route::post('hotels/bookings', [BookingController::class, 'store']); // Create new booking
-    Route::get('hotels/bookings', [BookingController::class, 'index']); // Get all bookings with filters
-    Route::patch('hotels/bookings/{booking_id}/status', [BookingController::class, 'updateStatus']); // Update booking status
-    Route::patch('hotels/bookings/{booking_id}/payment', [BookingController::class, 'updatePaymentStatus']); // Update payment status
-    Route::post('hotels/bookings/{booking_id}/cancel', [BookingController::class, 'cancel']); // Cancel booking
-    Route::delete('hotels/bookings/{booking_id}', [BookingController::class, 'destroy']); // Delete booking (admin)
-    Route::get('hotels/bookings/{booking_id}', [BookingController::class, 'show']); // Get single booking by ID
-
+   
 
     // Trip management routes
     Route::controller(TripController::class)->group(function() {
         Route::post('trips', 'store');           // Create a new trip
         Route::get('trips', 'index');            // Get all user trips
         Route::get('trips/{tripId}', 'show');    // Get specific trip with days
-        Route::get('trip-days/{tripDayId}/places', 'getTripDayPlaces'); // Get all places for a trip day
-        Route::post('trip-days/{tripDayId}/places', 'addPlacesToDay'); // Add places to a trip day
+        Route::post('/add-places/{trip_id}', 'addPlaces');
     });
 
     // Trip place selection routes (for adding places to trips)
@@ -125,6 +135,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trip-planning/places/{placeId}', 'show');     // Get specific place details
         Route::post('trip-planning/places/batch', 'getByIds');    // Get multiple places by IDs
         Route::get('trip-planning/places/popular/list', 'popular'); // Get popular places
+    });
+
+    // Trip share routes (protected - owner only)
+    Route::controller(TripShareController::class)->group(function() {
+        Route::get('/trip/share/{token}', 'resolve');                // Resolve share link (view shared trip)
+        Route::get('/trip/{trip_id}/share', 'generate');           // Generate share link
+        Route::get('/trip/{trip_id}/share/accesses', 'getAccessList'); // Get access list
+        Route::delete('/trip/{trip_id}/share', 'deactivateShare');  // Deactivate share link
     });
 
     // Expense management routes
@@ -136,6 +154,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('expenses/{expenseId}', 'updateExpense');    // Update expense
         Route::delete('expenses/{expenseId}', 'deleteExpense');   // Delete expense
     });
+
+    // Booking management routes (protected)
+    Route::prefix('booking')->group(function () {
+        // Hotel booking routes
+        Route::prefix('hotel')->group(function () {
+            Route::post('/create', [HotelBookingController::class, 'createHotelBooking']);
+            Route::get('/my-bookings', [HotelBookingController::class, 'getMyHotelBookings']);
+            Route::get('/{id}', [HotelBookingController::class, 'getHotelBookingDetails']);
+            Route::post('/{id}/cancel', [HotelBookingController::class, 'cancelHotelBooking']);
+        });
+        
+        // Bus booking routes
+        Route::post('/bus/create', [BusBookingController::class, 'createBusBooking']);
+        
+        // Payment operations
+        Route::get('/payment/status/{transactionId}', [PaymentCallbackController::class, 'checkPaymentStatus']);
+        Route::post('/{bookingId}/retry-payment', [PaymentCallbackController::class, 'retryPayment']);
+    });
 });
 
 Route::get('/upload', function () {
@@ -143,3 +179,13 @@ Route::get('/upload', function () {
 });
 Route::post('/upload', [MediaController::class, 'upload']);
 
+Route::get('/cron-job-run', function (Request $request) {
+
+    // This tells Laravel: "Run the logic defined in routes/console.php NOW"
+    Artisan::call('schedule:run');
+
+    return response()->json([
+        'message' => 'Scheduler executed',
+        'output' => Artisan::output()
+    ]);
+});

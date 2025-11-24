@@ -16,6 +16,9 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -39,6 +42,7 @@ import {
     Users,
     Key,
     Settings2,
+    MoreHorizontal,
 } from "lucide-react";
 
 interface Permission {
@@ -414,74 +418,111 @@ export default function RolesIndex({ roles, filters }: Props) {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-8 w-8 p-0"
                                                     >
                                                         <Edit className="h-4 w-4" />
-                                                        <span className="sr-only">
-                                                            Edit role
-                                                        </span>
                                                     </Button>
                                                 </Link>
-                                                {role.name.toLowerCase() !==
-                                                "superadmin" ? (
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem
                                                             asChild
                                                         >
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                                            <Link
+                                                                href={`/roles/${role.id}/edit`}
                                                             >
-                                                                <Trash2 className="h-4 w-4" />
-                                                                <span className="sr-only">
-                                                                    Delete role
-                                                                </span>
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>
-                                                                    Delete Role
-                                                                </AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Are you sure
-                                                                    you want to
-                                                                    delete the
-                                                                    role "
-                                                                    {role.name}
-                                                                    "? This
-                                                                    action
-                                                                    cannot be
-                                                                    undone and
-                                                                    will remove
-                                                                    this role
-                                                                    from all
-                                                                    users who
-                                                                    have it
-                                                                    assigned.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>
-                                                                    Cancel
-                                                                </AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    onClick={() =>
-                                                                        handleDelete(
-                                                                            role.id
-                                                                        )
-                                                                    }
-                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                                >
-                                                                    Delete
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground"></span>
-                                                )}
+                                                                Edit role
+                                                                <Edit className="ml-9 h-4 w-4" />
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        {role.name.toLowerCase() !==
+                                                            "superadmin" && (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <DropdownMenuItem
+                                                                            onSelect={(
+                                                                                e
+                                                                            ) =>
+                                                                                e.preventDefault()
+                                                                            }
+                                                                            className="text-red-600 focus:text-red-600"
+                                                                        >
+                                                                            Delete
+                                                                            role
+                                                                        </DropdownMenuItem>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>
+                                                                                Are
+                                                                                you
+                                                                                absolutely
+                                                                                sure?
+                                                                            </AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                This
+                                                                                action
+                                                                                cannot
+                                                                                be
+                                                                                undone.
+                                                                                This
+                                                                                will
+                                                                                permanently
+                                                                                delete
+                                                                                the
+                                                                                role
+                                                                                "
+                                                                                {
+                                                                                    role.name
+                                                                                }
+
+                                                                                "
+                                                                                and
+                                                                                remove
+                                                                                it
+                                                                                from
+                                                                                all
+                                                                                users
+                                                                                who
+                                                                                have
+                                                                                it
+                                                                                assigned.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>
+                                                                                Cancel
+                                                                            </AlertDialogCancel>
+                                                                            <AlertDialogAction
+                                                                                onClick={() =>
+                                                                                    handleDelete(
+                                                                                        role.id
+                                                                                    )
+                                                                                }
+                                                                                className="bg-red-600 hover:bg-red-700"
+                                                                            >
+                                                                                Delete
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            </>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </div>
                                     </div>

@@ -137,16 +137,41 @@ class TripController extends Controller
                 ], 401);
             }
 
-            $trips = DB::table('trips')
+            // Get owned trips
+            $ownedTrips = DB::table('trips')
                 ->where('user_id', $userId)
-                ->orderBy('created_at', 'desc')
+                ->select('trips.*')
+                ->addSelect(DB::raw("'owned' as trip_access_type"))
                 ->get();
 
-            // Get trip days count for each trip
+            // Get shared trips (trips the user has viewed)
+            $sharedTrips = DB::table('trip_viewers')
+                ->join('trips', 'trip_viewers.trip_id', '=', 'trips.trip_id')
+                ->where('trip_viewers.user_id', $userId)
+                ->select('trips.*')
+                ->addSelect(DB::raw("'shared' as trip_access_type"))
+                ->get();
+
+            // Combine both lists
+            $trips = $ownedTrips->merge($sharedTrips)->sortByDesc('created_at')->values();
+
+            // Get trip days count and a random place image for each trip
             foreach ($trips as $trip) {
                 $trip->days_count = DB::table('trip_days')
                     ->where('trip_id', $trip->trip_id)
                     ->count();
+
+                // Get a random place image from the trip
+                $randomPlace = DB::table('trip_places')
+                    ->join('trip_days', 'trip_places.trip_day_id', '=', 'trip_days.trip_day_id')
+                    ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                    ->where('trip_days.trip_id', $trip->trip_id)
+                    ->whereNotNull('places.images_url')
+                    ->select(DB::raw("JSON_UNQUOTE(JSON_EXTRACT(places.images_url, '$[0]')) as image_url"))
+                    ->inRandomOrder()
+                    ->first();
+
+                $trip->image_url = $randomPlace ? $randomPlace->image_url : null;
             }
 
             return response()->json([
@@ -195,16 +220,54 @@ class TripController extends Controller
             }
 
             // Get trip days
-            $days = DB::table('trip_days')
+            $tripDays = DB::table('trip_days')
                 ->where('trip_id', $tripId)
-                ->orderBy('date', 'asc')
+                ->orderBy('day_number', 'asc')
                 ->get();
+
+            // Build the days array with places
+            $days = [];
+            $totalPlaces = 0;
+
+            foreach ($tripDays as $tripDay) {
+                // Get places for this day
+                $places = DB::table('trip_places')
+                    ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                    ->where('trip_places.trip_day_id', $tripDay->trip_day_id)
+                    ->select(
+                        'trip_places.trip_place_id',
+                        'trip_places.place_id',
+                        'places.name',
+                        'places.description',
+                        'places.google_maps_link',
+                        'places.ratings',
+                        DB::raw("JSON_UNQUOTE(JSON_EXTRACT(places.images_url, '$[0]')) as image_url")
+                    )
+                    ->orderBy('trip_places.created_at', 'asc')
+                    ->get();
+
+                $dayKey = 'day' . $tripDay->day_number;
+                $days[$dayKey] = [
+                    'day_number' => $tripDay->day_number,
+                    'trip_day_id' => $tripDay->trip_day_id,
+                    'date' => $tripDay->date,
+                    'places' => $places,
+                    'places_count' => $places->count()
+                ];
+
+                $totalPlaces += $places->count();
+            }
 
             return response()->json([
                 'success' => true,
+                'message' => 'Trip details retrieved successfully',
                 'data' => [
-                    'trip' => $trip,
-                    'days' => $days
+                    'trip_id' => $trip->trip_id,
+                    'trip_name' => $trip->trip_name,
+                    'start_date' => $trip->start_date,
+                    'end_date' => $trip->end_date,
+                    'days' => $days,
+                    'total_places' => $totalPlaces
                 ]
             ], 200);
 
@@ -217,121 +280,19 @@ class TripController extends Controller
         }
     }
 
-    /**
-     * Get all places for a specific trip day
-     *
-     * @param int $tripDayId
-     * @return JsonResponse
-     */
-    public function getTripDayPlaces(int $tripDayId): JsonResponse
-    {
-        try {
-            $userId = Auth::id();
-            
-            if (!$userId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not authenticated'
-                ], 401);
-            }
 
-            // Verify that the trip day exists and belongs to the user
-            $tripDay = DB::table('trip_days')
-                ->join('trips', 'trip_days.trip_id', '=', 'trips.trip_id')
-                ->where('trip_days.trip_day_id', $tripDayId)
-                ->where('trips.user_id', $userId)
-                ->select('trip_days.*', 'trips.trip_name')
-                ->first();
-
-            if (!$tripDay) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Trip day not found or unauthorized'
-                ], 404);
-            }
-
-            // Get all places for this trip day
-            $places = DB::table('trip_places')
-                ->join('places', 'trip_places.place_id', '=', 'places.placeID')
-                ->leftJoin('place_categories', 'places.category_id', '=', 'place_categories.placeCategoryID')
-                ->leftJoin('province_categories', 'places.province_id', '=', 'province_categories.province_categoryID')
-                ->where('trip_places.trip_day_id', $tripDayId)
-                ->select(
-                    'trip_places.trip_place_id',
-                    'trip_places.trip_day_id',
-                    'trip_places.place_id',
-                    'trip_places.notes',
-                    'trip_places.created_at as added_at',
-                    'places.name as place_name',
-                    'places.description as place_description',
-                    'places.category_id',
-                    'place_categories.category_name',
-                    'places.google_maps_link',
-                    'places.ratings',
-                    'places.reviews_count',
-                    'places.images_url',
-                    'places.entry_free',
-                    'places.operating_hours',
-                    'places.province_id',
-                    'province_categories.province_categoryName',
-                    'places.latitude',
-                    'places.longitude'
-                )
-                ->orderBy('trip_places.created_at', 'asc')
-                ->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'trip_day' => [
-                        'trip_day_id' => $tripDay->trip_day_id,
-                        'trip_id' => $tripDay->trip_id,
-                        'trip_name' => $tripDay->trip_name,
-                        'date' => $tripDay->date,
-                        'day_number' => $tripDay->day_number
-                    ],
-                    'places' => $places,
-                    'total_places' => count($places)
-                ]
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch trip day places',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
-     * Add places to a specific trip day
+     * Add places to multiple trip days at once
+     * POST /api/add-places/{trip_id}
      *
      * @param Request $request
-     * @param int $tripDayId
+     * @param int $tripId
      * @return JsonResponse
      */
-    public function addPlacesToDay(Request $request, int $tripDayId): JsonResponse
+    public function addPlaces(Request $request, int $tripId): JsonResponse
     {
-        // Validate the request
-        $validator = Validator::make($request->all(), [
-            'place_ids' => 'required|array|min:1',
-            'place_ids.*' => 'required|integer|exists:places,placeID',
-            'notes' => 'nullable|array',
-            'notes.*' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         try {
-            DB::beginTransaction();
-
             $userId = Auth::id();
             
             if (!$userId) {
@@ -341,67 +302,147 @@ class TripController extends Controller
                 ], 401);
             }
 
-            // Verify that the trip day exists and belongs to the user
-            $tripDay = DB::table('trip_days')
-                ->join('trips', 'trip_days.trip_id', '=', 'trips.trip_id')
-                ->where('trip_days.trip_day_id', $tripDayId)
-                ->where('trips.user_id', $userId)
-                ->select('trip_days.*')
+            // Verify trip ownership
+            $trip = DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->where('user_id', $userId)
                 ->first();
 
-            if (!$tripDay) {
+            if (!$trip) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Trip day not found or unauthorized'
+                    'message' => 'Trip not found or you do not have permission to modify it'
                 ], 404);
             }
 
-            // Prepare trip places data
-            $tripPlaces = [];
-            $notes = $request->input('notes', []);
-            
-            foreach ($request->place_ids as $index => $placeId) {
-                $tripPlaces[] = [
-                    'trip_day_id' => $tripDayId,
-                    'place_id' => $placeId,
-                    'notes' => $notes[$index] ?? null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+            // Validate the request structure
+            $validator = Validator::make($request->all(), [
+                'day*' => 'array',
+                'day*.place_ids' => 'required|array',
+                'day*.place_ids.*' => 'integer|exists:places,placeID',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
             }
 
-            // Insert trip places
-            DB::table('trip_places')->insert($tripPlaces);
+            DB::beginTransaction();
 
-            // Fetch the added places with details
-            $addedPlaces = DB::table('trip_places')
-                ->join('places', 'trip_places.place_id', '=', 'places.placeID')
-                ->where('trip_places.trip_day_id', $tripDayId)
-                ->select(
-                    'trip_places.trip_place_id',
-                    'trip_places.trip_day_id',
-                    'trip_places.place_id',
-                    'trip_places.notes',
-                    'places.name as place_name',
-                    'places.description as place_description',
-                    'places.google_maps_link',
-                    'places.ratings',
-                    'places.images_url',
-                    'trip_places.created_at'
-                )
-                ->orderBy('trip_places.created_at', 'desc')
-                ->limit(count($request->place_ids))
-                ->get();
+            $results = [];
+            $totalPlacesAdded = 0;
+
+            // Process each day
+            foreach ($request->all() as $dayKey => $dayData) {
+                // Extract day number from key (e.g., "day1" -> 1)
+                if (!preg_match('/^day(\d+)$/', $dayKey, $matches)) {
+                    continue;
+                }
+
+                $dayNumber = (int)$matches[1];
+
+                // Find the trip day by day_number
+                $tripDay = DB::table('trip_days')
+                    ->where('trip_id', $tripId)
+                    ->where('day_number', $dayNumber)
+                    ->first();
+
+                if (!$tripDay) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Day {$dayNumber} does not exist for this trip"
+                    ], 404);
+                }
+
+                // Skip if place_ids is empty
+                if (empty($dayData['place_ids'])) {
+                    // Get existing places for this day
+                    $existingPlaces = DB::table('trip_places')
+                        ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                        ->where('trip_places.trip_day_id', $tripDay->trip_day_id)
+                        ->select(
+                            'trip_places.trip_place_id',
+                            'trip_places.place_id',
+                            'places.name',
+                            'places.description',
+                            'places.google_maps_link',
+                            'places.ratings',
+                            'places.images_url'
+                        )
+                        ->get();
+
+                    $results[$dayKey] = [
+                        'day_number' => $dayNumber,
+                        'trip_day_id' => $tripDay->trip_day_id,
+                        'date' => $tripDay->date,
+                        'places' => $existingPlaces,
+                        'places_count' => $existingPlaces->count()
+                    ];
+                    continue;
+                }
+
+                // Prepare trip places to insert
+                $tripPlaces = [];
+                foreach ($dayData['place_ids'] as $placeId) {
+                    // Check if place already exists for this day
+                    $exists = DB::table('trip_places')
+                        ->where('trip_day_id', $tripDay->trip_day_id)
+                        ->where('place_id', $placeId)
+                        ->exists();
+
+                    if (!$exists) {
+                        $tripPlaces[] = [
+                            'trip_day_id' => $tripDay->trip_day_id,
+                            'place_id' => $placeId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+
+                // Insert trip places
+                if (!empty($tripPlaces)) {
+                    DB::table('trip_places')->insert($tripPlaces);
+                    $totalPlacesAdded += count($tripPlaces);
+                }
+
+                // Get the added places with details
+                $addedPlaces = DB::table('trip_places')
+                    ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                    ->where('trip_places.trip_day_id', $tripDay->trip_day_id)
+                    ->select(
+                        'trip_places.trip_place_id',
+                        'trip_places.place_id',
+                        'places.name',
+                        'places.description',
+                        'places.google_maps_link',
+                        'places.ratings',
+                        'places.images_url'
+                    )
+                    ->get();
+
+                $results[$dayKey] = [
+                    'day_number' => $dayNumber,
+                    'trip_day_id' => $tripDay->trip_day_id,
+                    'date' => $tripDay->date,
+                    'places' => $addedPlaces,
+                    'places_count' => $addedPlaces->count()
+                ];
+            }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Places added to trip day successfully',
+                'message' => 'Places added successfully',
                 'data' => [
-                    'trip_day_id' => $tripDayId,
-                    'places' => $addedPlaces,
-                    'total_places_added' => count($addedPlaces)
+                    'trip_id' => $tripId,
+                    'days' => $results,
+                    'total_places_added' => $totalPlacesAdded
                 ]
             ], 201);
 
@@ -410,7 +451,7 @@ class TripController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to add places to trip day',
+                'message' => 'Failed to add places to trip',
                 'error' => $e->getMessage()
             ], 500);
         }

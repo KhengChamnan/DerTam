@@ -1,0 +1,574 @@
+{
+	"info": {
+		"_postman_id": "profile-api-collection",
+		"name": "Profile API Collection",
+		"description": "Complete collection for testing Profile API endpoints including authentication, profile management, and password operations",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.collectionVariables.set('auth_token', jsonData.data.token);",
+									"        console.log('Auth token saved:', jsonData.data.token);",
+									"    }",
+									"    if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+									"        pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+									"        console.log('User ID saved:', jsonData.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"testuser@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						},
+						"description": "Register a new user and automatically save the authentication token"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.collectionVariables.set('auth_token', jsonData.data.token);",
+									"        console.log('Auth token saved:', jsonData.data.token);",
+									"    }",
+									"    if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+									"        pm.collectionVariables.set('user_id', jsonData.data.user.id);",
+									"        console.log('User ID saved:', jsonData.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testuser@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						},
+						"description": "Login an existing user and automatically save the authentication token"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for registering and logging in users"
+		},
+		{
+			"name": "Profile Management",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Get the authenticated user's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Profile by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/profile/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["profile", "{{user_id}}"]
+						},
+						"description": "Get a specific user's profile by their ID (sensitive data is hidden)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Basic Info",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Test User\",\n    \"username\": \"testuser123\",\n    \"phone_number\": \"+1234567890\",\n    \"age\": 25,\n    \"gender\": \"male\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Update basic profile information (name, username, phone, age, gender)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - With Image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Updated User with Image",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "imageuser",
+									"type": "text"
+								},
+								{
+									"key": "age",
+									"value": "30",
+									"type": "text"
+								},
+								{
+									"key": "gender",
+									"value": "female",
+									"type": "text"
+								},
+								{
+									"key": "profile_image",
+									"type": "file",
+									"src": [],
+									"description": "Select an image file (jpeg, png, jpg, gif - max 2MB)"
+								},
+								{
+									"key": "_method",
+									"value": "PUT",
+									"type": "text",
+									"description": "Laravel method spoofing for file uploads"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Update profile including profile image upload. Uses form-data for file upload with Laravel method spoofing."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Change Email",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"newemail@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Update user email address (must be unique)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Change Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"password123\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Change password through profile update (requires current password)"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing user profiles"
+		},
+		{
+			"name": "Password Management",
+			"item": [
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"password123\",\n    \"new_password\": \"newpassword456\",\n    \"new_password_confirmation\": \"newpassword456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["profile", "change-password"]
+						},
+						"description": "Change user password using dedicated endpoint"
+					},
+					"response": []
+				}
+			],
+			"description": "Dedicated password management endpoints"
+		},
+		{
+			"name": "Account Management",
+			"item": [
+				{
+					"name": "Delete Account",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Delete the authenticated user's account (requires password confirmation). This will also delete all associated tokens and profile images."
+					},
+					"response": []
+				}
+			],
+			"description": "Account deletion endpoint"
+		},
+		{
+			"name": "Error Cases",
+			"item": [
+				{
+					"name": "Update Profile - Invalid Email",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"invalid-email-format\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Test validation error for invalid email format"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile - Wrong Current Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"wrongpassword\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Test error when providing incorrect current password"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password - Password Mismatch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"password123\",\n    \"new_password\": \"newpassword456\",\n    \"new_password_confirmation\": \"differentpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["profile", "change-password"]
+						},
+						"description": "Test validation error when new password and confirmation don't match"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile - Unauthorized",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Test unauthorized access without authentication token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Profile - Not Found",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/profile/99999999",
+							"host": ["{{base_url}}"],
+							"path": ["profile", "99999999"]
+						},
+						"description": "Test 404 error when user ID doesn't exist"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Account - Wrong Password",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"wrongpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profile",
+							"host": ["{{base_url}}"],
+							"path": ["profile"]
+						},
+						"description": "Test error when providing incorrect password for account deletion"
+					},
+					"response": []
+				}
+			],
+			"description": "Test cases for various error scenarios and validation"
+		}
+	]
+}

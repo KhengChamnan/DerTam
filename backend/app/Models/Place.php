@@ -77,4 +77,20 @@ class Place extends Model
     {
         return $this->belongsTo(ProvinceCategory::class, 'province_id', 'province_categoryID');
     }
+
+    /**
+     * Get the hotel properties for this place.
+     */
+    public function properties()
+    {
+        return $this->hasMany(\App\Models\Hotel\Property::class, 'place_id', 'placeID');
+    }
+
+    /**
+     * Get the transportation companies for this place.
+     */
+    public function transportations()
+    {
+        return $this->hasMany(\App\Models\Transportation::class, 'placeID', 'placeID');
+    }
 }

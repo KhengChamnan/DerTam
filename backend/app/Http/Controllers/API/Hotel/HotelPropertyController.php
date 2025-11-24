@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hotel\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class HotelPropertyController extends Controller
 {
@@ -28,7 +29,7 @@ class HotelPropertyController extends Controller
                 'place:placeID,name,description,google_maps_link,ratings,reviews_count,images_url,entry_free,operating_hours,latitude,longitude,province_id',
                 'place.provinceCategory:province_categoryID,province_categoryName,category_description',
                 'facilities:facility_id,facility_name,image_url,image_public_ids',
-                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
+                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,images_url,image_public_ids',
                 'roomProperties.amenities:amenity_id,amenity_name,image_url,image_public_ids'
             ]);
 
@@ -124,7 +125,7 @@ class HotelPropertyController extends Controller
                 'place.provinceCategory:province_categoryID,province_categoryName,category_description',
                 'place.category:placeCategoryID,category_name,category_description',
                 'facilities:facility_id,facility_name,image_url,image_public_ids',
-                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,is_available,images_url,image_public_ids',
+                'roomProperties:room_properties_id,property_id,room_type,room_description,max_guests,room_size,price_per_night,images_url,image_public_ids',
                 'roomProperties.amenities:amenity_id,amenity_name,image_url,image_public_ids'
             ])->where('place_id', $place_id)->first();
 
@@ -132,6 +133,18 @@ class HotelPropertyController extends Controller
                 return response()->json([
                     'message' => 'Property not found',
                 ], 404);
+            }
+
+            // Add available_room count for each room property
+            if ($property->roomProperties) {
+                foreach ($property->roomProperties as $roomProperty) {
+                    $availableCount = DB::table('rooms')
+                        ->where('room_properties_id', $roomProperty->room_properties_id)
+                        ->where('is_available', 1)
+                        ->count();
+                    
+                    $roomProperty->available_room = $availableCount;
+                }
             }
 
             return response()->json([

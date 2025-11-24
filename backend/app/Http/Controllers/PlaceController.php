@@ -115,7 +115,13 @@ class PlaceController extends Controller
                 'provinces' => $provinces,
                 'filters' => $request->only(['category_id', 'province_id', 'search']),
                 'auth' => [
-                    'user' => Auth::user()->load('roles:id,name'),
+                    'user' => Auth::user() ? [
+                        'id' => Auth::user()->id,
+                        'name' => Auth::user()->name,
+                        'email' => Auth::user()->email,
+                        'roles' => Auth::user()->load('roles')->roles,
+                        'permissions' => Auth::user()->load('permissions', 'roles.permissions')->getAllPermissions()->pluck('name')->toArray(),
+                    ] : null,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -462,7 +468,7 @@ class PlaceController extends Controller
     {
         try {
             $request->validate([
-                'file' => 'required|file|mimes:xlsx,csv,xls|max:10240', // Max 10MB
+                'file' => 'required|file|mimes:xlsx,csv,xls|max:102400',
             ]);
 
             $file = $request->file('file');
@@ -509,6 +515,10 @@ class PlaceController extends Controller
     public function downloadTemplate()
     {
         try {
+            // Get available categories and provinces for reference
+            $availableCategories = \App\Models\PlaceCategory::pluck('category_name')->toArray();
+            $availableProvinces = \App\Models\ProvinceCategory::pluck('province_categoryName')->toArray();
+            
             // Create headers for the CSV template
             $headers = [
                 'name',
@@ -527,7 +537,7 @@ class PlaceController extends Controller
                 [
                     'Angkor Wat Temple',
                     'Ancient temple complex and UNESCO World Heritage Site',
-                    'Historical Sites',
+                    'Tourist Attraction',
                     'Siem Reap',
                     '13.4125',
                     '103.8670',
@@ -538,8 +548,8 @@ class PlaceController extends Controller
                 [
                     'Koh Rong Beach',
                     'Beautiful pristine beach with crystal clear water',
-                    'Beaches',
-                    'Preah Sihanouk',
+                    'Beach & Water Activities',
+                    'Sihanoukville',
                     '10.7236',
                     '103.2906',
                     '1',
@@ -549,7 +559,7 @@ class PlaceController extends Controller
                 [
                     'Bokor National Park',
                     'Mountain national park with cool climate and hiking trails',
-                    'National Parks',
+                    'Nature & Parks',
                     'Kampot',
                     '10.6167',
                     '104.0167',
@@ -561,6 +571,13 @@ class PlaceController extends Controller
 
             // Create CSV content
             $csvContent = '';
+            
+            // Add instruction comments
+            $csvContent .= "# Instructions: Delete these comment lines before importing\n";
+            $csvContent .= "# Available Categories: " . implode(', ', $availableCategories) . "\n";
+            $csvContent .= "# Available Provinces: " . implode(', ', array_slice($availableProvinces, 0, 10)) . "... (and more)\n";
+            $csvContent .= "# entry_free: 1 for free, 0 for paid entry\n";
+            $csvContent .= "\n";
             
             // Add headers
             $csvContent .= implode(',', array_map(function($header) {
