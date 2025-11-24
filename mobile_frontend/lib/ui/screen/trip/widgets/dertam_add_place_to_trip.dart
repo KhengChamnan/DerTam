@@ -10,12 +10,14 @@ import 'package:provider/provider.dart';
 // import 'package:mobile_frontend/models/trips/trip_days.dart';
 
 class DertamAddPlaceToTrip extends StatefulWidget {
+  final String? tripId;
   final List<Place>? existingPlaces;
   final DateTime? preSelectedDate;
   const DertamAddPlaceToTrip({
     super.key,
     this.existingPlaces,
     this.preSelectedDate,
+    this.tripId,
   });
 
   @override
@@ -33,6 +35,7 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
     super.initState();
     // Initialize with existing places if provided
     final tripProvider = context.read<TripProvider>();
+    final placeProvider = context.read<PlaceProvider>();
     if (widget.existingPlaces != null) {
       tripProvider.setAddedPlaces(
         widget.existingPlaces!
@@ -47,14 +50,10 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
+      placeProvider.fetchPlaceCategories();
+      placeProvider.fetchRecommendedPlaces(); // Load initial places
+      tripProvider.fetchTripDetail(widget.tripId!);
     });
-  }
-
-  Future<void> _loadData() async {
-    final placeProvider = context.read<PlaceProvider>();
-    await placeProvider.fetchPlaceCategories();
-    await placeProvider.fetchRecommendedPlaces(); // Load initial places
   }
 
   Future<void> _filterPlaces() async {
@@ -103,7 +102,8 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
           place: place,
           startDate:
               tripProvider.createTrip.data?.trip?.startDate ?? DateTime.now(),
-          endDate: tripProvider.createTrip.data?.trip?.endDate ?? DateTime.now(),
+          endDate:
+              tripProvider.createTrip.data?.trip?.endDate ?? DateTime.now(),
           onDateSelected: (selectedDate) {
             _addPlaceToTrip(place, selectedDate);
             Navigator.pop(context);
@@ -128,7 +128,6 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
   void _removePlaceFromTrip(Place place) {
     final tripProvider = context.read<TripProvider>();
     tripProvider.removePlaceFromTrip(place.placeId);
-    
   }
 
   void _reviewItinerary() {
@@ -152,7 +151,8 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
           tripName: tripProvider.createTrip.data?.trip?.tripName ?? '',
           startDate:
               tripProvider.createTrip.data?.trip?.startDate ?? DateTime.now(),
-          endDate: tripProvider.createTrip.data?.trip?.endDate ?? DateTime.now(),
+          endDate:
+              tripProvider.createTrip.data?.trip?.endDate ?? DateTime.now(),
           addedPlaces: tripProvider.addedPlaces,
         ),
       ),
@@ -162,7 +162,7 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
   @override
   Widget build(BuildContext context) {
     final tripProvider = context.watch<TripProvider>();
-    final tripData = tripProvider.createTrip.data;
+    final tripData = tripProvider.getTripDetail.data;
     final placeProvider = context.watch<PlaceProvider>();
     final categories = placeProvider.placeCategory.data ?? [];
     final places = placeProvider.places.data ?? [];
@@ -180,7 +180,7 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          tripData?.trip?.tripName ?? 'Don not Have Trip',
+          tripData?.data.tripName ?? 'Don not Have Trip',
           style: DertamTextStyles.title.copyWith(
             color: DertamColors.primaryBlue,
           ),
@@ -278,7 +278,6 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
                         (item) => item['place'].placeId == place.placeId,
                         orElse: () => {},
                       );
-
                       return PlaceCard(
                         place: place,
                         isAdded: isAdded,
@@ -456,11 +455,11 @@ class PlaceCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: isAdded ? Colors.green : DertamColors.primaryDark,
+                    color: isAdded ? Colors.green : DertamColors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: DertamColors.black.withOpacity(0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -468,7 +467,7 @@ class PlaceCard extends StatelessWidget {
                   ),
                   child: Icon(
                     isAdded ? Icons.check : Icons.add,
-                    color: Colors.white,
+                    color: DertamColors.primaryBlue,
                     size: 20,
                   ),
                 ),
@@ -678,7 +677,7 @@ class _DateSelectionModalState extends State<DateSelectionModal> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: DertamColors.neutralLighter,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -698,7 +697,7 @@ class _DateSelectionModalState extends State<DateSelectionModal> {
                     style: TextStyle(
                       fontSize: 16, // Reduced from 18
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: DertamColors.black,
                     ),
                     textAlign: TextAlign.center,
                   ),

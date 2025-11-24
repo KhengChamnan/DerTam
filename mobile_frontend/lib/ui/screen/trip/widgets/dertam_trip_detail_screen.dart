@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
-import 'package:mobile_frontend/ui/screen/budget/select_currency_screen.dart';
-import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_add_place_to_trip.dart';
+import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:mobile_frontend/ui/screen/budget/dertam_set_buget_screen.dart';
+import 'package:mobile_frontend/ui/screen/budget/dertam_budget_detail_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/dertam_trip_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_place_card.dart';
@@ -27,35 +30,78 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     });
   }
 
-  void _openBudget(BuildContext context) {
+  void _openBudget(BuildContext context) async {
     final tripProvider = context.read<TripProvider>().getTripDetail;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SetBudgetScreen(
-          tripId: tripProvider.data?.data.tripId.toString() ?? '',
-          tripName: tripProvider.data?.data.tripName ?? 'Trip not found',
-          startDate: tripProvider.data?.data.startDate ?? DateTime.now(),
-          endDate: tripProvider.data?.data.endDate ?? DateTime.now(),
-        ),
-      ),
-    ).then((result) {
-      // Handle result when returning from budget screen
-      if (result != null) {
-        // You can update the trip budget state here
-        print('Budget set: ${result['totalBudget']} ${result['currency']}');
+    final budgetProvider = context.read<BudgetProvider>();
+    final tripId = tripProvider.data?.data.tripId.toString() ?? '';
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Budget set successfully: ${result['totalBudget']} ${result['currency']}',
+    if (tripId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Trip ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Try to fetch budget for this trip
+      await budgetProvider.getBudgetDetail(tripId);
+      final budgetState = budgetProvider.getBudgetDetails;
+
+      // Check if budget exists - check state is success and has valid budget data
+      if (budgetState.state == AsyncValueState.success &&
+          budgetState.data != null &&
+          budgetState.data!.totalBudget != null &&
+          budgetState.data!.totalBudget! > 0) {
+        // Budget exists - navigate to budget detail screen
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BudgetScreen(
+                tripId: tripId,
+                tripStartDate:
+                    tripProvider.data?.data.startDate ?? DateTime.now(),
+                tripEndDate: tripProvider.data?.data.endDate ?? DateTime.now(),
+              ),
             ),
-            backgroundColor: Colors.green,
+          );
+        }
+      } else {
+        // Budget doesn't exist - navigate to set budget screen
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SetBudgetScreen(
+                tripId: tripId,
+                tripName: tripProvider.data?.data.tripName ?? 'Trip not found',
+                startDate: tripProvider.data?.data.startDate ?? DateTime.now(),
+                endDate: tripProvider.data?.data.endDate ?? DateTime.now(),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Budget fetch failed - navigate to set budget screen
+      print('Error fetching budget: $e');
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SetBudgetScreen(
+              tripId: tripId,
+              tripName: tripProvider.data?.data.tripName ?? 'Trip not found',
+              startDate: tripProvider.data?.data.startDate ?? DateTime.now(),
+              endDate: tripProvider.data?.data.endDate ?? DateTime.now(),
+            ),
           ),
         );
       }
-    });
+    }
   }
 
   void _openMap() {
@@ -175,7 +221,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     return Consumer<TripProvider>(
       builder: (context, tripProvider, child) {
         final tripDetailState = tripProvider.getTripDetail;
-
         // Show loading state
         if (tripDetailState.state == AsyncValueState.loading) {
           return Scaffold(
@@ -188,7 +233,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   Icons.arrow_back_ios_rounded,
                   color: DertamColors.primaryBlue,
                 ),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => DertamTripScreen()),
+                ),
               ),
             ),
             body: Center(
@@ -209,7 +257,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   Icons.arrow_back_ios_rounded,
                   color: DertamColors.primaryBlue,
                 ),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => DertamTripScreen()),
+                ),
               ),
             ),
             body: Center(
@@ -247,6 +298,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         }
 
         final tripName = tripData.tripName ?? 'Trip';
+        final tripId = tripData.tripId ?? '';
         final startDate = tripData.startDate ?? DateTime.now();
         final endDate = tripData.endDate ?? DateTime.now();
 
@@ -287,7 +339,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       Icons.arrow_back_ios_rounded,
                       color: DertamColors.primaryBlue,
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DertamTripScreen(),
+                      ),
+                    ),
                     padding: EdgeInsets.zero,
                   ),
                 ),
@@ -405,14 +462,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                                   children: [
                                     Icon(
                                       Icons.share,
-                                      color: Colors.white,
+                                      color: DertamColors.white,
                                       size: 15,
                                     ), // Slightly smaller
                                     SizedBox(width: 4),
                                     Text(
                                       'Share',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: DertamColors.white,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
                                       ),
@@ -480,11 +537,41 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               FloatingActionButton(
                 heroTag: "add",
                 onPressed: () {
-                  // Navigate to SelectPlaceScreen with existing places
+                  // Collect existing places from all days
+                  final existingPlaces = <Map<String, dynamic>>[];
+                  for (var dayEntry in sortedDays) {
+                    final dayData = dayEntry.value;
+                    final dayDate =
+                        dayData.date ??
+                        startDate.add(
+                          Duration(
+                            days:
+                                int.parse(dayEntry.key.replaceAll('day_', '')) -
+                                1,
+                          ),
+                        );
+                    final placesForDay = dayData.places ?? [];
+
+                    for (var place in placesForDay) {
+                      existingPlaces.add({
+                        'place': place,
+                        'selectedDate': dayDate,
+                        'addedAt': DateTime.now(),
+                      });
+                    }
+                  }
+
+                  // Navigate to ReviewTripScreen with existing places
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => DertamAddPlaceToTrip(),
+                      builder: (context) => ReviewTripScreen(
+                        tripId: tripId.toString(),
+                        tripName: tripName,
+                        startDate: startDate,
+                        endDate: endDate,
+                        addedPlaces: existingPlaces,
+                      ),
                     ),
                   ).then((result) {
                     // Refresh trip details after adding places
@@ -613,7 +700,7 @@ class AvatarStack extends StatelessWidget {
         child: Text(
           user['initial'] ?? user['name']?.substring(0, 1).toUpperCase() ?? 'U',
           style: TextStyle(
-            color: Colors.white,
+            color: DertamColors.white,
             fontWeight: FontWeight.bold,
             fontSize: 14, // Original font size
           ),
@@ -630,12 +717,12 @@ class AvatarStack extends StatelessWidget {
         shape: BoxShape.circle,
         color: Colors.grey[400],
         border: Border.all(
-          color: Colors.white,
+          color: DertamColors.white,
           width: 2,
         ), // Original border width
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: DertamColors.black.withOpacity(0.1),
             blurRadius: 3, // Original blur radius
             offset: Offset(0, 1),
           ),
@@ -645,7 +732,7 @@ class AvatarStack extends StatelessWidget {
         child: Text(
           '+$count',
           style: TextStyle(
-            color: Colors.white,
+            color: DertamColors.white,
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),

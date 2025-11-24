@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:mobile_frontend/data/repository/abstract/trip_repsitory.dart';
 import 'package:mobile_frontend/models/trips/create_trip_response.dart';
 import 'package:mobile_frontend/models/trips/confirm_trip_response.dart';
+import 'package:mobile_frontend/models/trips/trips.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 
 class TripProvider extends ChangeNotifier {
@@ -10,6 +11,7 @@ class TripProvider extends ChangeNotifier {
   AsyncValue<TripResponse> _createTrip = AsyncValue.empty();
   AsyncValue<ConfirmTripResponse> _confirmTrip = AsyncValue.empty();
   AsyncValue<ConfirmTripResponse> _getTripDetail = AsyncValue.empty();
+  AsyncValue<List<Trip>> _getTripList = AsyncValue.empty();
   List<Map<String, dynamic>> _addedPlaces = [];
 
   ///Getter
@@ -17,6 +19,8 @@ class TripProvider extends ChangeNotifier {
   AsyncValue<ConfirmTripResponse> get confirmTrip => _confirmTrip;
   List<Map<String, dynamic>> get addedPlaces => _addedPlaces;
   AsyncValue<ConfirmTripResponse> get getTripDetail => _getTripDetail;
+  AsyncValue<List<Trip>> get getTripList => _getTripList;
+
   Future<TripResponse> createTripPlan(
     String tripName,
     DateTime startDate,
@@ -68,6 +72,21 @@ class TripProvider extends ChangeNotifier {
       return tripDetail;
     } catch (e) {
       _getTripDetail = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<List<Trip>> fetchAllTrip() async {
+    _getTripList = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final allTrips = await tripRepository.getAllTrips();
+      _getTripList = AsyncValue.success(allTrips);
+      notifyListeners();
+      return allTrips;
+    } catch (e) {
+      _getTripList = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }

@@ -8,6 +8,7 @@ class Trip {
   final int? dayCount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? coverImage;
 
   Trip({
     required this.tripId,
@@ -19,6 +20,7 @@ class Trip {
     this.tripAccessType,
     this.createdAt,
     this.updatedAt,
+    this.coverImage,
   });
   @override
   bool operator ==(Object other) {
@@ -49,6 +51,7 @@ class Trip {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
+      coverImage: json['image_url'] ?? '',
     );
   }
   Map<String, dynamic> toJson() {
@@ -62,6 +65,7 @@ class Trip {
       if (tripAccessType != null) 'trip_access_type': tripAccessType,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+      if (coverImage != null) 'image_url': coverImage,
     };
   }
 }

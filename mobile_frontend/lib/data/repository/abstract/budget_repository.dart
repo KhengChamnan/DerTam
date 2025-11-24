@@ -1,10 +1,10 @@
 import 'package:mobile_frontend/models/budget/budget.dart';
+import 'package:mobile_frontend/models/budget/expense_category.dart';
 
 abstract class BudgetRepository {
   // Define abstract methods related to budget management
-  Future<void> createBudget(String tripId, double amount, String currency);
+  Future<void> createBudget(String tripId, double amount, String currency,);
   Future<Budget> getBudgetDetail(String tripId);
-
   Future<void> updateBudget(String budgetId, double amount);
   Future<void> addExpense(
     String amount,
@@ -16,7 +16,6 @@ abstract class BudgetRepository {
   );
   Future<void> updateExpense(
     String expenseId,
-    String name,
     String amount,
     DateTime date,
     String currency,
@@ -24,4 +23,5 @@ abstract class BudgetRepository {
     String description,
   );
   Future<void> deleteExpense(String expenseId);
+  Future<List<ExpenseCategory>> getExpenseCategory();
 }

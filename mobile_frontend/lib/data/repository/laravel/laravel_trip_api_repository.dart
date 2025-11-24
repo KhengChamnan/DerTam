@@ -6,6 +6,7 @@ import 'package:mobile_frontend/data/repository/abstract/trip_repsitory.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
 import 'package:mobile_frontend/models/trips/create_trip_response.dart';
 import 'package:mobile_frontend/models/trips/confirm_trip_response.dart';
+import 'package:mobile_frontend/models/trips/trips.dart';
 
 class LaravelTripApiRepository implements TripRepository {
   late LaravelAuthApiRepository repository;
@@ -168,6 +169,38 @@ class LaravelTripApiRepository implements TripRepository {
         print('❌ [DEBUG] Error response body: ${getTripDetailResponse.body}');
         throw Exception(
           'Failed to confirm trip: ${getTripDetailResponse.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<Trip>> getAllTrips() async {
+    try {
+      final token = await repository.getToken();
+      if (token == null) {
+        throw Exception('Token have not found!');
+      }
+      final header = _getAuthHeaders(token);
+      final allTripResponses = await FetchingData.getData(
+        ApiEndpoint.getAllTrips,
+        header,
+      );
+      if (allTripResponses.statusCode == 200) {
+        final jsonResponse = allTripResponses.body;
+        print('📄 [DEBUG] Response body of trip: ${allTripResponses.body}');
+        final allTrip =
+            (json.decode(jsonResponse) as Map<String, dynamic>)['data']
+                .map<Trip>((tripJson) => Trip.fromJson(tripJson))
+                .toList();
+        return allTrip;
+      } else {
+        print('❌ [DEBUG] Failed with status: ${allTripResponses.statusCode}');
+        print('❌ [DEBUG] Error response body: ${allTripResponses.body}');
+        throw Exception(
+          'Failed to confirm trip: ${allTripResponses.statusCode}',
         );
       }
     } catch (e) {

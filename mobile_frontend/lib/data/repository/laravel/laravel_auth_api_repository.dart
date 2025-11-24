@@ -76,6 +76,7 @@ class LaravelAuthApiRepository extends AuthRepository {
     _cachedToken = await _storage.read(key: _tokenKey);
     return _cachedToken;
   }
+
   @override
   Future<void> saveToken(String token) async {
     try {
@@ -247,7 +248,6 @@ class LaravelAuthApiRepository extends AuthRepository {
 
         return User(id: 0, name: '', email: email);
       }
-
       throw _handleErrorResponse(response, 'Password reset email');
     } catch (e) {
       _logger.severe('Password reset email error: $e');
@@ -275,7 +275,6 @@ class LaravelAuthApiRepository extends AuthRepository {
 
         return User(id: 0, name: '', email: email);
       }
-
       throw _handleErrorResponse(response, 'PIN verification');
     } catch (e) {
       _logger.severe('PIN verification error: $e');
@@ -357,12 +356,7 @@ class LaravelAuthApiRepository extends AuthRepository {
       final response = await FetchingData.postHeader(
         ApiEndpoint.googleSignIn,
         await _getHeaders(),
-        {
-          'social_type': 'google',
-          'token': token,
-          'email': googleUser.email,
-          'name': googleUser.displayName,
-        },
+        {'access_token': googleAuth.accessToken},
       );
 
       if (response.statusCode == 200) {

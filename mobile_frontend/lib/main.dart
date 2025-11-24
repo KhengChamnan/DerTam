@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
+import 'package:mobile_frontend/data/repository/laravel/laravel_budget_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_hotel_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_trip_api_repository.dart';
+import 'package:mobile_frontend/ui/providers/budget_provider.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/screen/splash/spalsh_screen.dart';
@@ -18,6 +20,10 @@ void main() {
   final authRepository = LaravelAuthApiRepository();
   final hotelRepository = LaravelHotelApiRepository(authRepository);
   final tripRepository = LaravelTripApiRepository(authRepository);
+  final budgetRepository = LaravelBudgetApiRepository(
+    repository: authRepository,
+  );
+
   runApp(
     MultiProvider(
       providers: [
@@ -34,6 +40,9 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => TripProvider(tripRepository: tripRepository),
         ),
+        ChangeNotifierProvider(
+          create: (_) => BudgetProvider(repository: budgetRepository),
+        ),
       ],
       child: MyApp(),
     ),
@@ -42,7 +51,6 @@ void main() {
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -76,7 +84,6 @@ class _MyAppState extends State<MyApp> {
         print('Deep link error: $err');
       },
     );
-
     // Handle initial link when app opens from a closed state
     try {
       final uri = await _appLinks.getInitialLink();
@@ -90,14 +97,11 @@ class _MyAppState extends State<MyApp> {
 
   void _handleDeepLink(Uri uri) {
     print('Deep link received: $uri');
-
     // Check if it's a payment return link
     if (uri.scheme == 'myapp' && uri.host == 'payment') {
       final status = uri.queryParameters['status'];
       final tranId = uri.queryParameters['tran_id'];
-
       print('Payment status: $status, Transaction ID: $tranId');
-
       // Navigate to home or payment success screen
       if (status == 'success') {
         // Show success and navigate to home

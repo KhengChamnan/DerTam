@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/models/budget/expend.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
-import 'package:mobile_frontend/models/budget/expense.dart';
 
 class ExpenseItem extends StatelessWidget {
   final Expense expense;
@@ -8,6 +8,7 @@ class ExpenseItem extends StatelessWidget {
   final String currencySymbol;
   final VoidCallback onDelete;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
 
   const ExpenseItem({
     super.key,
@@ -16,19 +17,11 @@ class ExpenseItem extends StatelessWidget {
     required this.currencySymbol,
     required this.onDelete,
     this.onTap,
+    this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = [
-      Colors.purple,
-      Colors.blue,
-      Colors.orange,
-      Colors.green,
-      Colors.red,
-    ];
-    final color = colors[index % colors.length];
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Dismissible(
@@ -107,16 +100,11 @@ class ExpenseItem extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: color,
+                    color: DertamColors.primaryBlue,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    expense.category.icon,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  child: Icon(Icons.category, color: Colors.white, size: 20),
                 ),
-
                 const SizedBox(width: 12),
 
                 // Expense Details
@@ -125,17 +113,21 @@ class ExpenseItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$currencySymbol ${expense.amount.toStringAsFixed(0)}',
+                        expense.description,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
+                          color: DertamColors.neutralLight,
                           fontWeight: FontWeight.w600,
-                          color: DertamColors.black,
                         ),
                       ),
                       const SizedBox(height: 2),
+
                       Text(
-                        expense.description,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        '$currencySymbol ${expense.amount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: DertamColors.primaryBlue,
+                        ),
                       ),
                     ],
                   ),
@@ -147,22 +139,20 @@ class ExpenseItem extends StatelessWidget {
                   children: [
                     Text(
                       _formatDate(expense.date),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatTime(expense.date),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     ),
                   ],
                 ),
-
                 // Swipe indicator
                 const SizedBox(width: 8),
-                Icon(
-                  Icons.keyboard_arrow_left,
-                  color: Colors.grey[400],
-                  size: 16,
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: DertamColors.primaryDark,
+                    size: 24,
+                  ),
+                  onPressed: onEdit,
+                  tooltip: 'Edit expense',
                 ),
               ],
             ),
@@ -175,10 +165,6 @@ class ExpenseItem extends StatelessWidget {
   String _formatDate(DateTime date) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return '${days[date.weekday - 1]} ${date.day}/${date.month}';
-  }
-
-  String _formatTime(DateTime date) {
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -351,7 +337,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
 
           // Details using the reusable component
           ExpenseDetailItem(label: 'Description', value: expense.description),
-          ExpenseDetailItem(label: 'Category', value: expense.category.label),
+          ExpenseDetailItem(label: 'Category', value: expense.category.name),
           ExpenseDetailItem(
             label: 'Date',
             value:

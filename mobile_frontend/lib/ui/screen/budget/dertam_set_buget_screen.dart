@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/ui/screen/budget/budget_screen.dart';
+import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:mobile_frontend/ui/screen/budget/dertam_budget_detail_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
+import 'package:provider/provider.dart';
 
 class SetBudgetScreen extends StatefulWidget {
   final String tripId;
@@ -37,7 +39,6 @@ class _SetBudgetScreenState extends State<SetBudgetScreen> {
   @override
   void initState() {
     super.initState();
-    _totalBudgetController.text = '80000';
     _updateDailyBudget();
   }
 
@@ -73,7 +74,7 @@ class _SetBudgetScreenState extends State<SetBudgetScreen> {
     }
   }
 
-  void _saveBudget() {
+  void _saveBudget() async {
     if (_totalBudgetController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -81,7 +82,16 @@ class _SetBudgetScreenState extends State<SetBudgetScreen> {
           backgroundColor: Colors.red,
         ),
       );
-      return;
+    } else {
+      final budgetProvider = Provider.of<BudgetProvider>(
+        context,
+        listen: false,
+      );
+      await budgetProvider.createBudget(
+        widget.tripId,
+        double.parse(_totalBudgetController.text),
+        _selectedCurrency,
+      );
     }
 
     Navigator.pushReplacement(
@@ -89,9 +99,6 @@ class _SetBudgetScreenState extends State<SetBudgetScreen> {
       MaterialPageRoute(
         builder: (context) => BudgetScreen(
           tripId: widget.tripId,
-          totalBudget: double.parse(_totalBudgetController.text),
-          dailyBudget: double.parse(_dailyBudgetController.text),
-          currency: _selectedCurrency,
           tripStartDate: widget.startDate,
           tripEndDate: widget.endDate,
         ),

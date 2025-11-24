@@ -48,11 +48,16 @@ class _TripDateScreenState extends State<TripDateScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DertamAddPlaceToTrip()),
+          MaterialPageRoute(
+            builder: (context) => DertamAddPlaceToTrip(
+              tripId: tripProvider.createTrip.data?.trip?.tripId.toString(),
+            ),
+          ),
         );
       }
     }
   }
+
 
   void _selectDate(DateTime date) {
     setState(() {
@@ -204,7 +209,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
               color: DertamColors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: DertamColors.black.withOpacity(0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),

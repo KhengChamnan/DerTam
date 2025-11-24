@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/models/budget/expense.dart';
+import 'package:mobile_frontend/models/budget/expend.dart';
+import 'package:mobile_frontend/models/budget/expense_category.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
-import 'package:mobile_frontend/ui/screen/budget/widgets/expense_card.dart';
+import 'package:mobile_frontend/ui/screen/budget/widgets/dertam_expense_card.dart';
+import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:provider/provider.dart';
 
 class BudgetHistoryScreen extends StatefulWidget {
   final List<Expense> expenses;
@@ -30,12 +33,31 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen>
   // State management
   late BudgetHistoryState _state;
   late TabController _tabController;
+  List<ExpenseCategory> _categories = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _state = BudgetHistoryState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final provider = Provider.of<BudgetProvider>(context, listen: false);
+      final categories = await provider.getExpenseCategory();
+      setState(() {
+        _categories = categories;
+      });
+    } catch (e) {
+      setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load categories: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -59,80 +81,82 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen>
       backgroundColor: DertamColors.white,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: DertamColors.black),
+        icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.primaryBlue),
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
         'Expense History',
         style: TextStyle(
-          color: DertamColors.black,
-          fontSize: 18,
+          color: DertamColors.primaryBlue,
+          fontSize: 24,
           fontWeight: FontWeight.w600,
         ),
       ),
       centerTitle: true,
       actions: [
         IconButton(
-          icon: Icon(Icons.filter_list, color: DertamColors.black),
-          onPressed: () => _state.showFilterBottomSheet(context, _updateState),
+          icon: Icon(Icons.filter_list, color: DertamColors.primaryBlue),
+          onPressed: () =>
+              _state.showFilterBottomSheet(context, _updateState, _categories),
         ),
       ],
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(120),
-        child: Column(children: [_buildSearchBar(), _buildTabBar()]),
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: TextField(
-        controller: _state.searchController,
-        decoration: InputDecoration(
-          hintText: 'Search expenses...',
-          prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-          suffixIcon: _state.searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear, color: Colors.grey[600]),
-                  onPressed: () {
-                    _state.clearSearch();
-                    _updateState();
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey[300]!),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: DertamColors.primaryDark),
-          ),
+        preferredSize: const Size.fromHeight(50),
+        child: Column(
+          children: [
+            TabBar(
+              controller: _tabController,
+              labelColor: DertamColors.primaryDark,
+              unselectedLabelColor: Colors.grey[600],
+              indicatorColor: DertamColors.primaryDark,
+              onTap: (index) => _updateState(),
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Today'),
+                Tab(text: 'This Week'),
+                Tab(text: 'This Month'),
+              ],
+            ),
+          ],
         ),
-        onChanged: (value) {
-          _state.updateSearchQuery(value);
-          _updateState();
-        },
       ),
     );
   }
 
-  Widget _buildTabBar() {
-    return TabBar(
-      controller: _tabController,
-      labelColor: DertamColors.primaryDark,
-      unselectedLabelColor: Colors.grey[600],
-      indicatorColor: DertamColors.primaryDark,
-      onTap: (index) => _updateState(),
-      tabs: const [
-        Tab(text: 'All'),
-        Tab(text: 'Today'),
-        Tab(text: 'This Week'),
-        Tab(text: 'This Month'),
-      ],
-    );
-  }
+  // Widget _buildSearchBar() {
+  //   return Padding(
+  //     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+  //     child: TextField(
+  //       controller: _state.searchController,
+  //       decoration: InputDecoration(
+  //         hintText: 'Search expenses...',
+  //         prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+  //         suffixIcon: _state.searchQuery.isNotEmpty
+  //             ? IconButton(
+  //                 icon: Icon(Icons.clear, color: Colors.grey[600]),
+  //                 onPressed: () {
+  //                   _state.clearSearch();
+  //                   _updateState();
+  //                 },
+  //               )
+  //             : null,
+  //         border: OutlineInputBorder(
+  //           borderRadius: BorderRadius.circular(12),
+  //           borderSide: BorderSide(color: Colors.grey[300]!),
+  //         ),
+  //         focusedBorder: OutlineInputBorder(
+  //           borderRadius: BorderRadius.circular(12),
+  //           borderSide: BorderSide(color: DertamColors.primaryDark),
+  //         ),
+  //       ),
+  //       onChanged: (value) {
+  //         _state.updateSearchQuery(value);
+  //         _updateState();
+  //       },
+  //     ),
+  //   );
+  // }
+
 
   Widget _buildSummaryCard() {
     final filteredExpenses = _state.getFilteredExpenses(
@@ -212,10 +236,10 @@ class _BudgetHistoryScreenState extends State<BudgetHistoryScreen>
               children: [
                 Row(
                   children: [
-                    Icon(entry.key.icon, color: Colors.white70, size: 16),
+                    // Icon(entry.key.icon, color: Colors.white70, size: 16),
                     const SizedBox(width: 8),
                     Text(
-                      entry.key.label,
+                      entry.key.name,
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
@@ -336,7 +360,7 @@ class BudgetHistoryState {
     // Apply category filter
     if (selectedCategory != null) {
       filtered = filtered
-          .where((expense) => expense.category == selectedCategory)
+          .where((expense) => expense.category.id == selectedCategory!.id)
           .toList();
     }
 
@@ -424,14 +448,22 @@ class BudgetHistoryState {
     return expenses.fold(0.0, (sum, expense) => sum + expense.amount);
   }
 
-  void showFilterBottomSheet(BuildContext context, VoidCallback onUpdate) {
+  void showFilterBottomSheet(
+    BuildContext context,
+    VoidCallback onUpdate,
+    List<ExpenseCategory> categories,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => FilterBottomSheet(state: this, onUpdate: onUpdate),
+      builder: (context) => FilterBottomSheet(
+        state: this,
+        onUpdate: onUpdate,
+        categories: categories,
+      ),
     );
   }
 
@@ -500,11 +532,13 @@ class EmptyExpenseState extends StatelessWidget {
 class FilterBottomSheet extends StatefulWidget {
   final BudgetHistoryState state;
   final VoidCallback onUpdate;
+  final List<ExpenseCategory> categories;
 
   const FilterBottomSheet({
     super.key,
     required this.state,
     required this.onUpdate,
+    required this.categories,
   });
 
   @override
@@ -563,10 +597,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   widget.onUpdate();
                 },
               ),
-              ...ExpenseCategory.values.map(
+              ...widget.categories.map(
                 (category) => FilterChip(
-                  label: Text(category.label),
-                  selected: widget.state.selectedCategory == category,
+                  label: Text(category.name),
+                  selected: widget.state.selectedCategory?.id == category.id,
                   onSelected: (selected) {
                     setState(() {
                       widget.state.updateSelectedCategory(
@@ -579,7 +613,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ),
             ],
           ),
-
           const SizedBox(height: 24),
 
           // Date Range Filter

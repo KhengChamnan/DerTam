@@ -14,7 +14,7 @@ class PlaceDto {
         ratings: double.tryParse(json['ratings']?.toString() ?? '0.0') ?? 0.0,
         reviewsCount:
             int.tryParse(json['reviews_count']?.toString() ?? '0') ?? 0,
-        imagesUrl: _parseImageUrl(json['image_url']),
+        imagesUrl: json['image_url']?.toString() ?? '',
         imagePublicIds: json['image_public_ids']?.toString() ?? '',
         entryFree: json['entry_free'] == 1 || json['entry_free'] == true,
         operatingHours: _parseJsonMap(json['operating_hours']),
@@ -59,35 +59,6 @@ class PlaceDto {
       print('Error converting Place to JSON: $e');
       rethrow;
     }
-  }
-
-  /// Parse image URL from JSON array or string
-  static String _parseImageUrl(dynamic value) {
-    if (value == null) return '';
-
-    // If it's already a plain string URL
-    if (value is String) {
-      // Check if it's a JSON array string
-      if (value.startsWith('[') && value.endsWith(']')) {
-        try {
-          final decoded = jsonDecode(value);
-          if (decoded is List && decoded.isNotEmpty) {
-            return decoded[0]?.toString() ?? '';
-          }
-        } catch (e) {
-          print('Error parsing image URL array: $e');
-        }
-      }
-      // Otherwise return the string as-is
-      return value;
-    }
-
-    // If it's already a List
-    if (value is List && value.isNotEmpty) {
-      return value[0]?.toString() ?? '';
-    }
-
-    return '';
   }
 
   static Map<String, dynamic> _parseJsonMap(dynamic value) {

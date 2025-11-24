@@ -22,7 +22,7 @@ class ApiEndpoint {
   static const String getListHotel = '/api/hotels/properties';
   static const String hotelDetails = '/api/hotel-details';
   static const String roomDetails = '/api/rooms';
-  static const String hotelBooking = '/api/booking/create';
+  static const String hotelBooking = '/api/booking/hotel';
   static const String searchAvailableRooms = '/api/rooms/search';
   static const String getAllBookings = '/api/booking/my-bookings';
   static const String getBookingDetail = '/api/booking';
@@ -32,6 +32,7 @@ class ApiEndpoint {
   static const String addPlaceToTripDay =
       '/api/add-places'; // Have to put trip ID
   static const String getTripDetail = '/api/trips';
+  static const String getAllTrips = '/api/trips';
 
   // Social sharing Endpoints
   static const String generateShareableLink =
@@ -45,6 +46,7 @@ class ApiEndpoint {
       '/api/trips/{{tripId}}/budget'; // Here we need the budget Id
   static const String updateBudget = '/api/budgets';
   static const String addExpense = '/api/budgets/{{budgetId}}/expenses';
-  static const String updateExpense = '/api/expenses/{{expenseId}}';
-  static const String deleteExpense = '/api/expenses/{{expenseId}}';
+  static const String updateExpense = '/api/expenses';
+  static const String deleteExpense = '/api/expenses';
+  static const String expenseCategory = '/api/expense-categories';
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/models/budget/expense.dart';
+import 'package:mobile_frontend/models/budget/expend.dart';
+import 'package:mobile_frontend/models/budget/expense_category.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
+import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:provider/provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final String selectedCurrency;
@@ -40,7 +43,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _peopleController = TextEditingController(text: '1');
 
   DateTime _selectedDate = DateTime.now();
-  ExpenseCategory _selectedCategory = ExpenseCategory.food;
+  ExpenseCategory? _selectedCategory;
+  List<ExpenseCategory> _categories = [];
+  bool _isLoadingCategories = true;
 
   @override
   void initState() {
@@ -78,6 +83,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _selectedDate = widget.expense!.date;
       _selectedCategory = widget.expense!.category;
     }
+
+    // Fetch categories from backend
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final provider = Provider.of<BudgetProvider>(context, listen: false);
+      final categories = await provider.getExpenseCategory();
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+        // Set first category as default if not editing
+        if (!widget.isEditing && categories.isNotEmpty) {
+          _selectedCategory = categories.first;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load categories: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -94,8 +126,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return '\$';
       case 'KHR':
         return '៛';
-      case 'EUR':
-        return '€';
       default:
         return '\$';
     }
@@ -317,6 +347,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _selectCategory() {
+    if (_isLoadingCategories) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Loading categories...')));
+      return;
+    }
+
+    if (_categories.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No categories available')));
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -338,32 +382,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              ...ExpenseCategory.values.map((category) {
+              ..._categories.map((category) {
+                final isSelected = _selectedCategory?.id == category.id;
                 return ListTile(
                   leading: Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: _selectedCategory == category
+                      color: isSelected
                           ? DertamColors.primaryDark
                           : Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      category.icon,
-                      color: _selectedCategory == category
-                          ? Colors.white
-                          : Colors.grey[600],
+                      Icons.category,
+                      color: isSelected ? Colors.white : Colors.grey[600],
                     ),
                   ),
                   title: Text(
-                    category.label,
+                    category.name,
                     style: TextStyle(
-                      fontWeight: _selectedCategory == category
-                          ? FontWeight.bold
+                      fontWeight: isSelected
+                          ? FontWeight.w600
                           : FontWeight.normal,
+                      color: isSelected
+                          ? DertamColors.primaryDark
+                          : DertamColors.black,
                     ),
                   ),
+                  trailing: isSelected
+                      ? Icon(Icons.check, color: DertamColors.primaryDark)
+                      : null,
                   onTap: () {
                     setState(() {
                       _selectedCategory = category;
@@ -381,7 +430,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   void _saveExpense() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_totalAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -391,7 +439,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
       return;
     }
-
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a category'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -401,38 +457,110 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
       return;
     }
-
     // Check if expense exceeds budget
     final currentTotalSpent = widget.remainingBudget < widget.totalBudget
         ? widget.totalBudget - widget.remainingBudget
         : 0.0;
     final newTotalSpent = currentTotalSpent + _totalAmount;
-
     // Show warning if exceeds total budget
     if (newTotalSpent > widget.totalBudget) {
       final shouldContinue = await _showBudgetExceededDialog();
       if (!shouldContinue) return;
     }
-    // // Create the expense
-    // final expense = Expense.create(
-    //   amount: _totalAmount,
-    //   description: _descriptionController.text.trim(),
-    //   date: _selectedDate,
-    //   category: _selectedCategory,
-    // );
-    // // Show success message
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     content: Text(
-    //       widget.isEditing
-    //         ? 'Expense updated successfully!'
-    //         : 'Expense added successfully!',
-    //     ),
-    //     backgroundColor: Colors.green,
-    //   ),
-    // );
-    // Return to previous screen with success result
-    // Navigator.pop(context, true);
+    // Save the expense using the provider
+    try {
+      final provider = Provider.of<BudgetProvider>(context, listen: false);
+
+      await provider.addExpense(
+        _totalAmount.toString(),
+        widget.selectedCurrency,
+        _selectedDate,
+        _descriptionController.text.trim(),
+        _selectedCategory!.id,
+        widget.budgetId,
+      );
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add expense: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _editExpense() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_totalAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid amount'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a category'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a description'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    // Check if expense exceeds budget (when editing, exclude the original amount)
+    final currentTotalSpent = widget.remainingBudget < widget.totalBudget
+        ? widget.totalBudget - widget.remainingBudget
+        : 0.0;
+    // When editing, subtract the original expense amount before adding the new amount
+    final originalAmount = widget.expense?.amount ?? 0.0;
+    final newTotalSpent = (currentTotalSpent - originalAmount) + _totalAmount;
+    // Show warning if exceeds total budget
+    if (newTotalSpent > widget.totalBudget) {
+      final shouldContinue = await _showBudgetExceededDialog();
+      if (!shouldContinue) return;
+    }
+    // Update the expense using the provider
+    try {
+      final provider = Provider.of<BudgetProvider>(context, listen: false);
+
+      await provider.updateExpense(
+        widget.expense!.id,
+        _totalAmount.toString(),
+        _selectedDate, // name parameter
+        widget.selectedCurrency,
+        _selectedCategory!.id,
+        _descriptionController.text.trim(),
+      );
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update expense: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Add this method to show the budget exceeded dialog
@@ -661,31 +789,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         backgroundColor: DertamColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.black),
+          icon: Icon(
+            Icons.arrow_back_ios_new_outlined,
+            color: DertamColors.primaryBlue,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.isEditing ? 'Edit Expense' : 'Add Expense',
           style: TextStyle(
-            color: DertamColors.black,
-            fontSize: 18,
+            color: DertamColors.primaryBlue,
+            fontSize: 24,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _saveExpense,
-            child: Text(
-              'Save',
-              style: TextStyle(
-                color: DertamColors.primaryDark,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
@@ -828,19 +946,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: DertamColors.primaryDark,
+                          color: _selectedCategory != null
+                              ? DertamColors.primaryDark
+                              : Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
-                          _selectedCategory.icon,
-                          color: Colors.white,
+                          Icons.category,
+                          color: _selectedCategory != null
+                              ? Colors.white
+                              : Colors.grey[600],
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          _selectedCategory.label,
-                          style: const TextStyle(fontSize: 16),
+                          _selectedCategory?.name ?? 'Select Category',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: _selectedCategory != null
+                                ? DertamColors.black
+                                : Colors.grey[600],
+                          ),
                         ),
                       ),
                       Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
@@ -884,42 +1011,41 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               const SizedBox(height: 16),
 
-              // Number of People
-              Text(
-                'Number of People',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _peopleController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: DertamColors.primaryDark),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() {}); // Update total amount
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter number of people';
-                  }
-                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-
+              // // Number of People
+              // Text(
+              //   'Number of People',
+              //   style: TextStyle(
+              //     fontSize: 16,
+              //     fontWeight: FontWeight.w500,
+              //     color: Colors.grey[600],
+              //   ),
+              // ),
+              // const SizedBox(height: 8),
+              // TextFormField(
+              //   controller: _peopleController,
+              //   keyboardType: TextInputType.number,
+              //   decoration: InputDecoration(
+              //     border: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(12),
+              //     ),
+              //     focusedBorder: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(12),
+              //       borderSide: BorderSide(color: DertamColors.primaryDark),
+              //     ),
+              //   ),
+              //   onChanged: (value) {
+              //     setState(() {}); // Update total amount
+              //   },
+              //   validator: (value) {
+              //     if (value == null || value.isEmpty) {
+              //       return 'Please enter number of people';
+              //     }
+              //     if (int.tryParse(value) == null || int.parse(value) <= 0) {
+              //       return 'Please enter a valid number';
+              //     }
+              //     return null;
+              //   },
+              // ),
               const SizedBox(height: 24),
 
               // Description
@@ -952,7 +1078,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 width: double.infinity,
                 child: DertamButton(
                   text: widget.isEditing ? 'Update Expense' : 'Add Expense',
-                  onPressed: _saveExpense,
+                  onPressed: widget.isEditing ? _editExpense : _saveExpense,
                 ),
               ),
             ],

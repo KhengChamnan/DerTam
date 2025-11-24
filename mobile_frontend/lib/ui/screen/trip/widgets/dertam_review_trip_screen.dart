@@ -48,7 +48,6 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
 
       _organizedPlaces.putIfAbsent(dateKey, () => []).add(item);
     }
-
     _sortPlacesByAddedTime();
   }
 
@@ -173,24 +172,18 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
     }
   }
 
-  void _editDay(DateTime day) {
-    _navigateToEditPlaces();
-  }
-
   void _deletePlace(Map<String, dynamic> placeItem) {
     setState(() {
       widget.addedPlaces.remove(placeItem);
       _organizeByDays();
     });
   }
-  void _continueEditing() {
-    _navigateToEditPlaces();
-  }
+
   // ==================== Navigation ====================
   void _navigateToEditPlaces() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => DertamAddPlaceToTrip()),
+      MaterialPageRoute(builder: (context) => DertamAddPlaceToTrip(tripId: widget.tripId)),
     ).then(_handleEditPlacesResult);
   }
 
@@ -208,9 +201,7 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => TripDetailScreen(
-          tripId: widget.tripId,
-        ),
+        builder: (context) => TripDetailScreen(tripId: widget.tripId),
       ),
     );
   }
@@ -258,11 +249,27 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
         ),
         title: Text(
           'Review Your Trip',
-          style: DertamTextStyles.subtitle.copyWith(
+          style: DertamTextStyles.title.copyWith(
             color: DertamColors.primaryBlue,
           ),
         ),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: GestureDetector(
+              onTap: () => _navigateToEditPlaces(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  Icons.edit,
+                  color: DertamColors.primaryDark,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -329,12 +336,6 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
                     width: double.infinity,
                   ),
                   SizedBox(height: DertamSpacings.m),
-                  DertamButton(
-                    text: 'Continue to edit',
-                    onPressed: _continueEditing,
-                    backgroundColor: DertamColors.neutralDark,
-                    width: double.infinity,
-                  ),
                 ],
               ),
             ),
@@ -370,13 +371,6 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
           style: DertamTextStyles.subtitle.copyWith(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-          ),
-        ),
-        GestureDetector(
-          onTap: () => _editDay(day),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: Icon(Icons.edit, color: DertamColors.primaryDark, size: 20),
           ),
         ),
       ],
