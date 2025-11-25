@@ -138,7 +138,7 @@ class BusScheduleController extends Controller
 
             // Get upcoming scheduled buses
             $upcomingJourneys = BusSchedule::query()
-                ->with(['bus.transportation', 'route'])
+                ->with(['bus.transportation', 'route.fromLocation', 'route.toLocation'])
                 ->where('status', 'scheduled')
                 ->where('departure_time', '>', value: now())
                 ->orderBy('departure_time', 'asc')
@@ -147,15 +147,14 @@ class BusScheduleController extends Controller
                 ->map(function($schedule, $index) {
                     return [
                         'id' => $schedule->id,
-                        'number' => $index + 1,
                         'terminal_name' => $schedule->bus->transportation->name ?? "Bus terminal " . ($index + 1),
                         'bus_name' => $schedule->bus->bus_name,
-                        'from_location' => $schedule->route->from_location,
-                        'to_location' => $schedule->route->to_location,
-                        'departure_time' => $schedule->departure_time->format('g A, D'),
+                        'from_location' => $schedule->route->fromLocation->province_categoryName ?? 'N/A',
+                        'to_location' => $schedule->route->toLocation->province_categoryName ?? 'N/A',
+                        'departure_time' => $schedule->departure_time->format('H:i:s'),
                         'departure_date' => $schedule->departure_time->format('Y.m.d'),
-                        'departure_datetime' => $schedule->departure_time,
-                        'arrival_time' => $schedule->arrival_time,
+                        'arrival_time' => $schedule->arrival_time->format('H:i:s'),
+                        'arrival_date' => $schedule->arrival_time->format('Y.m.d'),
                         'price' => $schedule->price,
                         'available_seats' => $schedule->getAvailableSeatsCount(),
                         'duration_hours' => $schedule->route->duration_hours,
