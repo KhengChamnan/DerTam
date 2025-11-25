@@ -15,6 +15,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "maatwebsite/excel": "^3.1",
+        "resend/resend-laravel": "^1.0",
         "spatie/laravel-permission": "^6.21",
         "tightenco/ziggy": "^2.6"
     },
