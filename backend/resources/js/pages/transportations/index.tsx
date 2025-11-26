@@ -342,21 +342,21 @@ export default function TransportationIndex({
                                         </th>
                                     )}
                                     {columnVisibility.buses && (
-                                        <th className="h-12 px-4 text-center align-middle font-medium">
+                                        <th className="h-12 px-4 text-left align-middle font-medium">
                                             Buses
                                         </th>
                                     )}
                                     {columnVisibility.routes && (
-                                        <th className="h-12 px-4 text-center align-middle font-medium">
+                                        <th className="h-12 px-4 text-left align-middle font-medium">
                                             Active Routes
                                         </th>
                                     )}
                                     {columnVisibility.capacity && (
-                                        <th className="h-12 px-4 text-center align-middle font-medium">
+                                        <th className="h-12 px-4 text-left align-middle font-medium">
                                             Total Capacity
                                         </th>
                                     )}
-                                    <th className="h-12 px-4 text-right align-middle font-medium">
+                                    <th className="h-12 px-4 text-left align-middle font-medium">
                                         Actions
                                     </th>
                                 </tr>
@@ -484,19 +484,17 @@ export default function TransportationIndex({
 
                                             {/* Buses */}
                                             {columnVisibility.buses && (
-                                                <td className="p-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <span className="font-semibold">
-                                                            {transport.buses_count ||
-                                                                0}
-                                                        </span>
-                                                    </div>
+                                                <td className="p-4">
+                                                    <span className="font-semibold">
+                                                        {transport.buses_count ||
+                                                            0}
+                                                    </span>
                                                 </td>
                                             )}
 
                                             {/* Active Routes */}
                                             {columnVisibility.routes && (
-                                                <td className="p-4 text-center">
+                                                <td className="p-4">
                                                     <Badge variant="outline">
                                                         {transport.active_routes_count ||
                                                             0}{" "}
@@ -507,19 +505,27 @@ export default function TransportationIndex({
 
                                             {/* Total Capacity */}
                                             {columnVisibility.capacity && (
-                                                <td className="p-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <span>
-                                                            {transport.total_capacity ||
-                                                                0}
-                                                        </span>
-                                                    </div>
+                                                <td className="p-4">
+                                                    <span>
+                                                        {transport.total_capacity ||
+                                                            0}
+                                                    </span>
                                                 </td>
                                             )}
 
                                             {/* Actions */}
                                             <td className="p-4">
-                                                <div className="flex items-center justify-end gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Link
+                                                        href={`/transportations/${transport.id}/edit`}
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                    </Link>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger
                                                             asChild

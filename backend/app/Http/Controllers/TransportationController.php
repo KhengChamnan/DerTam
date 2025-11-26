@@ -22,7 +22,9 @@ class TransportationController extends Controller
             'place.category:placeCategoryID,category_name',
             'place.provinceCategory:province_categoryID,province_categoryName',
             'owner:id,name,email,phone_number',
-            'buses:id,bus_name,bus_plate,seat_capacity,transportation_id'
+            'buses:buses.id,buses.bus_name,buses.bus_plate,buses.bus_property_id',
+            'buses.busProperty:id,seat_capacity',
+            'buses.schedules:id,bus_id,status'
         ]);
 
         // Apply search filter
@@ -67,12 +69,9 @@ class TransportationController extends Controller
             $totalCapacity = $transportation->buses->sum(function($bus) {
                 return $bus->busProperty ? $bus->busProperty->seat_capacity : 0;
             });
-            $activeRoutesCount = $transportation->buses()
-                ->whereHas('schedules', function ($q) {
-                    $q->where('status', 'scheduled');
-                })
-                ->distinct('id')
-                ->count();
+            $activeRoutesCount = $transportation->buses->filter(function($bus) {
+                return $bus->schedules && $bus->schedules->where('status', 'scheduled')->count() > 0;
+            })->count();
             
             return [
                 'id' => $transportation->id,

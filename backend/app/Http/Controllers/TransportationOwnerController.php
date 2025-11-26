@@ -51,10 +51,26 @@ class TransportationOwnerController extends Controller
         $recentBookings = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
-        ->with(['schedule.route', 'schedule.bus', 'seat'])
+        ->with([
+            'schedule.route.fromProvince:province_categoryID,province_categoryName',
+            'schedule.route.toProvince:province_categoryID,province_categoryName',
+            'schedule.bus:id,bus_name',
+            'seat:id,seat_number'
+        ])
         ->orderBy('created_at', 'desc')
         ->limit(5)
         ->get();
+        
+        // Transform route data for recent bookings
+        $recentBookings->transform(function($booking) {
+            if ($booking->schedule && $booking->schedule->route) {
+                $booking->schedule->route->origin = $booking->schedule->route->fromProvince->province_categoryName ?? 'N/A';
+                $booking->schedule->route->destination = $booking->schedule->route->toProvince->province_categoryName ?? 'N/A';
+                unset($booking->schedule->route->fromProvince);
+                unset($booking->schedule->route->toProvince);
+            }
+            return $booking;
+        });
         
         // Utilization rate calculation
         $totalSeats = Bus::with('busProperty')
@@ -376,12 +392,42 @@ class TransportationOwnerController extends Controller
             $q->where('owner_user_id', $user->id);
         })
         ->with([
-            'schedule.route',
+            'booking.user:id,name,email',
+            'schedule.route.fromProvince:province_categoryID,province_categoryName',
+            'schedule.route.toProvince:province_categoryID,province_categoryName',
+            'schedule.bus:id,bus_name,bus_plate',
             'schedule.bus.transportation.place',
-            'seat'
+            'seat:id,seat_number'
         ])
         ->orderBy('created_at', 'desc')
         ->paginate(15);
+        
+        // Transform data to match frontend expectations
+        $bookings->getCollection()->transform(function($seatBooking) {
+            // Map passenger information from booking.user
+            $seatBooking->passenger_name = $seatBooking->booking->user->name ?? 'Unknown Passenger';
+            $seatBooking->passenger_email = $seatBooking->booking->user->email ?? null;
+            $seatBooking->passenger_phone = null; // Phone not available in users table
+            
+            // Map booking status
+            $seatBooking->booking_status = $seatBooking->booking->status ?? 'pending';
+            $seatBooking->payment_status = $seatBooking->booking->payments->first()->status ?? 'pending';
+            
+            // Map route origin/destination from province names
+            if ($seatBooking->schedule && $seatBooking->schedule->route) {
+                $seatBooking->schedule->route->origin = $seatBooking->schedule->route->fromProvince->province_categoryName ?? 'N/A';
+                $seatBooking->schedule->route->destination = $seatBooking->schedule->route->toProvince->province_categoryName ?? 'N/A';
+                
+                // Clean up unnecessary relationships
+                unset($seatBooking->schedule->route->fromProvince);
+                unset($seatBooking->schedule->route->toProvince);
+            }
+            
+            // Clean up the booking relationship to avoid sending unnecessary data
+            unset($seatBooking->booking);
+            
+            return $seatBooking;
+        });
         
         return Inertia::render('transportation-owner/bookings/index', [
             'bookings' => $bookings

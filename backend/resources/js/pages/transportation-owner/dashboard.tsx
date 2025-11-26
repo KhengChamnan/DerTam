@@ -514,44 +514,6 @@ export default function TransportationOwnerDashboard({
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Companies Overview */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Your Transportation Companies</CardTitle>
-                        <CardDescription>
-                            Overview of companies you manage
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {companies.length > 0 ? (
-                                companies.map((company) => (
-                                    <div
-                                        key={company.id}
-                                        className="flex items-center justify-between border-b pb-4"
-                                    >
-                                        <div>
-                                            <p className="font-medium">
-                                                {company.place?.name ||
-                                                    `Company #${company.id}`}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {company.buses?.length || 0}{" "}
-                                                buses
-                                            </p>
-                                        </div>
-                                        <Badge>Active</Badge>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-center text-muted-foreground">
-                                    No companies found
-                                </p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </AppLayout>
     );

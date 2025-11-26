@@ -51,42 +51,6 @@ class BusSeat extends Model
     }
 
     /**
-     * Check if seat is booked for a specific schedule.
-     */
-    public function isBookedForSchedule(int $scheduleId): bool
-    {
-        return $this->bookings()
-            ->where('schedule_id', $scheduleId)
-            ->where('status', '!=', 'cancelled')
-            ->exists();
-    }
-
-    /**
-     * Get booking for a specific schedule.
-     */
-    public function getBookingForSchedule(int $scheduleId)
-    {
-        return $this->bookings()
-            ->where('schedule_id', $scheduleId)
-            ->where('status', '!=', 'cancelled')
-            ->first();
-    }
-
-    /**
-     * Get available seats for a schedule.
-     */
-    public static function availableForSchedule(int $busId, int $scheduleId)
-    {
-        return self::where('bus_id', $busId)
-            ->whereDoesntHave('bookings', function ($query) use ($scheduleId) {
-                $query->where('schedule_id', $scheduleId)
-                    ->where('status', '!=', 'cancelled');
-            })
-            ->orderBy('seat_number')
-            ->get();
-    }
-
-    /**
      * Get seat display name (includes level for sleeper buses).
      */
     public function getDisplayNameAttribute(): string
@@ -137,5 +101,45 @@ class BusSeat extends Model
         return $availability;
     }
 
- 
+    /**
+     * Check if seat is booked for a specific schedule.
+     * Only considers bookings with status 'pending' or 'confirmed' as blocking.
+     */
+    public function isBookedForSchedule(int $scheduleId): bool
+    {
+        return $this->bookings()
+            ->where('schedule_id', $scheduleId)
+            ->whereHas('booking', function($query) {
+                $query->whereIn('status', ['pending', 'confirmed']);
+            })
+            ->exists();
+    }
+
+    /**
+     * Get booking for a specific schedule.
+     */
+    public function getBookingForSchedule(int $scheduleId)
+    {
+        return $this->bookings()
+            ->where('schedule_id', $scheduleId)
+            ->where('status', '!=', 'cancelled')
+            ->first();
+    }
+
+    /**
+     * Get available seats for a schedule.
+     * Only excludes seats with active bookings (pending or confirmed status).
+     */
+    public static function availableForSchedule(int $busId, int $scheduleId)
+    {
+        return self::where('bus_id', $busId)
+            ->whereDoesntHave('bookings', function ($query) use ($scheduleId) {
+                $query->where('schedule_id', $scheduleId)
+                    ->whereHas('booking', function($q) {
+                        $q->whereIn('status', ['pending', 'confirmed']);
+                    });
+            })
+            ->orderBy('seat_number')
+            ->get();
+    }
 }
