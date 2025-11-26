@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar, ArrowLeft, Bus, Clock, Save } from "lucide-react";
 import { toast } from "sonner";
+import { type BreadcrumbItem } from "@/types";
 
 interface BusData {
     id: number;
@@ -59,6 +60,12 @@ export default function TransportationOwnerSchedulesCreateEdit({
     routes = [],
 }: Props) {
     const isEditing = !!schedule;
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        { title: "Schedules", href: "/transportation-owner/schedules" },
+        { title: isEditing ? "Edit Schedule" : "Add Schedule", href: "#" },
+    ];
 
     // Helper function to format datetime for input field
     const formatDateTimeLocal = (
@@ -163,7 +170,7 @@ export default function TransportationOwnerSchedulesCreateEdit({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isEditing ? "Edit Schedule" : "Add Schedule"} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

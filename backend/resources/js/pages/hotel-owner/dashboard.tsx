@@ -36,6 +36,7 @@ import {
     Percent,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { type BreadcrumbItem } from "@/types";
 
 interface Property {
     property_id: number;
@@ -196,6 +197,10 @@ const dailyOccupancyConfig = {
     },
 } satisfies ChartConfig;
 
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: "Dashboard", href: "/hotel-owner/dashboard" },
+];
+
 export default function HotelOwnerDashboard({
     properties = [],
     stats = {
@@ -211,7 +216,7 @@ export default function HotelOwnerDashboard({
     recent_bookings = [],
 }: Props) {
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Hotel Owner Dashboard" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

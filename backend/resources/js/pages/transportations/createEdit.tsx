@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Bus } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Place {
     id: number;
@@ -50,6 +51,23 @@ export default function TransportationCreateEdit({
 }: Props) {
     const isEditing = !!transportation;
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/dashboard",
+        },
+        {
+            title: "Transportations",
+            href: "/transportations",
+        },
+        {
+            title: isEditing ? "Edit Transportation" : "Create Transportation",
+            href: isEditing
+                ? `/transportations/${transportation?.id}/edit`
+                : "/transportations/create",
+        },
+    ];
+
     const { data, setData, post, put, errors, processing } = useForm({
         owner_user_id: transportation?.owner_user_id || 0,
         placeID: transportation?.placeID || 0,
@@ -66,7 +84,7 @@ export default function TransportationCreateEdit({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head
                 title={
                     isEditing ? "Edit Transportation" : "Create Transportation"

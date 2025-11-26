@@ -22,6 +22,7 @@ import {
 import { ArrowLeft, Save, Bus as BusIcon, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { type BreadcrumbItem } from "@/types";
 
 interface BusProperty {
     id: number;
@@ -47,6 +48,12 @@ interface Props {
 
 export default function BusCreate({ busProperties, bus }: Props) {
     const isEditing = !!bus;
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        { title: "Buses", href: "/transportation-owner/buses" },
+        { title: isEditing ? "Edit Bus" : "Add Bus", href: "#" },
+    ];
 
     const { data, setData, post, put, processing, errors } = useForm({
         bus_property_id: bus?.bus_property_id?.toString() || "",
@@ -88,7 +95,7 @@ export default function BusCreate({ busProperties, bus }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isEditing ? "Edit Bus" : "Add New Bus"} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

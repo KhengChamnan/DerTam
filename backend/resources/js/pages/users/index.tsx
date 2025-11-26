@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
     DropdownMenu,
@@ -101,6 +102,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [statusFilter, setStatusFilter] = useState(filters.status || "all");
     const [roleFilter, setRoleFilter] = useState(filters.role || "all");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -151,6 +153,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         }
 
         debounceTimer.current = setTimeout(() => {
+            setIsLoading(true);
             router.get(
                 "/users",
                 {
@@ -163,6 +166,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     preserveScroll: true,
                     replace: true,
                     only: ["users"],
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }, 500);
@@ -180,6 +184,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
             return;
         }
 
+        setIsLoading(true);
         router.get(
             "/users",
             {
@@ -192,6 +197,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                 preserveScroll: true,
                 replace: true,
                 only: ["users"],
+                onFinish: () => setIsLoading(false),
             }
         );
     }, [statusFilter, roleFilter]);
@@ -509,96 +515,150 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {users.data.map((user: UserWithRole) => (
-                                <div
-                                    key={user.id}
-                                    className="p-4 hover:bg-muted/50"
-                                >
-                                    <div
-                                        className="grid gap-4 items-center"
-                                        style={{
-                                            gridTemplateColumns: `2fr ${
-                                                columnVisibility.email
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.phone
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.registered
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.lastLogin
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.status
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.role
-                                                    ? "2fr"
-                                                    : ""
-                                            } 1fr`.trim(),
-                                        }}
-                                    >
-                                        <div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    <span className="text-sm font-medium text-primary">
-                                                        {user.name
-                                                            .split(" ")
-                                                            .map(
-                                                                (n: string) =>
-                                                                    n[0]
-                                                            )
-                                                            .join("")
-                                                            .toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                <span className="font-medium truncate">
-                                                    {user.name}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {columnVisibility.email && (
-                                            <div>
-                                                <div className="text-sm text-muted-foreground truncate">
-                                                    {user.email}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.phone && (
-                                            <div>
-                                                <div className="text-xs text-muted-foreground truncate">
-                                                    {user.phone_number || "-"}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.registered && (
-                                            <div>
-                                                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                                    {new Date(
-                                                        user.created_at
-                                                    ).toLocaleDateString(
-                                                        "en-US",
-                                                        {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            year: "2-digit",
-                                                        }
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.lastLogin && (
-                                            <div>
-                                                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                                    {user.last_login_at
-                                                        ? new Date(
-                                                              user.last_login_at
+                            {isLoading
+                                ? // Skeleton loading state
+                                  Array.from({ length: 5 }).map((_, index) => (
+                                      <div key={index} className="p-4">
+                                          <div
+                                              className="grid gap-4 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `2fr ${
+                                                      columnVisibility.email
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.phone
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.registered
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.lastLogin
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.status
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.role
+                                                          ? "2fr"
+                                                          : ""
+                                                  } 1fr`.trim(),
+                                              }}
+                                          >
+                                              <div className="flex items-center gap-3">
+                                                  <Skeleton className="size-8 rounded-full" />
+                                                  <div className="space-y-2">
+                                                      <Skeleton className="h-4 w-32" />
+                                                      <Skeleton className="h-3 w-24" />
+                                                  </div>
+                                              </div>
+                                              {columnVisibility.email && (
+                                                  <Skeleton className="h-4 w-40" />
+                                              )}
+                                              {columnVisibility.phone && (
+                                                  <Skeleton className="h-4 w-24" />
+                                              )}
+                                              {columnVisibility.registered && (
+                                                  <Skeleton className="h-4 w-20" />
+                                              )}
+                                              {columnVisibility.lastLogin && (
+                                                  <Skeleton className="h-4 w-20" />
+                                              )}
+                                              {columnVisibility.status && (
+                                                  <Skeleton className="h-5 w-16 rounded-full" />
+                                              )}
+                                              {columnVisibility.role && (
+                                                  <div className="flex items-center gap-2">
+                                                      <Skeleton className="h-4 w-4" />
+                                                      <Skeleton className="h-4 w-20" />
+                                                  </div>
+                                              )}
+                                              <div className="flex items-center gap-2">
+                                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))
+                                : users.data.map((user: UserWithRole) => (
+                                      <div
+                                          key={user.id}
+                                          className="p-4 hover:bg-muted/50"
+                                      >
+                                          <div
+                                              className="grid gap-4 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `2fr ${
+                                                      columnVisibility.email
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.phone
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.registered
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.lastLogin
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.status
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.role
+                                                          ? "2fr"
+                                                          : ""
+                                                  } 1fr`.trim(),
+                                              }}
+                                          >
+                                              <div>
+                                                  <div className="flex items-center gap-3">
+                                                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                          <span className="text-sm font-medium text-primary">
+                                                              {user.name
+                                                                  .split(" ")
+                                                                  .map(
+                                                                      (
+                                                                          n: string
+                                                                      ) => n[0]
+                                                                  )
+                                                                  .join("")
+                                                                  .toUpperCase()}
+                                                          </span>
+                                                      </div>
+                                                      <span className="font-medium truncate">
+                                                          {user.name}
+                                                      </span>
+                                                  </div>
+                                              </div>
+                                              {columnVisibility.email && (
+                                                  <div>
+                                                      <div className="text-sm text-muted-foreground truncate">
+                                                          {user.email}
+                                                      </div>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.phone && (
+                                                  <div>
+                                                      <div className="text-xs text-muted-foreground truncate">
+                                                          {user.phone_number ||
+                                                              "-"}
+                                                      </div>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.registered && (
+                                                  <div>
+                                                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                                          {new Date(
+                                                              user.created_at
                                                           ).toLocaleDateString(
                                                               "en-US",
                                                               {
@@ -606,132 +666,155 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                                   day: "numeric",
                                                                   year: "2-digit",
                                                               }
-                                                          )
-                                                        : "-"}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.status && (
-                                            <div>
-                                                {getStatusBadge(
-                                                    user.status || "Inactive"
-                                                )}
-                                            </div>
-                                        )}
-                                        {columnVisibility.role && (
-                                            <div>
-                                                {getRoleBadge(
-                                                    user.role || "User"
-                                                )}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Link
-                                                    href={`/users/${user.id}/edit`}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        <EditIcon className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                        >
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="start">
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/users/${user.id}/edit`}
-                                                            >
-                                                                Edit user
-                                                                <EditIcon className="ml-8 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger
-                                                                asChild
-                                                            >
-                                                                <DropdownMenuItem
-                                                                    onSelect={(
-                                                                        e
-                                                                    ) =>
-                                                                        e.preventDefault()
+                                                          )}
+                                                      </div>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.lastLogin && (
+                                                  <div>
+                                                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                                          {user.last_login_at
+                                                              ? new Date(
+                                                                    user.last_login_at
+                                                                ).toLocaleDateString(
+                                                                    "en-US",
+                                                                    {
+                                                                        month: "short",
+                                                                        day: "numeric",
+                                                                        year: "2-digit",
                                                                     }
-                                                                    className="text-red-600 focus:text-red-600"
-                                                                >
-                                                                    Delete user
-                                                                </DropdownMenuItem>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>
-                                                                        Are you
-                                                                        absolutely
-                                                                        sure?
-                                                                    </AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This
-                                                                        action
-                                                                        cannot
-                                                                        be
-                                                                        undone.
-                                                                        This
-                                                                        will
-                                                                        permanently
-                                                                        delete
-                                                                        the user
-                                                                        "
-                                                                        {
-                                                                            user.name
-                                                                        }
-                                                                        " and
-                                                                        remove
-                                                                        all
-                                                                        their
-                                                                        data
-                                                                        from our
-                                                                        servers.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>
-                                                                        Cancel
-                                                                    </AlertDialogCancel>
-                                                                    <AlertDialogAction
-                                                                        onClick={() =>
-                                                                            handleDeleteUser(
-                                                                                user.id
-                                                                            )
-                                                                        }
-                                                                        className="bg-red-600 hover:bg-red-700"
-                                                                    >
-                                                                        Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                                                )
+                                                              : "-"}
+                                                      </div>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.status && (
+                                                  <div>
+                                                      {getStatusBadge(
+                                                          user.status ||
+                                                              "Inactive"
+                                                      )}
+                                                  </div>
+                                              )}
+                                              {columnVisibility.role && (
+                                                  <div>
+                                                      {getRoleBadge(
+                                                          user.role || "User"
+                                                      )}
+                                                  </div>
+                                              )}
+                                              <div>
+                                                  <div className="flex items-center gap-2">
+                                                      <Link
+                                                          href={`/users/${user.id}/edit`}
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                          >
+                                                              <EditIcon className="h-4 w-4" />
+                                                          </Button>
+                                                      </Link>
+                                                      <DropdownMenu>
+                                                          <DropdownMenuTrigger
+                                                              asChild
+                                                          >
+                                                              <Button
+                                                                  variant="ghost"
+                                                                  size="sm"
+                                                              >
+                                                                  <MoreHorizontal className="h-4 w-4" />
+                                                              </Button>
+                                                          </DropdownMenuTrigger>
+                                                          <DropdownMenuContent align="start">
+                                                              <DropdownMenuItem
+                                                                  asChild
+                                                              >
+                                                                  <Link
+                                                                      href={`/users/${user.id}/edit`}
+                                                                  >
+                                                                      Edit user
+                                                                      <EditIcon className="ml-8 h-4 w-4" />
+                                                                  </Link>
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuSeparator />
+                                                              <AlertDialog>
+                                                                  <AlertDialogTrigger
+                                                                      asChild
+                                                                  >
+                                                                      <DropdownMenuItem
+                                                                          onSelect={(
+                                                                              e
+                                                                          ) =>
+                                                                              e.preventDefault()
+                                                                          }
+                                                                          className="text-red-600 focus:text-red-600"
+                                                                      >
+                                                                          Delete
+                                                                          user
+                                                                      </DropdownMenuItem>
+                                                                  </AlertDialogTrigger>
+                                                                  <AlertDialogContent>
+                                                                      <AlertDialogHeader>
+                                                                          <AlertDialogTitle>
+                                                                              Are
+                                                                              you
+                                                                              absolutely
+                                                                              sure?
+                                                                          </AlertDialogTitle>
+                                                                          <AlertDialogDescription>
+                                                                              This
+                                                                              action
+                                                                              cannot
+                                                                              be
+                                                                              undone.
+                                                                              This
+                                                                              will
+                                                                              permanently
+                                                                              delete
+                                                                              the
+                                                                              user
+                                                                              "
+                                                                              {
+                                                                                  user.name
+                                                                              }
+                                                                              "
+                                                                              and
+                                                                              remove
+                                                                              all
+                                                                              their
+                                                                              data
+                                                                              from
+                                                                              our
+                                                                              servers.
+                                                                          </AlertDialogDescription>
+                                                                      </AlertDialogHeader>
+                                                                      <AlertDialogFooter>
+                                                                          <AlertDialogCancel>
+                                                                              Cancel
+                                                                          </AlertDialogCancel>
+                                                                          <AlertDialogAction
+                                                                              onClick={() =>
+                                                                                  handleDeleteUser(
+                                                                                      user.id
+                                                                                  )
+                                                                              }
+                                                                              className="bg-red-600 hover:bg-red-700"
+                                                                          >
+                                                                              Delete
+                                                                          </AlertDialogAction>
+                                                                      </AlertDialogFooter>
+                                                                  </AlertDialogContent>
+                                                              </AlertDialog>
+                                                          </DropdownMenuContent>
+                                                      </DropdownMenu>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
 
-                            {users.data.length === 0 && (
+                            {!isLoading && users.data.length === 0 && (
                                 <div className="p-8 text-center text-muted-foreground">
                                     No users found.
                                 </div>

@@ -131,6 +131,7 @@ export default function PlacesIndex({
     );
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(

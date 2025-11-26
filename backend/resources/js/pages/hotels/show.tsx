@@ -17,6 +17,7 @@ import {
     Calendar,
     TrendingUp,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Place {
     placeID: number;
@@ -99,6 +100,21 @@ interface Props {
 }
 
 export default function HotelShow({ property, bookingStats }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/dashboard",
+        },
+        {
+            title: "Hotels",
+            href: "/hotels",
+        },
+        {
+            title: property.place.name,
+            href: `/hotels/${property.property_id}`,
+        },
+    ];
+
     const availableRooms = property.rooms.reduce(
         (sum, room) => sum + room.available_rooms_count,
         0
@@ -130,7 +146,7 @@ export default function HotelShow({ property, bookingStats }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Hotel: ${property.place.name}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

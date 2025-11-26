@@ -17,6 +17,7 @@ import {
     Wifi,
     Coffee,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Property {
     property_id: number;
@@ -74,6 +75,21 @@ export default function HotelOwnerPropertyShow({
     const roomProperties = property.roomProperties || [];
     const facilities = property.facilities || [];
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/hotel-owner/dashboard",
+        },
+        {
+            title: "My Hotel",
+            href: "/hotel-owner/properties",
+        },
+        {
+            title: property.place?.name || "Property Details",
+            href: `/hotel-owner/properties/${property.property_id}`,
+        },
+    ];
+
     const averagePrice =
         roomProperties.length > 0
             ? roomProperties.reduce(
@@ -87,7 +103,7 @@ export default function HotelOwnerPropertyShow({
     ).length;
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head
                 title={`${
                     property.place?.name || "Property"

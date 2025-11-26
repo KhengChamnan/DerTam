@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { type BreadcrumbItem } from "@/types";
 import {
     Empty,
     EmptyHeader,
@@ -52,9 +53,14 @@ interface Props {
 }
 
 export default function TransportationOwnerCompaniesIndex({ company }: Props) {
+    const emptyBreadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        { title: "My Company", href: "/transportation-owner/companies" },
+    ];
+
     if (!company) {
         return (
-            <AppLayout>
+            <AppLayout breadcrumbs={emptyBreadcrumbs}>
                 <Head title="My Company" />
                 <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                     <Empty>
@@ -93,8 +99,16 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
     );
     const busTypes = busProperties.map((bp) => bp.bus_type);
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        {
+            title: company.place?.name || "My Company",
+            href: "/transportation-owner/companies",
+        },
+    ];
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${company.place?.name || "My Company"}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

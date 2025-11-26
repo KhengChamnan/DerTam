@@ -49,5 +49,7 @@ export interface User {
     roles?: Array<{ id: number; name: string; }>;
     permissions?: string[];
     owned_properties?: Array<{ property_id: number; place: { name: string; }; }>;
+    hotel_name?: string; // Hotel property name for hotel owners
+    company_name?: string; // Transportation company name for transportation owners
     [key: string]: unknown; // This allows for additional properties...
 }

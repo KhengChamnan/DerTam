@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Bed, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { type BreadcrumbItem } from "@/types";
 
 interface Property {
     property_id: number;
@@ -47,6 +48,23 @@ export default function CreateEditRoomProperty({
     roomProperty,
 }: Props) {
     const isEditing = !!roomProperty;
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/hotel-owner/dashboard",
+        },
+        {
+            title: property.place?.name || "My Hotel",
+            href: "/hotel-owner/properties",
+        },
+        {
+            title: isEditing ? "Edit Room Type" : "Create Room Type",
+            href: isEditing
+                ? `/hotel-owner/properties/${property.property_id}/room-properties/${roomProperty?.room_properties_id}/edit`
+                : `/hotel-owner/properties/${property.property_id}/room-properties/create`,
+        },
+    ];
 
     const { data, setData, post, put, processing, errors } = useForm({
         room_type: roomProperty?.room_type || "",
@@ -172,7 +190,7 @@ export default function CreateEditRoomProperty({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head
                 title={`${isEditing ? "Edit" : "Create"} Room Type - ${
                     property.place?.name || "Property"
@@ -437,25 +455,22 @@ export default function CreateEditRoomProperty({
                                     </p>
                                 )}
                             </div>
-
-                            {/* Submit Button */}
-                            <div className="flex gap-2 pt-4 justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href="/hotel-owner/properties">
-                                        Cancel
-                                    </Link>
-                                </Button>
-                                <Button type="submit" disabled={processing}>
-                                    <Save className="h-4 w-4 mr-2" />
-                                    {processing
-                                        ? "Saving..."
-                                        : isEditing
-                                        ? "Update Room Type"
-                                        : "Create Room Type"}
-                                </Button>
-                            </div>
                         </CardContent>
                     </Card>
+                    {/* Submit Button */}
+                    <div className="flex gap-2 pt-4 justify-end">
+                        <Button type="button" variant="outline" asChild>
+                            <Link href="/hotel-owner/properties">Cancel</Link>
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            <Save className="h-4 w-4 mr-2" />
+                            {processing
+                                ? "Saving..."
+                                : isEditing
+                                ? "Update Room Type"
+                                : "Create Room Type"}
+                        </Button>
+                    </div>
                 </form>
             </div>
         </AppLayout>

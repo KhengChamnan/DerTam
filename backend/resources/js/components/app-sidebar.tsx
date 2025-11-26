@@ -15,14 +15,19 @@ import { type NavItem, type SharedData } from "@/types";
 import { Link, usePage } from "@inertiajs/react";
 import {
     BookOpen,
-    Folder,
+    Hotel,
     LayoutGrid,
     Map,
     Users,
-    Shield,
-    Home,
+    UserLock,
     DoorOpen,
     Bus,
+    Ticket,
+    Building2,
+    Building,
+    NotebookPen,
+    MapPinned,
+    MapPin,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 
@@ -36,13 +41,13 @@ const mainNavItems: NavItem[] = [
     {
         title: "Places",
         href: "/places",
-        icon: Map,
+        icon: MapPinned,
         permissions: ["view places"],
     },
     {
         title: "Hotel",
         href: "/hotels",
-        icon: Home,
+        icon: Building,
         permissions: ["view hotels"],
     },
     {
@@ -60,7 +65,7 @@ const mainNavItems: NavItem[] = [
     {
         title: "Roles",
         href: "/roles",
-        icon: Shield,
+        icon: UserLock,
         permissions: ["view roles"],
     },
 ];
@@ -73,9 +78,9 @@ const hotelOwnerNavItems: NavItem[] = [
         roles: ["hotel owner"],
     },
     {
-        title: "My Hotels",
+        title: "My Hotel",
         href: "/hotel-owner/properties",
-        icon: Home,
+        icon: Building,
         roles: ["hotel owner"],
     },
     {
@@ -87,7 +92,7 @@ const hotelOwnerNavItems: NavItem[] = [
     {
         title: "Bookings",
         href: "/hotel-owner/bookings",
-        icon: BookOpen,
+        icon: NotebookPen,
         roles: ["hotel owner"],
     },
 ];
@@ -100,9 +105,9 @@ const transportationOwnerNavItems: NavItem[] = [
         roles: ["transportation owner"],
     },
     {
-        title: "My Companies",
+        title: "My Company",
         href: "/transportation-owner/companies",
-        icon: Bus,
+        icon: Building2,
         roles: ["transportation owner"],
     },
     {
@@ -210,7 +215,33 @@ export function AppSidebar() {
                                 }
                                 prefetch
                             >
-                                <AppLogo />
+                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                                    {isHotelOwner ? (
+                                        <Hotel className="size-4" />
+                                    ) : isTransportationOwner ? (
+                                        <Ticket className="size-4" />
+                                    ) : (
+                                        <MapPin className="size-4" />
+                                    )}
+                                </div>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-semibold">
+                                        {isHotelOwner
+                                            ? "Hotel Management"
+                                            : isTransportationOwner
+                                            ? "Transportation"
+                                            : "DerTam Dashboard"}
+                                    </span>
+                                    <span className="truncate text-xs">
+                                        {isHotelOwner
+                                            ? auth?.user?.hotel_name ||
+                                              "Hotel Owner"
+                                            : isTransportationOwner
+                                            ? auth?.user?.company_name ||
+                                              "Transportation Owner"
+                                            : "Platform"}
+                                    </span>
+                                </div>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

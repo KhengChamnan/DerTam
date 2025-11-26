@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { type BreadcrumbItem } from "@/types";
 import {
     Bus,
     Users,
@@ -78,6 +79,11 @@ interface Props {
 }
 
 export default function TransportationOwnerBusShow({ bus }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        { title: "Buses", href: "/transportation-owner/buses" },
+        { title: bus.bus_name || "Bus Details", href: "#" },
+    ];
     const images = bus.bus_property?.image_url
         ? (() => {
               try {
@@ -128,7 +134,7 @@ export default function TransportationOwnerBusShow({ bus }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Bus Details - ${bus.bus_name}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

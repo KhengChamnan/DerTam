@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { type BreadcrumbItem } from "@/types";
 import {
     Bus,
     Users,
@@ -80,6 +81,14 @@ interface Props {
 }
 
 export default function TransportationOwnerScheduleShow({ schedule }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        { title: "Schedules", href: "/transportation-owner/schedules" },
+        {
+            title: `${schedule.route.from_location} → ${schedule.route.to_location}`,
+            href: "#",
+        },
+    ];
     // Helper to parse datetime string as local time
     const parseAsLocalTime = (dateString: string) => {
         // Parse the datetime string as local time, not UTC
@@ -174,7 +183,7 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
         : [];
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head
                 title={`Schedule Details - ${schedule.route.from_location} → ${schedule.route.to_location}`}
             />

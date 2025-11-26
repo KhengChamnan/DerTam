@@ -36,6 +36,7 @@ import {
     Percent,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { type BreadcrumbItem } from "@/types";
 
 interface Company {
     id: number;
@@ -173,6 +174,13 @@ const weeklyOccupancyConfig = {
     },
 } satisfies ChartConfig;
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/transportation-owner/dashboard",
+    },
+];
+
 export default function TransportationOwnerDashboard({
     companies = [],
     stats = {
@@ -189,7 +197,7 @@ export default function TransportationOwnerDashboard({
     recent_bookings = [],
 }: Props) {
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Transportation Owner Dashboard" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

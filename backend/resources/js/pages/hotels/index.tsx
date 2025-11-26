@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -49,6 +50,7 @@ import {
     ChevronsRight,
     MoreHorizontal,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Property {
     property_id: number;
@@ -109,6 +111,17 @@ interface ColumnVisibility {
     status: boolean;
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+    },
+    {
+        title: "Hotels",
+        href: "/hotels",
+    },
+];
+
 export default function HotelIndex({ properties, filters, provinces }: Props) {
     const [search, setSearch] = useState(filters.search || "");
     const [province, setProvince] = useState(filters.province || "all");
@@ -116,6 +129,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
     const [availability, setAvailability] = useState(
         filters.availability || "all"
     );
+    const [isLoading, setIsLoading] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -167,6 +181,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
         }
 
         debounceTimer.current = setTimeout(() => {
+            setIsLoading(true);
             router.get(
                 "/hotels",
                 {
@@ -180,6 +195,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                     preserveState: true,
                     preserveScroll: true,
                     replace: true,
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }, 500);
@@ -198,6 +214,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
             return;
         }
 
+        setIsLoading(true);
         router.get(
             "/hotels",
             {
@@ -210,6 +227,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                onFinish: () => setIsLoading(false),
             }
         );
     }, [province, rating, availability]);
@@ -238,7 +256,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Hotel Management" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -493,246 +511,356 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {properties.data.map((property) => (
-                                <div
-                                    key={property.property_id}
-                                    className="p-4 hover:bg-muted/50 transition-colors"
-                                >
-                                    <div
-                                        className="grid gap-4 items-center"
-                                        style={{
-                                            gridTemplateColumns: `2fr ${
-                                                columnVisibility.location
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.owner
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.rating
-                                                    ? "1.5fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.rooms
-                                                    ? "1.5fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.priceRange
-                                                    ? "1.5fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.facilities
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.status
-                                                    ? "1fr"
-                                                    : ""
-                                            } 2fr`.trim(),
-                                        }}
-                                    >
-                                        {/* Hotel Name */}
-                                        <div>
-                                            <div className="font-medium">
-                                                {property.place.name}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground line-clamp-1">
-                                                {property.place.description}
-                                            </div>
-                                        </div>
+                            {isLoading
+                                ? // Skeleton loading state
+                                  Array.from({ length: 5 }).map((_, index) => (
+                                      <div key={index} className="p-4">
+                                          <div
+                                              className="grid gap-4 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `2fr ${
+                                                      columnVisibility.location
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.owner
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.rating
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.rooms
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.priceRange
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.facilities
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.status
+                                                          ? "1fr"
+                                                          : ""
+                                                  } 2fr`.trim(),
+                                              }}
+                                          >
+                                              <div className="space-y-2">
+                                                  <Skeleton className="h-4 w-32" />
+                                                  <Skeleton className="h-3 w-48" />
+                                              </div>
+                                              {columnVisibility.location && (
+                                                  <div className="flex items-center gap-2">
+                                                      <Skeleton className="h-4 w-4" />
+                                                      <Skeleton className="h-4 w-24" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.owner && (
+                                                  <div className="space-y-1">
+                                                      <Skeleton className="h-4 w-28" />
+                                                      <Skeleton className="h-3 w-32" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.rating && (
+                                                  <div className="flex items-center gap-2">
+                                                      <Skeleton className="h-4 w-4" />
+                                                      <Skeleton className="h-4 w-12" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.rooms && (
+                                                  <Skeleton className="h-4 w-16" />
+                                              )}
+                                              {columnVisibility.priceRange && (
+                                                  <Skeleton className="h-4 w-20" />
+                                              )}
+                                              {columnVisibility.facilities && (
+                                                  <Skeleton className="h-5 w-8 rounded-full" />
+                                              )}
+                                              {columnVisibility.status && (
+                                                  <Skeleton className="h-5 w-16 rounded-full" />
+                                              )}
+                                              <div className="flex items-center gap-2">
+                                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))
+                                : properties.data.map((property) => (
+                                      <div
+                                          key={property.property_id}
+                                          className="p-4 hover:bg-muted/50 transition-colors"
+                                      >
+                                          <div
+                                              className="grid gap-4 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `2fr ${
+                                                      columnVisibility.location
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.owner
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.rating
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.rooms
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.priceRange
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.facilities
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.status
+                                                          ? "1fr"
+                                                          : ""
+                                                  } 2fr`.trim(),
+                                              }}
+                                          >
+                                              {/* Hotel Name */}
+                                              <div>
+                                                  <div className="font-medium">
+                                                      {property.place.name}
+                                                  </div>
+                                                  <div className="text-sm text-muted-foreground line-clamp-1">
+                                                      {
+                                                          property.place
+                                                              .description
+                                                      }
+                                                  </div>
+                                              </div>
 
-                                        {/* Location */}
-                                        {columnVisibility.location && (
-                                            <div className="flex items-center text-sm">
-                                                <MapPin className="h-3 w-3 mr-1 shrink-0" />
-                                                {property.place.province}
-                                            </div>
-                                        )}
+                                              {/* Location */}
+                                              {columnVisibility.location && (
+                                                  <div className="flex items-center text-sm">
+                                                      <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                                                      {property.place.province}
+                                                  </div>
+                                              )}
 
-                                        {/* Owner */}
-                                        {columnVisibility.owner && (
-                                            <div className="text-sm">
-                                                <div className="font-medium">
-                                                    {property.owner.name}
-                                                </div>
-                                                <div className="text-muted-foreground">
-                                                    {property.owner.email}
-                                                </div>
-                                            </div>
-                                        )}
+                                              {/* Owner */}
+                                              {columnVisibility.owner && (
+                                                  <div className="text-sm">
+                                                      <div className="font-medium">
+                                                          {property.owner.name}
+                                                      </div>
+                                                      <div className="text-muted-foreground">
+                                                          {property.owner.email}
+                                                      </div>
+                                                  </div>
+                                              )}
 
-                                        {/* Rating */}
-                                        {columnVisibility.rating && (
-                                            <div className="flex items-center">
-                                                <Star className="h-4 w-4 text-yellow-500 mr-1 shrink-0" />
-                                                <span className="text-sm">
-                                                    {property.place.ratings}
-                                                </span>
-                                                <span className="text-sm text-muted-foreground ml-1">
-                                                    (
-                                                    {
-                                                        property.place
-                                                            .reviews_count
-                                                    }
-                                                    )
-                                                </span>
-                                            </div>
-                                        )}
+                                              {/* Rating */}
+                                              {columnVisibility.rating && (
+                                                  <div className="flex items-center">
+                                                      <Star className="h-4 w-4 text-yellow-500 mr-1 shrink-0" />
+                                                      <span className="text-sm">
+                                                          {
+                                                              property.place
+                                                                  .ratings
+                                                          }
+                                                      </span>
+                                                      <span className="text-sm text-muted-foreground ml-1">
+                                                          (
+                                                          {
+                                                              property.place
+                                                                  .reviews_count
+                                                          }
+                                                          )
+                                                      </span>
+                                                  </div>
+                                              )}
 
-                                        {/* Rooms */}
-                                        {columnVisibility.rooms && (
-                                            <Badge
-                                                variant={
-                                                    property.room_stats
-                                                        .available > 0
-                                                        ? "default"
-                                                        : "secondary"
-                                                }
-                                            >
-                                                {property.room_stats.total}{" "}
-                                            </Badge>
-                                        )}
+                                              {/* Rooms */}
+                                              {columnVisibility.rooms && (
+                                                  <Badge
+                                                      variant={
+                                                          property.room_stats
+                                                              .available > 0
+                                                              ? "default"
+                                                              : "secondary"
+                                                      }
+                                                  >
+                                                      {
+                                                          property.room_stats
+                                                              .total
+                                                      }{" "}
+                                                  </Badge>
+                                              )}
 
-                                        {/* Price Range */}
-                                        {columnVisibility.priceRange && (
-                                            <div className="flex items-center text-sm">
-                                                {
-                                                    property.room_stats
-                                                        .price_range
-                                                }
-                                            </div>
-                                        )}
+                                              {/* Price Range */}
+                                              {columnVisibility.priceRange && (
+                                                  <div className="flex items-center text-sm">
+                                                      {
+                                                          property.room_stats
+                                                              .price_range
+                                                      }
+                                                  </div>
+                                              )}
 
-                                        {/* Facilities */}
-                                        {columnVisibility.facilities && (
-                                            <Badge variant="outline">
-                                                {property.facilities_count}{" "}
-                                                facilities
-                                            </Badge>
-                                        )}
+                                              {/* Facilities */}
+                                              {columnVisibility.facilities && (
+                                                  <Badge variant="outline">
+                                                      {
+                                                          property.facilities_count
+                                                      }{" "}
+                                                      facilities
+                                                  </Badge>
+                                              )}
 
-                                        {/* Status */}
-                                        {columnVisibility.status && (
-                                            <Badge
-                                                variant={
-                                                    property.room_stats
-                                                        .available > 0
-                                                        ? "default"
-                                                        : "secondary"
-                                                }
-                                            >
-                                                {property.room_stats.available >
-                                                0
-                                                    ? "Available"
-                                                    : "Full"}
-                                            </Badge>
-                                        )}
+                                              {/* Status */}
+                                              {columnVisibility.status && (
+                                                  <Badge
+                                                      variant={
+                                                          property.room_stats
+                                                              .available > 0
+                                                              ? "default"
+                                                              : "secondary"
+                                                      }
+                                                  >
+                                                      {property.room_stats
+                                                          .available > 0
+                                                          ? "Available"
+                                                          : "Full"}
+                                                  </Badge>
+                                              )}
 
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-2">
-                                            <Link
-                                                href={`/hotels/${property.property_id}/edit`}
-                                            >
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </Link>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild>
-                                                        <Link
-                                                            href={`/hotels/${property.property_id}`}
-                                                        >
-                                                            View details
-                                                            <Eye className="ml-2 h-4 w-4" />
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link
-                                                            href={`/hotels/${property.property_id}/edit`}
-                                                        >
-                                                            Edit hotel
-                                                            <Edit className="ml-5 h-4 w-4" />
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger
-                                                            asChild
-                                                        >
-                                                            <DropdownMenuItem
-                                                                onSelect={(e) =>
-                                                                    e.preventDefault()
-                                                                }
-                                                                className="text-red-600 focus:text-red-600"
-                                                            >
-                                                                Delete hotel
-                                                            </DropdownMenuItem>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>
-                                                                    Are you
-                                                                    absolutely
-                                                                    sure?
-                                                                </AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    This action
-                                                                    cannot be
-                                                                    undone. This
-                                                                    will
-                                                                    permanently
-                                                                    delete the
-                                                                    hotel "
-                                                                    {
-                                                                        property
-                                                                            .place
-                                                                            .name
-                                                                    }
-                                                                    " and remove
-                                                                    all its data
-                                                                    from our
-                                                                    servers.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>
-                                                                    Cancel
-                                                                </AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    onClick={() =>
-                                                                        handleDelete(
-                                                                            property.property_id,
-                                                                            property
-                                                                                .place
-                                                                                .name
-                                                                        )
-                                                                    }
-                                                                    className="bg-red-600 hover:bg-red-700"
-                                                                >
-                                                                    Delete
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                              {/* Actions */}
+                                              <div className="flex items-center gap-2">
+                                                  <Link
+                                                      href={`/hotels/${property.property_id}/edit`}
+                                                  >
+                                                      <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                      >
+                                                          <Edit className="h-4 w-4" />
+                                                      </Button>
+                                                  </Link>
+                                                  <DropdownMenu>
+                                                      <DropdownMenuTrigger
+                                                          asChild
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                          >
+                                                              <MoreHorizontal className="h-4 w-4" />
+                                                          </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/hotels/${property.property_id}`}
+                                                              >
+                                                                  View details
+                                                                  <Eye className="ml-2 h-4 w-4" />
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/hotels/${property.property_id}/edit`}
+                                                              >
+                                                                  Edit hotel
+                                                                  <Edit className="ml-5 h-4 w-4" />
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuSeparator />
+                                                          <AlertDialog>
+                                                              <AlertDialogTrigger
+                                                                  asChild
+                                                              >
+                                                                  <DropdownMenuItem
+                                                                      onSelect={(
+                                                                          e
+                                                                      ) =>
+                                                                          e.preventDefault()
+                                                                      }
+                                                                      className="text-red-600 focus:text-red-600"
+                                                                  >
+                                                                      Delete
+                                                                      hotel
+                                                                  </DropdownMenuItem>
+                                                              </AlertDialogTrigger>
+                                                              <AlertDialogContent>
+                                                                  <AlertDialogHeader>
+                                                                      <AlertDialogTitle>
+                                                                          Are
+                                                                          you
+                                                                          absolutely
+                                                                          sure?
+                                                                      </AlertDialogTitle>
+                                                                      <AlertDialogDescription>
+                                                                          This
+                                                                          action
+                                                                          cannot
+                                                                          be
+                                                                          undone.
+                                                                          This
+                                                                          will
+                                                                          permanently
+                                                                          delete
+                                                                          the
+                                                                          hotel
+                                                                          "
+                                                                          {
+                                                                              property
+                                                                                  .place
+                                                                                  .name
+                                                                          }
+                                                                          " and
+                                                                          remove
+                                                                          all
+                                                                          its
+                                                                          data
+                                                                          from
+                                                                          our
+                                                                          servers.
+                                                                      </AlertDialogDescription>
+                                                                  </AlertDialogHeader>
+                                                                  <AlertDialogFooter>
+                                                                      <AlertDialogCancel>
+                                                                          Cancel
+                                                                      </AlertDialogCancel>
+                                                                      <AlertDialogAction
+                                                                          onClick={() =>
+                                                                              handleDelete(
+                                                                                  property.property_id,
+                                                                                  property
+                                                                                      .place
+                                                                                      .name
+                                                                              )
+                                                                          }
+                                                                          className="bg-red-600 hover:bg-red-700"
+                                                                      >
+                                                                          Delete
+                                                                      </AlertDialogAction>
+                                                                  </AlertDialogFooter>
+                                                              </AlertDialogContent>
+                                                          </AlertDialog>
+                                                      </DropdownMenuContent>
+                                                  </DropdownMenu>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
                         </div>
                     </div>
                 </div>

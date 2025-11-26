@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
     EmptyHeader,
@@ -44,6 +45,7 @@ import {
     Users,
     MoreHorizontal,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -117,6 +119,17 @@ interface Props {
     schedules?: PaginatedSchedules;
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/transportation-owner/dashboard",
+    },
+    {
+        title: "Schedules",
+        href: "/transportation-owner/schedules",
+    },
+];
+
 export default function TransportationOwnerSchedulesIndex({
     schedules = {
         data: [],
@@ -129,6 +142,7 @@ export default function TransportationOwnerSchedulesIndex({
 }: Props) {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -247,7 +261,7 @@ export default function TransportationOwnerSchedulesIndex({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bus Schedules" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -452,295 +466,381 @@ export default function TransportationOwnerSchedulesIndex({
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {filteredSchedules.map((schedule) => {
-                                const bookedSeats =
-                                    schedule.bookings?.length || 0;
-                                const availableSeats =
-                                    schedule.bus.seat_capacity - bookedSeats;
+                            {isLoading
+                                ? // Skeleton loading state
+                                  Array.from({ length: 5 }).map((_, index) => (
+                                      <div key={index} className="p-4">
+                                          <div
+                                              className="grid gap-4 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `${
+                                                      columnVisibility.bus
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.route
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.departureTime
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.arrivalTime
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.price
+                                                          ? "1fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.availability
+                                                          ? "2fr"
+                                                          : ""
+                                                  } 1.5fr 1.5fr`.trim(),
+                                              }}
+                                          >
+                                              {columnVisibility.bus && (
+                                                  <div className="space-y-1">
+                                                      <Skeleton className="h-4 w-24" />
+                                                      <Skeleton className="h-3 w-20" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.route && (
+                                                  <div className="flex items-center gap-2">
+                                                      <Skeleton className="h-4 w-20" />
+                                                      <Skeleton className="h-4 w-4" />
+                                                      <Skeleton className="h-4 w-20" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.departureTime && (
+                                                  <div className="space-y-1">
+                                                      <Skeleton className="h-4 w-20" />
+                                                      <Skeleton className="h-3 w-16" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.arrivalTime && (
+                                                  <div className="space-y-1">
+                                                      <Skeleton className="h-4 w-20" />
+                                                      <Skeleton className="h-3 w-16" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.price && (
+                                                  <Skeleton className="h-4 w-16" />
+                                              )}
+                                              {columnVisibility.availability && (
+                                                  <Skeleton className="h-5 w-24 rounded-full" />
+                                              )}
+                                              <Skeleton className="h-5 w-20 rounded-full" />
+                                              <Skeleton className="h-8 w-8 rounded-md" />
+                                          </div>
+                                      </div>
+                                  ))
+                                : filteredSchedules.map((schedule) => {
+                                      const bookedSeats =
+                                          schedule.bookings?.length || 0;
+                                      const availableSeats =
+                                          schedule.bus.seat_capacity -
+                                          bookedSeats;
 
-                                return (
-                                    <div
-                                        key={schedule.id}
-                                        className="p-4 hover:bg-muted/50"
-                                    >
-                                        <div
-                                            className="grid gap-4 items-center"
-                                            style={{
-                                                gridTemplateColumns: `${
-                                                    columnVisibility.bus
-                                                        ? "2fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.route
-                                                        ? "2fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.departureTime
-                                                        ? "1.5fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.arrivalTime
-                                                        ? "1.5fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.price
-                                                        ? "1fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.availability
-                                                        ? "2fr"
-                                                        : ""
-                                                } 1.5fr 1.5fr`.trim(),
-                                            }}
-                                        >
-                                            {columnVisibility.bus && (
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-sm">
-                                                        {schedule.bus.bus_name}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {schedule.bus.bus_plate}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {columnVisibility.route && (
-                                                <div className="flex items-center gap-1 text-sm">
-                                                    <span className="truncate">
-                                                        {
-                                                            schedule.route
-                                                                .from_location
-                                                        }{" "}
-                                                        →{" "}
-                                                        {
-                                                            schedule.route
-                                                                .to_location
-                                                        }
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {columnVisibility.departureTime && (
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-1 text-sm">
-                                                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.departure_time
-                                                                );
-                                                            return `${
-                                                                date.getMonth() +
-                                                                1
-                                                            }/${date.getDate()}/${date.getFullYear()}`;
-                                                        })()}
-                                                    </div>
-                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                        <Clock className="h-3 w-3" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.departure_time
-                                                                );
-                                                            const hours =
-                                                                date.getHours();
-                                                            const minutes =
-                                                                date.getMinutes();
-                                                            const ampm =
-                                                                hours >= 12
-                                                                    ? "PM"
-                                                                    : "AM";
-                                                            const displayHours =
-                                                                hours % 12 ||
-                                                                12;
-                                                            return `${displayHours}:${minutes
-                                                                .toString()
-                                                                .padStart(
-                                                                    2,
-                                                                    "0"
-                                                                )} ${ampm}`;
-                                                        })()}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {columnVisibility.arrivalTime && (
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-1 text-sm">
-                                                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.arrival_time
-                                                                );
-                                                            return `${
-                                                                date.getMonth() +
-                                                                1
-                                                            }/${date.getDate()}/${date.getFullYear()}`;
-                                                        })()}
-                                                    </div>
-                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                        <Clock className="h-3 w-3" />
-                                                        {(() => {
-                                                            const date =
-                                                                parseAsLocalTime(
-                                                                    schedule.arrival_time
-                                                                );
-                                                            const hours =
-                                                                date.getHours();
-                                                            const minutes =
-                                                                date.getMinutes();
-                                                            const ampm =
-                                                                hours >= 12
-                                                                    ? "PM"
-                                                                    : "AM";
-                                                            const displayHours =
-                                                                hours % 12 ||
-                                                                12;
-                                                            return `${displayHours}:${minutes
-                                                                .toString()
-                                                                .padStart(
-                                                                    2,
-                                                                    "0"
-                                                                )} ${ampm}`;
-                                                        })()}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {columnVisibility.price && (
-                                                <div className="font-semibold">
-                                                    $
-                                                    {schedule.price.toLocaleString()}
-                                                </div>
-                                            )}
-                                            {columnVisibility.availability && (
-                                                <div className="flex items-center gap-2">
-                                                    {getAvailabilityBadge(
-                                                        availableSeats,
-                                                        schedule.bus
-                                                            .seat_capacity
-                                                    )}
-                                                </div>
-                                            )}
-                                            <div>
-                                                {getStatusBadge(
-                                                    schedule.status
-                                                )}
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Link
-                                                    href={`/transportation-owner/schedules/${schedule.id}/edit`}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                        >
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/transportation-owner/schedules/${schedule.id}`}
-                                                            >
-                                                                View details
-                                                                <Eye className="ml-2 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/transportation-owner/schedules/${schedule.id}/edit`}
-                                                            >
-                                                                Edit schedule
-                                                                <Pencil className="ml-5 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger
-                                                                asChild
-                                                            >
-                                                                <DropdownMenuItem
-                                                                    onSelect={(
-                                                                        e
-                                                                    ) =>
-                                                                        e.preventDefault()
-                                                                    }
-                                                                    className="text-red-600 focus:text-red-600"
-                                                                >
-                                                                    Delete
-                                                                    schedule
-                                                                </DropdownMenuItem>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>
-                                                                        Are you
-                                                                        absolutely
-                                                                        sure?
-                                                                    </AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This
-                                                                        action
-                                                                        cannot
-                                                                        be
-                                                                        undone.
-                                                                        This
-                                                                        will
-                                                                        permanently
-                                                                        delete
-                                                                        the
-                                                                        schedule
-                                                                        and
-                                                                        remove
-                                                                        all its
-                                                                        data
-                                                                        from our
-                                                                        servers.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>
-                                                                        Cancel
-                                                                    </AlertDialogCancel>
-                                                                    <AlertDialogAction
-                                                                        onClick={() =>
-                                                                            router.delete(
-                                                                                `/transportation-owner/schedules/${schedule.id}`
-                                                                            )
-                                                                        }
-                                                                        className="bg-red-600 hover:bg-red-700"
-                                                                    >
-                                                                        Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                      return (
+                                          <div
+                                              key={schedule.id}
+                                              className="p-4 hover:bg-muted/50"
+                                          >
+                                              <div
+                                                  className="grid gap-4 items-center"
+                                                  style={{
+                                                      gridTemplateColumns: `${
+                                                          columnVisibility.bus
+                                                              ? "2fr"
+                                                              : ""
+                                                      } ${
+                                                          columnVisibility.route
+                                                              ? "2fr"
+                                                              : ""
+                                                      } ${
+                                                          columnVisibility.departureTime
+                                                              ? "1.5fr"
+                                                              : ""
+                                                      } ${
+                                                          columnVisibility.arrivalTime
+                                                              ? "1.5fr"
+                                                              : ""
+                                                      } ${
+                                                          columnVisibility.price
+                                                              ? "1fr"
+                                                              : ""
+                                                      } ${
+                                                          columnVisibility.availability
+                                                              ? "2fr"
+                                                              : ""
+                                                      } 1.5fr 1.5fr`.trim(),
+                                                  }}
+                                              >
+                                                  {columnVisibility.bus && (
+                                                      <div className="flex flex-col">
+                                                          <span className="font-medium text-sm">
+                                                              {
+                                                                  schedule.bus
+                                                                      .bus_name
+                                                              }
+                                                          </span>
+                                                          <span className="text-xs text-muted-foreground">
+                                                              {
+                                                                  schedule.bus
+                                                                      .bus_plate
+                                                              }
+                                                          </span>
+                                                      </div>
+                                                  )}
+                                                  {columnVisibility.route && (
+                                                      <div className="flex items-center gap-1 text-sm">
+                                                          <span className="truncate">
+                                                              {
+                                                                  schedule.route
+                                                                      .from_location
+                                                              }{" "}
+                                                              →{" "}
+                                                              {
+                                                                  schedule.route
+                                                                      .to_location
+                                                              }
+                                                          </span>
+                                                      </div>
+                                                  )}
+                                                  {columnVisibility.departureTime && (
+                                                      <div className="flex flex-col">
+                                                          <div className="flex items-center gap-1 text-sm">
+                                                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                              {(() => {
+                                                                  const date =
+                                                                      parseAsLocalTime(
+                                                                          schedule.departure_time
+                                                                      );
+                                                                  return `${
+                                                                      date.getMonth() +
+                                                                      1
+                                                                  }/${date.getDate()}/${date.getFullYear()}`;
+                                                              })()}
+                                                          </div>
+                                                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                              <Clock className="h-3 w-3" />
+                                                              {(() => {
+                                                                  const date =
+                                                                      parseAsLocalTime(
+                                                                          schedule.departure_time
+                                                                      );
+                                                                  const hours =
+                                                                      date.getHours();
+                                                                  const minutes =
+                                                                      date.getMinutes();
+                                                                  const ampm =
+                                                                      hours >=
+                                                                      12
+                                                                          ? "PM"
+                                                                          : "AM";
+                                                                  const displayHours =
+                                                                      hours %
+                                                                          12 ||
+                                                                      12;
+                                                                  return `${displayHours}:${minutes
+                                                                      .toString()
+                                                                      .padStart(
+                                                                          2,
+                                                                          "0"
+                                                                      )} ${ampm}`;
+                                                              })()}
+                                                          </div>
+                                                      </div>
+                                                  )}
+                                                  {columnVisibility.arrivalTime && (
+                                                      <div className="flex flex-col">
+                                                          <div className="flex items-center gap-1 text-sm">
+                                                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                              {(() => {
+                                                                  const date =
+                                                                      parseAsLocalTime(
+                                                                          schedule.arrival_time
+                                                                      );
+                                                                  return `${
+                                                                      date.getMonth() +
+                                                                      1
+                                                                  }/${date.getDate()}/${date.getFullYear()}`;
+                                                              })()}
+                                                          </div>
+                                                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                              <Clock className="h-3 w-3" />
+                                                              {(() => {
+                                                                  const date =
+                                                                      parseAsLocalTime(
+                                                                          schedule.arrival_time
+                                                                      );
+                                                                  const hours =
+                                                                      date.getHours();
+                                                                  const minutes =
+                                                                      date.getMinutes();
+                                                                  const ampm =
+                                                                      hours >=
+                                                                      12
+                                                                          ? "PM"
+                                                                          : "AM";
+                                                                  const displayHours =
+                                                                      hours %
+                                                                          12 ||
+                                                                      12;
+                                                                  return `${displayHours}:${minutes
+                                                                      .toString()
+                                                                      .padStart(
+                                                                          2,
+                                                                          "0"
+                                                                      )} ${ampm}`;
+                                                              })()}
+                                                          </div>
+                                                      </div>
+                                                  )}
+                                                  {columnVisibility.price && (
+                                                      <div className="font-semibold">
+                                                          $
+                                                          {schedule.price.toLocaleString()}
+                                                      </div>
+                                                  )}
+                                                  {columnVisibility.availability && (
+                                                      <div className="flex items-center gap-2">
+                                                          {getAvailabilityBadge(
+                                                              availableSeats,
+                                                              schedule.bus
+                                                                  .seat_capacity
+                                                          )}
+                                                      </div>
+                                                  )}
+                                                  <div>
+                                                      {getStatusBadge(
+                                                          schedule.status
+                                                      )}
+                                                  </div>
+                                                  <div className="flex gap-2">
+                                                      <Link
+                                                          href={`/transportation-owner/schedules/${schedule.id}/edit`}
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                          >
+                                                              <Pencil className="h-4 w-4" />
+                                                          </Button>
+                                                      </Link>
+                                                      <DropdownMenu>
+                                                          <DropdownMenuTrigger
+                                                              asChild
+                                                          >
+                                                              <Button
+                                                                  variant="ghost"
+                                                                  size="sm"
+                                                              >
+                                                                  <MoreHorizontal className="h-4 w-4" />
+                                                              </Button>
+                                                          </DropdownMenuTrigger>
+                                                          <DropdownMenuContent align="end">
+                                                              <DropdownMenuItem
+                                                                  asChild
+                                                              >
+                                                                  <Link
+                                                                      href={`/transportation-owner/schedules/${schedule.id}`}
+                                                                  >
+                                                                      View
+                                                                      details
+                                                                      <Eye className="ml-2 h-4 w-4" />
+                                                                  </Link>
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuItem
+                                                                  asChild
+                                                              >
+                                                                  <Link
+                                                                      href={`/transportation-owner/schedules/${schedule.id}/edit`}
+                                                                  >
+                                                                      Edit
+                                                                      schedule
+                                                                      <Pencil className="ml-5 h-4 w-4" />
+                                                                  </Link>
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuSeparator />
+                                                              <AlertDialog>
+                                                                  <AlertDialogTrigger
+                                                                      asChild
+                                                                  >
+                                                                      <DropdownMenuItem
+                                                                          onSelect={(
+                                                                              e
+                                                                          ) =>
+                                                                              e.preventDefault()
+                                                                          }
+                                                                          className="text-red-600 focus:text-red-600"
+                                                                      >
+                                                                          Delete
+                                                                          schedule
+                                                                      </DropdownMenuItem>
+                                                                  </AlertDialogTrigger>
+                                                                  <AlertDialogContent>
+                                                                      <AlertDialogHeader>
+                                                                          <AlertDialogTitle>
+                                                                              Are
+                                                                              you
+                                                                              absolutely
+                                                                              sure?
+                                                                          </AlertDialogTitle>
+                                                                          <AlertDialogDescription>
+                                                                              This
+                                                                              action
+                                                                              cannot
+                                                                              be
+                                                                              undone.
+                                                                              This
+                                                                              will
+                                                                              permanently
+                                                                              delete
+                                                                              the
+                                                                              schedule
+                                                                              and
+                                                                              remove
+                                                                              all
+                                                                              its
+                                                                              data
+                                                                              from
+                                                                              our
+                                                                              servers.
+                                                                          </AlertDialogDescription>
+                                                                      </AlertDialogHeader>
+                                                                      <AlertDialogFooter>
+                                                                          <AlertDialogCancel>
+                                                                              Cancel
+                                                                          </AlertDialogCancel>
+                                                                          <AlertDialogAction
+                                                                              onClick={() =>
+                                                                                  router.delete(
+                                                                                      `/transportation-owner/schedules/${schedule.id}`
+                                                                                  )
+                                                                              }
+                                                                              className="bg-red-600 hover:bg-red-700"
+                                                                          >
+                                                                              Delete
+                                                                          </AlertDialogAction>
+                                                                      </AlertDialogFooter>
+                                                                  </AlertDialogContent>
+                                                              </AlertDialog>
+                                                          </DropdownMenuContent>
+                                                      </DropdownMenu>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
                         </div>
                     </div>
                 </div>
 
                 {/* Empty State */}
-                {filteredSchedules.length === 0 && (
+                {!isLoading && filteredSchedules.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

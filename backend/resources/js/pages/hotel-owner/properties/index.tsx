@@ -24,6 +24,7 @@ import {
     DoorOpen,
     Edit,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface RoomProperty {
     room_properties_id: number;
@@ -65,10 +66,21 @@ interface Props {
     property?: Property;
 }
 
+const emptyBreadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/hotel-owner/dashboard",
+    },
+    {
+        title: "My Hotel",
+        href: "/hotel-owner/properties",
+    },
+];
+
 export default function HotelOwnerPropertiesIndex({ property }: Props) {
     if (!property) {
         return (
-            <AppLayout>
+            <AppLayout breadcrumbs={emptyBreadcrumbs}>
                 <Head title="My Hotel" />
                 <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                     <Empty>
@@ -93,6 +105,17 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
     const facilities = property.facilities || [];
     const images = property.place?.images_url || [];
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/hotel-owner/dashboard",
+        },
+        {
+            title: property.place?.name || "My Hotel",
+            href: "/hotel-owner/properties",
+        },
+    ];
+
     const totalRooms = roomProperties.reduce(
         (sum, rp) => sum + (rp.rooms?.length || 0),
         0
@@ -107,7 +130,7 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${property.place?.name || "My Hotel"}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
