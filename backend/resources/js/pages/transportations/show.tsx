@@ -14,6 +14,7 @@ import {
     Building2,
     Package,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Owner {
     id: number;
@@ -65,6 +66,21 @@ interface Props {
 }
 
 export default function TransportationShow({ transportation, stats }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/dashboard",
+        },
+        {
+            title: "Transportations",
+            href: "/transportations",
+        },
+        {
+            title: transportation.place.name,
+            href: `/transportations/${transportation.id}`,
+        },
+    ];
+
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("en-US", {
             year: "numeric",
@@ -76,7 +92,7 @@ export default function TransportationShow({ transportation, stats }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head
                 title={`${transportation.place.name} - Transportation Company`}
             />

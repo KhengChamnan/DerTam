@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
     Select,
@@ -82,6 +83,7 @@ interface ColumnVisibility {
 
 export default function RolesIndex({ roles, filters }: Props) {
     const [search, setSearch] = useState(filters.search || "");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(

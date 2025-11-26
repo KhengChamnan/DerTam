@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
     EmptyHeader,
@@ -34,6 +35,7 @@ import {
     Search,
     Filter,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Room {
     room_id: number;
@@ -80,6 +82,17 @@ interface Props {
     rooms: PaginatedData;
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/hotel-owner/dashboard",
+    },
+    {
+        title: "Rooms",
+        href: "/hotel-owner/rooms",
+    },
+];
+
 export default function AllRooms({ rooms }: Props) {
     const data = rooms.data || [];
 
@@ -88,6 +101,7 @@ export default function AllRooms({ rooms }: Props) {
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [roomTypeFilter, setRoomTypeFilter] = useState<string>("all");
     const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Get unique room types for filter
     const roomTypes = useMemo(() => {
@@ -177,7 +191,7 @@ export default function AllRooms({ rooms }: Props) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="All Rooms - Hotel Management" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -372,149 +386,182 @@ export default function AllRooms({ rooms }: Props) {
 
                 {/* Rooms Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredData.map((room) => {
-                        const roomProperty = room.room_property;
-                        const images = roomProperty?.images_url || [];
+                    {isLoading
+                        ? // Skeleton loading state
+                          Array.from({ length: 8 }).map((_, index) => (
+                              <Card key={index}>
+                                  <CardHeader className="pb-3">
+                                      <div className="flex items-start justify-between">
+                                          <div className="space-y-2 flex-1">
+                                              <Skeleton className="h-5 w-20" />
+                                              <Skeleton className="h-4 w-24" />
+                                          </div>
+                                          <Skeleton className="h-6 w-20 rounded-full" />
+                                      </div>
+                                  </CardHeader>
+                                  <CardContent className="space-y-3">
+                                      <div className="space-y-2">
+                                          <Skeleton className="h-4 w-full" />
+                                          <Skeleton className="h-4 w-3/4" />
+                                      </div>
+                                      <div className="flex gap-2">
+                                          <Skeleton className="h-9 flex-1" />
+                                          <Skeleton className="h-9 flex-1" />
+                                      </div>
+                                  </CardContent>
+                              </Card>
+                          ))
+                        : filteredData.map((room) => {
+                              const roomProperty = room.room_property;
+                              const images = roomProperty?.images_url || [];
 
-                        return (
-                            <Card
-                                key={room.room_id}
-                                className="hover:shadow-lg transition-shadow"
-                            >
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-start justify-between">
-                                        <div className="space-y-1 flex-1">
-                                            <CardTitle className="text-xl font-bold">
-                                                {room.room_number}
-                                            </CardTitle>
-                                            <p className="text-sm text-muted-foreground">
-                                                {roomProperty?.room_type ||
-                                                    "Unknown Type"}
-                                            </p>
-                                        </div>
-                                        {getStatusBadge(room.status)}
-                                    </div>
-                                </CardHeader>
+                              return (
+                                  <Card
+                                      key={room.room_id}
+                                      className="hover:shadow-lg transition-shadow"
+                                  >
+                                      <CardHeader className="pb-3">
+                                          <div className="flex items-start justify-between">
+                                              <div className="space-y-1 flex-1">
+                                                  <CardTitle className="text-xl font-bold">
+                                                      {room.room_number}
+                                                  </CardTitle>
+                                                  <p className="text-sm text-muted-foreground">
+                                                      {roomProperty?.room_type ||
+                                                          "Unknown Type"}
+                                                  </p>
+                                              </div>
+                                              {getStatusBadge(room.status)}
+                                          </div>
+                                      </CardHeader>
 
-                                <CardContent className="space-y-4">
-                                    {/* Room Image */}
-                                    {images.length > 0 && (
-                                        <div className="relative h-32 rounded-md overflow-hidden">
-                                            <img
-                                                src={images[0]}
-                                                alt={`Room ${room.room_number}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    )}
+                                      <CardContent className="space-y-4">
+                                          {/* Room Image */}
+                                          {images.length > 0 && (
+                                              <div className="relative h-32 rounded-md overflow-hidden">
+                                                  <img
+                                                      src={images[0]}
+                                                      alt={`Room ${room.room_number}`}
+                                                      className="w-full h-full object-cover"
+                                                  />
+                                              </div>
+                                          )}
 
-                                    {/* Room Details */}
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-1 text-muted-foreground">
-                                                <DollarSign className="h-4 w-4" />
-                                                <span>Price</span>
-                                            </div>
-                                            <p className="font-semibold">
-                                                $
-                                                {roomProperty?.price_per_night ||
-                                                    0}
-                                            </p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-1 text-muted-foreground">
-                                                <Users className="h-4 w-4" />
-                                                <span>Guests</span>
-                                            </div>
-                                            <p className="font-semibold">
-                                                {roomProperty?.max_guests || 0}
-                                            </p>
-                                        </div>
-                                        {roomProperty?.room_size && (
-                                            <div className="space-y-1 col-span-2">
-                                                <div className="flex items-center gap-1 text-muted-foreground">
-                                                    <Maximize className="h-4 w-4" />
-                                                    <span>Size</span>
-                                                </div>
-                                                <p className="font-semibold">
-                                                    {roomProperty.room_size}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
+                                          {/* Room Details */}
+                                          <div className="grid grid-cols-2 gap-3 text-sm">
+                                              <div className="space-y-1">
+                                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                                      <DollarSign className="h-4 w-4" />
+                                                      <span>Price</span>
+                                                  </div>
+                                                  <p className="font-semibold">
+                                                      $
+                                                      {roomProperty?.price_per_night ||
+                                                          0}
+                                                  </p>
+                                              </div>
+                                              <div className="space-y-1">
+                                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                                      <Users className="h-4 w-4" />
+                                                      <span>Guests</span>
+                                                  </div>
+                                                  <p className="font-semibold">
+                                                      {roomProperty?.max_guests ||
+                                                          0}
+                                                  </p>
+                                              </div>
+                                              {roomProperty?.room_size && (
+                                                  <div className="space-y-1 col-span-2">
+                                                      <div className="flex items-center gap-1 text-muted-foreground">
+                                                          <Maximize className="h-4 w-4" />
+                                                          <span>Size</span>
+                                                      </div>
+                                                      <p className="font-semibold">
+                                                          {
+                                                              roomProperty.room_size
+                                                          }
+                                                      </p>
+                                                  </div>
+                                              )}
+                                          </div>
 
-                                    {/* Amenities */}
-                                    {roomProperty?.amenities &&
-                                        roomProperty.amenities.length > 0 && (
-                                            <div className="space-y-2 pt-2 border-t">
-                                                <p className="text-sm font-medium">
-                                                    Amenities
-                                                </p>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {roomProperty.amenities
-                                                        .slice(0, 2)
-                                                        .map((amenity) => (
-                                                            <Badge
-                                                                key={
-                                                                    amenity.amenity_id
-                                                                }
-                                                                variant="outline"
-                                                                className="text-xs"
-                                                            >
-                                                                {
-                                                                    amenity.amenity_name
-                                                                }
-                                                            </Badge>
-                                                        ))}
-                                                    {roomProperty.amenities
-                                                        .length > 2 && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="text-xs"
-                                                        >
-                                                            +
-                                                            {roomProperty
-                                                                .amenities
-                                                                .length - 2}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
+                                          {/* Amenities */}
+                                          {roomProperty?.amenities &&
+                                              roomProperty.amenities.length >
+                                                  0 && (
+                                                  <div className="space-y-2 pt-2 border-t">
+                                                      <p className="text-sm font-medium">
+                                                          Amenities
+                                                      </p>
+                                                      <div className="flex flex-wrap gap-1">
+                                                          {roomProperty.amenities
+                                                              .slice(0, 2)
+                                                              .map(
+                                                                  (amenity) => (
+                                                                      <Badge
+                                                                          key={
+                                                                              amenity.amenity_id
+                                                                          }
+                                                                          variant="outline"
+                                                                          className="text-xs"
+                                                                      >
+                                                                          {
+                                                                              amenity.amenity_name
+                                                                          }
+                                                                      </Badge>
+                                                                  )
+                                                              )}
+                                                          {roomProperty
+                                                              .amenities
+                                                              .length > 2 && (
+                                                              <Badge
+                                                                  variant="outline"
+                                                                  className="text-xs"
+                                                              >
+                                                                  +
+                                                                  {roomProperty
+                                                                      .amenities
+                                                                      .length -
+                                                                      2}
+                                                              </Badge>
+                                                          )}
+                                                      </div>
+                                                  </div>
+                                              )}
 
-                                    {/* Notes */}
-                                    {room.notes && (
-                                        <div className="pt-2 border-t">
-                                            <p className="text-xs text-muted-foreground">
-                                                {room.notes}
-                                            </p>
-                                        </div>
-                                    )}
+                                          {/* Notes */}
+                                          {room.notes && (
+                                              <div className="pt-2 border-t">
+                                                  <p className="text-xs text-muted-foreground">
+                                                      {room.notes}
+                                                  </p>
+                                              </div>
+                                          )}
 
-                                    {/* Actions */}
-                                    <div className="flex gap-2 pt-2 border-t">
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            variant="outline"
-                                            className="flex-1"
-                                        >
-                                            <Link
-                                                href={`/hotel-owner/rooms/${room.room_id}/edit`}
-                                            >
-                                                <Edit className="h-4 w-4 mr-2" />
-                                                Edit
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
+                                          {/* Actions */}
+                                          <div className="flex gap-2 pt-2 border-t">
+                                              <Button
+                                                  asChild
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="flex-1"
+                                              >
+                                                  <Link
+                                                      href={`/hotel-owner/rooms/${room.room_id}/edit`}
+                                                  >
+                                                      <Edit className="h-4 w-4 mr-2" />
+                                                      Edit
+                                                  </Link>
+                                              </Button>
+                                          </div>
+                                      </CardContent>
+                                  </Card>
+                              );
+                          })}
                 </div>
 
                 {/* Empty State - No rooms at all */}
-                {data.length === 0 && (
+                {!isLoading && data.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
@@ -537,7 +584,7 @@ export default function AllRooms({ rooms }: Props) {
                 )}
 
                 {/* Empty State - No filtered results */}
-                {data.length > 0 && filteredData.length === 0 && (
+                {!isLoading && data.length > 0 && filteredData.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

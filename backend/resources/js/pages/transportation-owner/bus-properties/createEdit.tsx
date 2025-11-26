@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { type BreadcrumbItem } from "@/types";
 import {
     Select,
     SelectContent,
@@ -103,6 +104,18 @@ export default function TransportationOwnerBusPropertiesCreateEdit({
     busProperty,
 }: Props) {
     const isEditing = !!busProperty;
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Dashboard", href: "/transportation-owner/dashboard" },
+        {
+            title: "Bus Templates",
+            href: "/transportation-owner/bus-properties",
+        },
+        {
+            title: isEditing ? "Edit Bus Template" : "Create Bus Template",
+            href: "#",
+        },
+    ];
 
     // Parse existing images
     const initialImages: string[] = busProperty?.image_url
@@ -766,7 +779,7 @@ export default function TransportationOwnerBusPropertiesCreateEdit({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isEditing ? "Edit Bus Type" : "Add Bus Type"} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">

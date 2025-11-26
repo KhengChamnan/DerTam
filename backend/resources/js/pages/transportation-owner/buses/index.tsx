@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
     EmptyHeader,
@@ -30,6 +31,7 @@ import {
     ChevronsRight,
     MapPin,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface BusSchedule {
     id: number;
@@ -78,6 +80,17 @@ interface Props {
     buses?: PaginatedBuses;
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/transportation-owner/dashboard",
+    },
+    {
+        title: "Buses",
+        href: "/transportation-owner/buses",
+    },
+];
+
 export default function TransportationOwnerBusesIndex({
     buses = {
         data: [],
@@ -91,6 +104,7 @@ export default function TransportationOwnerBusesIndex({
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Client-side filtering for instant results
     const filteredBuses = buses.data.filter((bus) => {
@@ -146,7 +160,7 @@ export default function TransportationOwnerBusesIndex({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Buses" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -210,145 +224,178 @@ export default function TransportationOwnerBusesIndex({
 
                 {/* Bus Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredBuses.map((bus) => (
-                        <Card
-                            key={bus.id}
-                            className="hover:shadow-lg transition-shadow overflow-hidden"
-                        >
-                            {/* Image Display */}
-                            {bus.bus_property?.image_url &&
-                                (() => {
-                                    try {
-                                        const images = JSON.parse(
-                                            bus.bus_property.image_url
-                                        );
-                                        return images.length > 0 ? (
-                                            <div className="h-48 overflow-hidden bg-muted">
-                                                <img
-                                                    src={images[0]}
-                                                    alt={bus.bus_name}
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            </div>
-                                        ) : null;
-                                    } catch (e) {
-                                        return null;
-                                    }
-                                })()}
+                    {isLoading
+                        ? // Skeleton loading state
+                          Array.from({ length: 6 }).map((_, index) => (
+                              <Card key={index} className="overflow-hidden">
+                                  <Skeleton className="h-48 w-full" />
+                                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                      <div className="space-y-2 flex-1">
+                                          <Skeleton className="h-5 w-32" />
+                                          <Skeleton className="h-4 w-24" />
+                                      </div>
+                                      <Skeleton className="h-5 w-5 rounded-full" />
+                                  </CardHeader>
+                                  <CardContent className="space-y-4">
+                                      <div className="flex items-center justify-between">
+                                          <Skeleton className="h-4 w-20" />
+                                          <Skeleton className="h-5 w-16 rounded-full" />
+                                      </div>
+                                      <div className="space-y-2">
+                                          <Skeleton className="h-4 w-full" />
+                                          <Skeleton className="h-4 w-full" />
+                                          <Skeleton className="h-4 w-3/4" />
+                                      </div>
+                                      <div className="flex gap-2 pt-2">
+                                          <Skeleton className="h-9 flex-1" />
+                                          <Skeleton className="h-9 flex-1" />
+                                      </div>
+                                  </CardContent>
+                              </Card>
+                          ))
+                        : filteredBuses.map((bus) => (
+                              <Card
+                                  key={bus.id}
+                                  className="hover:shadow-lg transition-shadow overflow-hidden"
+                              >
+                                  {/* Image Display */}
+                                  {bus.bus_property?.image_url &&
+                                      (() => {
+                                          try {
+                                              const images = JSON.parse(
+                                                  bus.bus_property.image_url
+                                              );
+                                              return images.length > 0 ? (
+                                                  <div className="h-48 overflow-hidden bg-muted">
+                                                      <img
+                                                          src={images[0]}
+                                                          alt={bus.bus_name}
+                                                          className="h-full w-full object-cover"
+                                                      />
+                                                  </div>
+                                              ) : null;
+                                          } catch (e) {
+                                              return null;
+                                          }
+                                      })()}
 
-                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-lg">
-                                        {bus.bus_name}
-                                    </CardTitle>
-                                    <p className="text-sm text-muted-foreground">
-                                        {bus.bus_plate}
-                                    </p>
-                                </div>
-                                <Bus className="h-5 w-5 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    {bus.bus_property &&
-                                        getBusTypeBadge(
-                                            bus.bus_property.bus_type
-                                        )}
-                                    {getStatusBadge(bus.status)}
-                                </div>
+                                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                      <div className="space-y-1">
+                                          <CardTitle className="text-lg">
+                                              {bus.bus_name}
+                                          </CardTitle>
+                                          <p className="text-sm text-muted-foreground">
+                                              {bus.bus_plate}
+                                          </p>
+                                      </div>
+                                      <Bus className="h-5 w-5 text-muted-foreground" />
+                                  </CardHeader>
+                                  <CardContent className="space-y-4">
+                                      <div className="flex items-center gap-2">
+                                          {bus.bus_property &&
+                                              getBusTypeBadge(
+                                                  bus.bus_property.bus_type
+                                              )}
+                                          {getStatusBadge(bus.status)}
+                                      </div>
 
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground">
-                                            {bus.bus_property?.transportation
-                                                ?.place?.name ||
-                                                "Unknown Company"}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Users className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground">
-                                            {bus.bus_property?.seat_capacity ||
-                                                0}{" "}
-                                            seats
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground">
-                                            {bus.schedules?.length || 0} active
-                                            schedules
-                                        </span>
-                                    </div>
-                                </div>
+                                      <div className="space-y-2">
+                                          <div className="flex items-center gap-2 text-sm">
+                                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-muted-foreground">
+                                                  {bus.bus_property
+                                                      ?.transportation?.place
+                                                      ?.name ||
+                                                      "Unknown Company"}
+                                              </span>
+                                          </div>
+                                          <div className="flex items-center gap-2 text-sm">
+                                              <Users className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-muted-foreground">
+                                                  {bus.bus_property
+                                                      ?.seat_capacity || 0}{" "}
+                                                  seats
+                                              </span>
+                                          </div>
+                                          <div className="flex items-center gap-2 text-sm">
+                                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-muted-foreground">
+                                                  {bus.schedules?.length || 0}{" "}
+                                                  active schedules
+                                              </span>
+                                          </div>
+                                      </div>
 
-                                {/* Recent Schedules Preview */}
-                                {bus.schedules && bus.schedules.length > 0 && (
-                                    <div className="pt-2 border-t">
-                                        <p className="text-xs font-medium mb-2">
-                                            Recent Schedules:
-                                        </p>
-                                        <div className="space-y-1">
-                                            {bus.schedules
-                                                .slice(0, 2)
-                                                .map((schedule) => (
-                                                    <div
-                                                        key={schedule.id}
-                                                        className="text-xs text-muted-foreground flex items-center gap-1"
-                                                    >
-                                                        <Calendar className="h-3 w-3" />
-                                                        {new Date(
-                                                            schedule.departure_time
-                                                        ).toLocaleDateString()}
-                                                        {" - "}
-                                                        {new Date(
-                                                            schedule.departure_time
-                                                        ).toLocaleTimeString(
-                                                            [],
-                                                            {
-                                                                hour: "2-digit",
-                                                                minute: "2-digit",
-                                                            }
-                                                        )}
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    </div>
-                                )}
+                                      {/* Recent Schedules Preview */}
+                                      {bus.schedules &&
+                                          bus.schedules.length > 0 && (
+                                              <div className="pt-2 border-t">
+                                                  <p className="text-xs font-medium mb-2">
+                                                      Recent Schedules:
+                                                  </p>
+                                                  <div className="space-y-1">
+                                                      {bus.schedules
+                                                          .slice(0, 2)
+                                                          .map((schedule) => (
+                                                              <div
+                                                                  key={
+                                                                      schedule.id
+                                                                  }
+                                                                  className="text-xs text-muted-foreground flex items-center gap-1"
+                                                              >
+                                                                  <Calendar className="h-3 w-3" />
+                                                                  {new Date(
+                                                                      schedule.departure_time
+                                                                  ).toLocaleDateString()}
+                                                                  {" - "}
+                                                                  {new Date(
+                                                                      schedule.departure_time
+                                                                  ).toLocaleTimeString(
+                                                                      [],
+                                                                      {
+                                                                          hour: "2-digit",
+                                                                          minute: "2-digit",
+                                                                      }
+                                                                  )}
+                                                              </div>
+                                                          ))}
+                                                  </div>
+                                              </div>
+                                          )}
 
-                                <div className="flex gap-2 pt-2">
-                                    <Button
-                                        asChild
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1"
-                                    >
-                                        <Link
-                                            href={`/transportation-owner/buses/${bus.id}/edit`}
-                                        >
-                                            Edit
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        asChild
-                                        variant="default"
-                                        size="sm"
-                                        className="flex-1"
-                                    >
-                                        <Link
-                                            href={`/transportation-owner/buses/${bus.id}`}
-                                        >
-                                            View Details
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                      <div className="flex gap-2 pt-2">
+                                          <Button
+                                              asChild
+                                              variant="outline"
+                                              size="sm"
+                                              className="flex-1"
+                                          >
+                                              <Link
+                                                  href={`/transportation-owner/buses/${bus.id}/edit`}
+                                              >
+                                                  Edit
+                                              </Link>
+                                          </Button>
+                                          <Button
+                                              asChild
+                                              variant="default"
+                                              size="sm"
+                                              className="flex-1"
+                                          >
+                                              <Link
+                                                  href={`/transportation-owner/buses/${bus.id}`}
+                                              >
+                                                  View Details
+                                              </Link>
+                                          </Button>
+                                      </div>
+                                  </CardContent>
+                              </Card>
+                          ))}
                 </div>
 
                 {/* Empty State */}
-                {filteredBuses.length === 0 && (
+                {!isLoading && filteredBuses.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

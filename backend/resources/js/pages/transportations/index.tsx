@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -49,6 +50,7 @@ import {
     MoreHorizontal,
     Calendar,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Transportation {
     id: number;
@@ -93,6 +95,17 @@ interface Props {
     };
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+    },
+    {
+        title: "Transportations",
+        href: "/transportations",
+    },
+];
+
 interface ColumnVisibility {
     location: boolean;
     owner: boolean;
@@ -106,6 +119,7 @@ export default function TransportationIndex({
     filters,
 }: Props) {
     const [search, setSearch] = useState(filters.search || "");
+    const [isLoading, setIsLoading] = useState(false);
     const [deleteDialog, setDeleteDialog] = useState<{
         open: boolean;
         id: number | null;
@@ -165,6 +179,7 @@ export default function TransportationIndex({
         }
 
         debounceTimer.current = setTimeout(() => {
+            setIsLoading(true);
             router.get(
                 "/transportations",
                 {
@@ -174,6 +189,7 @@ export default function TransportationIndex({
                     preserveState: true,
                     preserveScroll: true,
                     replace: true,
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }, 500);
@@ -216,7 +232,7 @@ export default function TransportationIndex({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Transportation Management" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -362,7 +378,65 @@ export default function TransportationIndex({
                                 </tr>
                             </thead>
                             <tbody>
-                                {transportations.data.length === 0 ? (
+                                {isLoading ? (
+                                    // Skeleton loading state
+                                    Array.from({ length: 5 }).map(
+                                        (_, index) => (
+                                            <tr
+                                                key={index}
+                                                className="border-b"
+                                            >
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <Skeleton className="h-12 w-12 rounded-lg" />
+                                                        <div className="space-y-2">
+                                                            <Skeleton className="h-4 w-32" />
+                                                            <Skeleton className="h-3 w-48" />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                {columnVisibility.location && (
+                                                    <td className="p-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <Skeleton className="h-4 w-4" />
+                                                            <Skeleton className="h-4 w-24" />
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {columnVisibility.owner && (
+                                                    <td className="p-4">
+                                                        <div className="space-y-1">
+                                                            <Skeleton className="h-4 w-28" />
+                                                            <Skeleton className="h-3 w-32" />
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {columnVisibility.buses && (
+                                                    <td className="p-4">
+                                                        <Skeleton className="h-4 w-8" />
+                                                    </td>
+                                                )}
+                                                {columnVisibility.routes && (
+                                                    <td className="p-4">
+                                                        <Skeleton className="h-4 w-8" />
+                                                    </td>
+                                                )}
+                                                {columnVisibility.capacity && (
+                                                    <td className="p-4">
+                                                        <Skeleton className="h-4 w-12" />
+                                                    </td>
+                                                )}
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Skeleton className="h-8 w-8 rounded-md" />
+                                                        <Skeleton className="h-8 w-8 rounded-md" />
+                                                        <Skeleton className="h-8 w-8 rounded-md" />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    )
+                                ) : transportations.data.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={7}

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Property {
     property_id: number;
@@ -59,6 +60,23 @@ export default function RoomCreateEdit({
     room = null,
     isEdit = false,
 }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/hotel-owner/dashboard",
+        },
+        {
+            title: "Rooms",
+            href: "/hotel-owner/rooms",
+        },
+        {
+            title: isEdit ? "Edit Room" : "Create Room",
+            href: isEdit
+                ? `/hotel-owner/rooms/${room?.room_id}/edit`
+                : "/hotel-owner/rooms/create",
+        },
+    ];
+
     const { data, setData, post, put, processing, errors } = useForm({
         room_properties_id:
             room?.room_properties_id || roomTypes[0]?.room_properties_id || "",
@@ -87,7 +105,7 @@ export default function RoomCreateEdit({
     );
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${isEdit ? "Edit" : "Create"} Room`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -259,37 +277,32 @@ export default function RoomCreateEdit({
                                     </p>
                                 )}
                             </div>
-
-                            {/* Submit Buttons */}
-                            <div className="flex gap-2 pt-4 justify-end">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    asChild
-                                    disabled={processing}
-                                >
-                                    <Link href="/hotel-owner/rooms">
-                                        Cancel
-                                    </Link>
-                                </Button>
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="mr-2 h-4 w-4" />
-                                            {isEdit
-                                                ? "Update Room"
-                                                : "Create Room"}
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
                         </CardContent>
                     </Card>
+                    {/* Submit Buttons */}
+                    <div className="flex gap-2 pt-4 justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            asChild
+                            disabled={processing}
+                        >
+                            <Link href="/hotel-owner/rooms">Cancel</Link>
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            {processing ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {isEdit ? "Update Room" : "Create Room"}
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </form>
             </div>
         </AppLayout>

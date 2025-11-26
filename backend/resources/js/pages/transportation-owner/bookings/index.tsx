@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
     EmptyHeader,
@@ -38,6 +39,7 @@ import {
     Bus,
     MapPin,
 } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface SeatBooking {
     id: number;
@@ -104,6 +106,17 @@ interface Props {
     bookings?: PaginatedBookings;
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: "Dashboard",
+        href: "/transportation-owner/dashboard",
+    },
+    {
+        title: "Bookings",
+        href: "/transportation-owner/bookings",
+    },
+];
+
 export default function TransportationOwnerBookingsIndex({
     bookings = {
         data: [],
@@ -116,6 +129,7 @@ export default function TransportationOwnerBookingsIndex({
 }: Props) {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [isLoading, setIsLoading] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -181,7 +195,7 @@ export default function TransportationOwnerBookingsIndex({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Transportation Bookings" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -386,155 +400,236 @@ export default function TransportationOwnerBookingsIndex({
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {bookings.data.map((booking) => (
-                                <div
-                                    key={booking.id}
-                                    className="p-4 hover:bg-muted/50"
-                                >
-                                    <div
-                                        className="grid gap-6 items-center"
-                                        style={{
-                                            gridTemplateColumns: `2fr ${
-                                                columnVisibility.bus
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.route
-                                                    ? "2.5fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.departureTime
-                                                    ? "1.5fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.seatNumber
-                                                    ? "1fr"
-                                                    : ""
-                                            } 1.5fr ${
-                                                columnVisibility.bookedOn
-                                                    ? "1.5fr"
-                                                    : ""
-                                            } 1.5fr ${
-                                                columnVisibility.paymentStatus
-                                                    ? "1.2fr"
-                                                    : ""
-                                            } 1.5fr`.trim(),
-                                        }}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">
-                                                {booking.passenger_name ||
-                                                    "Unknown Passenger"}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">
-                                                {booking.passenger_email ||
-                                                    "N/A"}
-                                            </span>
-                                        </div>
-                                        {columnVisibility.bus && (
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium">
-                                                    {booking.schedule.bus
-                                                        .bus_name || "N/A"}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {booking.schedule.bus
-                                                        .bus_plate || "N/A"}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {columnVisibility.route && (
-                                            <div className="flex items-center gap-1 text-sm">
-                                                <MapPin className="h-3 w-3 text-muted-foreground" />
-                                                <span>
-                                                    {booking.schedule.route
-                                                        .origin || "N/A"}{" "}
-                                                    →{" "}
-                                                    {booking.schedule.route
-                                                        .destination || "N/A"}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {columnVisibility.departureTime && (
-                                            <div className="flex flex-col gap-0.5">
-                                                <div className="flex items-center gap-1 text-sm">
-                                                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                    {new Date(
-                                                        booking.schedule.departure_time
-                                                    ).toLocaleDateString()}
-                                                </div>
-                                                <span className="text-xs text-muted-foreground pl-4">
-                                                    {new Date(
-                                                        booking.schedule.departure_time
-                                                    ).toLocaleTimeString([], {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    })}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {columnVisibility.seatNumber && (
-                                            <div className="font-medium text-sm">
-                                                {booking.seat.seat_number}
-                                            </div>
-                                        )}
-                                        <div className="font-semibold">
-                                            ${booking.price.toLocaleString()}
-                                        </div>
-                                        {columnVisibility.bookedOn && (
-                                            <div className="text-sm">
-                                                {new Date(
-                                                    booking.created_at
-                                                ).toLocaleDateString()}
-                                            </div>
-                                        )}
-                                        <div>
-                                            {getStatusBadge(
-                                                booking.booking_status
-                                            )}
-                                        </div>
-                                        {columnVisibility.paymentStatus && (
-                                            <div>
-                                                {getPaymentStatusBadge(
-                                                    booking.payment_status
-                                                )}
-                                            </div>
-                                        )}
-                                        <div className="flex gap-2">
-                                            <Button
-                                                asChild
-                                                size="sm"
-                                                variant="outline"
-                                            >
-                                                <Link
-                                                    href={`/transportation-owner/bookings/${booking.id}`}
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                            {booking.passenger_phone && (
-                                                <Button
-                                                    asChild
-                                                    size="sm"
-                                                    variant="outline"
-                                                >
-                                                    <a
-                                                        href={`tel:${booking.passenger_phone}`}
-                                                    >
-                                                        <Phone className="h-4 w-4" />
-                                                    </a>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                            {isLoading
+                                ? // Skeleton loading state
+                                  Array.from({ length: 5 }).map((_, index) => (
+                                      <div key={index} className="p-4">
+                                          <div
+                                              className="grid gap-6 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `2fr ${
+                                                      columnVisibility.bus
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.route
+                                                          ? "2.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.departureTime
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.seatNumber
+                                                          ? "1fr"
+                                                          : ""
+                                                  } 1.5fr ${
+                                                      columnVisibility.bookedOn
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } 1.5fr ${
+                                                      columnVisibility.paymentStatus
+                                                          ? "1.2fr"
+                                                          : ""
+                                                  } 1.5fr`.trim(),
+                                              }}
+                                          >
+                                              <div className="space-y-2">
+                                                  <Skeleton className="h-4 w-32" />
+                                                  <Skeleton className="h-3 w-40" />
+                                              </div>
+                                              {columnVisibility.bus && (
+                                                  <div className="space-y-1">
+                                                      <Skeleton className="h-4 w-24" />
+                                                      <Skeleton className="h-3 w-20" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.route && (
+                                                  <div className="flex items-center gap-2">
+                                                      <Skeleton className="h-4 w-24" />
+                                                      <Skeleton className="h-4 w-4" />
+                                                      <Skeleton className="h-4 w-24" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.departureTime && (
+                                                  <div className="space-y-1">
+                                                      <Skeleton className="h-4 w-20" />
+                                                      <Skeleton className="h-3 w-16" />
+                                                  </div>
+                                              )}
+                                              {columnVisibility.seatNumber && (
+                                                  <Skeleton className="h-5 w-12 rounded-full" />
+                                              )}
+                                              <Skeleton className="h-5 w-20 rounded-full" />
+                                              {columnVisibility.bookedOn && (
+                                                  <Skeleton className="h-4 w-20" />
+                                              )}
+                                              <Skeleton className="h-4 w-16" />
+                                              {columnVisibility.paymentStatus && (
+                                                  <Skeleton className="h-5 w-16 rounded-full" />
+                                              )}
+                                              <Skeleton className="h-8 w-8 rounded-md" />
+                                          </div>
+                                      </div>
+                                  ))
+                                : bookings.data.map((booking) => (
+                                      <div
+                                          key={booking.id}
+                                          className="p-4 hover:bg-muted/50"
+                                      >
+                                          <div
+                                              className="grid gap-6 items-center"
+                                              style={{
+                                                  gridTemplateColumns: `2fr ${
+                                                      columnVisibility.bus
+                                                          ? "2fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.route
+                                                          ? "2.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.departureTime
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } ${
+                                                      columnVisibility.seatNumber
+                                                          ? "1fr"
+                                                          : ""
+                                                  } 1.5fr ${
+                                                      columnVisibility.bookedOn
+                                                          ? "1.5fr"
+                                                          : ""
+                                                  } 1.5fr ${
+                                                      columnVisibility.paymentStatus
+                                                          ? "1.2fr"
+                                                          : ""
+                                                  } 1.5fr`.trim(),
+                                              }}
+                                          >
+                                              <div className="flex flex-col">
+                                                  <span className="font-medium">
+                                                      {booking.passenger_name ||
+                                                          "Unknown Passenger"}
+                                                  </span>
+                                                  <span className="text-xs text-muted-foreground">
+                                                      {booking.passenger_email ||
+                                                          "N/A"}
+                                                  </span>
+                                              </div>
+                                              {columnVisibility.bus && (
+                                                  <div className="flex flex-col">
+                                                      <span className="text-sm font-medium">
+                                                          {booking.schedule.bus
+                                                              .bus_name ||
+                                                              "N/A"}
+                                                      </span>
+                                                      <span className="text-xs text-muted-foreground">
+                                                          {booking.schedule.bus
+                                                              .bus_plate ||
+                                                              "N/A"}
+                                                      </span>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.route && (
+                                                  <div className="flex items-center gap-1 text-sm">
+                                                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                                                      <span>
+                                                          {booking.schedule
+                                                              .route.origin ||
+                                                              "N/A"}{" "}
+                                                          →{" "}
+                                                          {booking.schedule
+                                                              .route
+                                                              .destination ||
+                                                              "N/A"}
+                                                      </span>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.departureTime && (
+                                                  <div className="flex flex-col gap-0.5">
+                                                      <div className="flex items-center gap-1 text-sm">
+                                                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                          {new Date(
+                                                              booking.schedule.departure_time
+                                                          ).toLocaleDateString()}
+                                                      </div>
+                                                      <span className="text-xs text-muted-foreground pl-4">
+                                                          {new Date(
+                                                              booking.schedule.departure_time
+                                                          ).toLocaleTimeString(
+                                                              [],
+                                                              {
+                                                                  hour: "2-digit",
+                                                                  minute: "2-digit",
+                                                              }
+                                                          )}
+                                                      </span>
+                                                  </div>
+                                              )}
+                                              {columnVisibility.seatNumber && (
+                                                  <div className="font-medium text-sm">
+                                                      {booking.seat.seat_number}
+                                                  </div>
+                                              )}
+                                              <div className="font-semibold">
+                                                  $
+                                                  {booking.price.toLocaleString()}
+                                              </div>
+                                              {columnVisibility.bookedOn && (
+                                                  <div className="text-sm">
+                                                      {new Date(
+                                                          booking.created_at
+                                                      ).toLocaleDateString()}
+                                                  </div>
+                                              )}
+                                              <div>
+                                                  {getStatusBadge(
+                                                      booking.booking_status
+                                                  )}
+                                              </div>
+                                              {columnVisibility.paymentStatus && (
+                                                  <div>
+                                                      {getPaymentStatusBadge(
+                                                          booking.payment_status
+                                                      )}
+                                                  </div>
+                                              )}
+                                              <div className="flex gap-2">
+                                                  <Button
+                                                      asChild
+                                                      size="sm"
+                                                      variant="outline"
+                                                  >
+                                                      <Link
+                                                          href={`/transportation-owner/bookings/${booking.id}`}
+                                                      >
+                                                          <Eye className="h-4 w-4" />
+                                                      </Link>
+                                                  </Button>
+                                                  {booking.passenger_phone && (
+                                                      <Button
+                                                          asChild
+                                                          size="sm"
+                                                          variant="outline"
+                                                      >
+                                                          <a
+                                                              href={`tel:${booking.passenger_phone}`}
+                                                          >
+                                                              <Phone className="h-4 w-4" />
+                                                          </a>
+                                                      </Button>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
                         </div>
                     </div>
                 </div>
 
                 {/* Empty State */}
-                {bookings.data.length === 0 && (
+                {!isLoading && bookings.data.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

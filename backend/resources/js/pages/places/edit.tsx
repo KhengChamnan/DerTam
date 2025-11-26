@@ -301,496 +301,471 @@ export default function PlaceForm({ place, categories, provinces }: Props) {
                     </Link>
                 </div>
 
-                <div className="max-w-4xl mx-auto w-full">
-                    <form onSubmit={submit} className="space-y-6">
-                        {/* Basic Information */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Basic Information</CardTitle>
-                                <CardDescription>
-                                    Enter the basic details of the place
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="name">Name *</Label>
-                                        <Input
-                                            id="name"
-                                            value={data.name}
-                                            onChange={(e) =>
-                                                setData("name", e.target.value)
-                                            }
-                                            placeholder="Enter place name"
-                                        />
-                                        {errors.name && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="category_id">
-                                            Category *
-                                        </Label>
-                                        <Select
-                                            value={data.category_id.toString()}
-                                            onValueChange={(value) =>
-                                                setData(
-                                                    "category_id",
-                                                    parseInt(value)
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {categories.map((category) => (
-                                                    <SelectItem
-                                                        key={
-                                                            category.placeCategoryID
-                                                        }
-                                                        value={category.placeCategoryID.toString()}
-                                                    >
-                                                        {category.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {errors.category_id && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.category_id}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="province_id">
-                                            Province *
-                                        </Label>
-                                        <Select
-                                            value={data.province_id.toString()}
-                                            onValueChange={(value) =>
-                                                setData(
-                                                    "province_id",
-                                                    parseInt(value)
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select province" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {provinces.map((province) => (
-                                                    <SelectItem
-                                                        key={
-                                                            province.province_categoryID
-                                                        }
-                                                        value={province.province_categoryID.toString()}
-                                                    >
-                                                        {province.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {errors.province_id && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.province_id}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center space-x-2">
-                                        <Switch
-                                            id="entry_free"
-                                            checked={data.entry_free}
-                                            onCheckedChange={(checked) =>
-                                                setData("entry_free", checked)
-                                            }
-                                        />
-                                        <Label htmlFor="entry_free">
-                                            Free Entry
-                                        </Label>
-                                    </div>
-                                </div>
-
+                <form onSubmit={submit} className="space-y-6">
+                    {/* Basic Information */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Basic Information</CardTitle>
+                            <CardDescription>
+                                Enter the basic details of the place
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <Label htmlFor="description">
-                                        Description *
-                                    </Label>
-                                    <Textarea
-                                        id="description"
-                                        value={data.description}
+                                    <Label htmlFor="name">Name *</Label>
+                                    <Input
+                                        id="name"
+                                        value={data.name}
                                         onChange={(e) =>
-                                            setData(
-                                                "description",
-                                                e.target.value
-                                            )
+                                            setData("name", e.target.value)
                                         }
-                                        placeholder="Enter place description"
-                                        rows={4}
+                                        placeholder="Enter place name"
                                     />
-                                    {errors.description && (
+                                    {errors.name && (
                                         <p className="text-sm text-red-600 mt-1">
-                                            {errors.description}
+                                            {errors.name}
                                         </p>
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
 
-                        {/* Location Information */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Location Information</CardTitle>
-                                <CardDescription>
-                                    Specify the location details
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <Label htmlFor="latitude">
-                                            Latitude *
-                                        </Label>
-                                        <Input
-                                            id="latitude"
-                                            type="number"
-                                            step="any"
-                                            value={data.latitude}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "latitude",
-                                                    e.target.value
-                                                        ? parseFloat(
-                                                              e.target.value
-                                                          )
-                                                        : ""
-                                                )
-                                            }
-                                            placeholder="e.g., 13.7563"
-                                        />
-                                        {errors.latitude && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.latitude}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="longitude">
-                                            Longitude *
-                                        </Label>
-                                        <Input
-                                            id="longitude"
-                                            type="number"
-                                            step="any"
-                                            value={data.longitude}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "longitude",
-                                                    e.target.value
-                                                        ? parseFloat(
-                                                              e.target.value
-                                                          )
-                                                        : ""
-                                                )
-                                            }
-                                            placeholder="e.g., 100.5018"
-                                        />
-                                        {errors.longitude && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.longitude}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="google_maps_link">
-                                            Google Maps Link
-                                        </Label>
-                                        <Input
-                                            id="google_maps_link"
-                                            value={data.google_maps_link}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "google_maps_link",
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="https://maps.google.com/..."
-                                        />
-                                        {errors.google_maps_link && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.google_maps_link}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Additional Information */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Additional Information</CardTitle>
-                                <CardDescription>
-                                    Optional details about the place
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <Label htmlFor="ratings">Ratings</Label>
-                                        <Input
-                                            id="ratings"
-                                            type="number"
-                                            step="0.1"
-                                            min="0"
-                                            max="5"
-                                            value={data.ratings}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "ratings",
-                                                    e.target.value
-                                                        ? parseFloat(
-                                                              e.target.value
-                                                          )
-                                                        : ""
-                                                )
-                                            }
-                                            placeholder="e.g., 4.5"
-                                        />
-                                        {errors.ratings && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.ratings}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="reviews_count">
-                                            Reviews Count
-                                        </Label>
-                                        <Input
-                                            id="reviews_count"
-                                            type="number"
-                                            min="0"
-                                            value={data.reviews_count}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "reviews_count",
-                                                    e.target.value
-                                                        ? parseInt(
-                                                              e.target.value
-                                                          )
-                                                        : ""
-                                                )
-                                            }
-                                            placeholder="e.g., 100"
-                                        />
-                                        {errors.reviews_count && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.reviews_count}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="best_season_to_visit">
-                                            Best Season to Visit
-                                        </Label>
-                                        <Input
-                                            id="best_season_to_visit"
-                                            value={data.best_season_to_visit}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "best_season_to_visit",
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="e.g., Summer, Winter"
-                                        />
-                                        {errors.best_season_to_visit && (
-                                            <p className="text-sm text-red-600 mt-1">
-                                                {errors.best_season_to_visit}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Images */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Images</CardTitle>
-                                <CardDescription>
-                                    Add image URLs for the place
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Hidden file input */}
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                />
-
-                                <div className="flex gap-2">
-                                    <Input
-                                        value={imageUrl}
-                                        onChange={(e) => {
-                                            handleImageUrlChange(
-                                                e.target.value
-                                            );
-                                        }}
-                                        onKeyDown={(e) => {
-                                            console.log("Key pressed:", e.key);
-                                            if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                console.log(
-                                                    "Enter key detected, calling addImageUrl"
-                                                );
-                                                addImageUrl();
-                                            }
-                                        }}
-                                        onPaste={(e) => {
-                                            // Auto-add on paste
-                                            const target = e.currentTarget;
-                                            setTimeout(() => {
-                                                if (target && target.value) {
-                                                    handleImageUrlChange(
-                                                        target.value
-                                                    );
-                                                }
-                                            }, 10);
-                                        }}
-                                        placeholder="Paste image URL "
-                                        className="flex-1"
-                                    />
-                                    <Button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            openFileBrowser();
-                                        }}
-                                        variant="outline"
-                                        title="Browse for images from your computer"
+                                <div>
+                                    <Label htmlFor="category_id">
+                                        Category *
+                                    </Label>
+                                    <Select
+                                        value={data.category_id.toString()}
+                                        onValueChange={(value) =>
+                                            setData(
+                                                "category_id",
+                                                parseInt(value)
+                                            )
+                                        }
                                     >
-                                        <Plus className="w-4 h-4" />
-                                    </Button>
-                                </div>
-
-                                {/* Display added images */}
-                                {Array.isArray(data.images_url) &&
-                                    data.images_url.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">
-                                                {data.images_url.length}{" "}
-                                                image(s) added
-                                            </p>
-                                            {data.images_url.map(
-                                                (url, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-center gap-2 p-2 border rounded"
-                                                    >
-                                                        <img
-                                                            src={url}
-                                                            alt={`Preview ${
-                                                                index + 1
-                                                            }`}
-                                                            className="w-16 h-16 object-cover rounded"
-                                                            onError={(e) => {
-                                                                e.currentTarget.src =
-                                                                    'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%23ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">No Image</text></svg>';
-                                                            }}
-                                                        />
-                                                        <span className="flex-1 text-sm truncate">
-                                                            {url}
-                                                        </span>
-                                                        <Button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                removeImageUrl(
-                                                                    index
-                                                                )
-                                                            }
-                                                            variant="destructive"
-                                                            size="sm"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories.map((category) => (
+                                                <SelectItem
+                                                    key={
+                                                        category.placeCategoryID
+                                                    }
+                                                    value={category.placeCategoryID.toString()}
+                                                >
+                                                    {category.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.category_id && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.category_id}
+                                        </p>
                                     )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Operating Hours */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Operating Hours</CardTitle>
-                                <CardDescription>
-                                    Specify opening hours for each day
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {days.map((day) => (
-                                        <div key={day}>
-                                            <Label
-                                                htmlFor={day}
-                                                className="capitalize"
-                                            >
-                                                {day}
-                                            </Label>
-                                            <Input
-                                                id={day}
-                                                value={
-                                                    data.operating_hours[day]
-                                                }
-                                                onChange={(e) =>
-                                                    updateOperatingHours(
-                                                        day,
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="e.g., 9:00 AM - 6:00 PM or Closed"
-                                            />
-                                        </div>
-                                    ))}
                                 </div>
-                            </CardContent>
-                        </Card>
 
-                        {/* Submit Button */}
-                        <div className="flex justify-end gap-4">
-                            <Link href="/places">
-                                <Button type="button" variant="outline">
-                                    Cancel
+                                <div>
+                                    <Label htmlFor="province_id">
+                                        Province *
+                                    </Label>
+                                    <Select
+                                        value={data.province_id.toString()}
+                                        onValueChange={(value) =>
+                                            setData(
+                                                "province_id",
+                                                parseInt(value)
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select province" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {provinces.map((province) => (
+                                                <SelectItem
+                                                    key={
+                                                        province.province_categoryID
+                                                    }
+                                                    value={province.province_categoryID.toString()}
+                                                >
+                                                    {province.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.province_id && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.province_id}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id="entry_free"
+                                        checked={data.entry_free}
+                                        onCheckedChange={(checked) =>
+                                            setData("entry_free", checked)
+                                        }
+                                    />
+                                    <Label htmlFor="entry_free">
+                                        Free Entry
+                                    </Label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="description">
+                                    Description *
+                                </Label>
+                                <Textarea
+                                    id="description"
+                                    value={data.description}
+                                    onChange={(e) =>
+                                        setData("description", e.target.value)
+                                    }
+                                    placeholder="Enter place description"
+                                    rows={4}
+                                />
+                                {errors.description && (
+                                    <p className="text-sm text-red-600 mt-1">
+                                        {errors.description}
+                                    </p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Location Information */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Location Information</CardTitle>
+                            <CardDescription>
+                                Specify the location details
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <Label htmlFor="latitude">Latitude *</Label>
+                                    <Input
+                                        id="latitude"
+                                        type="number"
+                                        step="any"
+                                        value={data.latitude}
+                                        onChange={(e) =>
+                                            setData(
+                                                "latitude",
+                                                e.target.value
+                                                    ? parseFloat(e.target.value)
+                                                    : ""
+                                            )
+                                        }
+                                        placeholder="e.g., 13.7563"
+                                    />
+                                    {errors.latitude && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.latitude}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="longitude">
+                                        Longitude *
+                                    </Label>
+                                    <Input
+                                        id="longitude"
+                                        type="number"
+                                        step="any"
+                                        value={data.longitude}
+                                        onChange={(e) =>
+                                            setData(
+                                                "longitude",
+                                                e.target.value
+                                                    ? parseFloat(e.target.value)
+                                                    : ""
+                                            )
+                                        }
+                                        placeholder="e.g., 100.5018"
+                                    />
+                                    {errors.longitude && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.longitude}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="google_maps_link">
+                                        Google Maps Link
+                                    </Label>
+                                    <Input
+                                        id="google_maps_link"
+                                        value={data.google_maps_link}
+                                        onChange={(e) =>
+                                            setData(
+                                                "google_maps_link",
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="https://maps.google.com/..."
+                                    />
+                                    {errors.google_maps_link && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.google_maps_link}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Additional Information */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Additional Information</CardTitle>
+                            <CardDescription>
+                                Optional details about the place
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <Label htmlFor="ratings">Ratings</Label>
+                                    <Input
+                                        id="ratings"
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        max="5"
+                                        value={data.ratings}
+                                        onChange={(e) =>
+                                            setData(
+                                                "ratings",
+                                                e.target.value
+                                                    ? parseFloat(e.target.value)
+                                                    : ""
+                                            )
+                                        }
+                                        placeholder="e.g., 4.5"
+                                    />
+                                    {errors.ratings && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.ratings}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="reviews_count">
+                                        Reviews Count
+                                    </Label>
+                                    <Input
+                                        id="reviews_count"
+                                        type="number"
+                                        min="0"
+                                        value={data.reviews_count}
+                                        onChange={(e) =>
+                                            setData(
+                                                "reviews_count",
+                                                e.target.value
+                                                    ? parseInt(e.target.value)
+                                                    : ""
+                                            )
+                                        }
+                                        placeholder="e.g., 100"
+                                    />
+                                    {errors.reviews_count && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.reviews_count}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="best_season_to_visit">
+                                        Best Season to Visit
+                                    </Label>
+                                    <Input
+                                        id="best_season_to_visit"
+                                        value={data.best_season_to_visit}
+                                        onChange={(e) =>
+                                            setData(
+                                                "best_season_to_visit",
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="e.g., Summer, Winter"
+                                    />
+                                    {errors.best_season_to_visit && (
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {errors.best_season_to_visit}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Images */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Images</CardTitle>
+                            <CardDescription>
+                                Add image URLs for the place
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFileSelect}
+                                className="hidden"
+                            />
+
+                            <div className="flex gap-2">
+                                <Input
+                                    value={imageUrl}
+                                    onChange={(e) => {
+                                        handleImageUrlChange(e.target.value);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        console.log("Key pressed:", e.key);
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            console.log(
+                                                "Enter key detected, calling addImageUrl"
+                                            );
+                                            addImageUrl();
+                                        }
+                                    }}
+                                    onPaste={(e) => {
+                                        // Auto-add on paste
+                                        const target = e.currentTarget;
+                                        setTimeout(() => {
+                                            if (target && target.value) {
+                                                handleImageUrlChange(
+                                                    target.value
+                                                );
+                                            }
+                                        }, 10);
+                                    }}
+                                    placeholder="Paste image URL "
+                                    className="flex-1"
+                                />
+                                <Button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        openFileBrowser();
+                                    }}
+                                    variant="outline"
+                                    title="Browse for images from your computer"
+                                >
+                                    <Plus className="w-4 h-4" />
                                 </Button>
-                            </Link>
-                            <Button type="submit" disabled={processing}>
-                                <Save className="w-4 h-4 mr-2" />
-                                {processing
-                                    ? "Saving..."
-                                    : isEditing
-                                    ? "Update Place"
-                                    : "Create Place"}
+                            </div>
+
+                            {/* Display added images */}
+                            {Array.isArray(data.images_url) &&
+                                data.images_url.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-muted-foreground">
+                                            {data.images_url.length} image(s)
+                                            added
+                                        </p>
+                                        {data.images_url.map((url, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center gap-2 p-2 border rounded"
+                                            >
+                                                <img
+                                                    src={url}
+                                                    alt={`Preview ${index + 1}`}
+                                                    className="w-16 h-16 object-cover rounded"
+                                                    onError={(e) => {
+                                                        e.currentTarget.src =
+                                                            'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%23ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">No Image</text></svg>';
+                                                    }}
+                                                />
+                                                <span className="flex-1 text-sm truncate">
+                                                    {url}
+                                                </span>
+                                                <Button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        removeImageUrl(index)
+                                                    }
+                                                    variant="destructive"
+                                                    size="sm"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Operating Hours */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Operating Hours</CardTitle>
+                            <CardDescription>
+                                Specify opening hours for each day
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {days.map((day) => (
+                                    <div key={day}>
+                                        <Label
+                                            htmlFor={day}
+                                            className="capitalize"
+                                        >
+                                            {day}
+                                        </Label>
+                                        <Input
+                                            id={day}
+                                            value={data.operating_hours[day]}
+                                            onChange={(e) =>
+                                                updateOperatingHours(
+                                                    day,
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="e.g., 9:00 AM - 6:00 PM or Closed"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Submit Button */}
+                    <div className="flex justify-end gap-4">
+                        <Link href="/places">
+                            <Button type="button" variant="outline">
+                                Cancel
                             </Button>
-                        </div>
-                    </form>
-                </div>
+                        </Link>
+                        <Button type="submit" disabled={processing}>
+                            <Save className="w-4 h-4 mr-2" />
+                            {processing
+                                ? "Saving..."
+                                : isEditing
+                                ? "Update Place"
+                                : "Create Place"}
+                        </Button>
+                    </div>
+                </form>
             </div>
         </AppLayout>
     );

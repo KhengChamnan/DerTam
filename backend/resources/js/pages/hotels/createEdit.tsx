@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, ArrowLeft, Save } from "lucide-react";
+import { type BreadcrumbItem } from "@/types";
 
 interface Place {
     placeID: number;
@@ -76,6 +77,23 @@ export default function HotelCreateEdit({
 }: Props) {
     const isEditing = !!property;
 
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: "Dashboard",
+            href: "/dashboard",
+        },
+        {
+            title: "Hotels",
+            href: "/hotels",
+        },
+        {
+            title: isEditing ? "Edit Hotel" : "Create Hotel",
+            href: isEditing
+                ? `/hotels/${property?.property_id}/edit`
+                : "/hotels/create",
+        },
+    ];
+
     const { data, setData, post, put, errors, processing } = useForm({
         owner_user_id: property?.owner_user_id || 0,
         place_id: property?.place_id || 0,
@@ -136,7 +154,7 @@ export default function HotelCreateEdit({
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isEditing ? "Edit Hotel" : "Create Hotel"} />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
