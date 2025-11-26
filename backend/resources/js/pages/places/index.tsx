@@ -528,7 +528,7 @@ export default function PlacesIndex({
 
                 {/* Table-like layout */}
                 <div className="rounded-md border overflow-x-auto">
-                    <div className="min-w-[1500px]">
+                    <div className="min-w-[1600px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div

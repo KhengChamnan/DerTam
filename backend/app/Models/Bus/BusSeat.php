@@ -51,42 +51,6 @@ class BusSeat extends Model
     }
 
     /**
-     * Check if seat is booked for a specific schedule.
-     */
-    public function isBookedForSchedule(int $scheduleId): bool
-    {
-        return $this->bookings()
-            ->where('schedule_id', $scheduleId)
-            ->where('status', '!=', 'cancelled')
-            ->exists();
-    }
-
-    /**
-     * Get booking for a specific schedule.
-     */
-    public function getBookingForSchedule(int $scheduleId)
-    {
-        return $this->bookings()
-            ->where('schedule_id', $scheduleId)
-            ->where('status', '!=', 'cancelled')
-            ->first();
-    }
-
-    /**
-     * Get available seats for a schedule.
-     */
-    public static function availableForSchedule(int $busId, int $scheduleId)
-    {
-        return self::where('bus_id', $busId)
-            ->whereDoesntHave('bookings', function ($query) use ($scheduleId) {
-                $query->where('schedule_id', $scheduleId)
-                    ->where('status', '!=', 'cancelled');
-            })
-            ->orderBy('seat_number')
-            ->get();
-    }
-
-    /**
      * Get seat display name (includes level for sleeper buses).
      */
     public function getDisplayNameAttribute(): string
@@ -139,7 +103,7 @@ class BusSeat extends Model
 
     /**
      * Check if seat is booked for a specific schedule.
-     * @deprecated Use getSeatAvailability() instead for proper booking status checking
+     * Only considers bookings with status 'pending' or 'confirmed' as blocking.
      */
     public function isBookedForSchedule(int $scheduleId): bool
     {
@@ -177,16 +141,5 @@ class BusSeat extends Model
             })
             ->orderBy('seat_number')
             ->get();
-    }
-
-    /**
-     * Get seat display name (includes level for sleeper buses).
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        if ($this->level) {
-            return "Seat {$this->seat_number} ({$this->level})";
-        }
-        return "Seat {$this->seat_number}";
     }
 }

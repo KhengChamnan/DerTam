@@ -453,7 +453,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
                 {/* Users Table */}
                 <div className="rounded-md border overflow-x-auto">
-                    <div className="min-w-[1200px]">
+                    <div className="min-w-[1600px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div
@@ -466,8 +466,8 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                     } ${
                                         columnVisibility.lastLogin ? "1fr" : ""
                                     } ${columnVisibility.status ? "1fr" : ""} ${
-                                        columnVisibility.role ? "1fr" : ""
-                                    } 3fr`.trim(),
+                                        columnVisibility.role ? "2fr" : ""
+                                    } 1fr`.trim(),
                                 }}
                             >
                                 <div className="text-sm font-medium">Name</div>
@@ -539,9 +539,9 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                     : ""
                                             } ${
                                                 columnVisibility.role
-                                                    ? "1fr"
+                                                    ? "2fr"
                                                     : ""
-                                            } 3fr`.trim(),
+                                            } 1fr`.trim(),
                                         }}
                                     >
                                         <div>
@@ -648,7 +648,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                             <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
+                                                    <DropdownMenuContent align="start">
                                                         <DropdownMenuItem
                                                             asChild
                                                         >

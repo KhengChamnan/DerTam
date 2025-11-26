@@ -424,7 +424,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
 
                 {/* Table-like layout */}
                 <div className="rounded-md border overflow-x-auto">
-                    <div className="min-w-[1500px]">
+                    <div className="min-w-[1800px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div
@@ -597,7 +597,6 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                                         {/* Price Range */}
                                         {columnVisibility.priceRange && (
                                             <div className="flex items-center text-sm">
-                                                <DollarSign className="h-3 w-3 mr-1 shrink-0" />
                                                 {
                                                     property.room_stats
                                                         .price_range

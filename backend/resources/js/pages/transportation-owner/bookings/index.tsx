@@ -316,15 +316,17 @@ export default function TransportationOwnerBookingsIndex({
 
                 {/* Table-like layout */}
                 <div className="rounded-md border overflow-x-auto">
-                    <div className="min-w-[1200px]">
+                    <div className="min-w-[1800px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div
-                                className="grid gap-4 items-center"
+                                className="grid gap-6 items-center"
                                 style={{
                                     gridTemplateColumns: `2fr ${
                                         columnVisibility.bus ? "2fr" : ""
-                                    } ${columnVisibility.route ? "2fr" : ""} ${
+                                    } ${
+                                        columnVisibility.route ? "2.5fr" : ""
+                                    } ${
                                         columnVisibility.departureTime
                                             ? "1.5fr"
                                             : ""
@@ -334,7 +336,7 @@ export default function TransportationOwnerBookingsIndex({
                                         columnVisibility.bookedOn ? "1.5fr" : ""
                                     } 1.5fr ${
                                         columnVisibility.paymentStatus
-                                            ? "1fr"
+                                            ? "1.2fr"
                                             : ""
                                     } 1.5fr`.trim(),
                                 }}
@@ -390,7 +392,7 @@ export default function TransportationOwnerBookingsIndex({
                                     className="p-4 hover:bg-muted/50"
                                 >
                                     <div
-                                        className="grid gap-4 items-center"
+                                        className="grid gap-6 items-center"
                                         style={{
                                             gridTemplateColumns: `2fr ${
                                                 columnVisibility.bus
@@ -398,7 +400,7 @@ export default function TransportationOwnerBookingsIndex({
                                                     : ""
                                             } ${
                                                 columnVisibility.route
-                                                    ? "2fr"
+                                                    ? "2.5fr"
                                                     : ""
                                             } ${
                                                 columnVisibility.departureTime
@@ -414,7 +416,7 @@ export default function TransportationOwnerBookingsIndex({
                                                     : ""
                                             } 1.5fr ${
                                                 columnVisibility.paymentStatus
-                                                    ? "1fr"
+                                                    ? "1.2fr"
                                                     : ""
                                             } 1.5fr`.trim(),
                                         }}
@@ -454,12 +456,14 @@ export default function TransportationOwnerBookingsIndex({
                                             </div>
                                         )}
                                         {columnVisibility.departureTime && (
-                                            <div className="flex items-center gap-1 text-sm">
-                                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                {new Date(
-                                                    booking.schedule.departure_time
-                                                ).toLocaleDateString()}{" "}
-                                                <span className="text-xs">
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex items-center gap-1 text-sm">
+                                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                    {new Date(
+                                                        booking.schedule.departure_time
+                                                    ).toLocaleDateString()}
+                                                </div>
+                                                <span className="text-xs text-muted-foreground pl-4">
                                                     {new Date(
                                                         booking.schedule.departure_time
                                                     ).toLocaleTimeString([], {
