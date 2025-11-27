@@ -5,6 +5,7 @@ namespace App\Models\Bus;
 use App\Models\Transportation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Facades\Log;
@@ -69,7 +70,7 @@ class Bus extends Model
     public function transportation(): HasOneThrough
     {
         return $this->hasOneThrough(
-            \App\Models\Transportation::class,
+            Transportation::class,
             BusProperty::class,
             'id', // Foreign key on bus_properties table
             'id', // Foreign key on transportations table

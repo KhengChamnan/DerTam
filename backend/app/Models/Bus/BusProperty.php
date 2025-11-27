@@ -44,6 +44,7 @@ class BusProperty extends Model
         'has_multiple_levels' => 'boolean',
         'amenities' => 'array',
         'level_configuration' => 'array',
+        'seat_layout' => 'array',
     ];
 
     /**

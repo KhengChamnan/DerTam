@@ -224,7 +224,7 @@ class BusScheduleController extends Controller
     public function getScheduleDetail($id)
     {
         try {
-            $schedule = BusSchedule::with(['bus.seats', 'bus.transportation', 'route.fromLocation', 'route.toLocation'])
+            $schedule = BusSchedule::with(['bus.seats', 'bus.busProperty', 'bus.transportation', 'route.fromLocation', 'route.toLocation'])
                 ->find($id);
 
             if (!$schedule) {
@@ -253,7 +253,19 @@ class BusScheduleController extends Controller
             }
 
             // Organize seats into layout structure
-            $columns = ['A', 'B', 'C', 'D'];
+            // Get seat layout config from bus property
+            $busProperty = $schedule->bus->busProperty;
+            $seatLayoutConfig = $busProperty->seat_layout ?? null;
+            
+            // Get columns directly from seat_layout JSON
+            if (!$seatLayoutConfig || !isset($seatLayoutConfig['columns'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Seat layout configuration is missing or invalid for this bus',
+                ], 400);
+            }
+            $columns = $seatLayoutConfig['columns'];
+            
             $lowerDeckSeats = [];
             $upperDeckSeats = [];
 
@@ -272,15 +284,13 @@ class BusScheduleController extends Controller
                 $seatData = [
                     'id' => $seat->id,
                     'seat_no' => $seatNumber,
-                    'status' => $status, // TODO: Check bookings to set 'booked' or 'your_seat'
+                    'status' => $status,
                     'column' => $seat->column_label,
                     'row' => $seat->row,
                 ];
 
                 // Determine if seat belongs to lower or upper deck based on level field
-                if ($seat->level === 'lower' || $seat->level === 'Lower') {
-                    $lowerDeckSeats[] = $seatData;
-                } elseif ($seat->level === 'upper' || $seat->level === 'Upper') {
+                if ($seat->level === 'upper' || $seat->level === 'Upper') {
                     $upperDeckSeats[] = $seatData;
                 } else {
                     // Default: put in lower deck if level is not specified
