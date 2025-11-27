@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import { toast } from "sonner";
 import {
     DropdownMenu,
@@ -815,8 +823,40 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                   ))}
 
                             {!isLoading && users.data.length === 0 && (
-                                <div className="p-8 text-center text-muted-foreground">
-                                    No users found.
+                                <div className="p-8 flex justify-center">
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Users className="h-6 w-6" />
+                                            </EmptyMedia>
+                                            <EmptyTitle>
+                                                No users found
+                                            </EmptyTitle>
+                                            <EmptyDescription>
+                                                {searchTerm ||
+                                                statusFilter !== "all" ||
+                                                roleFilter !== "all"
+                                                    ? "Try adjusting your search or filters to find what you're looking for."
+                                                    : "Get started by adding your first user to the system."}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent>
+                                            {!searchTerm &&
+                                                statusFilter === "all" &&
+                                                roleFilter === "all" && (
+                                                    <Button
+                                                        onClick={() =>
+                                                            router.visit(
+                                                                "/users/create"
+                                                            )
+                                                        }
+                                                    >
+                                                        <UserPlus className="h-4 w-4 mr-2" />
+                                                        Add New User
+                                                    </Button>
+                                                )}
+                                        </EmptyContent>
+                                    </Empty>
                                 </div>
                             )}
                         </div>

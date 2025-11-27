@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import { toast } from "sonner";
 import {
     Select,
@@ -138,6 +146,7 @@ export default function RolesIndex({ roles, filters }: Props) {
 
         // Set new timer for debounced search
         debounceTimer.current = setTimeout(() => {
+            setIsLoading(true);
             router.get(
                 "/roles",
                 {
@@ -147,6 +156,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                     preserveState: true,
                     preserveScroll: true,
                     replace: true,
+                    only: ["roles"],
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }, 500); // 500ms debounce
@@ -326,210 +337,288 @@ export default function RolesIndex({ roles, filters }: Props) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {roles.data.map((role) => (
-                                <div
-                                    key={role.id}
-                                    className="p-4 hover:bg-muted/50"
-                                >
-                                    <div
-                                        className="grid gap-4 items-start"
-                                        style={{
-                                            gridTemplateColumns: `3fr ${
-                                                columnVisibility.permissions
-                                                    ? "4fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.users
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.type
-                                                    ? "2fr"
-                                                    : ""
-                                            } 1fr`.trim(),
-                                        }}
-                                    >
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Shield className="h-4 w-4 text-muted-foreground" />
-                                                <span className="font-medium capitalize">
-                                                    {role.name}
-                                                </span>
+                            {isLoading ? (
+                                // Skeleton loading state
+                                Array.from({ length: 5 }).map((_, index) => (
+                                    <div key={index} className="p-4">
+                                        <div
+                                            className="grid gap-4 items-center"
+                                            style={{
+                                                gridTemplateColumns: `2fr ${
+                                                    columnVisibility.permissions
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.users
+                                                        ? "1fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.type
+                                                        ? "1fr"
+                                                        : ""
+                                                } 1fr`.trim(),
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Skeleton className="h-10 w-10 rounded-lg" />
+                                                <Skeleton className="h-5 w-32" />
+                                            </div>
+                                            {columnVisibility.permissions && (
+                                                <Skeleton className="h-5 w-24" />
+                                            )}
+                                            {columnVisibility.users && (
+                                                <Skeleton className="h-5 w-16" />
+                                            )}
+                                            {columnVisibility.type && (
+                                                <Skeleton className="h-6 w-20" />
+                                            )}
+                                            <div className="flex gap-2">
+                                                <Skeleton className="h-8 w-8" />
+                                                <Skeleton className="h-8 w-8" />
                                             </div>
                                         </div>
-                                        {columnVisibility.permissions && (
+                                    </div>
+                                ))
+                            ) : roles.data.length === 0 ? (
+                                <div className="col-span-full">
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Shield className="h-6 w-6" />
+                                            </EmptyMedia>
+                                            <EmptyTitle>
+                                                No roles found
+                                            </EmptyTitle>
+                                            <EmptyDescription>
+                                                {search
+                                                    ? "Try adjusting your search to find what you're looking for."
+                                                    : "Get started by creating your first role."}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent>
+                                            <Link href="/roles/create">
+                                                <Button>
+                                                    <Shield className="h-4 w-4 mr-2" />
+                                                    Create Role
+                                                </Button>
+                                            </Link>
+                                        </EmptyContent>
+                                    </Empty>
+                                </div>
+                            ) : (
+                                roles.data.map((role) => (
+                                    <div
+                                        key={role.id}
+                                        className="p-4 hover:bg-muted/50"
+                                    >
+                                        <div
+                                            className="grid gap-4 items-start"
+                                            style={{
+                                                gridTemplateColumns: `3fr ${
+                                                    columnVisibility.permissions
+                                                        ? "4fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.users
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.type
+                                                        ? "2fr"
+                                                        : ""
+                                                } 1fr`.trim(),
+                                            }}
+                                        >
                                             <div>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {role.permissions
-                                                        .slice(0, 3)
-                                                        .map((permission) => (
-                                                            <Badge
-                                                                key={
-                                                                    permission.id
-                                                                }
-                                                                variant="outline"
-                                                                className="text-xs"
-                                                            >
-                                                                {
-                                                                    permission.name
-                                                                }
-                                                            </Badge>
-                                                        ))}
-                                                    {role.permissions.length >
-                                                        3 && (
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                        >
-                                                            +
-                                                            {role.permissions
-                                                                .length -
-                                                                3}{" "}
-                                                            more
-                                                        </Badge>
-                                                    )}
-                                                    {role.permissions.length ===
-                                                        0 && (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            No permissions
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.users && (
-                                            <div>
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="text-sm">
-                                                        {role.users_count} users
+                                                <div className="flex items-center gap-2">
+                                                    <Shield className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="font-medium capitalize">
+                                                        {role.name}
                                                     </span>
                                                 </div>
                                             </div>
-                                        )}
-                                        {columnVisibility.type && (
+                                            {columnVisibility.permissions && (
+                                                <div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {role.permissions
+                                                            .slice(0, 3)
+                                                            .map(
+                                                                (
+                                                                    permission
+                                                                ) => (
+                                                                    <Badge
+                                                                        key={
+                                                                            permission.id
+                                                                        }
+                                                                        variant="outline"
+                                                                        className="text-xs"
+                                                                    >
+                                                                        {
+                                                                            permission.name
+                                                                        }
+                                                                    </Badge>
+                                                                )
+                                                            )}
+                                                        {role.permissions
+                                                            .length > 3 && (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="text-xs"
+                                                            >
+                                                                +
+                                                                {role
+                                                                    .permissions
+                                                                    .length -
+                                                                    3}{" "}
+                                                                more
+                                                            </Badge>
+                                                        )}
+                                                        {role.permissions
+                                                            .length === 0 && (
+                                                            <span className="text-sm text-muted-foreground">
+                                                                No permissions
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {columnVisibility.users && (
+                                                <div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm">
+                                                            {role.users_count}{" "}
+                                                            users
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {columnVisibility.type && (
+                                                <div>
+                                                    {getSystemRoleBadge(
+                                                        role.name
+                                                    )}
+                                                </div>
+                                            )}
                                             <div>
-                                                {getSystemRoleBadge(role.name)}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Link
-                                                    href={`/roles/${role.id}/edit`}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
+                                                <div className="flex items-center gap-2">
+                                                    <Link
+                                                        href={`/roles/${role.id}/edit`}
                                                     >
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
                                                         >
-                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <Edit className="h-4 w-4" />
                                                         </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
+                                                    </Link>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
                                                             asChild
                                                         >
-                                                            <Link
-                                                                href={`/roles/${role.id}/edit`}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                             >
-                                                                Edit role
-                                                                <Edit className="ml-9 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        {role.name.toLowerCase() !==
-                                                            "superadmin" && (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <AlertDialog>
-                                                                    <AlertDialogTrigger
-                                                                        asChild
-                                                                    >
-                                                                        <DropdownMenuItem
-                                                                            onSelect={(
-                                                                                e
-                                                                            ) =>
-                                                                                e.preventDefault()
-                                                                            }
-                                                                            className="text-red-600 focus:text-red-600"
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem
+                                                                asChild
+                                                            >
+                                                                <Link
+                                                                    href={`/roles/${role.id}/edit`}
+                                                                >
+                                                                    Edit role
+                                                                    <Edit className="ml-9 h-4 w-4" />
+                                                                </Link>
+                                                            </DropdownMenuItem>
+                                                            {role.name.toLowerCase() !==
+                                                                "superadmin" && (
+                                                                <>
+                                                                    <DropdownMenuSeparator />
+                                                                    <AlertDialog>
+                                                                        <AlertDialogTrigger
+                                                                            asChild
                                                                         >
-                                                                            Delete
-                                                                            role
-                                                                        </DropdownMenuItem>
-                                                                    </AlertDialogTrigger>
-                                                                    <AlertDialogContent>
-                                                                        <AlertDialogHeader>
-                                                                            <AlertDialogTitle>
-                                                                                Are
-                                                                                you
-                                                                                absolutely
-                                                                                sure?
-                                                                            </AlertDialogTitle>
-                                                                            <AlertDialogDescription>
-                                                                                This
-                                                                                action
-                                                                                cannot
-                                                                                be
-                                                                                undone.
-                                                                                This
-                                                                                will
-                                                                                permanently
-                                                                                delete
-                                                                                the
-                                                                                role
-                                                                                "
-                                                                                {
-                                                                                    role.name
+                                                                            <DropdownMenuItem
+                                                                                onSelect={(
+                                                                                    e
+                                                                                ) =>
+                                                                                    e.preventDefault()
                                                                                 }
-
-                                                                                "
-                                                                                and
-                                                                                remove
-                                                                                it
-                                                                                from
-                                                                                all
-                                                                                users
-                                                                                who
-                                                                                have
-                                                                                it
-                                                                                assigned.
-                                                                            </AlertDialogDescription>
-                                                                        </AlertDialogHeader>
-                                                                        <AlertDialogFooter>
-                                                                            <AlertDialogCancel>
-                                                                                Cancel
-                                                                            </AlertDialogCancel>
-                                                                            <AlertDialogAction
-                                                                                onClick={() =>
-                                                                                    handleDelete(
-                                                                                        role.id
-                                                                                    )
-                                                                                }
-                                                                                className="bg-red-600 hover:bg-red-700"
+                                                                                className="text-red-600 focus:text-red-600"
                                                                             >
                                                                                 Delete
-                                                                            </AlertDialogAction>
-                                                                        </AlertDialogFooter>
-                                                                    </AlertDialogContent>
-                                                                </AlertDialog>
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                                                role
+                                                                            </DropdownMenuItem>
+                                                                        </AlertDialogTrigger>
+                                                                        <AlertDialogContent>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle>
+                                                                                    Are
+                                                                                    you
+                                                                                    absolutely
+                                                                                    sure?
+                                                                                </AlertDialogTitle>
+                                                                                <AlertDialogDescription>
+                                                                                    This
+                                                                                    action
+                                                                                    cannot
+                                                                                    be
+                                                                                    undone.
+                                                                                    This
+                                                                                    will
+                                                                                    permanently
+                                                                                    delete
+                                                                                    the
+                                                                                    role
+                                                                                    "
+                                                                                    {
+                                                                                        role.name
+                                                                                    }
+
+                                                                                    "
+                                                                                    and
+                                                                                    remove
+                                                                                    it
+                                                                                    from
+                                                                                    all
+                                                                                    users
+                                                                                    who
+                                                                                    have
+                                                                                    it
+                                                                                    assigned.
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel>
+                                                                                    Cancel
+                                                                                </AlertDialogCancel>
+                                                                                <AlertDialogAction
+                                                                                    onClick={() =>
+                                                                                        handleDelete(
+                                                                                            role.id
+                                                                                        )
+                                                                                    }
+                                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                                >
+                                                                                    Delete
+                                                                                </AlertDialogAction>
+                                                                            </AlertDialogFooter>
+                                                                        </AlertDialogContent>
+                                                                    </AlertDialog>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

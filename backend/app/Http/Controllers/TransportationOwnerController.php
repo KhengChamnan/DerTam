@@ -388,15 +388,16 @@ class TransportationOwnerController extends Controller
     {
         $user = Auth::user();
         
-        $bookings = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
+        $bookings = SeatBooking::whereHas('schedule.bus.busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
         ->with([
-            'booking.user:id,name,email',
+            'booking.user:id,name,email,phone_number',
+            'booking.payments:id,booking_id,status',
             'schedule.route.fromProvince:province_categoryID,province_categoryName',
             'schedule.route.toProvince:province_categoryID,province_categoryName',
-            'schedule.bus:id,bus_name,bus_plate',
-            'schedule.bus.transportation.place',
+            'schedule.bus:id,bus_name,bus_plate,bus_property_id',
+            'schedule.bus.busProperty.transportation.place',
             'seat:id,seat_number'
         ])
         ->orderBy('created_at', 'desc')
@@ -405,18 +406,18 @@ class TransportationOwnerController extends Controller
         // Transform data to match frontend expectations
         $bookings->getCollection()->transform(function($seatBooking) {
             // Map passenger information from booking.user
-            $seatBooking->passenger_name = $seatBooking->booking->user->name ?? 'Unknown Passenger';
-            $seatBooking->passenger_email = $seatBooking->booking->user->email ?? null;
-            $seatBooking->passenger_phone = null; // Phone not available in users table
+            $seatBooking->passenger_name = $seatBooking->booking?->user?->name ?? 'Unknown Passenger';
+            $seatBooking->passenger_email = $seatBooking->booking?->user?->email ?? null;
+            $seatBooking->passenger_phone = $seatBooking->booking?->user?->phone_number ?? null;
             
             // Map booking status
-            $seatBooking->booking_status = $seatBooking->booking->status ?? 'pending';
-            $seatBooking->payment_status = $seatBooking->booking->payments->first()->status ?? 'pending';
+            $seatBooking->booking_status = $seatBooking->booking?->status ?? 'pending';
+            $seatBooking->payment_status = $seatBooking->booking?->payments?->first()?->status ?? 'pending';
             
             // Map route origin/destination from province names
             if ($seatBooking->schedule && $seatBooking->schedule->route) {
-                $seatBooking->schedule->route->origin = $seatBooking->schedule->route->fromProvince->province_categoryName ?? 'N/A';
-                $seatBooking->schedule->route->destination = $seatBooking->schedule->route->toProvince->province_categoryName ?? 'N/A';
+                $seatBooking->schedule->route->origin = $seatBooking->schedule->route->fromProvince?->province_categoryName ?? 'N/A';
+                $seatBooking->schedule->route->destination = $seatBooking->schedule->route->toProvince?->province_categoryName ?? 'N/A';
                 
                 // Clean up unnecessary relationships
                 unset($seatBooking->schedule->route->fromProvince);
@@ -491,17 +492,26 @@ class TransportationOwnerController extends Controller
             'route:id,from_location,to_location,distance_km,duration_hours',
             'route.fromProvince:province_categoryID,province_categoryName',
             'route.toProvince:province_categoryID,province_categoryName',
-            'bookings.user:id,name,email,phone',
-            'bookings.seats',
+            'bookings.booking:id,user_id,status',
+            'bookings.booking.user:id,name,email,phone_number',
+            'bookings.seat:id,seat_number',
         ])
         ->findOrFail($id);
         
         // Map route province names
         if ($schedule->route) {
-            $schedule->route->from_location = $schedule->route->fromProvince->province_categoryName ?? $schedule->route->from_location;
-            $schedule->route->to_location = $schedule->route->toProvince->province_categoryName ?? $schedule->route->to_location;
+            $schedule->route->from_location = $schedule->route->fromProvince?->province_categoryName ?? $schedule->route->from_location;
+            $schedule->route->to_location = $schedule->route->toProvince?->province_categoryName ?? $schedule->route->to_location;
             unset($schedule->route->fromProvince);
             unset($schedule->route->toProvince);
+        }
+        
+        // Transform bookings to add booking_status at the top level
+        if ($schedule->bookings) {
+            $schedule->bookings->transform(function($seatBooking) {
+                $seatBooking->booking_status = $seatBooking->booking?->status ?? 'pending';
+                return $seatBooking;
+            });
         }
         
         return Inertia::render('transportation-owner/schedules/show', [

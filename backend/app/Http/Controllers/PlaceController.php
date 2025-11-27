@@ -11,7 +11,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\MediaController;
+use App\Services\PlaceCacheService;
 
 class PlaceController extends Controller
 {
@@ -32,28 +34,33 @@ class PlaceController extends Controller
                 ]);
             }
 
+            // Build query using optimized scopes
             $query = Place::query();
 
-            // Add relationships only if they exist
-            try {
-                $query->with(['category', 'province']);
-            } catch (\Exception $e) {
-                // If relationships fail, continue without them
+            // Eager load relationships with selected columns only for better performance
+            $query->with([
+                'category:placeCategoryID,category_name',
+                'province:province_categoryID,province_categoryName'
+            ]);
+
+            // Apply search with full-text search (word order matters)
+            if ($request->filled('search')) {
+                $query->search($request->search);
             }
 
-            // Filter by category if provided
-            if ($request->has('category_id')) {
-                $query->where('category_id', $request->category_id);
+            // Apply category filter
+            if ($request->filled('category_id') && $request->category_id !== 'all') {
+                $query->byCategory($request->category_id);
             }
 
-            // Filter by province if provided
-            if ($request->has('province_id')) {
-                $query->where('province_id', $request->province_id);
+            // Apply province filter
+            if ($request->filled('province_id') && $request->province_id !== 'all') {
+                $query->byProvince($request->province_id);
             }
 
-            // Search by name if provided
-            if ($request->has('search')) {
-                $query->where('name', 'like', '%' . $request->search . '%');
+            // Order by name alphabetically if no search term (search has its own relevance ordering)
+            if (!$request->filled('search')) {
+                $query->orderBy('name', 'asc');
             }
 
             $places = $query->paginate($request->get('per_page', 15));
@@ -81,33 +88,9 @@ class PlaceController extends Controller
                 ];
             });
 
-            // Get categories and provinces for filters
-            $categories = [];
-            $provinces = [];
-            
-            try {
-                $categoriesRaw = \App\Models\PlaceCategory::all();
-                $categories = $categoriesRaw->map(function ($category) {
-                    return [
-                        'placeCategoryID' => $category->placeCategoryID,
-                        'name' => $category->category_name,
-                    ];
-                });
-            } catch (\Exception $e) {
-                // Categories not available
-            }
-            
-            try {
-                $provincesRaw = \App\Models\ProvinceCategory::all();
-                $provinces = $provincesRaw->map(function ($province) {
-                    return [
-                        'province_categoryID' => $province->province_categoryID,
-                        'name' => $province->province_categoryName,
-                    ];
-                });
-            } catch (\Exception $e) {
-                // Provinces not available
-            }
+            // Get categories and provinces for filters with caching (24 hours)
+            $categories = PlaceCacheService::getCategories();
+            $provinces = PlaceCacheService::getProvinces();
 
             return Inertia::render('places/index', [
                 'places' => $places,
@@ -140,33 +123,9 @@ class PlaceController extends Controller
      */
     public function create(): Response
     {
-        // Get categories and provinces for the form
-        $categories = [];
-        $provinces = [];
-        
-        try {
-            $categoriesRaw = \App\Models\PlaceCategory::all();
-            $categories = $categoriesRaw->map(function ($category) {
-                return [
-                    'placeCategoryID' => $category->placeCategoryID,
-                    'name' => $category->category_name,
-                ];
-            });
-        } catch (\Exception $e) {
-            // Categories not available
-        }
-        
-        try {
-            $provincesRaw = \App\Models\ProvinceCategory::all();
-            $provinces = $provincesRaw->map(function ($province) {
-                return [
-                    'province_categoryID' => $province->province_categoryID,
-                    'name' => $province->province_categoryName,
-                ];
-            });
-        } catch (\Exception $e) {
-            // Provinces not available
-        }
+        // Get categories and provinces for the form (use cached data)
+        $categories = PlaceCacheService::getCategories();
+        $provinces = PlaceCacheService::getProvinces();
 
         return Inertia::render('places/edit', [
             'place' => null, // No place data for create mode
@@ -297,33 +256,9 @@ class PlaceController extends Controller
                 'best_season_to_visit' => $place->best_season_to_visit,
             ];
 
-            // Get categories and provinces for the form
-            $categories = [];
-            $provinces = [];
-            
-            try {
-                $categoriesRaw = \App\Models\PlaceCategory::all();
-                $categories = $categoriesRaw->map(function ($category) {
-                    return [
-                        'placeCategoryID' => $category->placeCategoryID,
-                        'name' => $category->category_name,
-                    ];
-                });
-            } catch (\Exception $e) {
-                // Categories not available
-            }
-            
-            try {
-                $provincesRaw = \App\Models\ProvinceCategory::all();
-                $provinces = $provincesRaw->map(function ($province) {
-                    return [
-                        'province_categoryID' => $province->province_categoryID,
-                        'name' => $province->province_categoryName,
-                    ];
-                });
-            } catch (\Exception $e) {
-                // Provinces not available
-            }
+            // Get categories and provinces for the form (use cached data)
+            $categories = PlaceCacheService::getCategories();
+            $provinces = PlaceCacheService::getProvinces();
 
             return Inertia::render('places/edit', [
                 'place' => $transformedPlace,

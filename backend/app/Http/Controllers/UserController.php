@@ -20,13 +20,26 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // Search functionality
+        // Search functionality (case-insensitive with word order relevance)
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            $search = trim($request->search);
+            $searchLower = strtolower($search);
+            
+            // Add relevance scoring for word order (name only)
+            $query->whereRaw('LOWER(name) LIKE ?', ['%' . $searchLower . '%'])
+            ->selectRaw('users.*, 
+                CASE 
+                    WHEN LOWER(name) = ? THEN 100
+                    WHEN LOWER(name) LIKE ? THEN 90
+                    WHEN LOWER(name) LIKE ? THEN 80
+                    ELSE 40
+                END as search_relevance', 
+                [
+                    $searchLower,
+                    $searchLower . '%',
+                    '%' . $searchLower . '%'
+                ])
+            ->orderByDesc('search_relevance');
         }
 
         // Filter by status
@@ -42,7 +55,10 @@ class UserController extends Controller
         }
 
         $users = $query->with('roles')
-                      ->orderBy('created_at', 'desc')
+                      ->when(!$request->filled('search'), function ($q) {
+                          // Only order by name alphabetically if no search term
+                          return $q->orderBy('name', 'asc');
+                      })
                       ->paginate(10)
                       ->withQueryString();
 

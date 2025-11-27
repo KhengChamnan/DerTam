@@ -13,6 +13,15 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import {
     Search,
     Plus,
@@ -189,6 +198,7 @@ export default function PlacesIndex({
 
         // Set new timer for debounced search
         debounceTimer.current = setTimeout(() => {
+            setIsLoading(true);
             router.get(
                 "/places",
                 {
@@ -202,6 +212,8 @@ export default function PlacesIndex({
                     preserveState: true,
                     preserveScroll: true,
                     replace: true,
+                    only: ["places"],
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }, 500); // 500ms debounce
@@ -222,6 +234,7 @@ export default function PlacesIndex({
             return;
         }
 
+        setIsLoading(true);
         router.get(
             "/places",
             {
@@ -235,6 +248,8 @@ export default function PlacesIndex({
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                only: ["places"],
+                onFinish: () => setIsLoading(false),
             }
         );
     }, [categoryFilter, provinceFilter]);
@@ -529,7 +544,7 @@ export default function PlacesIndex({
 
                 {/* Table-like layout */}
                 <div className="rounded-md border overflow-x-auto">
-                    <div className="min-w-[1600px]">
+                    <div className="min-w-[1800px]">
                         {/* Table Header */}
                         <div className="border-b bg-muted/50 p-4">
                             <div
@@ -539,7 +554,7 @@ export default function PlacesIndex({
                                         columnVisibility.image ? "1fr" : ""
                                     } 2fr ${
                                         columnVisibility.description
-                                            ? "3fr"
+                                            ? "2fr"
                                             : ""
                                     } ${
                                         columnVisibility.category ? "2fr" : ""
@@ -596,287 +611,390 @@ export default function PlacesIndex({
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {places.data.map((place) => (
-                                <div
-                                    key={place.placeID}
-                                    className="p-4 hover:bg-muted/50"
-                                >
-                                    <div
-                                        className="grid gap-4 items-center"
-                                        style={{
-                                            gridTemplateColumns: `${
-                                                columnVisibility.image
-                                                    ? "1fr"
-                                                    : ""
-                                            } 2fr ${
-                                                columnVisibility.description
-                                                    ? "3fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.category
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.province
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.rating
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.reviews
-                                                    ? "1fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.entryFee
-                                                    ? "1fr"
-                                                    : ""
-                                            } 2fr`.trim(),
-                                        }}
-                                    >
-                                        {columnVisibility.image && (
-                                            <div>
-                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                                                    {place.images_url &&
-                                                    place.images_url.length >
-                                                        0 ? (
-                                                        <img
-                                                            src={getSafeImageUrl(
-                                                                place
-                                                                    .images_url[0],
-                                                                48,
-                                                                48
-                                                            )}
-                                                            alt={place.name}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) =>
-                                                                handleImageError(
-                                                                    e,
-                                                                    48,
-                                                                    48
-                                                                )
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-gray-50 flex items-center justify-center">
-                                                            <svg
-                                                                className="w-6 h-6 text-gray-400"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        2
-                                                                    }
-                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                                                />
-                                                            </svg>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <div className="font-medium truncate">
-                                                {place.name}
+                            {isLoading ? (
+                                // Skeleton loading state
+                                Array.from({ length: 5 }).map((_, index) => (
+                                    <div key={index} className="p-4">
+                                        <div
+                                            className="grid gap-4 items-center"
+                                            style={{
+                                                gridTemplateColumns: `${
+                                                    columnVisibility.image
+                                                        ? "1fr"
+                                                        : ""
+                                                } 2fr ${
+                                                    columnVisibility.description
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.category
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.province
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.rating
+                                                        ? "1fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.reviews
+                                                        ? "1fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.entryFee
+                                                        ? "1fr"
+                                                        : ""
+                                                } 2fr`.trim(),
+                                            }}
+                                        >
+                                            {columnVisibility.image && (
+                                                <Skeleton className="w-12 h-12 rounded-lg" />
+                                            )}
+                                            <Skeleton className="h-5 w-3/4" />
+                                            {columnVisibility.description && (
+                                                <Skeleton className="h-4 w-full" />
+                                            )}
+                                            {columnVisibility.category && (
+                                                <Skeleton className="h-6 w-20" />
+                                            )}
+                                            {columnVisibility.province && (
+                                                <Skeleton className="h-6 w-24" />
+                                            )}
+                                            {columnVisibility.rating && (
+                                                <Skeleton className="h-5 w-12" />
+                                            )}
+                                            {columnVisibility.reviews && (
+                                                <Skeleton className="h-5 w-8" />
+                                            )}
+                                            {columnVisibility.entryFee && (
+                                                <Skeleton className="h-6 w-16" />
+                                            )}
+                                            <div className="flex gap-2">
+                                                <Skeleton className="h-8 w-8" />
+                                                <Skeleton className="h-8 w-8" />
                                             </div>
                                         </div>
-                                        {columnVisibility.description && (
-                                            <div>
-                                                <div
-                                                    className="text-sm text-muted-foreground line-clamp-2"
-                                                    title={place.description}
-                                                >
-                                                    {place.description}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.category && (
-                                            <div>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="text-xs"
-                                                >
-                                                    {place.category?.name ||
-                                                        "N/A"}
-                                                </Badge>
-                                            </div>
-                                        )}
-                                        {columnVisibility.province && (
-                                            <div>
-                                                <Badge
-                                                    variant="outline"
-                                                    className="text-xs"
-                                                >
-                                                    {place.province?.name ||
-                                                        "N/A"}
-                                                </Badge>
-                                            </div>
-                                        )}
-                                        {columnVisibility.rating && (
-                                            <div>
-                                                <div className="flex items-center gap-1">
-                                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                                    <span className="text-sm">
-                                                        {place.ratings || 0}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.reviews && (
-                                            <div>
-                                                <span className="text-sm text-muted-foreground">
-                                                    {place.reviews_count || 0}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {columnVisibility.entryFee && (
-                                            <div>
-                                                <Badge
-                                                    variant={
-                                                        place.entry_free
-                                                            ? "default"
-                                                            : "destructive"
-                                                    }
-                                                    className="text-xs"
-                                                >
-                                                    {place.entry_free
-                                                        ? "Free"
-                                                        : "Paid"}
-                                                </Badge>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Link
-                                                    href={`/places/${place.placeID}/edit`}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
+                                    </div>
+                                ))
+                            ) : places.data.length === 0 ? (
+                                <div className="col-span-full">
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <MapPin className="h-6 w-6" />
+                                            </EmptyMedia>
+                                            <EmptyTitle>
+                                                No places found
+                                            </EmptyTitle>
+                                            <EmptyDescription>
+                                                {search ||
+                                                categoryFilter !== "all" ||
+                                                provinceFilter !== "all"
+                                                    ? "Try adjusting your search or filters to find what you're looking for."
+                                                    : "Get started by creating your first place."}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent>
+                                            {canCreatePlaces() && (
+                                                <Link href="/places/create">
+                                                    <Button>
+                                                        <MapPinPlus className="h-4 w-4 mr-2" />
+                                                        Create Place
                                                     </Button>
                                                 </Link>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
+                                            )}
+                                        </EmptyContent>
+                                    </Empty>
+                                </div>
+                            ) : (
+                                places.data.map((place) => (
+                                    <div
+                                        key={place.placeID}
+                                        className="p-4 hover:bg-muted/50"
+                                    >
+                                        <div
+                                            className="grid gap-4 items-center"
+                                            style={{
+                                                gridTemplateColumns: `${
+                                                    columnVisibility.image
+                                                        ? "1fr"
+                                                        : ""
+                                                } 2fr ${
+                                                    columnVisibility.description
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.category
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.province
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.rating
+                                                        ? "1fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.reviews
+                                                        ? "1fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.entryFee
+                                                        ? "1fr"
+                                                        : ""
+                                                } 2fr`.trim(),
+                                            }}
+                                        >
+                                            {columnVisibility.image && (
+                                                <div>
+                                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                        {place.images_url &&
+                                                        place.images_url
+                                                            .length > 0 ? (
+                                                            <img
+                                                                src={getSafeImageUrl(
+                                                                    place
+                                                                        .images_url[0],
+                                                                    48,
+                                                                    48
+                                                                )}
+                                                                alt={place.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) =>
+                                                                    handleImageError(
+                                                                        e,
+                                                                        48,
+                                                                        48
+                                                                    )
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                                                                <svg
+                                                                    className="w-6 h-6 text-gray-400"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                                    />
+                                                                </svg>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="font-medium truncate">
+                                                    {place.name}
+                                                </div>
+                                            </div>
+                                            {columnVisibility.description && (
+                                                <div>
+                                                    <div
+                                                        className="text-sm text-muted-foreground line-clamp-2"
+                                                        title={
+                                                            place.description
+                                                        }
+                                                    >
+                                                        {place.description}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {columnVisibility.category && (
+                                                <div>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-xs"
+                                                    >
+                                                        {place.category?.name ||
+                                                            "N/A"}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            {columnVisibility.province && (
+                                                <div>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-xs"
+                                                    >
+                                                        {place.province?.name ||
+                                                            "N/A"}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            {columnVisibility.rating && (
+                                                <div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                                        <span className="text-sm">
+                                                            {place.ratings || 0}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {columnVisibility.reviews && (
+                                                <div>
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {place.reviews_count ||
+                                                            0}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {columnVisibility.entryFee && (
+                                                <div>
+                                                    <Badge
+                                                        variant={
+                                                            place.entry_free
+                                                                ? "default"
+                                                                : "destructive"
+                                                        }
+                                                        className="text-xs"
+                                                    >
+                                                        {place.entry_free
+                                                            ? "Free"
+                                                            : "Paid"}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <Link
+                                                        href={`/places/${place.placeID}/edit`}
                                                     >
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
                                                         >
-                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <Edit className="h-4 w-4" />
                                                         </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                handleViewDetails(
-                                                                    place
-                                                                )
-                                                            }
+                                                    </Link>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
+                                                            asChild
                                                         >
-                                                            View details
-                                                            <Eye className="ml-2 h-4 w-4" />
-                                                        </DropdownMenuItem>
-                                                        {canEditPlaces() && (
-                                                            <DropdownMenuItem
-                                                                asChild
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                             >
-                                                                <Link
-                                                                    href={`/places/${place.placeID}/edit`}
-                                                                >
-                                                                    Edit place
-                                                                    <Edit className="ml-5 h-4 w-4" />
-                                                                </Link>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    handleViewDetails(
+                                                                        place
+                                                                    )
+                                                                }
+                                                            >
+                                                                View details
+                                                                <Eye className="ml-2 h-4 w-4" />
                                                             </DropdownMenuItem>
-                                                        )}
-                                                        {canDeletePlaces() && (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <AlertDialog>
-                                                                    <AlertDialogTrigger
-                                                                        asChild
+                                                            {canEditPlaces() && (
+                                                                <DropdownMenuItem
+                                                                    asChild
+                                                                >
+                                                                    <Link
+                                                                        href={`/places/${place.placeID}/edit`}
                                                                     >
-                                                                        <DropdownMenuItem
-                                                                            onSelect={(
-                                                                                e
-                                                                            ) =>
-                                                                                e.preventDefault()
-                                                                            }
-                                                                            className="text-red-600 focus:text-red-600"
+                                                                        Edit
+                                                                        place
+                                                                        <Edit className="ml-5 h-4 w-4" />
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {canDeletePlaces() && (
+                                                                <>
+                                                                    <DropdownMenuSeparator />
+                                                                    <AlertDialog>
+                                                                        <AlertDialogTrigger
+                                                                            asChild
                                                                         >
-                                                                            Delete
-                                                                            place
-                                                                        </DropdownMenuItem>
-                                                                    </AlertDialogTrigger>
-                                                                    <AlertDialogContent>
-                                                                        <AlertDialogHeader>
-                                                                            <AlertDialogTitle>
-                                                                                Are
-                                                                                you
-                                                                                absolutely
-                                                                                sure?
-                                                                            </AlertDialogTitle>
-                                                                            <AlertDialogDescription>
-                                                                                This
-                                                                                action
-                                                                                cannot
-                                                                                be
-                                                                                undone.
-                                                                                This
-                                                                                will
-                                                                                permanently
-                                                                                delete
-                                                                                the
-                                                                                place
-                                                                                "
-                                                                                {
-                                                                                    place.name
+                                                                            <DropdownMenuItem
+                                                                                onSelect={(
+                                                                                    e
+                                                                                ) =>
+                                                                                    e.preventDefault()
                                                                                 }
-
-                                                                                "
-                                                                                and
-                                                                                remove
-                                                                                all
-                                                                                its
-                                                                                data
-                                                                                from
-                                                                                our
-                                                                                servers.
-                                                                            </AlertDialogDescription>
-                                                                        </AlertDialogHeader>
-                                                                        <AlertDialogFooter>
-                                                                            <AlertDialogCancel>
-                                                                                Cancel
-                                                                            </AlertDialogCancel>
-                                                                            <AlertDialogAction
-                                                                                onClick={() =>
-                                                                                    handleDelete(
-                                                                                        place.placeID
-                                                                                    )
-                                                                                }
-                                                                                className="bg-red-600 hover:bg-red-700"
+                                                                                className="text-red-600 focus:text-red-600"
                                                                             >
                                                                                 Delete
-                                                                            </AlertDialogAction>
-                                                                        </AlertDialogFooter>
-                                                                    </AlertDialogContent>
-                                                                </AlertDialog>
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                                                place
+                                                                            </DropdownMenuItem>
+                                                                        </AlertDialogTrigger>
+                                                                        <AlertDialogContent>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle>
+                                                                                    Are
+                                                                                    you
+                                                                                    absolutely
+                                                                                    sure?
+                                                                                </AlertDialogTitle>
+                                                                                <AlertDialogDescription>
+                                                                                    This
+                                                                                    action
+                                                                                    cannot
+                                                                                    be
+                                                                                    undone.
+                                                                                    This
+                                                                                    will
+                                                                                    permanently
+                                                                                    delete
+                                                                                    the
+                                                                                    place
+                                                                                    "
+                                                                                    {
+                                                                                        place.name
+                                                                                    }
+
+                                                                                    "
+                                                                                    and
+                                                                                    remove
+                                                                                    all
+                                                                                    its
+                                                                                    data
+                                                                                    from
+                                                                                    our
+                                                                                    servers.
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel>
+                                                                                    Cancel
+                                                                                </AlertDialogCancel>
+                                                                                <AlertDialogAction
+                                                                                    onClick={() =>
+                                                                                        handleDelete(
+                                                                                            place.placeID
+                                                                                        )
+                                                                                    }
+                                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                                >
+                                                                                    Delete
+                                                                                </AlertDialogAction>
+                                                                            </AlertDialogFooter>
+                                                                        </AlertDialogContent>
+                                                                    </AlertDialog>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

@@ -23,16 +23,18 @@ import {
 interface Booking {
     id: number;
     booking_status: string;
-    user: {
-        id: number;
-        name: string;
-        email: string;
-        phone: string;
+    booking: {
+        user: {
+            id: number;
+            name: string;
+            email: string;
+            phone_number: string;
+        };
     };
-    seats: Array<{
+    seat: {
         id: number;
         seat_number: string;
-    }>;
+    };
 }
 
 interface ScheduleData {
@@ -158,16 +160,19 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
         );
     };
 
-    const getBookingStatusBadge = (status: string) => {
+    const getBookingStatusBadge = (status?: string) => {
         const colors: { [key: string]: string } = {
             confirmed: "bg-green-500 text-white",
             pending: "bg-yellow-500 text-white",
             cancelled: "bg-red-500 text-white",
             completed: "bg-blue-500 text-white",
         };
+        const displayStatus = status || "pending";
         return (
-            <Badge className={colors[status] || "bg-gray-500 text-white"}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+            <Badge
+                className={colors[displayStatus] || "bg-gray-500 text-white"}
+            >
+                {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
             </Badge>
         );
     };
@@ -462,27 +467,27 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                         </div>
                                                         <div>
                                                             <p className="font-medium">
-                                                                {
-                                                                    booking.user
-                                                                        .name
-                                                                }
+                                                                {booking.booking
+                                                                    ?.user
+                                                                    ?.name ||
+                                                                    "Unknown"}
                                                             </p>
                                                             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                                                                 <span className="flex items-center gap-1">
                                                                     <Mail className="h-3 w-3" />
-                                                                    {
-                                                                        booking
-                                                                            .user
-                                                                            .email
-                                                                    }
+                                                                    {booking
+                                                                        .booking
+                                                                        ?.user
+                                                                        ?.email ||
+                                                                        "N/A"}
                                                                 </span>
                                                                 <span className="flex items-center gap-1">
                                                                     <Phone className="h-3 w-3" />
-                                                                    {
-                                                                        booking
-                                                                            .user
-                                                                            .phone
-                                                                    }
+                                                                    {booking
+                                                                        .booking
+                                                                        ?.user
+                                                                        ?.phone_number ||
+                                                                        "N/A"}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -492,32 +497,22 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                     )}
                                                 </div>
 
-                                                {booking.seats &&
-                                                    booking.seats.length >
-                                                        0 && (
-                                                        <div className="flex items-center gap-2 mt-2">
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Seats:
-                                                            </p>
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {booking.seats.map(
-                                                                    (seat) => (
-                                                                        <Badge
-                                                                            key={
-                                                                                seat.id
-                                                                            }
-                                                                            variant="outline"
-                                                                            className="text-xs"
-                                                                        >
-                                                                            {
-                                                                                seat.seat_number
-                                                                            }
-                                                                        </Badge>
-                                                                    )
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                {booking.seat && (
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Seat:
+                                                        </p>
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                        >
+                                                            {
+                                                                booking.seat
+                                                                    .seat_number
+                                                            }
+                                                        </Badge>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
