@@ -24,8 +24,7 @@ class BusScheduleController extends Controller
         $validator = Validator::make($request->all(), [
             'from_location' => 'required|integer|exists:province_categories,province_categoryID',
             'to_location' => 'required|integer|exists:province_categories,province_categoryID',
-            'date_filter' => 'nullable|in:today,tomorrow,other',
-            'specific_date' => 'nullable|date|after_or_equal:today|required_if:date_filter,other',
+            'specific_date' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -51,7 +50,7 @@ class BusScheduleController extends Controller
                         'search_params' => [
                             'from' => $request->from_location,
                             'to' => $request->to_location,
-                            'date_filter' => $request->date_filter ?? 'today',
+                            'specific_date' => $request->specific_date,
                         ],
                     ],
                     'message' => 'No routes found for the selected provinces',
@@ -66,22 +65,8 @@ class BusScheduleController extends Controller
                 ->where('departure_time', '>=', now()); // Show schedules from now onwards
 
             // Step 3: Handle date filtering
-            $dateFilter = $request->date_filter;
-            
-            if ($dateFilter) {
-                switch ($dateFilter) {
-                    case 'today':
-                        $query->whereDate('departure_time', today());
-                        break;
-                    case 'tomorrow':
-                        $query->whereDate('departure_time', today()->addDay());
-                        break;
-                    case 'other':
-                        if ($request->has('specific_date')) {
-                            $query->whereDate('departure_time', $request->specific_date);
-                        }
-                        break;
-                }
+            if ($request->has('specific_date')) {
+                $query->whereDate('departure_time', $request->specific_date);
             }
 
             // Order by departure time
