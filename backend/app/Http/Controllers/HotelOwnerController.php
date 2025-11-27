@@ -217,6 +217,118 @@ class HotelOwnerController extends Controller
     }
 
     /**
+     * Show a specific booking detail
+     */
+    public function showBooking($id): Response
+    {
+        $user = Auth::user();
+        
+        $bookingItem = BookingItem::where('id', $id)
+            ->where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with([
+                'booking.user',
+                'booking.payments',
+                'roomProperty.property.place',
+                'roomProperty.amenities',
+                'hotelDetails'
+            ])
+            ->firstOrFail();
+        
+        return Inertia::render('hotel-owner/bookings/show', [
+            'bookingItem' => $bookingItem
+        ]);
+    }
+
+    /**
+     * Show edit form for a specific booking
+     */
+    public function editBooking($id): Response
+    {
+        $user = Auth::user();
+        
+        $bookingItem = BookingItem::where('id', $id)
+            ->where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with([
+                'booking.user',
+                'booking.payments',
+                'roomProperty.property.place',
+                'roomProperty.amenities',
+                'hotelDetails'
+            ])
+            ->firstOrFail();
+        
+        return Inertia::render('hotel-owner/bookings/createEdit', [
+            'bookingItem' => $bookingItem
+        ]);
+    }
+
+    /**
+     * Update booking details
+     */
+    public function updateBooking(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        $bookingItem = BookingItem::where('id', $id)
+            ->where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with(['hotelDetails'])
+            ->firstOrFail();
+        
+        $validated = $request->validate([
+            'status' => 'required|in:pending,confirmed,cancelled,completed',
+            'check_in' => 'nullable|date',
+            'check_out' => 'nullable|date|after:check_in',
+            'quantity' => 'nullable|integer|min:1',
+            'notes' => 'nullable|string|max:1000'
+        ]);
+        
+        // Update booking status
+        $bookingItem->booking->update([
+            'status' => $validated['status']
+        ]);
+        
+        // Update hotel details if provided
+        if (isset($validated['check_in']) || isset($validated['check_out'])) {
+            $checkIn = $validated['check_in'] ?? $bookingItem->hotelDetails->check_in;
+            $checkOut = $validated['check_out'] ?? $bookingItem->hotelDetails->check_out;
+            
+            // Calculate nights
+            $nights = max(1, (strtotime($checkOut) - strtotime($checkIn)) / 86400);
+            
+            $bookingItem->hotelDetails->update([
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'nights' => $nights,
+            ]);
+        }
+        
+        // Update quantity if provided
+        if (isset($validated['quantity'])) {
+            $bookingItem->update([
+                'quantity' => $validated['quantity'],
+                'total_price' => $bookingItem->unit_price * $bookingItem->hotelDetails->nights * $validated['quantity']
+            ]);
+            
+            // Update booking total
+            $bookingItem->booking->update([
+                'total_amount' => $bookingItem->total_price
+            ]);
+        }
+        
+        return redirect()->route('hotel-owner.bookings.show', $id)
+            ->with('success', 'Booking updated successfully.');
+    }
+
+    /**
      * Show all individual rooms (not room types) across all properties
      */
     public function allRooms(): Response

@@ -174,6 +174,9 @@ Route::middleware([
                 ->name('properties.show');
             Route::get('/rooms', [HotelOwnerController::class, 'allRooms'])->name('rooms.all');
             Route::get('/bookings', [HotelOwnerController::class, 'bookings'])->name('bookings.index');
+            Route::get('/bookings/{id}', [HotelOwnerController::class, 'showBooking'])->name('bookings.show');
+            Route::get('/bookings/{id}/edit', [HotelOwnerController::class, 'editBooking'])->name('bookings.edit');
+            Route::put('/bookings/{id}', [HotelOwnerController::class, 'updateBooking'])->name('bookings.update');
             
             // Room Property (Room Types) Management
             Route::prefix('properties/{property_id}/room-properties')

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,8 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -31,6 +33,7 @@ import {
     Users,
     DollarSign,
     Eye,
+    Edit,
     Hotel,
     Phone,
     Settings2,
@@ -39,6 +42,7 @@ import {
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
+    MoreHorizontal,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -135,11 +139,39 @@ export default function HotelOwnerBookingsIndex({
         links: [],
     },
 }: Props) {
+    const data = bookings.data || [];
+
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
 
-    // Column visibility state with localStorage persistence
+    // Client-side filtering using useMemo (like in all rooms)
+    const filteredData = useMemo(() => {
+        return data.filter((booking) => {
+            // Search filter - search in guest name, email, property name, room type
+            const matchesSearch =
+                search === "" ||
+                booking.booking?.user?.name
+                    ?.toLowerCase()
+                    .includes(search.toLowerCase()) ||
+                booking.booking?.user?.email
+                    ?.toLowerCase()
+                    .includes(search.toLowerCase()) ||
+                booking.room_property?.property?.place?.name
+                    ?.toLowerCase()
+                    .includes(search.toLowerCase()) ||
+                booking.room_property?.room_type
+                    ?.toLowerCase()
+                    .includes(search.toLowerCase());
+
+            // Status filter
+            const matchesStatus =
+                statusFilter === "all" ||
+                booking.booking?.status === statusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [data, search, statusFilter]); // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
         () => {
             const savedPreferences = localStorage.getItem(
@@ -147,7 +179,9 @@ export default function HotelOwnerBookingsIndex({
             );
             if (savedPreferences) {
                 try {
-                    return JSON.parse(savedPreferences);
+                    const parsed = JSON.parse(savedPreferences);
+                    // Save back to localStorage on any change
+                    return parsed;
                 } catch (e) {
                     console.error(
                         "Failed to parse column visibility preferences:",
@@ -165,13 +199,15 @@ export default function HotelOwnerBookingsIndex({
         }
     );
 
-    // Save column visibility preferences
-    useEffect(() => {
+    // Save column visibility preferences on change
+    const updateColumnVisibility = (updates: Partial<ColumnVisibility>) => {
+        const newVisibility = { ...columnVisibility, ...updates };
+        setColumnVisibility(newVisibility);
         localStorage.setItem(
             "bookingsTableColumnVisibility",
-            JSON.stringify(columnVisibility)
+            JSON.stringify(newVisibility)
         );
-    }, [columnVisibility]);
+    };
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "confirmed":
@@ -224,7 +260,7 @@ export default function HotelOwnerBookingsIndex({
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search bookings..."
+                            placeholder="Search by guest, property, or room type..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="pl-8"
@@ -264,10 +300,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.property}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         property: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Property
@@ -276,10 +311,7 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.checkIn}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        checkIn: !!value,
-                                    }))
+                                    updateColumnVisibility({ checkIn: !!value })
                                 }
                             >
                                 Check-in
@@ -288,10 +320,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.checkOut}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         checkOut: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Check-out
@@ -300,10 +331,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.bookedOn}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         bookedOn: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Booked On
@@ -312,10 +342,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.paymentStatus}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         paymentStatus: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Payment Status
@@ -442,7 +471,7 @@ export default function HotelOwnerBookingsIndex({
                                           </div>
                                       </div>
                                   ))
-                                : bookings.data.map((booking) => (
+                                : filteredData.map((booking) => (
                                       <div
                                           key={booking.id}
                                           className="p-4 hover:bg-muted/50"
@@ -541,32 +570,68 @@ export default function HotelOwnerBookingsIndex({
                                                       )}
                                                   </div>
                                               )}
-                                              <div className="flex gap-2">
-                                                  <Button
-                                                      asChild
-                                                      size="sm"
-                                                      variant="outline"
+                                              <div className="flex items-center gap-2">
+                                                  <Link
+                                                      href={`/hotel-owner/bookings/${booking.id}/edit`}
                                                   >
-                                                      <Link
-                                                          href={`/hotel-owner/bookings/${booking.booking_id}`}
-                                                      >
-                                                          <Eye className="h-4 w-4" />
-                                                      </Link>
-                                                  </Button>
-                                                  {booking.booking.user
-                                                      ?.phone_number && (
                                                       <Button
-                                                          asChild
+                                                          variant="ghost"
                                                           size="sm"
-                                                          variant="outline"
                                                       >
-                                                          <a
-                                                              href={`tel:${booking.booking.user.phone_number}`}
-                                                          >
-                                                              <Phone className="h-4 w-4" />
-                                                          </a>
+                                                          <Edit className="h-4 w-4" />
                                                       </Button>
-                                                  )}
+                                                  </Link>
+                                                  <DropdownMenu>
+                                                      <DropdownMenuTrigger
+                                                          asChild
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                          >
+                                                              <MoreHorizontal className="h-4 w-4" />
+                                                          </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/hotel-owner/bookings/${booking.id}`}
+                                                              >
+                                                                  View details
+                                                                  <Eye className="ml-2 h-4 w-4" />
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/hotel-owner/bookings/${booking.id}/edit`}
+                                                              >
+                                                                  Edit booking
+                                                                  <Edit className="ml-2 h-4 w-4" />
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          {booking.booking.user
+                                                              ?.phone_number && (
+                                                              <>
+                                                                  <DropdownMenuSeparator />
+                                                                  <DropdownMenuItem
+                                                                      asChild
+                                                                  >
+                                                                      <a
+                                                                          href={`tel:${booking.booking.user.phone_number}`}
+                                                                      >
+                                                                          Call
+                                                                          guest
+                                                                          <Phone className="ml-2 h-4 w-4" />
+                                                                      </a>
+                                                                  </DropdownMenuItem>
+                                                              </>
+                                                          )}
+                                                      </DropdownMenuContent>
+                                                  </DropdownMenu>
                                               </div>
                                           </div>
                                       </div>
@@ -576,7 +641,7 @@ export default function HotelOwnerBookingsIndex({
                 </div>
 
                 {/* Empty State */}
-                {!isLoading && bookings.data.length === 0 && (
+                {!isLoading && filteredData.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

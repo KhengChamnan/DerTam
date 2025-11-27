@@ -358,30 +358,6 @@ export default function AllRooms({ rooms }: Props) {
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Clear Filters & Results Count */}
-                    <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground whitespace-nowrap">
-                            {filteredData.length} of {data.length} rooms
-                        </p>
-                        {(searchQuery ||
-                            statusFilter !== "all" ||
-                            roomTypeFilter !== "all" ||
-                            availabilityFilter !== "all") && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setSearchQuery("");
-                                    setStatusFilter("all");
-                                    setRoomTypeFilter("all");
-                                    setAvailabilityFilter("all");
-                                }}
-                            >
-                                Clear
-                            </Button>
-                        )}
-                    </div>
                 </div>
 
                 {/* Rooms Grid */}
