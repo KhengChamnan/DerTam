@@ -1,4 +1,3 @@
-// Model for booking list API response
 class BookingListResponse {
   final bool success;
   final BookingListData data;

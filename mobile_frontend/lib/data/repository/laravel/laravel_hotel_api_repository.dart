@@ -11,8 +11,8 @@ import 'package:mobile_frontend/models/hotel/room.dart';
 import 'package:mobile_frontend/models/hotel/search_room.dart';
 
 class LaravelHotelApiRepository extends HotelRepository {
-  final LaravelAuthApiRepository repository;
-  LaravelHotelApiRepository(this.repository);
+  final LaravelAuthApiRepository authRepository;
+  LaravelHotelApiRepository(this.authRepository);
 
   final _baseHeaders = {
     'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ class LaravelHotelApiRepository extends HotelRepository {
     String paymentOption,
   ) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -190,7 +190,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<List<BookingListResponse>> getAllHotelBooking() async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -216,7 +216,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<BookingDetailResponse> getBookingDetails(String bookingId) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -250,7 +250,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<void> cancelHotelBooking(String bookingId) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -273,7 +273,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<void> deleteBooking(String bookingId) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -301,7 +301,7 @@ class LaravelHotelApiRepository extends HotelRepository {
     int nights,
   ) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('Token have no found!');
       }

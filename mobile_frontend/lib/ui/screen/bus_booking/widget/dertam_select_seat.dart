@@ -1,34 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile_frontend/models/bus/bus_detail_response.dart';
+import 'package:mobile_frontend/models/bus/bus_seat.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_booking_checkout.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_seat_label_widget.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
+import 'package:provider/provider.dart';
 
 class DertamSelectSeat extends StatefulWidget {
-  final String fromLocation;
-  final String toLocation;
-  final String date;
-  final String busName;
-  final String busType;
-  final String departureTime;
-  final String arrivalTime;
-  final String duration;
-  final int pricePerSeat;
-  final int seatsLeft;
+  final String scheduleId;
 
-  const DertamSelectSeat({
-    super.key,
-    required this.fromLocation,
-    required this.toLocation,
-    required this.date,
-    required this.busName,
-    required this.busType,
-    required this.departureTime,
-    required this.arrivalTime,
-    required this.duration,
-    required this.pricePerSeat,
-    required this.seatsLeft,
-  });
+  const DertamSelectSeat({super.key, required this.scheduleId});
 
   @override
   State<DertamSelectSeat> createState() => _DertamSelectSeatState();
@@ -37,152 +22,358 @@ class DertamSelectSeat extends StatefulWidget {
 class _DertamSelectSeatState extends State<DertamSelectSeat> {
   // Track selected deck (true = lower, false = upper)
   bool isLowerDeck = true;
+  // Bus detail data from provider
 
-  // Track selected seats (seat number as key, true if selected)
-  Set<int> selectedSeats = {};
+  BusDetailResponse? _busDetail;
 
-  // Lower deck seat configuration (4 seats per row, 6 rows = 24 seats)
-  // 0 = available, 1 = booked, 2 = selected
-  final List<List<int>> lowerDeckSeats = [
-    [1, 0, 0, 0], // Row 1: A1 booked
-    [0, 0, 0, 1], // Row 2: D2 booked
-    [0, 0, 2, 2], // Row 3: C3, D3 your seat (selected)
-    [1, 1, 0, 0], // Row 4: A4, B4 booked
-    [0, 0, 0, 1], // Row 5: D5 booked
-    [0, 0, 0, 0], // Row 6: All available
-  ];
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  // Upper deck seat configuration (example)
-  final List<List<int>> upperDeckSeats = [
-    [0, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ];
-
-  void _toggleSeat(int row, int col) {
-    setState(() {
-      int seatNumber = row * 4 + col + 1;
-      List<List<int>> currentDeck = isLowerDeck
-          ? lowerDeckSeats
-          : upperDeckSeats;
-
-      // Only toggle if seat is available (0) or already selected (2)
-      if (currentDeck[row][col] == 0) {
-        currentDeck[row][col] = 2;
-        selectedSeats.add(seatNumber);
-      } else if (currentDeck[row][col] == 2) {
-        currentDeck[row][col] = 0;
-        selectedSeats.remove(seatNumber);
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadBusDetails();
   }
 
-  Color _getSeatColor(int status) {
-    switch (status) {
-      case 1: // Booked
-        return const Color(0xFF01015B);
-      case 2: // Your seat (selected)
-        return const Color(0xFFF5A522);
+  Future<void> _loadBusDetails() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final provider = context.read<BusBookingProvider>();
+      final busDetail = await provider.fetchBusScheduleDetail(
+        widget.scheduleId,
+      );
+
+      setState(() {
+        _busDetail = busDetail;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _toggleSeat(BusSeat seat) {
+    if (seat.id == null) return;
+    context.read<BusBookingProvider>().toggleSeatSelection(seat.id!);
+  }
+
+  Color _getSeatColor(String? status, int? seatId, Set<int> selectedSeatIds) {
+    // Check if this seat is selected by user
+    if (selectedSeatIds.contains(seatId)) {
+      return const Color(0xFFF5A522); // Selected (yellow/orange)
+    }
+
+    switch (status?.toLowerCase()) {
+      case 'booked':
+      case 'reserved':
+        return const Color(0xFF01015B); // Booked (dark blue)
       default: // Available
         return const Color(0xFFDAD9DB);
     }
   }
 
+  bool _isSeatAvailable(String? status) {
+    final lowerStatus = status?.toLowerCase();
+    return lowerStatus == 'available' || lowerStatus == null;
+  }
+
+  String _formatDateDisplay(String date) {
+    if (date.isEmpty) {
+      return '';
+    }
+    try {
+      DateTime parsedDate;
+      // Handle different date formats
+      if (date.contains('T')) {
+        // ISO 8601 format: 2025-11-29T09:30:00.000000Z
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('.')) {
+        // Format: 2025.11.29
+        parsedDate = DateFormat('yyyy.MM.dd').parse(date);
+      } else if (date.contains('-')) {
+        // Format: 2025-11-29
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('/')) {
+        // Format: 29/11/2025
+        parsedDate = DateFormat('dd/MM/yyyy').parse(date);
+      } else {
+        return date;
+      }
+      // Get day with ordinal suffix
+      int day = parsedDate.day;
+      String suffix = _getOrdinalSuffix(day);
+      String dayStr = day.toString().padLeft(2, '0');
+      // Get month abbreviation
+      String month = DateFormat('MMM').format(parsedDate);
+      // Get year
+      String year = parsedDate.year.toString();
+      return '$dayStr$suffix - $month - $year';
+    } catch (e) {
+      // If parsing fails, return original format
+      return date;
+    }
+  }
+
+  String _getOrdinalSuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return 'th';
+    }
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
+
+  // Build seat grid from API data
+  Widget _buildSeatGrid(List<BusSeat> seats, Set<int> selectedSeatIds) {
+    // Group seats by row (assuming seat numbers like A1, B1, C1, D1, A2, B2, etc.)
+    // or organize based on seat numbers
+    final int seatsPerRow = 4;
+    final int totalRows = (seats.length / seatsPerRow).ceil();
+
+    return Column(
+      children: List.generate(totalRows, (rowIndex) {
+        final startIdx = rowIndex * seatsPerRow;
+        final endIdx = (startIdx + seatsPerRow).clamp(0, seats.length);
+        final rowSeats = seats.sublist(startIdx, endIdx);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Left side seats (first 2)
+              ...rowSeats
+                  .take(2)
+                  .map((seat) => _buildSeatWidget(seat, selectedSeatIds)),
+              if (rowSeats.length < 2)
+                ...List.generate(
+                  2 - rowSeats.length,
+                  (_) => const SizedBox(width: 31),
+                ),
+              const SizedBox(width: 40),
+              // Right side seats (next 2)
+              ...rowSeats
+                  .skip(2)
+                  .take(2)
+                  .map((seat) => _buildSeatWidget(seat, selectedSeatIds)),
+              if (rowSeats.length < 4 && rowSeats.length > 2)
+                ...List.generate(
+                  4 - rowSeats.length,
+                  (_) => const SizedBox(width: 31),
+                ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildSeatWidget(BusSeat seat, Set<int> selectedSeatIds) {
+    final isAvailable = _isSeatAvailable(seat.status);
+    final isSelected = selectedSeatIds.contains(seat.id);
+
+    return GestureDetector(
+      onTap: isAvailable ? () => _toggleSeat(seat) : null,
+      child: Container(
+        width: 31,
+        height: 31,
+        decoration: BoxDecoration(
+          color: _getSeatColor(seat.status, seat.id, selectedSeatIds),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Center(
+          child: Text(
+            seat.seatNumber ?? '',
+            style: TextStyle(
+              fontSize: 8,
+              color: isSelected || !isAvailable ? Colors.white : Colors.black54,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<List<int>> currentDeck = isLowerDeck ? lowerDeckSeats : upperDeckSeats;
-    int totalFare = selectedSeats.length * widget.pricePerSeat;
-    List<int> selectedSeatsList = selectedSeats.toList()..sort();
-    String seatsDisplay = selectedSeatsList.isEmpty
+    final authProvider = context.read<AuthProvider>();
+    final userData = authProvider.userInfo;
+    // Show loading state
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: DertamColors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Show error state
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: DertamColors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $_errorMessage'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadBusDetails,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Extract data from bus detail
+    final schedule = _busDetail?.schedule;
+    final busLayout = _busDetail?.busLayout;
+    final currentDeck = isLowerDeck
+        ? busLayout?.lowerDeck
+        : busLayout?.upperDeck;
+    final seats = currentDeck?.seats ?? [];
+
+    // Calculate price per seat from first available seat or schedule price
+    final pricePerSeat =
+        double.tryParse(
+          seats
+                  .firstWhere(
+                    (s) => s.price != null,
+                    orElse: () => BusSeat(price: schedule?.price ?? '0'),
+                  )
+                  .price ??
+              '0',
+        ) ??
+        0.0;
+
+    // Get selected seat IDs from provider
+    final selectedSeatIds = context.watch<BusBookingProvider>().selectedSeatIds;
+    final totalFare = selectedSeatIds.length * pricePerSeat;
+    // Get selected seat numbers for display
+    final selectedSeatNumbers =
+        seats
+            .where((s) => selectedSeatIds.contains(s.id))
+            .map((s) => s.seatNumber ?? '')
+            .toList()
+          ..sort();
+    final seatsDisplay = selectedSeatNumbers.isEmpty
         ? 'None'
-        : selectedSeatsList.map((s) => s.toString()).join(', ');
+        : selectedSeatNumbers.join(', ');
 
     return Scaffold(
       backgroundColor: DertamColors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 20, 15, 0),
-              child: Row(
+      appBar: AppBar(
+        leading:  // Back button
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                  ),
+                  child: Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 18,
+                    color: DertamColors.black,
+                  ),
+                ),
+              ),
+        title: // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+          child: Row(
+            children: [
+              // Avatar and greeting
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(9999),
+                  image: DecorationImage(
+                    image: userData.data?.imageUrl?.isNotEmpty == true
+                        ? NetworkImage(userData.data?.imageUrl ?? '')
+                        : AssetImage('assets/images/dertam_logo.png')
+                              as ImageProvider,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent,
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18,
-                        color: DertamColors.black,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 19),
-
-                  // Avatar and greeting
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(9999),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Hello ',
-                            style: DertamTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF757575),
-                              height: 1.4,
-                            ),
-                          ),
-                          Text(
-                            'Saduni Silva!',
-                            style: DertamTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF757575),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Hello ',
+                        style: DertamTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF757575),
+                          height: 1.4,
+                        ),
                       ),
                       Text(
-                        'Where you want go',
+                        userData.data?.name ?? '',
                         style: DertamTextStyles.body.copyWith(
-                          color: const Color(0xFF192588),
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF757575),
                           height: 1.4,
                         ),
                       ),
                     ],
                   ),
+                  Text(
+                    'Where you want go',
+                    style: DertamTextStyles.body.copyWith(
+                      color: const Color(0xFF192588),
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
-            ),
-
+            ],
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
             const SizedBox(height: 13),
 
             // Trip info card
@@ -200,7 +391,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        widget.fromLocation,
+                        schedule?.fromLocation ?? '',
                         style: DertamTextStyles.subtitle.copyWith(
                           color: DertamColors.white,
                           fontWeight: FontWeight.w600,
@@ -223,7 +414,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                         ),
                       ),
                       Text(
-                        widget.toLocation,
+                        schedule?.toLocation ?? '',
                         style: DertamTextStyles.subtitle.copyWith(
                           color: DertamColors.white,
                           fontWeight: FontWeight.w600,
@@ -245,7 +436,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      widget.date,
+                      _formatDateDisplay(schedule?.departureDate ?? ''),
                       style: DertamTextStyles.body.copyWith(
                         color: const Color(0xFFEEEEEE),
                       ),
@@ -283,7 +474,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.busName,
+                            schedule?.busName ?? '',
                             style: DertamTextStyles.subtitle.copyWith(
                               fontSize: 18,
                               fontWeight: FontWeight.w400,
@@ -292,7 +483,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            widget.busType,
+                            schedule?.busType ?? '',
                             style: DertamTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.w300,
                               color: const Color(0xFF616161),
@@ -301,7 +492,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                         ],
                       ),
                       Text(
-                        'LKR ${widget.pricePerSeat}',
+                        'LKR ${pricePerSeat.toStringAsFixed(0)}',
                         style: DertamTextStyles.title.copyWith(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -314,7 +505,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                   Row(
                     children: [
                       Text(
-                        widget.departureTime,
+                        schedule?.departureTime ?? '',
                         style: DertamTextStyles.bodySmall.copyWith(
                           color: Colors.black,
                         ),
@@ -327,14 +518,14 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        widget.arrivalTime,
+                        schedule?.arrivalTime ?? '',
                         style: DertamTextStyles.bodySmall.copyWith(
                           color: const Color(0xFF616161),
                         ),
                       ),
                       const Spacer(),
                       Text(
-                        widget.duration,
+                        schedule?.duration ?? '',
                         style: DertamTextStyles.bodyMedium.copyWith(
                           color: Colors.black,
                         ),
@@ -343,7 +534,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${widget.seatsLeft} Seats left',
+                    '${schedule?.availableSeats ?? 0} Seats left',
                     style: DertamTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w300,
                       color: const Color(0xFF43A047),
@@ -393,72 +584,59 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
 
                               const SizedBox(height: 15),
 
-                              // Column labels
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  DertamSeatLabelWidget(label: 'A'),
-                                  DertamSeatLabelWidget(label: 'B'),
-                                  const SizedBox(width: 40),
-                                  DertamSeatLabelWidget(label: 'C'),
-                                  DertamSeatLabelWidget(label: 'D'),
-                                ],
-                              ),
+                              // Column labels - dynamically from API
+                              if (currentDeck?.columns != null &&
+                                  currentDeck!.columns!.isNotEmpty)
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    ...currentDeck.columns!
+                                        .take(2)
+                                        .map(
+                                          (col) =>
+                                              DertamSeatLabelWidget(label: col),
+                                        ),
+                                    const SizedBox(width: 40),
+                                    ...currentDeck.columns!
+                                        .skip(2)
+                                        .map(
+                                          (col) =>
+                                              DertamSeatLabelWidget(label: col),
+                                        ),
+                                  ],
+                                )
+                              else
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    DertamSeatLabelWidget(label: 'A'),
+                                    DertamSeatLabelWidget(label: 'B'),
+                                    const SizedBox(width: 40),
+                                    DertamSeatLabelWidget(label: 'C'),
+                                    DertamSeatLabelWidget(label: 'D'),
+                                  ],
+                                ),
 
                               const SizedBox(height: 10),
 
-                              // Seats grid
-                              ...List.generate(6, (rowIndex) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      // Left side (A, B)
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 0,
-                                        status: currentDeck[rowIndex][0],
-                                        onTap: () => _toggleSeat(rowIndex, 0),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 1,
-                                        status: currentDeck[rowIndex][1],
-                                        onTap: () => _toggleSeat(rowIndex, 1),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                      const SizedBox(width: 40),
-                                      // Right side (C, D)
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 2,
-                                        status: currentDeck[rowIndex][2],
-                                        onTap: () => _toggleSeat(rowIndex, 2),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 3,
-                                        status: currentDeck[rowIndex][3],
-                                        onTap: () => _toggleSeat(rowIndex, 3),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
+                              // Seats grid from API data
+                              if (seats.isNotEmpty)
+                                _buildSeatGrid(seats, selectedSeatIds)
+                              else
+                                const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Text('No seats available'),
+                                ),
 
                               const SizedBox(height: 10),
 
-                              // Lower deck label
+                              // Deck label
                               RotatedBox(
                                 quarterTurns: 3,
                                 child: Text(
-                                  'LOWER DECK',
+                                  isLowerDeck ? 'LOWER DECK' : 'UPPER DECK',
                                   style: DertamTextStyles.bodyMedium.copyWith(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
@@ -581,7 +759,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '\$$totalFare',
+                            '\$${totalFare.toStringAsFixed(0)}',
                             style: DertamTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.bold,
                               color: DertamColors.black,
@@ -594,8 +772,8 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                   const SizedBox(height: 15),
                   // Book button
                   DertamButton(
-                    text: 'Booked',
-                    onPressed: selectedSeats.isEmpty
+                    text: 'Book Now',
+                    onPressed: selectedSeatIds.isEmpty
                         ? () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -612,23 +790,15 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DertamBookingCheckout(
-                                  fromLocation: widget.fromLocation,
-                                  toLocation: widget.toLocation,
-                                  busName: widget.busName,
-                                  busType: widget.busType,
-                                  departureTime: widget.departureTime,
-                                  arrivalTime: widget.arrivalTime,
-                                  selectedSeats: [widget.seatsLeft],
-                                  pricePerSeat: widget.pricePerSeat,
+                                  fromLocation: schedule?.fromLocation ?? '',
+                                  toLocation: schedule?.toLocation ?? '',
+                                  busName: schedule?.busName ?? '',
+                                  busType: schedule?.busType ?? '',
+                                  departureTime: schedule?.departureTime ?? '',
+                                  arrivalTime: schedule?.arrivalTime ?? '',
+                                  selectedSeats: selectedSeatIds.toList(),
+                                  pricePerSeat: pricePerSeat.toInt(),
                                 ),
-                              ),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Booking ${selectedSeats.length} seat(s)',
-                                ),
-                                backgroundColor: Colors.green,
                               ),
                             );
                           },
@@ -645,38 +815,38 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
   }
 }
 
-class _SeatWidget extends StatelessWidget {
-  final int row;
-  final int col;
-  final int status;
-  final VoidCallback onTap;
-  final Color Function(int) getSeatColor;
+// class _SeatWidget extends StatelessWidget {
+//   final int row;
+//   final int col;
+//   final int status;
+//   final VoidCallback onTap;
+//   final Color Function(int) getSeatColor;
 
-  const _SeatWidget({
-    required this.row,
-    required this.col,
-    required this.status,
-    required this.onTap,
-    required this.getSeatColor,
-  });
+//   const _SeatWidget({
+//     required this.row,
+//     required this.col,
+//     required this.status,
+//     required this.onTap,
+//     required this.getSeatColor,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    bool isClickable = status != 1; // Can't click booked seats
+//   @override
+//   Widget build(BuildContext context) {
+//     bool isClickable = status != 1; // Can't click booked seats
 
-    return GestureDetector(
-      onTap: isClickable ? onTap : null,
-      child: Container(
-        width: 31,
-        height: 31,
-        decoration: BoxDecoration(
-          color: getSeatColor(status),
-          borderRadius: BorderRadius.circular(5),
-        ),
-      ),
-    );
-  }
-}
+//     return GestureDetector(
+//       onTap: isClickable ? onTap : null,
+//       child: Container(
+//         width: 31,
+//         height: 31,
+//         decoration: BoxDecoration(
+//           color: getSeatColor(status),
+//           borderRadius: BorderRadius.circular(5),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class _LegendItem extends StatelessWidget {
   final String label;

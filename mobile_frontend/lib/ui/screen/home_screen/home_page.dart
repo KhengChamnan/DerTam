@@ -127,19 +127,24 @@ class _HomePageState extends State<HomePage> {
                           // Handle success state
                           return Row(
                             children: [
-                              CircleAvatar(
-                                backgroundImage: NetworkImage(
-                                  userInfo.data?.imageUrl ??
-                                      'https://i.pravatar.cc/100',
-                                ),
-                                onBackgroundImageError: (e, stackTrace) {
-                                  return;
-                                },
-                                backgroundColor: Colors.grey[200],
-                                radius: 20,
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.grey[400],
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(9999),
+                                  image: DecorationImage(
+                                    image:
+                                        userInfo.data?.imageUrl?.isNotEmpty ==
+                                            true
+                                        ? NetworkImage(
+                                            userInfo.data?.imageUrl ?? '',
+                                          )
+                                        : AssetImage(
+                                                'assets/images/dertam_logo.png',
+                                              )
+                                              as ImageProvider,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                               SizedBox(width: 8),

@@ -51,16 +51,15 @@ class UserProfile extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                width: 139,
-                height: 139,
+                width: 140,
+                height: 140,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(9999),
                   image: DecorationImage(
-                    image: NetworkImage(
-                      userData.data?.imageUrl ??
-                          'https://res.cloudinary.com/dd4hzavnw/image/upload/v1761235874/room_properties/emssdtl4jfv65qavecze.png',
-                    ),
+                    image: userData.data?.imageUrl?.isNotEmpty == true
+                        ? NetworkImage(userData.data?.imageUrl ?? '')
+                        : AssetImage('assets/images/dertam_logo.png')
+                              as ImageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),

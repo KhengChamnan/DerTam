@@ -172,7 +172,7 @@ class _BookingStatusCard extends StatelessWidget {
           Icon(_getStatusIcon(booking.status), size: 50, color: Colors.white),
           const SizedBox(height: 12),
           Text(
-            'Booking #${booking.id}',
+            '#${booking.payments.first.providerTransactionId}',
             style: DertamTextStyles.heading.copyWith(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
@@ -204,7 +204,7 @@ class _BookingStatusCard extends StatelessWidget {
               fontFamily: 'Inter',
               fontWeight: FontWeight.w800,
               fontSize: 28,
-              color: Colors.white,
+              color: DertamColors.white,
             ),
           ),
         ],

@@ -22,10 +22,10 @@ class ApiEndpoint {
   static const String getListHotel = '/api/hotels/properties';
   static const String hotelDetails = '/api/hotel-details';
   static const String roomDetails = '/api/rooms';
-  static const String hotelBooking = '/api/booking/hotel';
+  static const String hotelBooking = '/api/booking/hotel/create';
   static const String searchAvailableRooms = '/api/rooms/search';
-  static const String getAllBookings = '/api/booking/my-bookings';
-  static const String getBookingDetail = '/api/booking';
+  static const String getAllBookings = '/api/booking/hotel/my-bookings';
+  static const String getBookingDetail = '/api/booking/hotel';
   static const String cancelBooking = '/api/booking/{{booking_id}}/cancel';
   //Trip Endpoints
   static const String createTrip = '/api/trips';
@@ -49,4 +49,12 @@ class ApiEndpoint {
   static const String updateExpense = '/api/expenses';
   static const String deleteExpense = '/api/expenses';
   static const String expenseCategory = '/api/expense-categories';
+
+  /// Bus Booking endpoints
+  static const String searchProvinces = '/api/bus/provinces';
+  static const String searchBuses = '/api/bus/search';
+  // Put the schedule ID here for schedule Detials
+  static const String scheduleDetails = '/api/bus/schedule';
+  static const String upcomingJourneys = '/api/bus/upcoming-journeys';
+  static const String busBooking = '/api/booking/bus/create';
 }

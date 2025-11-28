@@ -51,6 +51,4 @@ class Place {
   String toString() {
     return 'Place{placeId: $placeId, name: $name, categoryId: $categoryId}';
   }
-
-  void operator [](String other) {}
 }

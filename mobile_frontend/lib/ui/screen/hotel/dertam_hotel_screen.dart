@@ -229,15 +229,15 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                 padding: const EdgeInsets.all(8.0),
                 child: DertamHotelNearby(
                   name: hotel.place.name,
-                  location: hotel.place.provinceCategory.provinceCategoryName,
+                  location:
+                      hotel.place.provinceCategory.provinceCategoryName ?? 'No Province',
                   rating: hotel.place.rating.toString(),
                   imageUrl: hotel.place.imagesUrl.first,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => HotelDetailScreen(
-                        hotelId: hotel.placeId.toString(),
-                      ),
+                      builder: (context) =>
+                          HotelDetailScreen(hotelId: hotel.placeId.toString()),
                     ),
                   ),
                 ),

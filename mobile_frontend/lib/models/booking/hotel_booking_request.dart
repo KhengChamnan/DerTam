@@ -198,7 +198,6 @@ class AbaStatus {
       tranId: json['tran_id'] as String,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {'code': code, 'message': message, 'tran_id': tranId};
   }

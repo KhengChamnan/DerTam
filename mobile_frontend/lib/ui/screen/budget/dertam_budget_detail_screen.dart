@@ -400,7 +400,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
             totalSpent: newTotalSpent,
             remainingBudget: newRemainingBudget,
           );
-
           // Update the provider state directly
           budgetProvider.updateBudgetDetailsLocally(updatedBudget);
         }
