@@ -121,11 +121,15 @@ class BusScheduleController extends Controller
         try {
             $limit = $request->limit ?? 10;
 
-            // Get upcoming scheduled buses
+            // Get upcoming scheduled buses (today and tomorrow only)
+            $today = now()->startOfDay();
+            $endOfTomorrow = now()->addDay()->endOfDay();
+
             $upcomingJourneys = BusSchedule::query()
                 ->with(['bus.transportation.place', 'route.fromLocation', 'route.toLocation'])
                 ->where('status', 'scheduled')
-                ->where('departure_time', '>', value: now())
+                ->where('departure_time', '>', now())
+                ->where('departure_time', '<=', $endOfTomorrow)
                 ->orderBy('departure_time', 'asc')
                 ->limit($limit)
                 ->get()
