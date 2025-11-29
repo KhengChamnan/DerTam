@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # Serve assetlinks.json with correct MIME type
+    <Files "assetlinks.json">
+    ForceType application/json
+    </Files>
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -22,4 +27,6 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+
+
 </IfModule>
