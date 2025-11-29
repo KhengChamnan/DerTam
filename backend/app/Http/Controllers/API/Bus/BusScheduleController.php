@@ -59,7 +59,7 @@ class BusScheduleController extends Controller
 
             // Step 2: Build schedule query based on found routes
             $query = BusSchedule::query()
-                ->with(['bus.transportation', 'route.fromLocation', 'route.toLocation'])
+                ->with(['bus.transportation.place', 'route.fromLocation', 'route.toLocation'])
                 ->whereIn('route_id', $routes)
                 ->where('status', 'scheduled')
                 ->where('departure_time', '>=', now()); // Show schedules from now onwards
@@ -78,7 +78,7 @@ class BusScheduleController extends Controller
                     'id' => $schedule->id,
                     'bus_name' => $schedule->bus->bus_name,
                     'bus_type'=> $schedule->bus->busProperty->bus_type ?? 'N/A',
-                    'transportation_company' => $schedule->bus->transportation->name ?? 'N/A',
+                    'transportation_company' => $schedule->bus->transportation->place->name ?? 'N/A',
                     'from_location' => $schedule->route->fromLocation->province_categoryName ?? 'N/A',
                     'to_location' => $schedule->route->toLocation->province_categoryName ?? 'N/A',
                     'departure_time' => $schedule->departure_time->format('H:i:s'),
@@ -121,19 +121,24 @@ class BusScheduleController extends Controller
         try {
             $limit = $request->limit ?? 10;
 
-            // Get upcoming scheduled buses
+            // Get upcoming scheduled buses (today and tomorrow only)
+            $today = now()->startOfDay();
+            $endOfTomorrow = now()->addDay()->endOfDay();
+
             $upcomingJourneys = BusSchedule::query()
-                ->with(['bus.transportation', 'route.fromLocation', 'route.toLocation'])
+                ->with(['bus.transportation.place', 'route.fromLocation', 'route.toLocation'])
                 ->where('status', 'scheduled')
-                ->where('departure_time', '>', value: now())
+                ->where('departure_time', '>', now())
+                ->where('departure_time', '<=', $endOfTomorrow)
                 ->orderBy('departure_time', 'asc')
                 ->limit($limit)
                 ->get()
                 ->map(function($schedule, $index) {
                     return [
                         'id' => $schedule->id,
-                        'terminal_name' => $schedule->bus->transportation->name ?? "Bus terminal " . ($index + 1),
+                        'terminal_name' => $schedule->bus->transportation->place->name ?? "Bus terminal " . ($index + 1),
                         'bus_name' => $schedule->bus->bus_name,
+                        'bus_type'=> $schedule->bus->busProperty->bus_type ?? 'N/A',
                         'from_location' => $schedule->route->fromLocation->province_categoryName ?? 'N/A',
                         'to_location' => $schedule->route->toLocation->province_categoryName ?? 'N/A',
                         'departure_time' => $schedule->departure_time->format('H:i:s'),
