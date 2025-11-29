@@ -214,7 +214,7 @@ class BusScheduleController extends Controller
     public function getScheduleDetail($id)
     {
         try {
-            $schedule = BusSchedule::with(['bus.seats', 'bus.busProperty', 'bus.transportation', 'route.fromLocation', 'route.toLocation'])
+            $schedule = BusSchedule::with(['bus.seats', 'bus.busProperty', 'bus.transportation.place', 'route.fromLocation', 'route.toLocation'])
                 ->find($id);
 
             if (!$schedule) {
@@ -329,7 +329,8 @@ class BusScheduleController extends Controller
             $scheduleData = [
                 'id' => $schedule->id,
                 'bus_name' => $schedule->bus->bus_name,
-                'transportation_company' => $schedule->bus->transportation->name ?? 'N/A',
+                'bus_type'=> $schedule->bus->busProperty->bus_type ?? 'N/A',
+                'transportation_company' => $schedule->bus->transportation->place->name ?? 'N/A',
                 'from_location' => $schedule->route->fromLocation->province_categoryName ?? 'N/A',
                 'from_location_id' => $schedule->route->from_location,
                 'to_location' => $schedule->route->toLocation->province_categoryName ?? 'N/A',
