@@ -60,7 +60,7 @@ class TripShareController extends Controller
             );
 
             // Generate share link
-            $link = "https://myapp.com/share/trip/{$share->token}";
+            $link = "https://g9-capstone-project-ll.onrender.com/share/trip/{$share->token}";
 
             return response()->json([
                 'success' => true,
