@@ -57,6 +57,11 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::controller(SocialAuthController::class)->group(function(){
         Route::post('auth/logout', 'logout');
     });
+
+    // Events CRUD (create, update, delete - protected)
+    Route::post('events', [ApiEventController::class, 'store']);
+    Route::put('events/{id}', [ApiEventController::class, 'update']);
+    Route::delete('events/{id}', [ApiEventController::class, 'destroy']);
 });
 
 Route::post(
@@ -80,6 +85,10 @@ Route::controller(PlaceBrowseController::class)->group(function(){
 Route::get('place-categories', [PlaceCategoryController::class, 'index']);
 Route::get('places/recommended', [RecommendationController::class, 'index']);
 Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
+
+// Events CRUD routes (public read, auth required for write)
+Route::get('events', [ApiEventController::class, 'index']);
+Route::get('events/{id}', [ApiEventController::class, 'show']);
 
 // Place detail routes (public)
 Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']);  // Get place details with nearby hotels & restaurants
