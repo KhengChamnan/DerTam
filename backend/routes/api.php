@@ -92,6 +92,9 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 Route::post('/rooms/search', [App\Http\Controllers\API\Hotel\RoomSearchController::class, 'searchAvailableRooms']);
 
+// Hotel search by province
+Route::get('/hotels/search', [App\Http\Controllers\API\Hotel\HotelSearchController::class, 'searchHotels']);
+
 // Public bus schedule search route
 Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
 Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
@@ -165,8 +168,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/cancel', [HotelBookingController::class, 'cancelHotelBooking']);
         });
         
+
         // Bus booking routes
         Route::post('/bus/create', [BusBookingController::class, 'createBusBooking']);
+
+
         
         // Payment operations
         Route::get('/payment/status/{transactionId}', [PaymentCallbackController::class, 'checkPaymentStatus']);
