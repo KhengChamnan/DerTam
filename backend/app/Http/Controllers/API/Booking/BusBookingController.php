@@ -60,11 +60,11 @@ class BusBookingController extends BasePaymentController
                 ], 400);
             }
 
-            // Check if seats are already booked for this schedule with active bookings
+            // Check if seats are already booked for this schedule (only confirmed bookings block seats)
             $alreadyBooked = SeatBooking::where('schedule_id', $request->schedule_id)
                 ->whereIn('seat_id', $request->seat_ids)
                 ->whereHas('booking', function($query) {
-                    $query->whereIn('status', [ 'confirmed']);
+                    $query->where('status', 'confirmed');
                 })
                 ->exists();
 
