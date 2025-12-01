@@ -1,57 +1,143 @@
-import { useState } from 'react';
-import { Heart, Star, MapPin, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
-import Carousel from '../../components/carousel';
-import Navigation from '../../components/navigation';
+import { useState } from "react";
+import {
+  Heart,
+  Star,
+  MapPin,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Link } from "react-router";
+import Carousel from "../../components/carousel";
+import Navigation from "../../components/navigation";
 
 // Hero carousel images
 const heroImages = [
   "/images/poster.jpg",
   "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=1200",
   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200",
-  "https://images.unsplash.com/photo-1528127269322-539801943592?w=1200"
+  "https://images.unsplash.com/photo-1528127269322-539801943592?w=1200",
 ];
 
 // Mock data
 const mockDestinations = [
-  { id: 1, name: "Angkor Wat", location: "Siem Reap, Cambodia", rating: 5, price: 120, image: "https://images.unsplash.com/photo-1598616264509-edd7f9312b3c?w=400", category: "Historical" },
-  { id: 2, name: "Bou Sra", location: "Mondulkiri, Cambodia", rating: 5, price: 80, image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400", category: "Standard" },
-  { id: 3, name: "Monument", location: "Phnom Penh, Cambodia", rating: 5, price: 50, image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400", category: "Historical" },
-  { id: 4, name: "Beach Villa", location: "Sihanoukville, Cambodia", rating: 4, price: 200, image: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400", category: "Villa" },
-  { id: 5, name: "Mountain Cottage", location: "Mondulkiri, Cambodia", rating: 4, price: 90, image: "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=400", category: "Cottages" },
-  { id: 6, name: "City Townhouse", location: "Phnom Penh, Cambodia", rating: 4, price: 70, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400", category: "Townhouses" },
+  {
+    id: 1,
+    name: "Angkor Wat",
+    location: "Siem Reap, Cambodia",
+    rating: 5,
+    price: 120,
+    image: "https://images.unsplash.com/photo-1598616264509-edd7f9312b3c?w=400",
+    category: "Historical",
+  },
+  {
+    id: 2,
+    name: "Bou Sra",
+    location: "Mondulkiri, Cambodia",
+    rating: 5,
+    price: 80,
+    image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
+    category: "Standard",
+  },
+  {
+    id: 3,
+    name: "Monument",
+    location: "Phnom Penh, Cambodia",
+    rating: 5,
+    price: 50,
+    image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400",
+    category: "Historical",
+  },
+  {
+    id: 4,
+    name: "Beach Villa",
+    location: "Sihanoukville, Cambodia",
+    rating: 4,
+    price: 200,
+    image: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400",
+    category: "Villa",
+  },
+  {
+    id: 5,
+    name: "Mountain Cottage",
+    location: "Mondulkiri, Cambodia",
+    rating: 4,
+    price: 90,
+    image: "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=400",
+    category: "Cottages",
+  },
+  {
+    id: 6,
+    name: "City Townhouse",
+    location: "Phnom Penh, Cambodia",
+    rating: 4,
+    price: 70,
+    image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
+    category: "Townhouses",
+  },
 ];
 
 const mockEvents = [
-  { id: 1, name: "Angkor Songkran", location: "Siem Reap, Cambodia", rating: 5, price: 150, image: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400" },
-  { id: 2, name: "Water Festival", location: "Phnom Penh, Cambodia", rating: 5, price: 80, image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400" },
-  { id: 3, name: "Pchum Ben", location: "Battambang, Cambodia", rating: 4, price: 50, image: "https://images.unsplash.com/photo-1514984879728-be0aff75a6e8?w=400" },
+  {
+    id: 1,
+    name: "Angkor Songkran",
+    location: "Siem Reap, Cambodia",
+    rating: 5,
+    price: 150,
+    image: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400",
+  },
+  {
+    id: 2,
+    name: "Water Festival",
+    location: "Phnom Penh, Cambodia",
+    rating: 5,
+    price: 80,
+    image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400",
+  },
+  {
+    id: 3,
+    name: "Pchum Ben",
+    location: "Battambang, Cambodia",
+    rating: 4,
+    price: 50,
+    image: "https://images.unsplash.com/photo-1514984879728-be0aff75a6e8?w=400",
+  },
 ];
 
-const categories = ['All', 'Historical', 'Standard', 'Villa', 'Cottages', 'Townhouses', 'Shared Space'];
+const categories = [
+  "All",
+  "Historical",
+  "Standard",
+  "Villa",
+  "Cottages",
+  "Townhouses",
+  "Shared Space",
+];
 
 export default function HomePage() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [favorites, setFavorites] = useState<number[]>([]);
   const [eventFavorites, setEventFavorites] = useState<number[]>([]);
   const [currentEventPage, setCurrentEventPage] = useState(0);
 
   // Filter destinations based on category
-  const filteredDestinations = mockDestinations.filter(dest => {
-    const matchesCategory = selectedCategory === 'All' || dest.category === selectedCategory;
+  const filteredDestinations = mockDestinations.filter((dest) => {
+    const matchesCategory =
+      selectedCategory === "All" || dest.category === selectedCategory;
     return matchesCategory;
   });
 
   // Toggle favorite
   const toggleFavorite = (id: number) => {
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
     );
   };
 
   // Toggle event favorite
   const toggleEventFavorite = (id: number) => {
-    setEventFavorites(prev => 
-      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
+    setEventFavorites((prev) =>
+      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
     );
   };
 
@@ -64,11 +150,13 @@ export default function HomePage() {
   );
 
   const nextEventPage = () => {
-    setCurrentEventPage(prev => (prev + 1) % totalEventPages);
+    setCurrentEventPage((prev) => (prev + 1) % totalEventPages);
   };
 
   const prevEventPage = () => {
-    setCurrentEventPage(prev => (prev - 1 + totalEventPages) % totalEventPages);
+    setCurrentEventPage(
+      (prev) => (prev - 1 + totalEventPages) % totalEventPages
+    );
   };
 
   return (
@@ -78,8 +166,8 @@ export default function HomePage() {
 
       {/* Hero Section with Carousel */}
       <section className="relative overflow-hidden">
-        <Carousel 
-          images={heroImages} 
+        <Carousel
+          images={heroImages}
           autoPlay={true}
           autoPlayInterval={5000}
           className="w-full h-[600px]"
@@ -98,15 +186,17 @@ export default function HomePage() {
           {/* Categories */}
           <div className="flex gap-5 mb-8 flex-wrap">
             {categories.map((cat) => (
-              <button 
+              <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`${
                   selectedCategory === cat
-                    ? 'text-white border-none' 
-                    : 'bg-transparent text-gray-600 border border-gray-300 hover:border-[#01005B]'
+                    ? "text-white border-none"
+                    : "bg-transparent text-gray-600 border border-gray-300 hover:border-[#01005B]"
                 } px-6 py-2 rounded-full cursor-pointer text-sm transition-all`}
-                style={selectedCategory === cat ? { backgroundColor: '#01005B' } : {}}
+                style={
+                  selectedCategory === cat ? { backgroundColor: "#01005B" } : {}
+                }
               >
                 {cat}
               </button>
@@ -117,51 +207,84 @@ export default function HomePage() {
           {filteredDestinations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredDestinations.map((dest) => (
-                <div key={dest.id} className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
-                  <div className="relative">
-                    <img src={dest.image} alt={dest.name} className="w-full h-64 object-cover" />
-                    <button 
-                      onClick={() => toggleFavorite(dest.id)}
-                      className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
-                    >
-                      <Heart 
-                        size={20} 
-                        color="#ef4444" 
-                        fill={favorites.includes(dest.id) ? "#ef4444" : "none"}
+                <Link key={dest.id} to={`/place/${dest.id}`}>
+                  <div className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
+                    <div className="relative">
+                      <img
+                        src={dest.image}
+                        alt={dest.name}
+                        className="w-full h-64 object-cover"
                       />
-                    </button>
-                  </div>
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold">{dest.name}</h3>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleFavorite(dest.id);
+                        }}
+                        className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
+                      >
+                        <Heart
+                          size={20}
+                          color="#ef4444"
+                          fill={
+                            favorites.includes(dest.id) ? "#ef4444" : "none"
+                          }
+                        />
+                      </button>
+                    </div>
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-bold">{dest.name}</h3>
+                        <div className="flex items-center gap-1">
+                          <Star size={16} fill="#fbbf24" color="#fbbf24" />
+                          <span className="text-sm font-bold">
+                            {dest.rating}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
+                        <MapPin size={16} color="#ef4444" />
+                        {dest.location}
+                      </p>
                       <div className="flex items-center gap-1">
-                        <Star size={16} fill="#fbbf24" color="#fbbf24" />
-                        <span className="text-sm font-bold">{dest.rating}</span>
+                        <DollarSign size={16} color="#666" />
+                        <span
+                          className="text-base font-bold"
+                          style={{ color: "#01005B" }}
+                        >
+                          ${dest.price}
+                        </span>
+                        <span className="text-sm text-gray-600">/Person</span>
                       </div>
                     </div>
-                    <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
-                      <MapPin size={16} color="#ef4444" />
-                      {dest.location}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <DollarSign size={16} color="#666" />
-                      <span className="text-base font-bold" style={{ color: '#01005B' }}>${dest.price}</span>
-                      <span className="text-sm text-gray-600">/Person</span>
-                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
             <div className="text-center py-16">
-              <p className="text-gray-500 text-lg">No destinations found. Try a different category or search term.</p>
+              <p className="text-gray-500 text-lg">
+                No destinations found. Try a different category or search term.
+              </p>
             </div>
           )}
 
           <div className="text-center mt-10">
-            <button className="text-white border-none px-10 py-3 rounded-lg cursor-pointer text-base font-medium hover:opacity-90 transition-all" style={{ backgroundColor: '#01005B' }}>
-              View more
-            </button>
+            <Link to="/hotels">
+              <button
+                className="text-white border-none px-10 py-3 rounded-lg cursor-pointer text-base font-medium transition-all"
+                style={{ backgroundColor: "#01005B" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#000047";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#01005B";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                View more
+              </button>
+            </Link>
           </div>
         </section>
 
@@ -176,13 +299,13 @@ export default function HomePage() {
           <div className="relative">
             {totalEventPages > 1 && (
               <>
-                <button 
+                <button
                   onClick={prevEventPage}
                   className="absolute left-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 flex items-center justify-center hover:border-[#01005B] transition-all"
                 >
                   <ChevronLeft size={20} />
                 </button>
-                <button 
+                <button
                   onClick={nextEventPage}
                   className="absolute right-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 flex items-center justify-center hover:border-[#01005B] transition-all"
                 >
@@ -190,20 +313,29 @@ export default function HomePage() {
                 </button>
               </>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {currentEvents.map((event) => (
-                <div key={event.id} className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
+                <div
+                  key={event.id}
+                  className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
+                >
                   <div className="relative">
-                    <img src={event.image} alt={event.name} className="w-full h-64 object-cover" />
-                    <button 
+                    <img
+                      src={event.image}
+                      alt={event.name}
+                      className="w-full h-64 object-cover"
+                    />
+                    <button
                       onClick={() => toggleEventFavorite(event.id)}
                       className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
                     >
-                      <Heart 
-                        size={20} 
+                      <Heart
+                        size={20}
                         color="#ef4444"
-                        fill={eventFavorites.includes(event.id) ? "#ef4444" : "none"}
+                        fill={
+                          eventFavorites.includes(event.id) ? "#ef4444" : "none"
+                        }
                       />
                     </button>
                   </div>
@@ -212,7 +344,9 @@ export default function HomePage() {
                       <h3 className="text-lg font-bold">{event.name}</h3>
                       <div className="flex items-center gap-1">
                         <Star size={16} fill="#fbbf24" color="#fbbf24" />
-                        <span className="text-sm font-bold">{event.rating}</span>
+                        <span className="text-sm font-bold">
+                          {event.rating}
+                        </span>
                       </div>
                     </div>
                     <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
@@ -221,7 +355,12 @@ export default function HomePage() {
                     </p>
                     <div className="flex items-center gap-1">
                       <DollarSign size={16} color="#666" />
-                      <span className="text-base font-bold" style={{ color: '#01005B' }}>${event.price}</span>
+                      <span
+                        className="text-base font-bold"
+                        style={{ color: "#01005B" }}
+                      >
+                        ${event.price}
+                      </span>
                       <span className="text-sm text-gray-600">/Person</span>
                     </div>
                   </div>
@@ -237,9 +376,12 @@ export default function HomePage() {
                     key={idx}
                     onClick={() => setCurrentEventPage(idx)}
                     className={`w-2 h-2 rounded-full transition-all ${
-                      idx === currentEventPage ? 'w-8' : 'w-2'
+                      idx === currentEventPage ? "w-8" : "w-2"
                     }`}
-                    style={{ backgroundColor: idx === currentEventPage ? '#01005B' : '#d1d5db' }}
+                    style={{
+                      backgroundColor:
+                        idx === currentEventPage ? "#01005B" : "#d1d5db",
+                    }}
                   />
                 ))}
               </div>
@@ -260,30 +402,84 @@ export default function HomePage() {
           <div>
             <h4 className="text-base font-bold mb-4">Help</h4>
             <ul className="list-none p-0 m-0">
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">Home</a></li>
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">About Us</a></li>
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">FAQ</a></li>
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">Contact</a></li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  Home
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  About Us
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  FAQ
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
           <div>
             <h4 className="text-base font-bold mb-4">Tools</h4>
             <ul className="list-none p-0 m-0">
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">Payment Options</a></li>
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">Booking Policy</a></li>
-              <li className="mb-2"><a href="#" className="text-gray-600 no-underline text-sm hover:text-[#01005B]">Privacy Policies</a></li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  Payment Options
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  Booking Policy
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="#"
+                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
+                >
+                  Privacy Policies
+                </a>
+              </li>
             </ul>
           </div>
           <div>
             <h4 className="text-base font-bold mb-4">Newsletter</h4>
-            <p className="text-gray-600 text-sm mb-4">Enter your email address</p>
+            <p className="text-gray-600 text-sm mb-4">
+              Enter your email address
+            </p>
             <div className="flex gap-2">
-              <input 
-                type="email" 
-                placeholder="Your email" 
-                className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#01005B]" 
+              <input
+                type="email"
+                placeholder="Your email"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#01005B]"
               />
-              <button className="text-white border-none px-5 py-2 rounded cursor-pointer hover:opacity-90" style={{ backgroundColor: '#01005B' }}>
+              <button
+                className="text-white border-none px-5 py-2 rounded cursor-pointer hover:opacity-90"
+                style={{ backgroundColor: "#01005B" }}
+              >
                 Subscribe
               </button>
             </div>

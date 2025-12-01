@@ -13,7 +13,7 @@ export default function Navigation({ activeNav }: NavigationProps) {
     { name: 'Home', path: '/' },
     { name: 'Plan Trip', path: '/trip_plan' },
     { name: 'Bus Booking', path: '/bus-booking' },
-    { name: 'Hotel', path: '/hotel' },
+    { name: 'Hotel', path: '/hotels' },
   ];
 
   return (
