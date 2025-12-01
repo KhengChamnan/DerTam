@@ -2,5 +2,18 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
+  route("login", "routes/auth/login.tsx"),
+  route("register", "routes/auth/register.tsx"),
   route("trip_plan", "routes/trip_plan.tsx"),
+  route("trip_detail/:tripId", "routes/trip_detail.tsx"),
+  route("budget/:tripId", "routes/budget.tsx"),
+  route("bus_booking", "routes/bus/bus_booking.tsx"),
+  route("bus/select", "routes/bus/bus_select.tsx"),
+  route("bus/seats", "routes/bus/bus_seats.tsx"),
+  route("bus/booking", "routes/bus/bus_booking_confirm.tsx"),
+  route("profile", "routes/profile/profile.tsx"),
+  route("profile/my_bookings", "routes/profile/my_bookings.tsx"),
+  route("profile/favorites", "routes/profile/favorites.tsx"),
+  route("profile/settings", "routes/profile/settings.tsx"),
+  route("profile/edit", "routes/profile/edit.tsx"),
 ] satisfies RouteConfig;
