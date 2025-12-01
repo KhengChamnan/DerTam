@@ -89,7 +89,7 @@ class EventController extends Controller
 	 */
 	public function show($id)
 	{
-		$event = Event::with(['place:placeID,name,images_url,latitude,longitude', 'province:province_categoryID,province_categoryName'])
+		$event = Event::select('id', 'title', 'image_url', 'description', 'start_at', 'end_at')
 			->find($id);
 
 		if (!$event) {
