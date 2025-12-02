@@ -103,6 +103,10 @@ export default function AllRooms({ rooms }: Props) {
     const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
     const [isLoading, setIsLoading] = useState(false);
 
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+
     // Get unique room types for filter
     const roomTypes = useMemo(() => {
         const types = new Set(
@@ -114,15 +118,12 @@ export default function AllRooms({ rooms }: Props) {
     // Filter rooms based on all criteria
     const filteredData = useMemo(() => {
         return data.filter((room) => {
-            // Search filter
+            // Search filter - only match room number with prefix
             const matchesSearch =
                 searchQuery === "" ||
                 room.room_number
                     .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                room.room_property?.room_type
-                    ?.toLowerCase()
-                    .includes(searchQuery.toLowerCase());
+                    .startsWith(searchQuery.toLowerCase());
 
             // Status filter
             const matchesStatus =
@@ -147,6 +148,22 @@ export default function AllRooms({ rooms }: Props) {
             );
         });
     }, [data, searchQuery, statusFilter, roomTypeFilter, availabilityFilter]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredData.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+
+    // Paginated data for current page
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredData.slice(start, end);
+    }, [filteredData, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, roomTypeFilter, availabilityFilter]);
 
     // Calculate totals from filtered data
     const totalRooms = rooms.total || 0;
@@ -387,7 +404,7 @@ export default function AllRooms({ rooms }: Props) {
                                   </CardContent>
                               </Card>
                           ))
-                        : filteredData.map((room) => {
+                        : paginatedData.map((room) => {
                               const roomProperty = room.room_property;
                               const images = roomProperty?.images_url || [];
 
@@ -560,62 +577,76 @@ export default function AllRooms({ rooms }: Props) {
                 )}
 
                 {/* Empty State - No filtered results */}
-                {!isLoading && data.length > 0 && filteredData.length === 0 && (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Search className="size-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>No Matching Rooms</EmptyTitle>
-                            <EmptyDescription>
-                                No rooms match your current filters. Try
-                                adjusting your search criteria.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setSearchQuery("");
-                                    setStatusFilter("all");
-                                    setRoomTypeFilter("all");
-                                    setAvailabilityFilter("all");
-                                }}
-                            >
-                                Clear All Filters
-                            </Button>
-                        </EmptyContent>
-                    </Empty>
-                )}
+                {!isLoading &&
+                    data.length > 0 &&
+                    paginatedData.length === 0 && (
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Search className="size-6" />
+                                </EmptyMedia>
+                                <EmptyTitle>No Matching Rooms</EmptyTitle>
+                                <EmptyDescription>
+                                    No rooms match your current filters. Try
+                                    adjusting your search criteria.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                            <EmptyContent>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setSearchQuery("");
+                                        setStatusFilter("all");
+                                        setRoomTypeFilter("all");
+                                        setAvailabilityFilter("all");
+                                    }}
+                                >
+                                    Clear All Filters
+                                </Button>
+                            </EmptyContent>
+                        </Empty>
+                    )}
 
                 {/* Pagination */}
-                {rooms.last_page > 1 && (
-                    <div className="flex justify-center gap-2">
-                        {rooms.links.map((link, index) => (
+                {lastPage > 1 && (
+                    <div className="flex justify-center items-center gap-4">
+                        <div className="text-sm text-muted-foreground">
+                            Page {currentPage} of {lastPage}
+                        </div>
+                        <div className="flex gap-2">
                             <Button
-                                key={index}
-                                variant={link.active ? "default" : "outline"}
+                                variant="outline"
                                 size="sm"
-                                asChild={!!link.url}
-                                disabled={!link.url}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
-                                {link.url ? (
-                                    <Link href={link.url}>
-                                        <span
-                                            dangerouslySetInnerHTML={{
-                                                __html: link.label,
-                                            }}
-                                        />
-                                    </Link>
-                                ) : (
-                                    <span
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                )}
+                                First
                             </Button>
-                        ))}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
+                            >
+                                Next
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
+                            >
+                                Last
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>

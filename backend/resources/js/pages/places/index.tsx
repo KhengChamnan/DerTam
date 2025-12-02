@@ -1,19 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import ImportDialog from "@/components/ImportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
     EmptyContent,
@@ -35,6 +27,10 @@ import {
     Upload,
     MapPinPlus,
     Settings2,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
 } from "lucide-react";
 import {
     Select,
@@ -131,16 +127,17 @@ export default function PlacesIndex({
     provinces,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search || "");
-    const [categoryFilter, setCategoryFilter] = useState(
-        filters.category_id || "all"
-    );
-    const [provinceFilter, setProvinceFilter] = useState(
-        filters.province_id || "all"
-    );
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+
+    // Client-side filter states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState<string>("all");
+    const [provinceFilter, setProvinceFilter] = useState<string>("all");
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -180,86 +177,46 @@ export default function PlacesIndex({
         );
     }, [columnVisibility]);
 
-    // Use useRef to track if this is the initial mount
-    const isInitialMount = useRef(true);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Client-side filtering - instant results
+    const filteredPlaces = useMemo(() => {
+        return places.data.filter((place) => {
+            // Search filter - only match place name with prefix
+            const matchesSearch =
+                searchQuery === "" ||
+                place.name.toLowerCase().startsWith(searchQuery.toLowerCase());
 
-    // Auto-search with debouncing for search term
+            // Category filter
+            const matchesCategory =
+                categoryFilter === "all" ||
+                place.category.placeCategoryID.toString() === categoryFilter;
+
+            // Province filter
+            const matchesProvince =
+                provinceFilter === "all" ||
+                place.province.province_categoryID.toString() ===
+                    provinceFilter;
+
+            return matchesSearch && matchesCategory && matchesProvince;
+        });
+    }, [places.data, searchQuery, categoryFilter, provinceFilter]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredPlaces.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedPlaces = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredPlaces.slice(start, end);
+    }, [filteredPlaces, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
     useEffect(() => {
-        // Skip the initial mount
-        if (isInitialMount.current) {
-            return;
-        }
-
-        // Clear previous timer
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        // Set new timer for debounced search
-        debounceTimer.current = setTimeout(() => {
-            setIsLoading(true);
-            router.get(
-                "/places",
-                {
-                    search: search || undefined,
-                    category_id:
-                        categoryFilter !== "all" ? categoryFilter : undefined,
-                    province_id:
-                        provinceFilter !== "all" ? provinceFilter : undefined,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                    only: ["places"],
-                    onFinish: () => setIsLoading(false),
-                }
-            );
-        }, 500); // 500ms debounce
-
-        // Cleanup function
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [search]);
-
-    // Separate useEffect for filter changes (immediate)
-    useEffect(() => {
-        // Skip the initial mount
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        setIsLoading(true);
-        router.get(
-            "/places",
-            {
-                search: search || undefined,
-                category_id:
-                    categoryFilter !== "all" ? categoryFilter : undefined,
-                province_id:
-                    provinceFilter !== "all" ? provinceFilter : undefined,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-                only: ["places"],
-                onFinish: () => setIsLoading(false),
-            }
-        );
-    }, [categoryFilter, provinceFilter]);
-
-    // Update state when filters change from server (e.g., pagination)
-    useEffect(() => {
-        setSearch(filters.search || "");
-        setCategoryFilter(filters.category_id || "all");
-        setProvinceFilter(filters.province_id || "all");
-    }, [filters.search, filters.category_id, filters.province_id]);
+        setCurrentPage(1);
+    }, [searchQuery, categoryFilter, provinceFilter]);
 
     // Permission checks
     const {
@@ -294,10 +251,9 @@ export default function PlacesIndex({
     };
 
     const clearFilters = () => {
-        setSearch("");
+        setSearchQuery("");
         setCategoryFilter("all");
         setProvinceFilter("all");
-        router.get("/places");
     };
 
     const getStatusBadge = (place: Place) => {
@@ -393,8 +349,8 @@ export default function PlacesIndex({
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Filter places..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
                         />
                     </div>
@@ -611,105 +567,51 @@ export default function PlacesIndex({
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {isLoading ? (
-                                // Skeleton loading state
-                                Array.from({ length: 5 }).map((_, index) => (
-                                    <div key={index} className="p-4">
-                                        <div
-                                            className="grid gap-4 items-center"
-                                            style={{
-                                                gridTemplateColumns: `${
-                                                    columnVisibility.image
-                                                        ? "1fr"
-                                                        : ""
-                                                } 2fr ${
-                                                    columnVisibility.description
-                                                        ? "2fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.category
-                                                        ? "2fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.province
-                                                        ? "2fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.rating
-                                                        ? "1fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.reviews
-                                                        ? "1fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.entryFee
-                                                        ? "1fr"
-                                                        : ""
-                                                } 2fr`.trim(),
-                                            }}
-                                        >
-                                            {columnVisibility.image && (
-                                                <Skeleton className="w-12 h-12 rounded-lg" />
-                                            )}
-                                            <Skeleton className="h-5 w-3/4" />
-                                            {columnVisibility.description && (
-                                                <Skeleton className="h-4 w-full" />
-                                            )}
-                                            {columnVisibility.category && (
-                                                <Skeleton className="h-6 w-20" />
-                                            )}
-                                            {columnVisibility.province && (
-                                                <Skeleton className="h-6 w-24" />
-                                            )}
-                                            {columnVisibility.rating && (
-                                                <Skeleton className="h-5 w-12" />
-                                            )}
-                                            {columnVisibility.reviews && (
-                                                <Skeleton className="h-5 w-8" />
-                                            )}
-                                            {columnVisibility.entryFee && (
-                                                <Skeleton className="h-6 w-16" />
-                                            )}
-                                            <div className="flex gap-2">
-                                                <Skeleton className="h-8 w-8" />
-                                                <Skeleton className="h-8 w-8" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : places.data.length === 0 ? (
-                                <div className="col-span-full">
+                            {paginatedPlaces.length === 0 ? (
+                                <div className="col-span-full p-12">
                                     <Empty>
                                         <EmptyHeader>
                                             <EmptyMedia variant="icon">
-                                                <MapPin className="h-6 w-6" />
+                                                <MapPin className="h-8 w-8" />
                                             </EmptyMedia>
-                                            <EmptyTitle>
+                                            <EmptyTitle className="text-xl">
                                                 No places found
                                             </EmptyTitle>
-                                            <EmptyDescription>
-                                                {search ||
+                                            <EmptyDescription className="text-base">
+                                                {searchQuery ||
                                                 categoryFilter !== "all" ||
                                                 provinceFilter !== "all"
-                                                    ? "Try adjusting your search or filters to find what you're looking for."
+                                                    ? "No places match your current filters. Try adjusting your search criteria."
                                                     : "Get started by creating your first place."}
                                             </EmptyDescription>
                                         </EmptyHeader>
-                                        <EmptyContent>
-                                            {canCreatePlaces() && (
-                                                <Link href="/places/create">
-                                                    <Button>
-                                                        <MapPinPlus className="h-4 w-4 mr-2" />
-                                                        Create Place
-                                                    </Button>
-                                                </Link>
+                                        <EmptyContent className="flex gap-2">
+                                            {(searchQuery ||
+                                                categoryFilter !== "all" ||
+                                                provinceFilter !== "all") && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={clearFilters}
+                                                >
+                                                    Clear Filters
+                                                </Button>
                                             )}
+                                            {canCreatePlaces() &&
+                                                !searchQuery &&
+                                                categoryFilter === "all" &&
+                                                provinceFilter === "all" && (
+                                                    <Link href="/places/create">
+                                                        <Button>
+                                                            <MapPinPlus className="h-4 w-4 mr-2" />
+                                                            Create Place
+                                                        </Button>
+                                                    </Link>
+                                                )}
                                         </EmptyContent>
                                     </Empty>
                                 </div>
                             ) : (
-                                places.data.map((place) => (
+                                paginatedPlaces.map((place) => (
                                     <div
                                         key={place.placeID}
                                         className="p-4 hover:bg-muted/50"
@@ -1002,31 +904,22 @@ export default function PlacesIndex({
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing{" "}
-                        {(places.current_page - 1) * places.per_page + 1} to{" "}
-                        {Math.min(
-                            places.current_page * places.per_page,
-                            places.total
-                        )}{" "}
-                        of {places.total} row(s).
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={String(places.per_page)}
+                                value={String(perPage)}
                                 onValueChange={(value) => {
-                                    router.get("/places", {
-                                        ...filters,
-                                        per_page: value,
-                                        page: 1,
-                                    });
+                                    setPerPage(Number(value));
+                                    setCurrentPage(1);
                                 }}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
                                     <SelectValue
-                                        placeholder={String(places.per_page)}
+                                        placeholder={String(perPage)}
                                     />
                                 </SelectTrigger>
                                 <SelectContent side="top">
@@ -1039,126 +932,48 @@ export default function PlacesIndex({
                             </Select>
                         </div>
                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                            Page {places.current_page} of {places.last_page}
+                            Page {currentPage} of {lastPage || 1}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/places", {
-                                        ...filters,
-                                        page: 1,
-                                    })
-                                }
-                                disabled={places.current_page === 1}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to first page
                                 </span>
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-4 w-4"
-                                >
-                                    <polyline points="11,17 6,12 11,7" />
-                                    <polyline points="18,17 13,12 18,7" />
-                                </svg>
+                                <ChevronsLeft className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/places", {
-                                        ...filters,
-                                        page: places.current_page - 1,
-                                    })
-                                }
-                                disabled={places.current_page === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to previous page
                                 </span>
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-4 w-4"
-                                >
-                                    <polyline points="15,18 9,12 15,6" />
-                                </svg>
+                                <ChevronLeft className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/places", {
-                                        ...filters,
-                                        page: places.current_page + 1,
-                                    })
-                                }
-                                disabled={
-                                    places.current_page === places.last_page
-                                }
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to next page</span>
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-4 w-4"
-                                >
-                                    <polyline points="9,18 15,12 9,6" />
-                                </svg>
+                                <ChevronRight className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/places", {
-                                        ...filters,
-                                        page: places.last_page,
-                                    })
-                                }
-                                disabled={
-                                    places.current_page === places.last_page
-                                }
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to last page</span>
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="h-4 w-4"
-                                >
-                                    <polyline points="13,17 18,12 13,7" />
-                                    <polyline points="6,17 11,12 6,7" />
-                                </svg>
+                                <ChevronsRight className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>

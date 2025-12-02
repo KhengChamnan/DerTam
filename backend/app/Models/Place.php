@@ -112,12 +112,18 @@ class Place extends Model
         // Trim and sanitize search term
         $searchTerm = trim($searchTerm);
         
-        // Use full-text search with boolean mode for word order relevance
-        // Words in order get higher relevance score
-        // Full-text search is case-insensitive by default in MySQL
-        return $query->selectRaw('places.*, MATCH(name, description) AGAINST(? IN BOOLEAN MODE) as relevance', [$searchTerm])
-            ->whereRaw('MATCH(name, description) AGAINST(? IN BOOLEAN MODE)', [$searchTerm])
-            ->orderByDesc('relevance');
+        // Escape special characters for LIKE pattern
+        $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], $searchTerm);
+        
+        // Use prefix matching with word boundaries
+        // Matches at the start of the string or after a space
+        // e.g., "ang" matches "Angkor Wat" or "Temple Angkor" but not "Narong"
+        return $query->where(function ($q) use ($escapedTerm) {
+            $q->where('name', 'LIKE', $escapedTerm . '%')
+              ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+              ->orWhere('description', 'LIKE', $escapedTerm . '%')
+              ->orWhere('description', 'LIKE', '% ' . $escapedTerm . '%');
+        });
     }
 
     /**

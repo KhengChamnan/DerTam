@@ -486,7 +486,7 @@ class TransportationOwnerController extends Controller
         })
         ->with([
             'bus:id,bus_name,bus_plate,bus_property_id,description,is_available,status',
-            'bus.busProperty:id,bus_type,seat_capacity,image_url,amenities,features,price_per_seat,transportation_id',
+            'bus.busProperty:id,bus_type,seat_capacity,image_url,amenities,features,price_per_seat,transportation_id,seat_layout',
             'bus.busProperty.transportation:id,placeID',
             'bus.busProperty.transportation.place:placeID,name',
             'route:id,from_location,to_location,distance_km,duration_hours',
@@ -732,7 +732,7 @@ class TransportationOwnerController extends Controller
             'departure_time' => 'required|date|after:now',
             'arrival_time' => 'required|date|after:departure_time',
             'price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
+            'status' => 'required|string|in:scheduled,departed,completed,cancelled',
         ]);
         
         // Verify bus belongs to user and get seat capacity
@@ -814,13 +814,27 @@ class TransportationOwnerController extends Controller
         })
         ->findOrFail($id);
         
+        // Check if this is a status-only update (for quick status changes from index page)
+        if ($request->has('status') && count($request->all()) === 1) {
+            $validated = $request->validate([
+                'status' => 'required|string|in:scheduled,departed,completed,cancelled',
+            ]);
+            
+            $schedule->update([
+                'status' => $validated['status'],
+            ]);
+            
+            return back()->with('success', 'Schedule status updated successfully.');
+        }
+        
+        // Full schedule update
         $validated = $request->validate([
             'bus_id' => 'required|exists:buses,id',
             'route_id' => 'required|exists:routes,id',
             'departure_time' => 'required|date',
             'arrival_time' => 'required|date|after:departure_time',
             'price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
+            'status' => 'required|string|in:scheduled,departed,completed,cancelled',
         ]);
         
         // Verify bus belongs to user

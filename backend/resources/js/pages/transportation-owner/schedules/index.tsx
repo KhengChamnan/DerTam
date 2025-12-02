@@ -57,13 +57,14 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface BusSchedule {
     id: number;
     departure_time: string;
     arrival_time: string;
     price: number;
-    status: "scheduled" | "departed" | "arrived" | "cancelled";
+    status: "scheduled" | "departed" | "completed" | "cancelled";
     available_seats: number;
     created_at: string;
     bus: {
@@ -143,6 +144,11 @@ export default function TransportationOwnerSchedulesIndex({
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
+    const [isAutoUpdating, setIsAutoUpdating] = useState(false);
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(15);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -186,22 +192,14 @@ export default function TransportationOwnerSchedulesIndex({
             return false;
         }
 
-        // Search filter - search across bus name, plate, and route
+        // Search filter - only match bus name with prefix
         if (search.trim() !== "") {
             const searchLower = search.toLowerCase();
             const matchesBusName = schedule.bus.bus_name
                 .toLowerCase()
-                .includes(searchLower);
-            const matchesBusPlate = schedule.bus.bus_plate
-                .toLowerCase()
-                .includes(searchLower);
-            const matchesRoute =
-                schedule.route.from_location
-                    .toLowerCase()
-                    .includes(searchLower) ||
-                schedule.route.to_location.toLowerCase().includes(searchLower);
+                .startsWith(searchLower);
 
-            if (!matchesBusName && !matchesBusPlate && !matchesRoute) {
+            if (!matchesBusName) {
                 return false;
             }
         }
@@ -209,20 +207,260 @@ export default function TransportationOwnerSchedulesIndex({
         return true;
     });
 
-    const getStatusBadge = (status: string) => {
+    // Client-side pagination calculations
+    const totalFiltered = filteredSchedules.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedSchedules = filteredSchedules.slice(
+        (currentPage - 1) * perPage,
+        currentPage * perPage
+    );
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
+
+    // Helper function to determine what status a schedule should have based on time
+    const getExpectedStatus = (schedule: BusSchedule): string => {
+        if (schedule.status === "cancelled") return "cancelled";
+
+        const now = new Date();
+        const departureTime = parseAsLocalTime(schedule.departure_time);
+        const arrivalTime = parseAsLocalTime(schedule.arrival_time);
+
+        if (now >= arrivalTime) {
+            return "completed";
+        } else if (now >= departureTime) {
+            return "departed";
+        } else {
+            return "scheduled";
+        }
+    };
+
+    const getStatusBadge = (status: string, isOutdated: boolean = false) => {
         switch (status) {
             case "scheduled":
-                return <Badge variant="default">Scheduled</Badge>;
+                return (
+                    <Badge
+                        variant={isOutdated ? "secondary" : "default"}
+                        className={
+                            isOutdated
+                                ? "animate-pulse bg-orange-500 hover:bg-orange-600 text-white border-orange-600"
+                                : ""
+                        }
+                    >
+                        Scheduled {isOutdated && "⚠️"}
+                    </Badge>
+                );
             case "departed":
-                return <Badge variant="secondary">Departed</Badge>;
-            case "arrived":
-                return <Badge variant="outline">Arrived</Badge>;
+                return (
+                    <Badge
+                        variant="secondary"
+                        className={
+                            isOutdated
+                                ? "animate-pulse bg-orange-500 hover:bg-orange-600 text-white border-orange-600"
+                                : ""
+                        }
+                    >
+                        Departed {isOutdated && "⚠️"}
+                    </Badge>
+                );
+            case "completed":
+                return <Badge variant="outline">Completed</Badge>;
             case "cancelled":
                 return <Badge variant="destructive">Cancelled</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
     };
+
+    // Function to check if status change is allowed based on time
+    const canChangeToStatus = (
+        schedule: BusSchedule,
+        newStatus: string
+    ): { allowed: boolean; message?: string } => {
+        const now = new Date();
+        const departureTime = parseAsLocalTime(schedule.departure_time);
+        const arrivalTime = parseAsLocalTime(schedule.arrival_time);
+
+        switch (newStatus) {
+            case "departed":
+                // Can only depart if current time is close to or past departure time (within 1 hour before)
+                const oneHourBeforeDeparture = new Date(
+                    departureTime.getTime() - 60 * 60 * 1000
+                );
+                if (now < oneHourBeforeDeparture) {
+                    return {
+                        allowed: false,
+                        message: `Cannot depart yet. Departure is scheduled for ${departureTime.toLocaleString()}`,
+                    };
+                }
+                if (
+                    schedule.status === "completed" ||
+                    schedule.status === "cancelled"
+                ) {
+                    return {
+                        allowed: false,
+                        message: `Cannot change status from ${schedule.status} to departed`,
+                    };
+                }
+                return { allowed: true };
+
+            case "completed":
+                // Can only complete if departed and current time is close to or past arrival time
+                if (schedule.status !== "departed") {
+                    return {
+                        allowed: false,
+                        message:
+                            "Bus must be departed before it can be completed",
+                    };
+                }
+                if (now < departureTime) {
+                    return {
+                        allowed: false,
+                        message:
+                            "Cannot mark as completed before departure time",
+                    };
+                }
+                return { allowed: true };
+
+            case "cancelled":
+                // Can cancel if not yet completed
+                if (schedule.status === "completed") {
+                    return {
+                        allowed: false,
+                        message: "Cannot cancel an already completed schedule",
+                    };
+                }
+                return { allowed: true };
+
+            case "scheduled":
+                // Can reschedule if not yet departed or completed
+                if (
+                    schedule.status === "departed" ||
+                    schedule.status === "completed"
+                ) {
+                    return {
+                        allowed: false,
+                        message: `Cannot change back to scheduled from ${schedule.status}`,
+                    };
+                }
+                return { allowed: true };
+
+            default:
+                return { allowed: false, message: "Invalid status" };
+        }
+    };
+
+    // Function to handle status change
+    const handleStatusChange = (
+        scheduleId: number,
+        schedule: BusSchedule,
+        newStatus: string
+    ) => {
+        const validation = canChangeToStatus(schedule, newStatus);
+
+        if (!validation.allowed) {
+            toast.error(validation.message || "Cannot change status");
+            return;
+        }
+
+        router.put(
+            `/transportation-owner/schedules/${scheduleId}`,
+            { status: newStatus },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ["schedules"],
+                onSuccess: () => {
+                    toast.success(`Status updated to ${newStatus}`);
+                },
+                onError: (errors) => {
+                    toast.error("Failed to update status");
+                },
+            }
+        );
+    };
+
+    // Function to automatically update outdated statuses
+    const autoUpdateOutdatedStatuses = () => {
+        if (isAutoUpdating) return;
+
+        const outdatedSchedules = schedules.data.filter((schedule) => {
+            const expectedStatus = getExpectedStatus(schedule);
+            return (
+                expectedStatus !== schedule.status &&
+                schedule.status !== "cancelled"
+            );
+        });
+
+        if (outdatedSchedules.length > 0) {
+            setIsAutoUpdating(true);
+
+            // Update all outdated schedules one at a time to prevent race conditions
+            let completed = 0;
+            outdatedSchedules.forEach((schedule, index) => {
+                const expectedStatus = getExpectedStatus(schedule);
+                const validation = canChangeToStatus(schedule, expectedStatus);
+
+                if (validation.allowed) {
+                    setTimeout(() => {
+                        router.put(
+                            `/transportation-owner/schedules/${schedule.id}`,
+                            { status: expectedStatus },
+                            {
+                                preserveScroll: true,
+                                preserveState: true,
+                                only: ["schedules"],
+                                onFinish: () => {
+                                    completed++;
+                                    if (
+                                        completed === outdatedSchedules.length
+                                    ) {
+                                        setIsAutoUpdating(false);
+                                        if (
+                                            index ===
+                                            outdatedSchedules.length - 1
+                                        ) {
+                                            toast.success(
+                                                `Auto-updated ${outdatedSchedules.length} schedule(s)`
+                                            );
+                                        }
+                                    }
+                                },
+                            }
+                        );
+                    }, index * 100); // Stagger updates by 100ms
+                }
+            });
+        }
+    };
+
+    // Auto-update on mount
+    useEffect(() => {
+        if (!isAutoUpdating) {
+            const timer = setTimeout(() => {
+                autoUpdateOutdatedStatuses();
+            }, 2000); // Delay to avoid immediate update on page load
+
+            return () => clearTimeout(timer);
+        }
+    }, []); // Only run once on mount
+
+    // Periodic check every 30 minutes
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!isAutoUpdating) {
+                autoUpdateOutdatedStatuses();
+            }
+        }, 1800000); // Check every 30 minutes
+
+        return () => clearInterval(interval);
+    }, [isAutoUpdating]); // Remove schedules.data from dependencies
 
     // Helper to parse datetime string as local time
     const parseAsLocalTime = (dateString: string) => {
@@ -536,7 +774,7 @@ export default function TransportationOwnerSchedulesIndex({
                                           </div>
                                       </div>
                                   ))
-                                : filteredSchedules.map((schedule) => {
+                                : paginatedSchedules.map((schedule) => {
                                       const bookedSeats =
                                           schedule.bookings?.length || 0;
                                       const availableSeats =
@@ -715,9 +953,113 @@ export default function TransportationOwnerSchedulesIndex({
                                                       </div>
                                                   )}
                                                   <div>
-                                                      {getStatusBadge(
-                                                          schedule.status
-                                                      )}
+                                                      <DropdownMenu>
+                                                          <DropdownMenuTrigger
+                                                              asChild
+                                                          >
+                                                              <div className="cursor-pointer">
+                                                                  {(() => {
+                                                                      const expectedStatus =
+                                                                          getExpectedStatus(
+                                                                              schedule
+                                                                          );
+                                                                      const isOutdated =
+                                                                          expectedStatus !==
+                                                                              schedule.status &&
+                                                                          schedule.status !==
+                                                                              "cancelled";
+                                                                      return getStatusBadge(
+                                                                          schedule.status,
+                                                                          isOutdated
+                                                                      );
+                                                                  })()}
+                                                              </div>
+                                                          </DropdownMenuTrigger>
+                                                          <DropdownMenuContent align="center">
+                                                              <DropdownMenuItem
+                                                                  onClick={() =>
+                                                                      handleStatusChange(
+                                                                          schedule.id,
+                                                                          schedule,
+                                                                          "scheduled"
+                                                                      )
+                                                                  }
+                                                                  disabled={
+                                                                      schedule.status ===
+                                                                      "scheduled"
+                                                                  }
+                                                              >
+                                                                  <Badge
+                                                                      variant="default"
+                                                                      className="mr-2"
+                                                                  >
+                                                                      Scheduled
+                                                                  </Badge>
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuItem
+                                                                  onClick={() =>
+                                                                      handleStatusChange(
+                                                                          schedule.id,
+                                                                          schedule,
+                                                                          "departed"
+                                                                      )
+                                                                  }
+                                                                  disabled={
+                                                                      schedule.status ===
+                                                                      "departed"
+                                                                  }
+                                                              >
+                                                                  <Badge
+                                                                      variant="secondary"
+                                                                      className="mr-2"
+                                                                  >
+                                                                      Departed
+                                                                  </Badge>
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuItem
+                                                                  onClick={() =>
+                                                                      handleStatusChange(
+                                                                          schedule.id,
+                                                                          schedule,
+                                                                          "completed"
+                                                                      )
+                                                                  }
+                                                                  disabled={
+                                                                      schedule.status ===
+                                                                      "completed"
+                                                                  }
+                                                              >
+                                                                  <Badge
+                                                                      variant="outline"
+                                                                      className="mr-2"
+                                                                  >
+                                                                      Completed
+                                                                  </Badge>
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuSeparator />
+                                                              <DropdownMenuItem
+                                                                  onClick={() =>
+                                                                      handleStatusChange(
+                                                                          schedule.id,
+                                                                          schedule,
+                                                                          "cancelled"
+                                                                      )
+                                                                  }
+                                                                  disabled={
+                                                                      schedule.status ===
+                                                                      "cancelled"
+                                                                  }
+                                                                  className="text-red-600 focus:text-red-600"
+                                                              >
+                                                                  <Badge
+                                                                      variant="destructive"
+                                                                      className="mr-2"
+                                                                  >
+                                                                      Cancelled
+                                                                  </Badge>
+                                                              </DropdownMenuItem>
+                                                          </DropdownMenuContent>
+                                                      </DropdownMenu>
                                                   </div>
                                                   <div className="flex gap-2">
                                                       <Link
@@ -840,7 +1182,7 @@ export default function TransportationOwnerSchedulesIndex({
                 </div>
 
                 {/* Empty State */}
-                {!isLoading && filteredSchedules.length === 0 && (
+                {!isLoading && paginatedSchedules.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

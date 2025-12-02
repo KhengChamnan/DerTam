@@ -72,12 +72,13 @@ export default function TransportationOwnerSchedulesCreateEdit({
         dateString: string | null | undefined
     ): string => {
         if (!dateString) return "";
-        const date = new Date(dateString);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
+        // Parse as local time to avoid timezone conversion issues
+        const dateParts = dateString.replace(" ", "T").split(/[-T:]/);
+        const year = dateParts[0];
+        const month = dateParts[1].padStart(2, "0");
+        const day = dateParts[2].padStart(2, "0");
+        const hours = dateParts[3]?.padStart(2, "0") || "00";
+        const minutes = dateParts[4]?.padStart(2, "0") || "00";
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
 

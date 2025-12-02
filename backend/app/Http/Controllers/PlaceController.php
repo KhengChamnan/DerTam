@@ -63,7 +63,8 @@ class PlaceController extends Controller
                 $query->orderBy('name', 'asc');
             }
 
-            $places = $query->paginate($request->get('per_page', 15));
+            // Load all records for client-side pagination (default to 10000 if not specified)
+            $places = $query->paginate($request->get('per_page', 10000));
             
             // Transform places data to match frontend expectations
             $places->getCollection()->transform(function ($place) {

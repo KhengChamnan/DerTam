@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -49,6 +56,10 @@ import {
     ChevronsLeft,
     ChevronsRight,
     MoreHorizontal,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    Hotel,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -123,13 +134,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function HotelIndex({ properties, filters, provinces }: Props) {
-    const [search, setSearch] = useState(filters.search || "");
-    const [province, setProvince] = useState(filters.province || "all");
-    const [rating, setRating] = useState(filters.rating || "all");
-    const [availability, setAvailability] = useState(
-        filters.availability || "all"
-    );
-    const [isLoading, setIsLoading] = useState(false);
+    // Client-side filter states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [provinceFilter, setProvinceFilter] = useState<string>("all");
+    const [ratingFilter, setRatingFilter] = useState<string>("all");
+    const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -167,83 +180,63 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
         );
     }, [columnVisibility]);
 
-    const isInitialMount = useRef(true);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Client-side filtering - instant results
+    const filteredProperties = useMemo(() => {
+        return properties.data.filter((property) => {
+            // Search filter - only match place name with prefix
+            const matchesSearch =
+                searchQuery === "" ||
+                property.place.name
+                    .toLowerCase()
+                    .startsWith(searchQuery.toLowerCase());
 
-    // Auto-search with debouncing
-    useEffect(() => {
-        if (isInitialMount.current) {
-            return;
-        }
+            // Province filter (simplified - just check if province string matches)
+            const matchesProvince =
+                provinceFilter === "all" ||
+                (typeof property.place.province === "string" &&
+                    property.place.province === provinceFilter);
 
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
+            // Rating filter
+            const matchesRating =
+                ratingFilter === "all" ||
+                (ratingFilter === "4+" && property.place.ratings >= 4) ||
+                (ratingFilter === "3+" && property.place.ratings >= 3);
 
-        debounceTimer.current = setTimeout(() => {
-            setIsLoading(true);
-            router.get(
-                "/hotels",
-                {
-                    search: search || undefined,
-                    province: province !== "all" ? province : undefined,
-                    rating: rating !== "all" ? rating : undefined,
-                    availability:
-                        availability !== "all" ? availability : undefined,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                    onFinish: () => setIsLoading(false),
-                }
+            // Availability filter (simplified)
+            const matchesAvailability = availabilityFilter === "all";
+
+            return (
+                matchesSearch &&
+                matchesProvince &&
+                matchesRating &&
+                matchesAvailability
             );
-        }, 500);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [search]);
-
-    // Filter changes (immediate)
-    useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        setIsLoading(true);
-        router.get(
-            "/hotels",
-            {
-                search: search || undefined,
-                province: province !== "all" ? province : undefined,
-                rating: rating !== "all" ? rating : undefined,
-                availability: availability !== "all" ? availability : undefined,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-                onFinish: () => setIsLoading(false),
-            }
-        );
-    }, [province, rating, availability]);
-
-    // Update state when filters change from server
-    useEffect(() => {
-        setSearch(filters.search || "");
-        setProvince(filters.province || "all");
-        setRating(filters.rating || "all");
-        setAvailability(filters.availability || "all");
+        });
     }, [
-        filters.search,
-        filters.province,
-        filters.rating,
-        filters.availability,
+        properties.data,
+        searchQuery,
+        provinceFilter,
+        ratingFilter,
+        availabilityFilter,
     ]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredProperties.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedProperties = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredProperties.slice(start, end);
+    }, [filteredProperties, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, provinceFilter, ratingFilter, availabilityFilter]);
 
     const handleDelete = (id: number, name: string) => {
         if (
@@ -253,6 +246,14 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
         ) {
             router.delete(`/hotels/${id}`);
         }
+    };
+
+    // Helper function for pagination
+    const navigateToPage = (page?: number, perPage?: number) => {
+        router.get("/hotels", {
+            ...(page && { page: page.toString() }),
+            ...(perPage && { per_page: perPage.toString() }),
+        });
     };
 
     return (
@@ -277,26 +278,39 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                         </Button>
                     </Link>
                 </div>
-
-                {/* Filters */}
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
+                {/* Unified Filters */}
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Single unified search */}
+                    <div className="relative w-full sm:w-[320px]">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Filter hotels..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search hotels..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
                         />
+                        {searchQuery && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-1 top-1 h-7 w-7 p-0"
+                                onClick={() => setSearchQuery("")}
+                            >
+                                ×
+                            </Button>
+                        )}
                     </div>
 
-                    <Select value={province} onValueChange={setProvince}>
+                    <Select
+                        value={provinceFilter}
+                        onValueChange={setProvinceFilter}
+                    >
                         <SelectTrigger className="w-[150px]">
                             <MapPin className="h-4 w-4 mr-2" />
                             <SelectValue placeholder="Province" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Provinces</SelectItem>
+                            <SelectItem value="all">All Provinces</SelectItem>
                             {provinces.map((prov) => (
                                 <SelectItem
                                     key={prov.province_categoryID}
@@ -308,7 +322,10 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                         </SelectContent>
                     </Select>
 
-                    <Select value={rating} onValueChange={setRating}>
+                    <Select
+                        value={ratingFilter}
+                        onValueChange={setRatingFilter}
+                    >
                         <SelectTrigger className="w-[150px]">
                             <Star className="h-4 w-4 mr-2" />
                             <SelectValue placeholder="Rating" />
@@ -323,8 +340,8 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                     </Select>
 
                     <Select
-                        value={availability}
-                        onValueChange={setAvailability}
+                        value={availabilityFilter}
+                        onValueChange={setAvailabilityFilter}
                     >
                         <SelectTrigger className="w-[150px]">
                             <Filter className="h-4 w-4 mr-2" />
@@ -340,106 +357,106 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                     </Select>
 
                     {/* Column Toggle */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="ml-auto"
+                    <div className="ml-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <Settings2 className="h-4 w-4" />
+                                    View
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                className="w-[150px]"
                             >
-                                <Settings2 className="h-4 w-4" />
-                                View
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[150px]">
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.location}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        location: !!value,
-                                    }))
-                                }
-                            >
-                                Location
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.owner}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        owner: !!value,
-                                    }))
-                                }
-                            >
-                                Owner
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.rating}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        rating: !!value,
-                                    }))
-                                }
-                            >
-                                Rating
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.rooms}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        rooms: !!value,
-                                    }))
-                                }
-                            >
-                                Rooms
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.priceRange}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        priceRange: !!value,
-                                    }))
-                                }
-                            >
-                                Price Range
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.facilities}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        facilities: !!value,
-                                    }))
-                                }
-                            >
-                                Facilities
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.status}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        status: !!value,
-                                    }))
-                                }
-                            >
-                                Status
-                            </DropdownMenuCheckboxItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.location}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            location: !!value,
+                                        }))
+                                    }
+                                >
+                                    Location
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.owner}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            owner: !!value,
+                                        }))
+                                    }
+                                >
+                                    Owner
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.rating}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            rating: !!value,
+                                        }))
+                                    }
+                                >
+                                    Rating
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.rooms}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            rooms: !!value,
+                                        }))
+                                    }
+                                >
+                                    Rooms
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.priceRange}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            priceRange: !!value,
+                                        }))
+                                    }
+                                >
+                                    Price Range
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.facilities}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            facilities: !!value,
+                                        }))
+                                    }
+                                >
+                                    Facilities
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.status}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            status: !!value,
+                                        }))
+                                    }
+                                >
+                                    Status
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>{" "}
                 {/* Table-like layout */}
                 <div className="rounded-md border overflow-x-auto">
                     <div className="min-w-[1800px]">
@@ -511,397 +528,328 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {isLoading
-                                ? // Skeleton loading state
-                                  Array.from({ length: 5 }).map((_, index) => (
-                                      <div key={index} className="p-4">
-                                          <div
-                                              className="grid gap-4 items-center"
-                                              style={{
-                                                  gridTemplateColumns: `2fr ${
-                                                      columnVisibility.location
-                                                          ? "2fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.owner
-                                                          ? "2fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.rating
-                                                          ? "1.5fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.rooms
-                                                          ? "1.5fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.priceRange
-                                                          ? "1.5fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.facilities
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.status
-                                                          ? "1fr"
-                                                          : ""
-                                                  } 2fr`.trim(),
-                                              }}
-                                          >
-                                              <div className="space-y-2">
-                                                  <Skeleton className="h-4 w-32" />
-                                                  <Skeleton className="h-3 w-48" />
-                                              </div>
-                                              {columnVisibility.location && (
-                                                  <div className="flex items-center gap-2">
-                                                      <Skeleton className="h-4 w-4" />
-                                                      <Skeleton className="h-4 w-24" />
-                                                  </div>
-                                              )}
-                                              {columnVisibility.owner && (
-                                                  <div className="space-y-1">
-                                                      <Skeleton className="h-4 w-28" />
-                                                      <Skeleton className="h-3 w-32" />
-                                                  </div>
-                                              )}
-                                              {columnVisibility.rating && (
-                                                  <div className="flex items-center gap-2">
-                                                      <Skeleton className="h-4 w-4" />
-                                                      <Skeleton className="h-4 w-12" />
-                                                  </div>
-                                              )}
-                                              {columnVisibility.rooms && (
-                                                  <Skeleton className="h-4 w-16" />
-                                              )}
-                                              {columnVisibility.priceRange && (
-                                                  <Skeleton className="h-4 w-20" />
-                                              )}
-                                              {columnVisibility.facilities && (
-                                                  <Skeleton className="h-5 w-8 rounded-full" />
-                                              )}
-                                              {columnVisibility.status && (
-                                                  <Skeleton className="h-5 w-16 rounded-full" />
-                                              )}
-                                              <div className="flex items-center gap-2">
-                                                  <Skeleton className="h-8 w-8 rounded-md" />
-                                                  <Skeleton className="h-8 w-8 rounded-md" />
-                                                  <Skeleton className="h-8 w-8 rounded-md" />
-                                              </div>
-                                          </div>
-                                      </div>
-                                  ))
-                                : properties.data.map((property) => (
-                                      <div
-                                          key={property.property_id}
-                                          className="p-4 hover:bg-muted/50 transition-colors"
-                                      >
-                                          <div
-                                              className="grid gap-4 items-center"
-                                              style={{
-                                                  gridTemplateColumns: `2fr ${
-                                                      columnVisibility.location
-                                                          ? "2fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.owner
-                                                          ? "2fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.rating
-                                                          ? "1.5fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.rooms
-                                                          ? "1.5fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.priceRange
-                                                          ? "1.5fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.facilities
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.status
-                                                          ? "1fr"
-                                                          : ""
-                                                  } 2fr`.trim(),
-                                              }}
-                                          >
-                                              {/* Hotel Name */}
-                                              <div>
-                                                  <div className="font-medium">
-                                                      {property.place.name}
-                                                  </div>
-                                                  <div className="text-sm text-muted-foreground line-clamp-1">
-                                                      {
-                                                          property.place
-                                                              .description
-                                                      }
-                                                  </div>
-                                              </div>
+                            {paginatedProperties.length === 0 ? (
+                                <div className="p-12">
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Hotel className="h-8 w-8" />
+                                            </EmptyMedia>
+                                            <EmptyTitle className="text-xl">
+                                                No hotels found
+                                            </EmptyTitle>
+                                            <EmptyDescription className="text-base">
+                                                {searchQuery ||
+                                                provinceFilter !== "all" ||
+                                                ratingFilter !== "all" ||
+                                                availabilityFilter !== "all"
+                                                    ? "No hotels match your current filters. Try adjusting your search criteria."
+                                                    : "Get started by adding your first hotel property."}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent className="flex gap-2">
+                                            {(searchQuery ||
+                                                provinceFilter !== "all" ||
+                                                ratingFilter !== "all" ||
+                                                availabilityFilter !==
+                                                    "all") && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setSearchQuery("");
+                                                        setProvinceFilter(
+                                                            "all"
+                                                        );
+                                                        setRatingFilter("all");
+                                                        setAvailabilityFilter(
+                                                            "all"
+                                                        );
+                                                    }}
+                                                >
+                                                    Clear Filters
+                                                </Button>
+                                            )}
+                                        </EmptyContent>
+                                    </Empty>
+                                </div>
+                            ) : (
+                                paginatedProperties.map((property) => (
+                                    <div
+                                        key={property.property_id}
+                                        className="p-4 hover:bg-muted/50 transition-colors"
+                                    >
+                                        <div
+                                            className="grid gap-4 items-center"
+                                            style={{
+                                                gridTemplateColumns: `2fr ${
+                                                    columnVisibility.location
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.owner
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.rating
+                                                        ? "1.5fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.rooms
+                                                        ? "1.5fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.priceRange
+                                                        ? "1.5fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.facilities
+                                                        ? "1fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.status
+                                                        ? "1fr"
+                                                        : ""
+                                                } 2fr`.trim(),
+                                            }}
+                                        >
+                                            {/* Hotel Name */}
+                                            <div>
+                                                <div className="font-medium">
+                                                    {property.place.name}
+                                                </div>
+                                                <div className="text-sm text-muted-foreground line-clamp-1">
+                                                    {property.place.description}
+                                                </div>
+                                            </div>
 
-                                              {/* Location */}
-                                              {columnVisibility.location && (
-                                                  <div className="flex items-center text-sm">
-                                                      <MapPin className="h-3 w-3 mr-1 shrink-0" />
-                                                      {property.place.province}
-                                                  </div>
-                                              )}
+                                            {/* Location */}
+                                            {columnVisibility.location && (
+                                                <div className="flex items-center text-sm">
+                                                    <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                                                    {property.place.province}
+                                                </div>
+                                            )}
 
-                                              {/* Owner */}
-                                              {columnVisibility.owner && (
-                                                  <div className="text-sm">
-                                                      <div className="font-medium">
-                                                          {property.owner.name}
-                                                      </div>
-                                                      <div className="text-muted-foreground">
-                                                          {property.owner.email}
-                                                      </div>
-                                                  </div>
-                                              )}
+                                            {/* Owner */}
+                                            {columnVisibility.owner && (
+                                                <div className="text-sm">
+                                                    <div className="font-medium">
+                                                        {property.owner.name}
+                                                    </div>
+                                                    <div className="text-muted-foreground">
+                                                        {property.owner.email}
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                              {/* Rating */}
-                                              {columnVisibility.rating && (
-                                                  <div className="flex items-center">
-                                                      <Star className="h-4 w-4 text-yellow-500 mr-1 shrink-0" />
-                                                      <span className="text-sm">
-                                                          {
-                                                              property.place
-                                                                  .ratings
-                                                          }
-                                                      </span>
-                                                      <span className="text-sm text-muted-foreground ml-1">
-                                                          (
-                                                          {
-                                                              property.place
-                                                                  .reviews_count
-                                                          }
-                                                          )
-                                                      </span>
-                                                  </div>
-                                              )}
+                                            {/* Rating */}
+                                            {columnVisibility.rating && (
+                                                <div className="flex items-center">
+                                                    <Star className="h-4 w-4 text-yellow-500 mr-1 shrink-0" />
+                                                    <span className="text-sm">
+                                                        {property.place.ratings}
+                                                    </span>
+                                                    <span className="text-sm text-muted-foreground ml-1">
+                                                        (
+                                                        {
+                                                            property.place
+                                                                .reviews_count
+                                                        }
+                                                        )
+                                                    </span>
+                                                </div>
+                                            )}
 
-                                              {/* Rooms */}
-                                              {columnVisibility.rooms && (
-                                                  <Badge
-                                                      variant={
-                                                          property.room_stats
-                                                              .available > 0
-                                                              ? "default"
-                                                              : "secondary"
-                                                      }
-                                                  >
-                                                      {
-                                                          property.room_stats
-                                                              .total
-                                                      }{" "}
-                                                  </Badge>
-                                              )}
+                                            {/* Rooms */}
+                                            {columnVisibility.rooms && (
+                                                <Badge
+                                                    variant={
+                                                        property.room_stats
+                                                            .available > 0
+                                                            ? "default"
+                                                            : "secondary"
+                                                    }
+                                                >
+                                                    {property.room_stats.total}{" "}
+                                                </Badge>
+                                            )}
 
-                                              {/* Price Range */}
-                                              {columnVisibility.priceRange && (
-                                                  <div className="flex items-center text-sm">
-                                                      {
-                                                          property.room_stats
-                                                              .price_range
-                                                      }
-                                                  </div>
-                                              )}
+                                            {/* Price Range */}
+                                            {columnVisibility.priceRange && (
+                                                <div className="flex items-center text-sm">
+                                                    {
+                                                        property.room_stats
+                                                            .price_range
+                                                    }
+                                                </div>
+                                            )}
 
-                                              {/* Facilities */}
-                                              {columnVisibility.facilities && (
-                                                  <Badge variant="outline">
-                                                      {
-                                                          property.facilities_count
-                                                      }{" "}
-                                                      facilities
-                                                  </Badge>
-                                              )}
+                                            {/* Facilities */}
+                                            {columnVisibility.facilities && (
+                                                <Badge variant="outline">
+                                                    {property.facilities_count}{" "}
+                                                    facilities
+                                                </Badge>
+                                            )}
 
-                                              {/* Status */}
-                                              {columnVisibility.status && (
-                                                  <Badge
-                                                      variant={
-                                                          property.room_stats
-                                                              .available > 0
-                                                              ? "default"
-                                                              : "secondary"
-                                                      }
-                                                  >
-                                                      {property.room_stats
-                                                          .available > 0
-                                                          ? "Available"
-                                                          : "Full"}
-                                                  </Badge>
-                                              )}
+                                            {/* Status */}
+                                            {columnVisibility.status && (
+                                                <Badge
+                                                    variant={
+                                                        property.room_stats
+                                                            .available > 0
+                                                            ? "default"
+                                                            : "secondary"
+                                                    }
+                                                >
+                                                    {property.room_stats
+                                                        .available > 0
+                                                        ? "Available"
+                                                        : "Full"}
+                                                </Badge>
+                                            )}
 
-                                              {/* Actions */}
-                                              <div className="flex items-center gap-2">
-                                                  <Link
-                                                      href={`/hotels/${property.property_id}/edit`}
-                                                  >
-                                                      <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                      >
-                                                          <Edit className="h-4 w-4" />
-                                                      </Button>
-                                                  </Link>
-                                                  <DropdownMenu>
-                                                      <DropdownMenuTrigger
-                                                          asChild
-                                                      >
-                                                          <Button
-                                                              variant="ghost"
-                                                              size="sm"
-                                                          >
-                                                              <MoreHorizontal className="h-4 w-4" />
-                                                          </Button>
-                                                      </DropdownMenuTrigger>
-                                                      <DropdownMenuContent align="end">
-                                                          <DropdownMenuItem
-                                                              asChild
-                                                          >
-                                                              <Link
-                                                                  href={`/hotels/${property.property_id}`}
-                                                              >
-                                                                  View details
-                                                                  <Eye className="ml-2 h-4 w-4" />
-                                                              </Link>
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem
-                                                              asChild
-                                                          >
-                                                              <Link
-                                                                  href={`/hotels/${property.property_id}/edit`}
-                                                              >
-                                                                  Edit hotel
-                                                                  <Edit className="ml-5 h-4 w-4" />
-                                                              </Link>
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuSeparator />
-                                                          <AlertDialog>
-                                                              <AlertDialogTrigger
-                                                                  asChild
-                                                              >
-                                                                  <DropdownMenuItem
-                                                                      onSelect={(
-                                                                          e
-                                                                      ) =>
-                                                                          e.preventDefault()
-                                                                      }
-                                                                      className="text-red-600 focus:text-red-600"
-                                                                  >
-                                                                      Delete
-                                                                      hotel
-                                                                  </DropdownMenuItem>
-                                                              </AlertDialogTrigger>
-                                                              <AlertDialogContent>
-                                                                  <AlertDialogHeader>
-                                                                      <AlertDialogTitle>
-                                                                          Are
-                                                                          you
-                                                                          absolutely
-                                                                          sure?
-                                                                      </AlertDialogTitle>
-                                                                      <AlertDialogDescription>
-                                                                          This
-                                                                          action
-                                                                          cannot
-                                                                          be
-                                                                          undone.
-                                                                          This
-                                                                          will
-                                                                          permanently
-                                                                          delete
-                                                                          the
-                                                                          hotel
-                                                                          "
-                                                                          {
-                                                                              property
-                                                                                  .place
-                                                                                  .name
-                                                                          }
-                                                                          " and
-                                                                          remove
-                                                                          all
-                                                                          its
-                                                                          data
-                                                                          from
-                                                                          our
-                                                                          servers.
-                                                                      </AlertDialogDescription>
-                                                                  </AlertDialogHeader>
-                                                                  <AlertDialogFooter>
-                                                                      <AlertDialogCancel>
-                                                                          Cancel
-                                                                      </AlertDialogCancel>
-                                                                      <AlertDialogAction
-                                                                          onClick={() =>
-                                                                              handleDelete(
-                                                                                  property.property_id,
-                                                                                  property
-                                                                                      .place
-                                                                                      .name
-                                                                              )
-                                                                          }
-                                                                          className="bg-red-600 hover:bg-red-700"
-                                                                      >
-                                                                          Delete
-                                                                      </AlertDialogAction>
-                                                                  </AlertDialogFooter>
-                                                              </AlertDialogContent>
-                                                          </AlertDialog>
-                                                      </DropdownMenuContent>
-                                                  </DropdownMenu>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  ))}
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-2">
+                                                <Link
+                                                    href={`/hotels/${property.property_id}/edit`}
+                                                >
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/hotels/${property.property_id}`}
+                                                            >
+                                                                View details
+                                                                <Eye className="ml-2 h-4 w-4" />
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/hotels/${property.property_id}/edit`}
+                                                            >
+                                                                Edit hotel
+                                                                <Edit className="ml-5 h-4 w-4" />
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger
+                                                                asChild
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onSelect={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.preventDefault()
+                                                                    }
+                                                                    className="text-red-600 focus:text-red-600"
+                                                                >
+                                                                    Delete hotel
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>
+                                                                        Are you
+                                                                        absolutely
+                                                                        sure?
+                                                                    </AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This
+                                                                        action
+                                                                        cannot
+                                                                        be
+                                                                        undone.
+                                                                        This
+                                                                        will
+                                                                        permanently
+                                                                        delete
+                                                                        the
+                                                                        hotel "
+                                                                        {
+                                                                            property
+                                                                                .place
+                                                                                .name
+                                                                        }
+                                                                        " and
+                                                                        remove
+                                                                        all its
+                                                                        data
+                                                                        from our
+                                                                        servers.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>
+                                                                        Cancel
+                                                                    </AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        onClick={() =>
+                                                                            handleDelete(
+                                                                                property.property_id,
+                                                                                property
+                                                                                    .place
+                                                                                    .name
+                                                                            )
+                                                                        }
+                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                    >
+                                                                        Delete
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
-
                 {/* Footer with Pagination */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {properties.from || 0} to {properties.to || 0}{" "}
-                        of {properties.total} row(s).
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={String(properties.per_page || 10)}
+                                value={String(perPage)}
                                 onValueChange={(value) => {
-                                    router.get("/hotels", {
-                                        search: search || undefined,
-                                        province:
-                                            province !== "all"
-                                                ? province
-                                                : undefined,
-                                        rating:
-                                            rating !== "all"
-                                                ? rating
-                                                : undefined,
-                                        availability:
-                                            availability !== "all"
-                                                ? availability
-                                                : undefined,
-                                        per_page: value,
-                                        page: 1,
-                                    });
+                                    setPerPage(Number(value));
+                                    setCurrentPage(1);
                                 }}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
                                     <SelectValue
-                                        placeholder={String(
-                                            properties.per_page || 10
-                                        )}
+                                        placeholder={String(perPage)}
                                     />
                                 </SelectTrigger>
                                 <SelectContent side="top">
@@ -917,32 +865,14 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                             </Select>
                         </div>
                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                            Page {properties.current_page} of{" "}
-                            {properties.last_page}
+                            Page {currentPage} of {lastPage || 1}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/hotels", {
-                                        search: search || undefined,
-                                        province:
-                                            province !== "all"
-                                                ? province
-                                                : undefined,
-                                        rating:
-                                            rating !== "all"
-                                                ? rating
-                                                : undefined,
-                                        availability:
-                                            availability !== "all"
-                                                ? availability
-                                                : undefined,
-                                        page: 1,
-                                    })
-                                }
-                                disabled={properties.current_page === 1}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to first page
@@ -952,25 +882,8 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/hotels", {
-                                        search: search || undefined,
-                                        province:
-                                            province !== "all"
-                                                ? province
-                                                : undefined,
-                                        rating:
-                                            rating !== "all"
-                                                ? rating
-                                                : undefined,
-                                        availability:
-                                            availability !== "all"
-                                                ? availability
-                                                : undefined,
-                                        page: properties.current_page - 1,
-                                    })
-                                }
-                                disabled={properties.current_page === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to previous page
@@ -980,28 +893,8 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/hotels", {
-                                        search: search || undefined,
-                                        province:
-                                            province !== "all"
-                                                ? province
-                                                : undefined,
-                                        rating:
-                                            rating !== "all"
-                                                ? rating
-                                                : undefined,
-                                        availability:
-                                            availability !== "all"
-                                                ? availability
-                                                : undefined,
-                                        page: properties.current_page + 1,
-                                    })
-                                }
-                                disabled={
-                                    properties.current_page ===
-                                    properties.last_page
-                                }
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to next page</span>
                                 <ChevronRight className="h-4 w-4" />
@@ -1009,28 +902,8 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/hotels", {
-                                        search: search || undefined,
-                                        province:
-                                            province !== "all"
-                                                ? province
-                                                : undefined,
-                                        rating:
-                                            rating !== "all"
-                                                ? rating
-                                                : undefined,
-                                        availability:
-                                            availability !== "all"
-                                                ? availability
-                                                : undefined,
-                                        page: properties.last_page,
-                                    })
-                                }
-                                disabled={
-                                    properties.current_page ===
-                                    properties.last_page
-                                }
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to last page</span>
                                 <ChevronsRight className="h-4 w-4" />

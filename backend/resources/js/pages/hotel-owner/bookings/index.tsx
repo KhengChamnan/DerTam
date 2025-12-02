@@ -145,24 +145,19 @@ export default function HotelOwnerBookingsIndex({
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
 
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(15);
+
     // Client-side filtering using useMemo (like in all rooms)
     const filteredData = useMemo(() => {
         return data.filter((booking) => {
-            // Search filter - search in guest name, email, property name, room type
+            // Search filter - only match guest name with prefix
             const matchesSearch =
                 search === "" ||
                 booking.booking?.user?.name
                     ?.toLowerCase()
-                    .includes(search.toLowerCase()) ||
-                booking.booking?.user?.email
-                    ?.toLowerCase()
-                    .includes(search.toLowerCase()) ||
-                booking.room_property?.property?.place?.name
-                    ?.toLowerCase()
-                    .includes(search.toLowerCase()) ||
-                booking.room_property?.room_type
-                    ?.toLowerCase()
-                    .includes(search.toLowerCase());
+                    .startsWith(search.toLowerCase());
 
             // Status filter
             const matchesStatus =
@@ -171,7 +166,27 @@ export default function HotelOwnerBookingsIndex({
 
             return matchesSearch && matchesStatus;
         });
-    }, [data, search, statusFilter]); // Column visibility state with localStorage persistence
+    }, [data, search, statusFilter]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredData.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredData.slice(start, end);
+    }, [filteredData, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
+
+    // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
         () => {
             const savedPreferences = localStorage.getItem(

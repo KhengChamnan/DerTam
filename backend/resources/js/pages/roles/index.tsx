@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
     EmptyContent,
@@ -90,8 +89,12 @@ interface ColumnVisibility {
 }
 
 export default function RolesIndex({ roles, filters }: Props) {
-    const [search, setSearch] = useState(filters.search || "");
-    const [isLoading, setIsLoading] = useState(false);
+    // Client-side filter state
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -127,53 +130,35 @@ export default function RolesIndex({ roles, filters }: Props) {
         );
     }, [columnVisibility]);
 
-    // Use useRef to track if this is the initial mount
-    const isInitialMount = useRef(true);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Client-side filtering - instant results
+    const filteredRoles = useMemo(() => {
+        return roles.data.filter((role) => {
+            // Search filter - only match role name with prefix
+            const matchesSearch =
+                searchQuery === "" ||
+                role.name.toLowerCase().startsWith(searchQuery.toLowerCase());
 
-    // Auto-search with debouncing
+            return matchesSearch;
+        });
+    }, [roles.data, searchQuery]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredRoles.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedRoles = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredRoles.slice(start, end);
+    }, [filteredRoles, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
     useEffect(() => {
-        // Skip the initial mount
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        // Clear previous timer
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        // Set new timer for debounced search
-        debounceTimer.current = setTimeout(() => {
-            setIsLoading(true);
-            router.get(
-                "/roles",
-                {
-                    search: search || undefined,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                    only: ["roles"],
-                    onFinish: () => setIsLoading(false),
-                }
-            );
-        }, 500); // 500ms debounce
-
-        // Cleanup function
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [search]);
-
-    // Update state when filters change from server (e.g., pagination)
-    useEffect(() => {
-        setSearch(filters.search || "");
-    }, [filters.search]);
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -235,8 +220,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search roles..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
                         />
                     </div>
@@ -337,76 +322,46 @@ export default function RolesIndex({ roles, filters }: Props) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {isLoading ? (
-                                // Skeleton loading state
-                                Array.from({ length: 5 }).map((_, index) => (
-                                    <div key={index} className="p-4">
-                                        <div
-                                            className="grid gap-4 items-center"
-                                            style={{
-                                                gridTemplateColumns: `2fr ${
-                                                    columnVisibility.permissions
-                                                        ? "2fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.users
-                                                        ? "1fr"
-                                                        : ""
-                                                } ${
-                                                    columnVisibility.type
-                                                        ? "1fr"
-                                                        : ""
-                                                } 1fr`.trim(),
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Skeleton className="h-10 w-10 rounded-lg" />
-                                                <Skeleton className="h-5 w-32" />
-                                            </div>
-                                            {columnVisibility.permissions && (
-                                                <Skeleton className="h-5 w-24" />
-                                            )}
-                                            {columnVisibility.users && (
-                                                <Skeleton className="h-5 w-16" />
-                                            )}
-                                            {columnVisibility.type && (
-                                                <Skeleton className="h-6 w-20" />
-                                            )}
-                                            <div className="flex gap-2">
-                                                <Skeleton className="h-8 w-8" />
-                                                <Skeleton className="h-8 w-8" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : roles.data.length === 0 ? (
-                                <div className="col-span-full">
+                            {paginatedRoles.length === 0 ? (
+                                <div className="col-span-full p-12">
                                     <Empty>
                                         <EmptyHeader>
                                             <EmptyMedia variant="icon">
-                                                <Shield className="h-6 w-6" />
+                                                <Shield className="h-8 w-8" />
                                             </EmptyMedia>
-                                            <EmptyTitle>
+                                            <EmptyTitle className="text-xl">
                                                 No roles found
                                             </EmptyTitle>
-                                            <EmptyDescription>
-                                                {search
-                                                    ? "Try adjusting your search to find what you're looking for."
+                                            <EmptyDescription className="text-base">
+                                                {searchQuery
+                                                    ? "No roles match your search. Try adjusting your search criteria."
                                                     : "Get started by creating your first role."}
                                             </EmptyDescription>
                                         </EmptyHeader>
-                                        <EmptyContent>
-                                            <Link href="/roles/create">
-                                                <Button>
-                                                    <Shield className="h-4 w-4 mr-2" />
-                                                    Create Role
+                                        <EmptyContent className="flex gap-2">
+                                            {searchQuery && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setSearchQuery("")
+                                                    }
+                                                >
+                                                    Clear Search
                                                 </Button>
-                                            </Link>
+                                            )}
+                                            {!searchQuery && (
+                                                <Link href="/roles/create">
+                                                    <Button>
+                                                        <Shield className="h-4 w-4 mr-2" />
+                                                        Create Role
+                                                    </Button>
+                                                </Link>
+                                            )}
                                         </EmptyContent>
                                     </Empty>
                                 </div>
                             ) : (
-                                roles.data.map((role) => (
+                                paginatedRoles.map((role) => (
                                     <div
                                         key={role.id}
                                         className="p-4 hover:bg-muted/50"
@@ -626,31 +581,22 @@ export default function RolesIndex({ roles, filters }: Props) {
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {(roles.current_page - 1) * roles.per_page + 1}{" "}
-                        to{" "}
-                        {Math.min(
-                            roles.current_page * roles.per_page,
-                            roles.total
-                        )}{" "}
-                        of {roles.total} row(s).
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={String(roles.per_page)}
+                                value={String(perPage)}
                                 onValueChange={(value) => {
-                                    router.get("/roles", {
-                                        ...filters,
-                                        per_page: value,
-                                        page: 1,
-                                    });
+                                    setPerPage(Number(value));
+                                    setCurrentPage(1);
                                 }}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
                                     <SelectValue
-                                        placeholder={String(roles.per_page)}
+                                        placeholder={String(perPage)}
                                     />
                                 </SelectTrigger>
                                 <SelectContent side="top">
@@ -663,19 +609,14 @@ export default function RolesIndex({ roles, filters }: Props) {
                             </Select>
                         </div>
                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                            Page {roles.current_page} of {roles.last_page}
+                            Page {currentPage} of {lastPage || 1}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: 1,
-                                    })
-                                }
-                                disabled={roles.current_page === 1}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to first page
@@ -699,13 +640,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: roles.current_page - 1,
-                                    })
-                                }
-                                disabled={roles.current_page === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to previous page
@@ -728,15 +664,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: roles.current_page + 1,
-                                    })
-                                }
-                                disabled={
-                                    roles.current_page === roles.last_page
-                                }
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to next page</span>
                                 <svg
@@ -757,15 +686,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: roles.last_page,
-                                    })
-                                }
-                                disabled={
-                                    roles.current_page === roles.last_page
-                                }
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to last page</span>
                                 <svg

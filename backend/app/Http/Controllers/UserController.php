@@ -20,26 +20,20 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // Search functionality (case-insensitive with word order relevance)
+        // Search functionality (prefix filtering with word boundaries)
         if ($request->filled('search')) {
-            $search = trim($request->search);
-            $searchLower = strtolower($search);
+            $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], trim($request->search));
             
-            // Add relevance scoring for word order (name only)
-            $query->whereRaw('LOWER(name) LIKE ?', ['%' . $searchLower . '%'])
-            ->selectRaw('users.*, 
-                CASE 
-                    WHEN LOWER(name) = ? THEN 100
-                    WHEN LOWER(name) LIKE ? THEN 90
-                    WHEN LOWER(name) LIKE ? THEN 80
-                    ELSE 40
-                END as search_relevance', 
-                [
-                    $searchLower,
-                    $searchLower . '%',
-                    '%' . $searchLower . '%'
-                ])
-            ->orderByDesc('search_relevance');
+            $query->where(function ($q) use ($escapedTerm) {
+                $q->where('name', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+                  ->orWhere('email', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('email', 'LIKE', '% ' . $escapedTerm . '%')
+                  ->orWhere('username', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('username', 'LIKE', '% ' . $escapedTerm . '%')
+                  ->orWhere('phone_number', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('phone_number', 'LIKE', '% ' . $escapedTerm . '%');
+            });
         }
 
         // Filter by status
