@@ -70,6 +70,7 @@ class EventController extends Controller
 					DB::raw('places.name as place_name'),
 					'events.province_id'
 				)
+				->where('events.type', '!=', 1) // Exclude slideshow events
 				->where(function($w){
 					$w->where('events.start_at', '>=', now())
 						->orWhere('events.end_at', '>=', now());
