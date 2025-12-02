@@ -182,4 +182,188 @@ class BusBookingController extends BasePaymentController
             ], 500);
         }
     }
+
+    /**
+     * Get list of confirmed bus bookings for authenticated user
+     * GET /api/booking/bus/my-bookings
+     */
+    public function getMyBusBookings(Request $request)
+    {
+        try {
+            $userId = auth()->id();
+
+            // Get all confirmed bookings that have bus seat items
+            $bookings = Booking::where('user_id', $userId)
+                ->where('status', 'confirmed')
+                ->whereHas('bookingItems', function ($query) {
+                    $query->where('item_type', 'bus_seat');
+                })
+                ->with(['bookingItems' => function ($query) {
+                    $query->where('item_type', 'bus_seat');
+                }])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $busBookings = [];
+
+            foreach ($bookings as $booking) {
+                // Get seat bookings for this booking
+                $seatBookings = SeatBooking::where('booking_id', $booking->id)
+                    ->with(['schedule.bus.busProperty', 'schedule.route', 'seat'])
+                    ->get();
+
+                if ($seatBookings->isEmpty()) {
+                    continue;
+                }
+
+                // Get schedule info from first seat booking
+                $schedule = $seatBookings->first()->schedule;
+
+                $seats = $seatBookings->map(function ($seatBooking) {
+                    return [
+                        'seat_id' => $seatBooking->seat_id,
+                        'seat_number' => $seatBooking->seat->column_label . $seatBooking->seat->row,
+                        'seat_type' => $seatBooking->seat->seat_type,
+                        'price' => $seatBooking->price,
+                    ];
+                });
+
+                $busBookings[] = [
+                    'booking_id' => $booking->id,
+                    'total_amount' => $booking->total_amount,
+                    'currency' => $booking->currency,
+                    'status' => $booking->status,
+                    'booked_at' => $booking->created_at->toIso8601String(),
+                    'schedule' => [
+                        'id' => $schedule->id,
+                        'departure_time' => $schedule->departure_time->toIso8601String(),
+                        'arrival_time' => $schedule->arrival_time ? $schedule->arrival_time->toIso8601String() : null,
+                        'from_location' => $schedule->route->from_location,
+                        'to_location' => $schedule->route->to_location,
+                    ],
+                    'bus' => [
+                        'id' => $schedule->bus->id,
+                        'name' => $schedule->bus->bus_name,
+                        'plate' => $schedule->bus->bus_plate,
+                        'type' => $schedule->bus->busProperty->name ?? null,
+                    ],
+                    'seats_count' => $seats->count(),
+                    'seats' => $seats,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bus bookings retrieved successfully',
+                'data' => [
+                    'bookings' => $busBookings,
+                    'total' => count($busBookings),
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve bus bookings', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving bus bookings',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get details of a specific bus booking
+     * GET /api/booking/bus/{id}
+     */
+    public function getBusBookingDetails($id)
+    {
+        try {
+            $userId = auth()->id();
+
+            // Find the booking
+            $booking = Booking::where('id', $id)
+                ->where('user_id', $userId)
+                ->where('status', 'confirmed')
+                ->whereHas('bookingItems', function ($query) {
+                    $query->where('item_type', 'bus_seat');
+                })
+                ->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bus booking not found or not confirmed',
+                ], 404);
+            }
+
+            // Get seat bookings with full details
+            $seatBookings = SeatBooking::where('booking_id', $booking->id)
+                ->with(['schedule.bus.busProperty', 'schedule.route', 'seat'])
+                ->get();
+
+            if ($seatBookings->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No seat bookings found for this booking',
+                ], 404);
+            }
+
+            $schedule = $seatBookings->first()->schedule;
+
+            $seats = $seatBookings->map(function ($seatBooking) {
+                return [
+                    'seat_id' => $seatBooking->seat_id,
+                    'seat_number' => $seatBooking->seat->column_label . $seatBooking->seat->row,
+                    'seat_type' => $seatBooking->seat->seat_type,
+                    'price' => $seatBooking->price,
+                ];
+            });
+
+            $bookingDetails = [
+                'booking_id' => $booking->id,
+                'total_amount' => $booking->total_amount,
+                'currency' => $booking->currency,
+                'status' => $booking->status,
+                'booked_at' => $booking->created_at->toIso8601String(),
+                'schedule' => [
+                    'id' => $schedule->id,
+                    'departure_time' => $schedule->departure_time->toIso8601String(),
+                    'arrival_time' => $schedule->arrival_time ? $schedule->arrival_time->toIso8601String() : null,
+                    'from_location' => $schedule->route->from_location,
+                    'to_location' => $schedule->route->to_location,
+                ],
+                'bus' => [
+                    'id' => $schedule->bus->id,
+                    'name' => $schedule->bus->bus_name,
+                    'plate' => $schedule->bus->bus_plate,
+                    'type' => $schedule->bus->busProperty->name ?? null,
+                ],
+                'seats_count' => $seats->count(),
+                'seats' => $seats,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bus booking details retrieved successfully',
+                'data' => $bookingDetails,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve bus booking details', [
+                'booking_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving bus booking details',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
