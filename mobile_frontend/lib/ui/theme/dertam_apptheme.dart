@@ -193,7 +193,7 @@ class DertamSpacings {
   static const double radiusXLarge = 24;
 
   // Button specific
-  static const double buttonRadius = 20;
+  static const double buttonRadius = 10;
   static const double buttonHeight = 42;
   static const double buttonPaddingHorizontal = 24;
   static const double buttonPaddingVertical = 12;

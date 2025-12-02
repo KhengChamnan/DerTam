@@ -357,7 +357,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     switch (currency) {
       case 'USD':
         return '\$';
-      case 'KHR':
+      case 'KMR':
         return '៛';
       case 'EUR':
         return '€';
@@ -380,7 +380,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
           final updatedExpenses = List<Expense>.from(
             currentBudget.expenses ?? [],
           )..removeWhere((e) => e.id == expense.id);
-
           // Recalculate totals
           final newTotalSpent = updatedExpenses.fold<double>(
             0.0,
@@ -388,7 +387,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
           );
           final newRemainingBudget =
               (currentBudget.totalBudget ?? 0.0) - newTotalSpent;
-
           // Update the budget with new values
           final updatedBudget = Budget(
             budgetId: currentBudget.budgetId,

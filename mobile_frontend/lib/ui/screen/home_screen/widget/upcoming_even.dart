@@ -1,11 +1,79 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/models/place/place.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile_frontend/models/place/upcoming_event_place.dart';
 
 class EventCard extends StatelessWidget {
-  final Place place;
+  final UpcomingEventPlace place;
   final VoidCallback onTap;
 
   const EventCard({super.key, required this.place, required this.onTap});
+  String formatDateDisplay(String date) {
+    if (date.isEmpty) {
+      return '';
+    }
+    try {
+      DateTime parsedDate;
+      bool hasTime = false;
+
+      // Handle different date formats
+      if (date.contains('T')) {
+        // ISO 8601 format: 2025-11-29T09:30:00.000000Z
+        parsedDate = DateTime.parse(date);
+        hasTime = true;
+      } else if (date.contains(' ') && date.contains('-')) {
+        // Backend format: 2025-12-10 14:00:00
+        parsedDate = DateFormat('yyyy-MM-dd HH:mm:ss').parse(date);
+        hasTime = true;
+      } else if (date.contains('.')) {
+        // Format: 2025.11.29
+        parsedDate = DateFormat('yyyy.MM.dd').parse(date);
+      } else if (date.contains('-')) {
+        // Format: 2025-11-29
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('/')) {
+        // Format: 29/11/2025
+        parsedDate = DateFormat('dd/MM/yyyy').parse(date);
+      } else {
+        return date;
+      }
+
+      // Get day with ordinal suffix
+      int day = parsedDate.day;
+      String suffix = _getOrdinalSuffix(day);
+      String dayStr = day.toString().padLeft(2, '0');
+      // Get month abbreviation
+      String month = DateFormat('MMM').format(parsedDate);
+      // Get year
+      String year = parsedDate.year.toString();
+
+      // Format time if available (e.g., 2:00 PM)
+      if (hasTime) {
+        String time = DateFormat('h:mm a').format(parsedDate);
+        return '$dayStr$suffix $month $year, $time';
+      }
+
+      return '$dayStr$suffix - $month - $year';
+    } catch (e) {
+      // If parsing fails, return original format
+      return date;
+    }
+  }
+
+  String _getOrdinalSuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return 'th';
+    }
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +105,7 @@ class EventCard extends StatelessWidget {
                       bottom: Radius.circular(20),
                     ),
                     child: Image.network(
-                      place.imagesUrl.isNotEmpty
-                          ? place.imagesUrl
-                          : 'https://picsum.photos/400/600',
+                      place.imageUrl ?? 'https://picsum.photos/400/600',
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -94,7 +160,7 @@ class EventCard extends StatelessWidget {
                 children: [
                   // Event name
                   Text(
-                    place.name,
+                    place.name ?? 'No Event Hosted',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -107,33 +173,21 @@ class EventCard extends StatelessWidget {
                   // Location and rating
                   Row(
                     children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Color(0xFF526B8C),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          place.description,
+                          formatDateDisplay(place.startDate.toString()),
                           style: const TextStyle(
                             color: Color(0xFF526B8C),
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Color(0xFFFFB23F),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 4),
                       Text(
-                        place.ratings.toStringAsFixed(1),
+                        formatDateDisplay(place.endDate.toString()),
                         style: const TextStyle(
                           color: Color(0xFF1F1F1F),
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

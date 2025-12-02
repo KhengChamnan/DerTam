@@ -6,6 +6,7 @@ import 'package:mobile_frontend/data/repository/abstract/trip_repsitory.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
 import 'package:mobile_frontend/models/trips/create_trip_response.dart';
 import 'package:mobile_frontend/models/trips/confirm_trip_response.dart';
+import 'package:mobile_frontend/models/trips/trip_share_model.dart';
 import 'package:mobile_frontend/models/trips/trips.dart';
 
 class LaravelTripApiRepository implements TripRepository {
@@ -201,6 +202,75 @@ class LaravelTripApiRepository implements TripRepository {
         print('❌ [DEBUG] Error response body: ${allTripResponses.body}');
         throw Exception(
           'Failed to confirm trip: ${allTripResponses.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<TripShareResponse> generateShareableLink(String tripId) async {
+    try {
+      final token = await repository.getToken();
+      if (token == null) {
+        throw Exception('Token have not found!');
+      }
+      final header = _getAuthHeaders(token);
+      final shareableLinkResponses = await FetchingData.getData(
+        '/api/trip/$tripId/share',
+        header,
+      );
+      if (shareableLinkResponses.statusCode == 200) {
+        final jsonResponse = shareableLinkResponses.body;
+        print(
+          '📄 [DEBUG] Response body of trip share link: ${shareableLinkResponses.body}',
+        );
+        final shareableLink = TripShareResponse.fromJson(
+          json.decode(jsonResponse),
+        );
+        return shareableLink;
+      } else {
+        print(
+          '❌ [DEBUG] Failed with status: ${shareableLinkResponses.statusCode}',
+        );
+        print('❌ [DEBUG] Error response body: ${shareableLinkResponses.body}');
+        throw Exception(
+          'Failed to get shareable link: ${shareableLinkResponses.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<TripShareResponse> clickShareableLink(String shareToken) async {
+    try {
+      final token = await repository.getToken();
+      if (token == null) {
+        throw Exception('Token have not found!');
+      }
+      final header = _getAuthHeaders(token);
+      final shareableLinkResponses = await FetchingData.getData(
+        '/api/trip/share/$shareToken',
+        header,
+      );
+      if (shareableLinkResponses.statusCode == 200) {
+        final jsonResponse = shareableLinkResponses.body;
+        print(
+          '📄 [DEBUG] Response body of trip share link: ${shareableLinkResponses.body}',
+        );
+        final shareableLink = TripShareResponse.fromJson(
+          json.decode(jsonResponse),
+        );
+        return shareableLink;
+      } else {
+        print(
+          '❌ [DEBUG] Failed with status: ${shareableLinkResponses.statusCode}',
+        );
+        print('❌ [DEBUG] Error response body: ${shareableLinkResponses.body}');
+        throw Exception(
+          'Failed to get shareable link: ${shareableLinkResponses.statusCode}',
         );
       }
     } catch (e) {

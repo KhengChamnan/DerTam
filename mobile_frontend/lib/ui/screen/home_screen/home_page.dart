@@ -153,7 +153,7 @@ class _HomePageState extends State<HomePage> {
                                   userInfo.data?.name ?? 'Guest User',
                                   style: TextStyle(
                                     color: DertamColors.primaryBlue,
-                                    fontSize: 24,
+                                    fontSize: 20,
                                   ),
                                 ),
                               ),
@@ -407,7 +407,7 @@ class _HomePageState extends State<HomePage> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => DetailEachPlace(
-                                          placeId: event.placeId,
+                                          placeId: event.id.toString(),
                                         ),
                                       ),
                                     ),

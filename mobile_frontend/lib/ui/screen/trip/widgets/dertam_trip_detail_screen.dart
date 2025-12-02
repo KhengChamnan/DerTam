@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/budget_provider.dart';
@@ -44,12 +46,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       );
       return;
     }
-
     try {
       // Try to fetch budget for this trip
       await budgetProvider.getBudgetDetail(tripId);
       final budgetState = budgetProvider.getBudgetDetails;
-
       // Check if budget exists - check state is success and has valid budget data
       if (budgetState.state == AsyncValueState.success &&
           budgetState.data != null &&
@@ -136,20 +136,172 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     );
   }
 
-  void _shareTrip() {
+  void _shareTrip() async {
+    final tripProvider = context.read<TripProvider>();
+    final tripDetailState = tripProvider.getTripDetail;
+    final tripId = tripDetailState.data?.data.tripId?.toString() ?? '';
+    if (tripId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Trip ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(color: DertamColors.primaryDark),
+            SizedBox(width: 16),
+            Text('Generating share link...'),
+          ],
+        ),
+      ),
+    );
+    try {
+      final shareResponse = await tripProvider.generateShareableLink(tripId);
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      if (shareResponse.success && shareResponse.data != null) {
+        final shareLink = shareResponse.data!.shareLink;
+        final expiresAt = shareResponse.data!.expiresAt;
+        // Show share dialog with link
+        if (mounted) {
+          _showShareDialog(shareLink, expiresAt);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(shareResponse.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate share link: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showShareDialog(String shareLink, DateTime expiresAt) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Share Trip'),
-        content: Text('Share functionality will be implemented here.'),
+        title: Row(
+          children: [
+            Icon(Icons.share, color: DertamColors.primaryDark),
+            SizedBox(width: 8),
+            Text('Share Trip'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      shareLink,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: DertamColors.primaryDark,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.copy, size: 20),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: shareLink));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Link copied to clipboard'),
+                          backgroundColor: DertamColors.primaryDark,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    tooltip: 'Copy link',
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Link expires: ${_formatExpiryDate(expiresAt)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await Share.share(
+                'Check out my trip on Dertam! $shareLink',
+                subject: 'Dertam Trip Invitation',
+              );
+            },
+            icon: Icon(Icons.share, size: 18),
+            label: Text('Share'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DertamColors.primaryDark,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatExpiryDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   List<Map<String, dynamic>> _getMockUsers() {

@@ -7,6 +7,7 @@ import 'package:mobile_frontend/data/repository/abstract/place_repository.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/models/place/place_category.dart';
 import 'package:mobile_frontend/models/place/place_detail.dart';
+import 'package:mobile_frontend/models/place/upcoming_event_place.dart';
 
 class LaravelPlaceApiRepository implements PlaceRepository {
   final _baseHeaders = {
@@ -119,15 +120,16 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   }
 
   @override
-  Future<List<Place>> getUpcomingEvents() async {
+  Future<List<UpcomingEventPlace>> getUpcomingEvents() async {
     try {
       final response = await FetchingData.getData(
         ApiEndpoint.upcomingEvents,
         _baseHeaders,
       );
+      print('🌐 [DEBUG] Upcoming Event Data: ${response.body}');
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(response.body);
-        final places = jsonData.map((json) => PlaceDto.fromJson(json)).toList();
+        final places = jsonData.map((json) => UpcomingEventPlace.fromJson(json)).toList();
         return places;
       } else {
         throw Exception(
@@ -140,8 +142,25 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   }
 
   @override
-  Future<List<Place>> searchPlaces(String query) {
-    // TODO: implement searchPlaces
-    throw UnimplementedError();
+  Future<List<Place>> searchPlaces(String query) async{
+    try {
+      final param = {'q': query};
+     final searchPlaceReponse = await FetchingData.getDataPar(
+        ApiEndpoint.searchPlaces,
+        param,
+        _baseHeaders,
+      );
+      if (searchPlaceReponse.statusCode == 200) {
+        final List<dynamic> jsonData = json.decode(searchPlaceReponse.body);
+        final places = jsonData.map((json) => PlaceDto.fromJson(json)).toList();
+        return places;
+      } else {
+        throw Exception(
+          'Failed to search places: ${searchPlaceReponse.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 }

@@ -40,7 +40,7 @@ class LaravelHotelApiRepository extends HotelRepository {
         if (jsonData == null) {
           throw Exception('Response does not contain "data" field');
         }
- 
+
         if (jsonData.containsKey('place')) {
           print('📦 [DEBUG] Place name: ${jsonData['place']['name']}');
         }
@@ -202,8 +202,6 @@ class LaravelHotelApiRepository extends HotelRepository {
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
-        // The API returns: {success: true, data: {current_page, data: [...]}}
-        // We need to extract the BookingListResponse which wraps the paginated data
         return [BookingListResponse.fromJson(jsonResponse)];
       } else {
         throw Exception('Failed to load bookings: ${response.statusCode}');
@@ -271,29 +269,6 @@ class LaravelHotelApiRepository extends HotelRepository {
   }
 
   @override
-  Future<void> deleteBooking(String bookingId) async {
-    try {
-      final token = await authRepository.getToken();
-      if (token == null) {
-        throw Exception('User is not authenticated');
-      }
-      final headers = _getAuthHeaders(token);
-      final response = await FetchingData.deleteData(
-        '${ApiEndpoint.cancelBooking}/$bookingId',
-        headers,
-      );
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        print('Hotel has been Deleted $responseBody');
-      } else {
-        throw Exception('Failed to delete booking: ${response.statusCode}');
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
   Future<SearchRoomResponse> searchAvailableRooms(
     DateTime checkIn,
     DateTime checkOut,
@@ -342,6 +317,44 @@ class LaravelHotelApiRepository extends HotelRepository {
       } else {
         throw Exception(
           'Failed to fetching room available ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<HotelListResponseData> searchAvailableHotel(
+    int provinceId,
+    DateTime checkIn,
+    DateTime checkOut,
+  ) async {
+    try {
+      // Format dates as YYYY-MM-DD strings
+      final String formattedCheckIn =
+          '${checkIn.year}-${checkIn.month.toString().padLeft(2, '0')}-${checkIn.day.toString().padLeft(2, '0')}';
+      final String formattedCheckOut =
+          '${checkOut.year}-${checkOut.month.toString().padLeft(2, '0')}-${checkOut.day.toString().padLeft(2, '0')}';
+
+      final body = {
+        'province_id': provinceId.toString(),
+        'check_in': formattedCheckIn,
+        'check_out': formattedCheckOut,
+      };
+      final searchHotelResponse = await FetchingData.getDataPar(
+        ApiEndpoint.searchHotels,
+        body,
+        _baseHeaders,
+      );
+      print('Search Hotel Data : ${searchHotelResponse.body}');
+      if (searchHotelResponse.statusCode == 200) {
+        final jsonData = json.decode(searchHotelResponse.body);
+        final searchHotel = HotelListResponseData.fromJson(jsonData);
+        return searchHotel;
+      } else {
+        throw Exception(
+          'Failed to fetching hotel available ${searchHotelResponse.statusCode}',
         );
       }
     } catch (e) {

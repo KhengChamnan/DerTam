@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:mobile_frontend/models/province/province_category_detail.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/hotel/hotel_detail_screen.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_hotel_nearby_card.dart';
@@ -18,17 +20,28 @@ class DertamHotelScreen extends StatefulWidget {
 }
 
 class _DertamHotelScreenState extends State<DertamHotelScreen> {
-  String selectedLocation = 'Siem Reap';
-  int guestCount = 2;
+  String selectedLocationName = 'Siem Reap';
+  int? selectedLocationId;
   late DateTime checkInDate;
   late DateTime checkOutDate;
+  List<ProvinceCategoryDetail> _locations = [];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final hotelProvider = context.read<HotelProvider>();
-      hotelProvider.fetchHotelList();
+      // Fetch locations from BusBookingProvider
+      final busBookingProvider = context.read<BusBookingProvider>();
+      busBookingProvider.fetchListLocation().then((locations) {
+        setState(() {
+          _locations = locations;
+          if (locations.isNotEmpty) {
+            selectedLocationName =
+                locations.first.provinceCategoryName ?? 'Siem Reap';
+            selectedLocationId = locations.first.provinceCategoryID;
+          }
+        });
+      });
     });
     checkInDate = DateTime.now();
     checkOutDate = DateTime.now().add(const Duration(days: 1));
@@ -82,17 +95,32 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              ...['Siem Reap', 'Phnom Penh', 'Sihanoukville', 'Battambang'].map(
-                (location) => ListTile(
-                  title: Text(location),
-                  onTap: () {
-                    setState(() {
-                      selectedLocation = location;
-                    });
-                    Navigator.pop(context);
-                  },
+              if (_locations.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _locations.length,
+                    itemBuilder: (context, index) {
+                      final location = _locations[index];
+                      return ListTile(
+                        title: Text(location.provinceCategoryName ?? 'Unknown'),
+                        onTap: () {
+                          setState(() {
+                            selectedLocationName =
+                                location.provinceCategoryName ?? 'Unknown';
+                            selectedLocationId = location.provinceCategoryID;
+                          });
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -100,78 +128,34 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
     );
   }
 
-  void _showGuestPicker() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Number of Guests',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () {
-                          if (guestCount > 1) {
-                            setModalState(() {
-                              guestCount--;
-                            });
-                            setState(() {});
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 20),
-                      Text(
-                        '$guestCount',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () {
-                          setModalState(() {
-                            guestCount++;
-                          });
-                          setState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  DertamButton(
-                    text: 'Done',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+  void fetchHotels() async {
+    if (selectedLocationId == null) return;
+    final hotelProvider = context.read<HotelProvider>();
+    await hotelProvider.searchAllHotelList(
+      selectedLocationId!,
+      checkInDate,
+      checkOutDate,
+    );
+  }
+
+  Future<void> _onRefresh() async {
+    if (selectedLocationId == null) return;
+    final hotelProvider = context.read<HotelProvider>();
+    await hotelProvider.searchAllHotelList(
+      selectedLocationId!,
+      checkInDate,
+      checkOutDate,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final hotelProvider = context.watch<HotelProvider>();
-    final hotelListData = hotelProvider.hotelList;
-    print('Hotel Name :::::::::${hotelListData.data?.first.place.name}');
+    final hotelListData = hotelProvider.searchHotel;
+    // Safely access first element - use firstOrNull or check if list is not empty
+    print(
+      'Hotel Name :::::::::${hotelListData.data?.hotels.isNotEmpty == true ? hotelListData.data?.hotels.first.name : 'No hotels'}',
+    );
     Widget hotelList;
     switch (hotelListData.state) {
       case AsyncValueState.empty:
@@ -206,7 +190,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  hotelListData.error.toString(),
+                  'Oops! Something went wrong',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
@@ -222,22 +206,25 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
           child: ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: hotelListData.data?.length,
+            itemCount: hotelListData.data?.hotels.length ?? 0,
             itemBuilder: (context, index) {
-              final hotel = hotelListData.data![index];
+              final hotel = hotelListData.data?.hotels[index];
               return Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: DertamHotelNearby(
-                  name: hotel.place.name,
+                  name: hotel?.name ?? 'No Hotel',
                   location:
-                      hotel.place.provinceCategory.provinceCategoryName ?? 'No Province',
-                  rating: hotel.place.rating.toString(),
-                  imageUrl: hotel.place.imagesUrl.first,
+                      hotel?.provinceCategory.provinceCategoryName ??
+                      'No Province',
+                  rating: hotel?.rating.toString() ?? '',
+                  imageUrl: hotel?.imagesUrl.first ?? '',
+                  reviewCount: hotel?.reviewCount.toString(),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          HotelDetailScreen(hotelId: hotel.placeId.toString()),
+                      builder: (context) => HotelDetailScreen(
+                        hotelId: hotel?.placeId.toString() ?? '',
+                      ),
                     ),
                   ),
                 ),
@@ -251,337 +238,308 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero image with travel collage
-              Container(
-                height: 240,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage(
-                      'https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800',
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: Container(
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          color: DertamColors.primaryBlue,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Hero image with travel collage
+                Container(
+                  height: 230,
+                  width: double.infinity,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.3),
-                        Colors.black.withOpacity(0.1),
-                      ],
+                    image: DecorationImage(
+                      image: NetworkImage(
+                        'https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800',
+                      ),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  child: Stack(
-                    children: [
-                      // Main text
-                      Positioned(
-                        left: 39,
-                        top: 80,
-                        right: 120,
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontFamily: 'Manuale',
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              height: 1.25,
-                            ),
-                            children: [
-                              const TextSpan(
-                                text:
-                                    'Open your mind and\nstart your next journey\nwith ',
-                                style: TextStyle(fontSize: 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.1),
+                        ],
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        // Main text
+                        Positioned(
+                          left: 39,
+                          top: 80,
+                          right: 120,
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontFamily: 'Manuale',
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                height: 1.25,
                               ),
-                              TextSpan(
-                                text: 'DER TAM',
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  color: DertamColors.primaryBlue,
+                              children: [
+                                const TextSpan(
+                                  text:
+                                      'Open your mind and\nstart your next journey\nwith ',
+                                  style: TextStyle(fontSize: 24),
                                 ),
+                                TextSpan(
+                                  text: 'DER TAM',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    color: DertamColors.primaryBlue,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: '.',
+                                  style: TextStyle(fontSize: 32),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Image collage on the right
+                        Positioned(
+                          right: 12,
+                          top: 51,
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  _BuildSmallImage(
+                                    url:
+                                        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200',
+                                    width: 108,
+                                    height: 81,
+                                  ),
+                                ],
                               ),
-                              const TextSpan(
-                                text: '.',
-                                style: TextStyle(fontSize: 32),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _BuildSmallImage(
+                                    url:
+                                        'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=200',
+                                    width: 108,
+                                    height: 81,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _BuildSmallImage(
+                                    url:
+                                        'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=200',
+                                    width: 53,
+                                    height: 51,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  _BuildSmallImage(
+                                    url:
+                                        'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=200',
+                                    width: 50,
+                                    height: 51,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
-                      ),
-
-                      // Image collage on the right
-                      Positioned(
-                        right: 12,
-                        top: 51,
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                _BuildSmallImage(
-                                  url:
-                                      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200',
-                                  width: 108,
-                                  height: 81,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                _BuildSmallImage(
-                                  url:
-                                      'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=200',
-                                  width: 108,
-                                  height: 81,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                _BuildSmallImage(
-                                  url:
-                                      'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=200',
-                                  width: 53,
-                                  height: 51,
-                                ),
-                                const SizedBox(width: 5),
-                                _BuildSmallImage(
-                                  url:
-                                      'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=200',
-                                  width: 50,
-                                  height: 51,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              ///
-              /// Search form for filter the specific date
-              ///
-              Transform.translate(
-                offset: const Offset(0, -40),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Location
-                      Text(
-                        'Location',
-                        style: DertamTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: _showLocationPicker,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              selectedLocation,
-                              style: DertamTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: DertamColors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 14,
-                              color: DertamColors.neutralLight,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Guest
-                      Text(
-                        'Guest',
-                        style: DertamTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: DertamColors.neutralLighter,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: _showGuestPicker,
-                        child: Row(
-                          children: [
-                            const Icon(Iconsax.user, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$guestCount',
-                              style: DertamTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: DertamColors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 14,
-                              color: DertamColors.neutralLight,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Check In and Check Out
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Check In',
-                                  style: DertamTextStyles.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: DertamColors.neutralLighter,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () => _selectDate(context, true),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Iconsax.calendar, size: 16),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        DateFormat(
-                                          'dd MMMM yyyy',
-                                        ).format(checkInDate),
-                                        style: DertamTextStyles.bodySmall
-                                            .copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: DertamColors.black,
-                                            ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        size: 14,
-                                        color: DertamColors.neutralLight,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 58,
-                            color: Colors.grey[300],
-                            margin: const EdgeInsets.symmetric(horizontal: 12),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Check Out',
-                                  style: DertamTextStyles.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () => _selectDate(context, false),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Iconsax.calendar, size: 16),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        DateFormat(
-                                          'dd MMMM yyyy',
-                                        ).format(checkOutDate),
-                                        style: DertamTextStyles.bodySmall
-                                            .copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black,
-                                            ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        size: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Search Button
-                      DertamButton(
-                        text: 'Search',
-                        onPressed: () {},
-                        backgroundColor: DertamColors.primaryDark,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              /// Hotel Nearby section
-              /// Hotel List
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Hotel Nearby',
-                      style: DertamTextStyles.body.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        fontSize: 20,
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  hotelList,
-                ],
-              ),
-            ],
+                ),
+
+                ///
+                /// Search form for filter the specific date
+                ///
+                Transform.translate(
+                  offset: const Offset(0, -40),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Location
+                        Text(
+                          'Location',
+                          style: DertamTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _showLocationPicker,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                selectedLocationName,
+                                style: DertamTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: DertamColors.black,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 14,
+                                color: DertamColors.neutralLight,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Check In and Check Out
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Check In',
+                                    style: DertamTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: DertamColors.neutralLighter,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: () => _selectDate(context, true),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Iconsax.calendar, size: 16),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          DateFormat(
+                                            'dd MMMM yyyy',
+                                          ).format(checkInDate),
+                                          style: DertamTextStyles.bodySmall
+                                              .copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: DertamColors.black,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.keyboard_arrow_down,
+                                          size: 14,
+                                          color: DertamColors.neutralLight,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 58,
+                              color: Colors.grey[300],
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Check Out',
+                                    style: DertamTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: () => _selectDate(context, false),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Iconsax.calendar, size: 16),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          DateFormat(
+                                            'dd MMMM yyyy',
+                                          ).format(checkOutDate),
+                                          style: DertamTextStyles.bodySmall
+                                              .copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.keyboard_arrow_down,
+                                          size: 14,
+                                          color: Colors.grey,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Search Button
+                        DertamButton(
+                          text: 'Search',
+                          onPressed: fetchHotels,
+                          backgroundColor: DertamColors.primaryDark,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                /// Hotel Nearby section
+                /// Hotel List
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Hotel Nearby',
+                        style: DertamTextStyles.body.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: DertamColors.black,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    hotelList,
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

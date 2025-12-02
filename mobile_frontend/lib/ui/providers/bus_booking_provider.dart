@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/bus_booking_repository.dart';
-import 'package:mobile_frontend/models/bus/bus_booking_response.dart';
+import 'package:mobile_frontend/models/bus/bus_booking_api_response.dart';
+import 'package:mobile_frontend/models/bus/bus_booking_request.dart';
 import 'package:mobile_frontend/models/bus/bus_detail_response.dart';
 import 'package:mobile_frontend/models/bus/bus_schedule.dart';
 import 'package:mobile_frontend/models/province/province_category_detail.dart';
@@ -9,22 +10,23 @@ import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 class BusBookingProvider extends ChangeNotifier {
   final BusBookingRepository busBookingRepository;
   BusBookingProvider({required this.busBookingRepository});
-
   AsyncValue<ProvinceResponseData> _location = AsyncValue.empty();
   AsyncValue<BusScheduleData> _busSchedule = AsyncValue.empty();
   AsyncValue<BusDetailResponse> _busScheduleDetail = AsyncValue.empty();
   AsyncValue<BusScheduleData> _upcomingJourneys = AsyncValue.empty();
   AsyncValue<BusBookingResponse> _busBookingResponse = AsyncValue.empty();
-
+  AsyncValue<List<BusBookingListResponse>> _getAllBusBookingResponse =
+      AsyncValue.empty();
   // Selected seat IDs for booking
   Set<int> _selectedSeatIds = {};
-
   /// Getter
   AsyncValue<ProvinceResponseData> get location => _location;
   AsyncValue<BusScheduleData> get busSchedule => _busSchedule;
   AsyncValue<BusDetailResponse> get busScheduleDetail => _busScheduleDetail;
   AsyncValue<BusScheduleData> get upcomingJourneys => _upcomingJourneys;
   AsyncValue<BusBookingResponse> get busBookingResponse => _busBookingResponse;
+  AsyncValue<List<BusBookingListResponse>> get getAllBusBookingResponse =>
+      _getAllBusBookingResponse;
   Set<int> get selectedSeatIds => _selectedSeatIds;
 
   // Methods for managing selected seats
@@ -36,9 +38,20 @@ class BusBookingProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-
   void clearSelectedSeats() {
     _selectedSeatIds.clear();
+    notifyListeners();
+  }
+
+  void clearBusScheduleDetail() {
+    _busScheduleDetail = AsyncValue.empty();
+    notifyListeners();
+  }
+
+  void clearAfterBooking() {
+    _selectedSeatIds.clear();
+    _busScheduleDetail = AsyncValue.empty();
+    _busBookingResponse = AsyncValue.empty();
     notifyListeners();
   }
 
@@ -133,6 +146,20 @@ class BusBookingProvider extends ChangeNotifier {
       return booking;
     } catch (e) {
       _busBookingResponse = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+  Future<List<BusBookingListResponse>> fetchAllBusBooking() async {
+    _getAllBusBookingResponse = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final allBusBooking = await busBookingRepository.getAllBusBookings();
+      _getAllBusBookingResponse = AsyncValue.success(allBusBooking);
+      notifyListeners();
+      return allBusBooking;
+    } catch (e) {
+      _getAllBusBookingResponse = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }

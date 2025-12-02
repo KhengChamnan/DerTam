@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
+import 'package:mobile_frontend/ui/screen/favorite/favorite_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_profile.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_setting_screen.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
@@ -10,12 +11,29 @@ import 'package:mobile_frontend/ui/screen/profile/widget/dertam_booking_screen.d
 import 'package:provider/provider.dart';
 import '../../theme/dertam_apptheme.dart';
 
-class UserProfile extends StatelessWidget {
+class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
+
+  @override
+  State<UserProfile> createState() => _UserProfileState();
+}
+
+class _UserProfileState extends State<UserProfile> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch fresh user info when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().getUserInfo();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.read<AuthProvider>();
+    // Use watch to listen for changes
+    final authProvider = context.watch<AuthProvider>();
     final userData = authProvider.userInfo;
+    print('User data image: ${userData.data?.imageUrl}');
     Widget userInfo;
     switch (userData.state) {
       case AsyncValueState.loading:
@@ -56,9 +74,11 @@ class UserProfile extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9999),
                   image: DecorationImage(
-                    image: userData.data?.imageUrl?.isNotEmpty == true
-                        ? NetworkImage(userData.data?.imageUrl ?? '')
-                        : AssetImage('assets/images/dertam_logo.png')
+                    image:
+                        (userData.data?.imageUrl != null &&
+                            userData.data!.imageUrl!.isNotEmpty)
+                        ? NetworkImage(userData.data!.imageUrl!)
+                        : const AssetImage('assets/images/dertam_logo.png')
                               as ImageProvider,
                     fit: BoxFit.cover,
                   ),
@@ -143,6 +163,21 @@ class UserProfile extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 11),
+                        _ProfileMenuItem(
+                          icon: Icons.favorite,
+                          iconColor: DertamColors.primaryBlue,
+                          title: 'Favorite',
+                          subtitle: 'You can view your favorite info',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FavoriteScreen(),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 11),
+
                         _ProfileMenuItem(
                           icon: Icons.settings,
                           iconColor: DertamColors.primaryBlue,
@@ -241,11 +276,8 @@ class _ProfileMenuItem extends StatelessWidget {
             Container(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, size: 24, color: DertamColors.primaryBlue),
             ),
             const SizedBox(width: 16),
             // Title and Subtitle

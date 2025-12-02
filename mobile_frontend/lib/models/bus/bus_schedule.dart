@@ -69,7 +69,7 @@ class BusSchedule {
     return BusSchedule(
       id: json['id']?.toString(),
       busName: json['bus_name'] as String?,
-      busType: json['bus_type'] ?? '',
+      busType: json['bus_type'] as String?,
       tranCompany: json['transportation_company'] as String?,
       fromLocation: json['from_location'] as String?,
       toLocation: json['to_location'] as String?,
@@ -112,4 +112,5 @@ class BusSchedule {
   String toString() {
     return 'BusSchedule{id: $id, busName: $busName, tranCompany: $tranCompany}';
   }
+  
 }

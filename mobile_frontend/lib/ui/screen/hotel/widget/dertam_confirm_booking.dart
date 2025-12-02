@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
-import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_booking_succes_screen.dart';
-import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_qr_code_screen.dart';
+import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
+import 'package:mobile_frontend/ui/widgets/display/dertam_qr_code_screen.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -143,8 +143,8 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
             context,
             MaterialPageRoute(
               builder: (context) => DertamQrCodeScreen(
-                qrData: qrString, // Use qrString instead of qrImage
-                qrImage: qrImage, // Pass the base64 image separately if needed
+                qrData: qrString,
+                qrImage: qrImage,
                 bookingId: bookingId.toString(),
               ),
             ),
@@ -231,22 +231,6 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
               ],
             );
           },
-        );
-
-        // Also show a snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Booking failed: $errorMessage'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Details',
-              textColor: Colors.white,
-              onPressed: () {
-                // Dialog already shown above
-              },
-            ),
-          ),
         );
       }
     } finally {

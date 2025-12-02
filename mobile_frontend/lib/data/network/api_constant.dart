@@ -27,6 +27,7 @@ class ApiEndpoint {
   static const String getAllBookings = '/api/booking/hotel/my-bookings';
   static const String getBookingDetail = '/api/booking/hotel';
   static const String cancelBooking = '/api/booking/{{booking_id}}/cancel';
+  static const String searchHotels = '/api/hotels/search';
   //Trip Endpoints
   static const String createTrip = '/api/trips';
   static const String addPlaceToTripDay =
@@ -57,4 +58,5 @@ class ApiEndpoint {
   static const String scheduleDetails = '/api/bus/schedule';
   static const String upcomingJourneys = '/api/bus/upcoming-journeys';
   static const String busBooking = '/api/booking/bus/create';
+  static const String getAllBusBooking = '';
 }

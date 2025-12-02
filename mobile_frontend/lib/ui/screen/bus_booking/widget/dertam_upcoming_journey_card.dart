@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class DertamUpcomingJourneyCard extends StatelessWidget {
@@ -20,6 +21,75 @@ class DertamUpcomingJourneyCard extends StatelessWidget {
     required this.date,
     this.onTap,
   });
+  String formatDateDisplay(String date) {
+    if (date.isEmpty) {
+      return '';
+    }
+    try {
+      DateTime parsedDate;
+      // Handle different date formats
+      if (date.contains('T')) {
+        // ISO 8601 format: 2025-11-29T09:30:00.000000Z
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('.')) {
+        // Format: 2025.11.29
+        parsedDate = DateFormat('yyyy.MM.dd').parse(date);
+      } else if (date.contains('-')) {
+        // Format: 2025-11-29
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('/')) {
+        // Format: 29/11/2025
+        parsedDate = DateFormat('dd/MM/yyyy').parse(date);
+      } else {
+        return date;
+      }
+      // Get day with ordinal suffix
+      int day = parsedDate.day;
+      String suffix = _getOrdinalSuffix(day);
+      String dayStr = day.toString().padLeft(2, '0');
+      // Get month abbreviation
+      String month = DateFormat('MMM').format(parsedDate);
+      // Get year
+      String year = parsedDate.year.toString();
+      return '$dayStr$suffix - $month - $year';
+    } catch (e) {
+      // If parsing fails, return original format
+      return date;
+    }
+  }
+
+  String _getOrdinalSuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return 'th';
+    }
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
+
+  String _formatTime(String timeString) {
+    try {
+      // Handle various time formats
+      if (timeString.contains(':')) {
+        final parts = timeString.split(':');
+        final hour = int.parse(parts[0]);
+        final minute = parts.length > 1 ? parts[1] : '00';
+        final period = hour >= 12 ? 'PM' : 'AM';
+        final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+        return '$displayHour:$minute $period';
+      }
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +144,7 @@ class DertamUpcomingJourneyCard extends StatelessWidget {
                 top: 0,
                 bottom: 0,
                 child: Container(
-                  width: 140,
+                  width: 160,
                   decoration: const BoxDecoration(
                     color: Color(0xFF01015B),
                     borderRadius: BorderRadius.only(
@@ -97,7 +167,7 @@ class DertamUpcomingJourneyCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          time,
+                          _formatTime(time),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -107,9 +177,9 @@ class DertamUpcomingJourneyCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          date,
+                          formatDateDisplay(date),
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             fontFamily: 'Inter',

@@ -1,13 +1,31 @@
-class BookingListResponse {
+class BusBookingListResponse {
   final bool success;
-  final BookingListData data;
+  final BusBookingListData data;
 
-  BookingListResponse({required this.success, required this.data});
+  BusBookingListResponse({required this.success, required this.data});
 
-  factory BookingListResponse.fromJson(Map<String, dynamic> json) {
-    return BookingListResponse(
+  factory BusBookingListResponse.fromJson(Map<String, dynamic> json) {
+    return BusBookingListResponse(
       success: json['success'] as bool,
-      data: BookingListData.fromJson(json['data'] as Map<String, dynamic>),
+      data: BusBookingListData.fromJson(json['data'] as Map<String, dynamic>),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'success': success, 'data': data.toJson()};
+  }
+}
+// Model for single bus booking detail API response
+class BusBookingDetailResponse {
+  final bool success;
+  final BusBookingItem data;
+
+  BusBookingDetailResponse({required this.success, required this.data});
+
+  factory BusBookingDetailResponse.fromJson(Map<String, dynamic> json) {
+    return BusBookingDetailResponse(
+      success: json['success'] as bool,
+      data: BusBookingItem.fromJson(json['data'] as Map<String, dynamic>),
     );
   }
 
@@ -16,14 +34,14 @@ class BookingListResponse {
   }
 }
 
-class BookingListData {
+class BusBookingListData {
   final int currentPage;
-  final List<BookingItem> data;
+  final List<BusBookingItem> data;
   final String firstPageUrl;
   final int? from;
   final int lastPage;
   final String lastPageUrl;
-  final List<PageLink> links;
+  final List<BusPageLink> links;
   final String? nextPageUrl;
   final String path;
   final int perPage;
@@ -31,7 +49,7 @@ class BookingListData {
   final int? to;
   final int total;
 
-  BookingListData({
+  BusBookingListData({
     required this.currentPage,
     required this.data,
     required this.firstPageUrl,
@@ -47,13 +65,13 @@ class BookingListData {
     required this.total,
   });
 
-  factory BookingListData.fromJson(Map<String, dynamic> json) {
-    return BookingListData(
+  factory BusBookingListData.fromJson(Map<String, dynamic> json) {
+    return BusBookingListData(
       currentPage: json['current_page'] as int? ?? 1,
       data:
           (json['data'] as List?)
               ?.map(
-                (item) => BookingItem.fromJson(item as Map<String, dynamic>),
+                (item) => BusBookingItem.fromJson(item as Map<String, dynamic>),
               )
               .toList() ??
           [],
@@ -63,7 +81,9 @@ class BookingListData {
       lastPageUrl: json['last_page_url'] as String? ?? '',
       links:
           (json['links'] as List?)
-              ?.map((link) => PageLink.fromJson(link as Map<String, dynamic>))
+              ?.map(
+                (link) => BusPageLink.fromJson(link as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       nextPageUrl: json['next_page_url'] as String?,
@@ -94,7 +114,7 @@ class BookingListData {
   }
 }
 
-class BookingItem {
+class BusBookingItem {
   final int id;
   final int userId;
   final String totalAmount;
@@ -102,10 +122,10 @@ class BookingItem {
   final String status;
   final String createdAt;
   final String updatedAt;
-  final List<BookingItemDetail> bookingItems;
-  final List<Payment> payments;
+  final List<BusBookingItemDetail> bookingItems;
+  final List<BusPayment> payments;
 
-  BookingItem({
+  BusBookingItem({
     required this.id,
     required this.userId,
     required this.totalAmount,
@@ -117,8 +137,8 @@ class BookingItem {
     required this.payments,
   });
 
-  factory BookingItem.fromJson(Map<String, dynamic> json) {
-    return BookingItem(
+  factory BusBookingItem.fromJson(Map<String, dynamic> json) {
+    return BusBookingItem(
       id: json['id'] as int,
       userId: json['user_id'] as int,
       totalAmount: json['total_amount'] as String,
@@ -128,11 +148,14 @@ class BookingItem {
       updatedAt: json['updated_at'] as String,
       bookingItems: (json['booking_items'] as List)
           .map(
-            (item) => BookingItemDetail.fromJson(item as Map<String, dynamic>),
+            (item) =>
+                BusBookingItemDetail.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
       payments: (json['payments'] as List)
-          .map((payment) => Payment.fromJson(payment as Map<String, dynamic>))
+          .map(
+            (payment) => BusPayment.fromJson(payment as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -152,7 +175,7 @@ class BookingItem {
   }
 }
 
-class BookingItemDetail {
+class BusBookingItemDetail {
   final int id;
   final int bookingId;
   final String itemType;
@@ -162,10 +185,10 @@ class BookingItemDetail {
   final String totalPrice;
   final String createdAt;
   final String updatedAt;
-  final HotelDetails hotelDetails;
-  final RoomProperty roomProperty;
+  final BusTripDetails busTripDetails;
+  final BusScheduleInfo busSchedule;
 
-  BookingItemDetail({
+  BusBookingItemDetail({
     required this.id,
     required this.bookingId,
     required this.itemType,
@@ -175,12 +198,12 @@ class BookingItemDetail {
     required this.totalPrice,
     required this.createdAt,
     required this.updatedAt,
-    required this.hotelDetails,
-    required this.roomProperty,
+    required this.busTripDetails,
+    required this.busSchedule,
   });
 
-  factory BookingItemDetail.fromJson(Map<String, dynamic> json) {
-    return BookingItemDetail(
+  factory BusBookingItemDetail.fromJson(Map<String, dynamic> json) {
+    return BusBookingItemDetail(
       id: json['id'] as int,
       bookingId: json['booking_id'] as int,
       itemType: json['item_type'] as String,
@@ -190,11 +213,11 @@ class BookingItemDetail {
       totalPrice: json['total_price'] as String,
       createdAt: json['created_at'] as String,
       updatedAt: json['updated_at'] as String,
-      hotelDetails: HotelDetails.fromJson(
-        json['hotel_details'] as Map<String, dynamic>,
+      busTripDetails: BusTripDetails.fromJson(
+        json['bus_trip_details'] as Map<String, dynamic>,
       ),
-      roomProperty: RoomProperty.fromJson(
-        json['room_property'] as Map<String, dynamic>,
+      busSchedule: BusScheduleInfo.fromJson(
+        json['bus_schedule'] as Map<String, dynamic>,
       ),
     );
   }
@@ -210,38 +233,38 @@ class BookingItemDetail {
       'total_price': totalPrice,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'hotel_details': hotelDetails.toJson(),
-      'room_property': roomProperty.toJson(),
+      'bus_trip_details': busTripDetails.toJson(),
+      'bus_schedule': busSchedule.toJson(),
     };
   }
 }
 
-class HotelDetails {
+class BusTripDetails {
   final int id;
   final int bookingItemId;
-  final String checkIn;
-  final String checkOut;
-  final int nights;
+  final String seatNumber;
+  final String passengerName;
+  final String departureDate;
   final String createdAt;
   final String updatedAt;
 
-  HotelDetails({
+  BusTripDetails({
     required this.id,
     required this.bookingItemId,
-    required this.checkIn,
-    required this.checkOut,
-    required this.nights,
+    required this.seatNumber,
+    required this.passengerName,
+    required this.departureDate,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory HotelDetails.fromJson(Map<String, dynamic> json) {
-    return HotelDetails(
+  factory BusTripDetails.fromJson(Map<String, dynamic> json) {
+    return BusTripDetails(
       id: json['id'] as int,
       bookingItemId: json['booking_item_id'] as int,
-      checkIn: json['check_in'] as String,
-      checkOut: json['check_out'] as String,
-      nights: json['nights'] as int,
+      seatNumber: json['seat_number'] as String,
+      passengerName: json['passenger_name'] as String,
+      departureDate: json['departure_date'] as String,
       createdAt: json['created_at'] as String,
       updatedAt: json['updated_at'] as String,
     );
@@ -251,128 +274,132 @@ class HotelDetails {
     return {
       'id': id,
       'booking_item_id': bookingItemId,
-      'check_in': checkIn,
-      'check_out': checkOut,
-      'nights': nights,
+      'seat_number': seatNumber,
+      'passenger_name': passengerName,
+      'departure_date': departureDate,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
   }
 }
 
-class RoomProperty {
-  final int roomPropertiesId;
-  final int propertyId;
-  final String roomType;
-  final String roomDescription;
-  final int maxGuests;
-  final int numberOfBed;
-  final String roomSize;
-  final int pricePerNight;
-  final List<String> imagesUrl;
-  final List<String> imagePublicIds;
+class BusScheduleInfo {
+  final int scheduleId;
+  final int busId;
+  final String busName;
+  final String busType;
+  final String transportationCompany;
+  final String fromLocation;
+  final String toLocation;
+  final String departureTime;
+  final String arrivalTime;
+  final String durationHours;
+  final String price;
+  final int availableSeats;
+  final String route;
   final String createdAt;
   final String updatedAt;
-  final int availableRoomsCount;
-  final int totalRoomsCount;
-  final Property property;
+  final BusInfo bus;
 
-  RoomProperty({
-    required this.roomPropertiesId,
-    required this.propertyId,
-    required this.roomType,
-    required this.roomDescription,
-    required this.maxGuests,
-    required this.numberOfBed,
-    required this.roomSize,
-    required this.pricePerNight,
-    required this.imagesUrl,
-    required this.imagePublicIds,
+  BusScheduleInfo({
+    required this.scheduleId,
+    required this.busId,
+    required this.busName,
+    required this.busType,
+    required this.transportationCompany,
+    required this.fromLocation,
+    required this.toLocation,
+    required this.departureTime,
+    required this.arrivalTime,
+    required this.durationHours,
+    required this.price,
+    required this.availableSeats,
+    required this.route,
     required this.createdAt,
     required this.updatedAt,
-    required this.availableRoomsCount,
-    required this.totalRoomsCount,
-    required this.property,
+    required this.bus,
   });
 
-  factory RoomProperty.fromJson(Map<String, dynamic> json) {
-    return RoomProperty(
-      roomPropertiesId: json['room_properties_id'] as int,
-      propertyId: json['property_id'] as int,
-      roomType: json['room_type'] as String,
-      roomDescription: json['room_description'] as String,
-      maxGuests: json['max_guests'] as int,
-      numberOfBed: json['number_of_bed'] as int,
-      roomSize: json['room_size'] as String,
-      pricePerNight: json['price_per_night'] as int,
-      imagesUrl: List<String>.from(json['images_url'] as List),
-      imagePublicIds: List<String>.from(json['image_public_ids'] as List),
+  factory BusScheduleInfo.fromJson(Map<String, dynamic> json) {
+    return BusScheduleInfo(
+      scheduleId: json['schedule_id'] as int,
+      busId: json['bus_id'] as int,
+      busName: json['bus_name'] as String,
+      busType: json['bus_type'] as String,
+      transportationCompany: json['transportation_company'] as String,
+      fromLocation: json['from_location'] as String,
+      toLocation: json['to_location'] as String,
+      departureTime: json['departure_time'] as String,
+      arrivalTime: json['arrival_time'] as String,
+      durationHours: json['duration_hours'] as String,
+      price: json['price'] as String,
+      availableSeats: json['available_seats'] as int,
+      route: json['route'] as String,
       createdAt: json['created_at'] as String,
       updatedAt: json['updated_at'] as String,
-      availableRoomsCount: json['available_rooms_count'] as int,
-      totalRoomsCount: json['total_rooms_count'] as int,
-      property: Property.fromJson(json['property'] as Map<String, dynamic>),
+      bus: BusInfo.fromJson(json['bus'] as Map<String, dynamic>),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'room_properties_id': roomPropertiesId,
-      'property_id': propertyId,
-      'room_type': roomType,
-      'room_description': roomDescription,
-      'max_guests': maxGuests,
-      'number_of_bed': numberOfBed,
-      'room_size': roomSize,
-      'price_per_night': pricePerNight,
-      'images_url': imagesUrl,
-      'image_public_ids': imagePublicIds,
+      'schedule_id': scheduleId,
+      'bus_id': busId,
+      'bus_name': busName,
+      'bus_type': busType,
+      'transportation_company': transportationCompany,
+      'from_location': fromLocation,
+      'to_location': toLocation,
+      'departure_time': departureTime,
+      'arrival_time': arrivalTime,
+      'duration_hours': durationHours,
+      'price': price,
+      'available_seats': availableSeats,
+      'route': route,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'available_rooms_count': availableRoomsCount,
-      'total_rooms_count': totalRoomsCount,
-      'property': property.toJson(),
+      'bus': bus.toJson(),
     };
   }
 }
 
-class Property {
-  final int propertyId;
-  final int ownerUserId;
+class BusInfo {
+  final int busId;
+  final int companyId;
   final String createdAt;
   final String updatedAt;
-  final int placeId;
+  final int totalSeats;
 
-  Property({
-    required this.propertyId,
-    required this.ownerUserId,
+  BusInfo({
+    required this.busId,
+    required this.companyId,
     required this.createdAt,
     required this.updatedAt,
-    required this.placeId,
+    required this.totalSeats,
   });
 
-  factory Property.fromJson(Map<String, dynamic> json) {
-    return Property(
-      propertyId: json['property_id'] as int,
-      ownerUserId: json['owner_user_id'] as int,
+  factory BusInfo.fromJson(Map<String, dynamic> json) {
+    return BusInfo(
+      busId: json['bus_id'] as int,
+      companyId: json['company_id'] as int,
       createdAt: json['created_at'] as String,
       updatedAt: json['updated_at'] as String,
-      placeId: json['place_id'] as int,
+      totalSeats: json['total_seats'] as int,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'property_id': propertyId,
-      'owner_user_id': ownerUserId,
+      'bus_id': busId,
+      'company_id': companyId,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'place_id': placeId,
+      'total_seats': totalSeats,
     };
   }
 }
 
-class Payment {
+class BusPayment {
   final int id;
   final int bookingId;
   final int paymentMethodId;
@@ -382,7 +409,7 @@ class Payment {
   final String createdAt;
   final String updatedAt;
 
-  Payment({
+  BusPayment({
     required this.id,
     required this.bookingId,
     required this.paymentMethodId,
@@ -393,8 +420,8 @@ class Payment {
     required this.updatedAt,
   });
 
-  factory Payment.fromJson(Map<String, dynamic> json) {
-    return Payment(
+  factory BusPayment.fromJson(Map<String, dynamic> json) {
+    return BusPayment(
       id: json['id'] as int,
       bookingId: json['booking_id'] as int,
       paymentMethodId: json['payment_method_id'] as int,
@@ -420,15 +447,15 @@ class Payment {
   }
 }
 
-class PageLink {
+class BusPageLink {
   final String? url;
   final String label;
   final bool active;
 
-  PageLink({this.url, required this.label, required this.active});
+  BusPageLink({this.url, required this.label, required this.active});
 
-  factory PageLink.fromJson(Map<String, dynamic> json) {
-    return PageLink(
+  factory BusPageLink.fromJson(Map<String, dynamic> json) {
+    return BusPageLink(
       url: json['url'] as String?,
       label: json['label'] as String,
       active: json['active'] as bool,
@@ -440,21 +467,4 @@ class PageLink {
   }
 }
 
-// Model for single booking detail API response
-class BookingDetailResponse {
-  final bool success;
-  final BookingItem data;
 
-  BookingDetailResponse({required this.success, required this.data});
-
-  factory BookingDetailResponse.fromJson(Map<String, dynamic> json) {
-    return BookingDetailResponse(
-      success: json['success'] as bool,
-      data: BookingItem.fromJson(json['data'] as Map<String, dynamic>),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'success': success, 'data': data.toJson()};
-  }
-}

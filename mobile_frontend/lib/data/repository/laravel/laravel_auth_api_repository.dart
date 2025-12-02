@@ -358,6 +358,7 @@ class LaravelAuthApiRepository extends AuthRepository {
         await _getHeaders(),
         {'access_token': googleAuth.accessToken},
       );
+      print('User Login with google response : ${response.body}');
 
       if (response.statusCode == 200) {
         final responseBody = json.decode(response.body);
@@ -374,7 +375,7 @@ class LaravelAuthApiRepository extends AuthRepository {
 
         await saveToken(accessToken);
         _cachedToken = accessToken;
-        return User.fromJson(data ?? responseBody['user']);
+        return User.fromGoodgleLogin(data ?? responseBody['user']);
       }
 
       final responseBody = json.decode(response.body);
@@ -418,6 +419,12 @@ class LaravelAuthApiRepository extends AuthRepository {
         if (jsonData == null) {
           throw Exception('Response does not contain "data" field');
         }
+
+        // Debug: Print the profile_photo_url from API
+        print(
+          '🔍 API Response - profile_photo_url: ${jsonData['profile_photo_url']}',
+        );
+        print('🔍 Full user data from API: $jsonData');
 
         return User.fromJson(jsonData);
       }

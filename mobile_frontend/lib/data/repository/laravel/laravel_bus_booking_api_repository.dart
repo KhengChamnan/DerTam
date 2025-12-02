@@ -4,7 +4,8 @@ import 'package:mobile_frontend/data/network/api_constant.dart';
 import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/bus_booking_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
-import 'package:mobile_frontend/models/bus/bus_booking_response.dart';
+import 'package:mobile_frontend/models/bus/bus_booking_api_response.dart';
+import 'package:mobile_frontend/models/bus/bus_booking_request.dart';
 import 'package:mobile_frontend/models/bus/bus_detail_response.dart';
 import 'package:mobile_frontend/models/bus/bus_schedule.dart';
 import 'package:mobile_frontend/models/province/province_category_detail.dart';
@@ -31,11 +32,7 @@ class LaravelBusBookingApiRepository extends BusBookingRepository {
         throw Exception('User is not authenticated');
       }
       final header = _getAuthHeaders(token);
-      final body = {
-        'schedule_id': scheduleId,
-        'seat_ids':
-            seatIds, // This will be serialized as JSON array: [69] or [69, 70, 71]
-      };
+      final body = {'schedule_id': scheduleId, 'seat_ids': seatIds};
 
       final bookTicketResponse = await FetchingData.postHeader(
         ApiEndpoint.busBooking,
@@ -161,6 +158,35 @@ class LaravelBusBookingApiRepository extends BusBookingRepository {
         return ProvinceResponseData.fromBusBooking(dataObject);
       } else {
         throw Exception('Failed to fetch province: ${provinceResponse.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<BusBookingListResponse>> getAllBusBookings() async {
+    try {
+      final token = await authentocation.getToken();
+      if (token == null) {
+        throw Exception('Token not found on get bus booking!');
+      }
+      final header = _getAuthHeaders(token);
+      final getAllBusBookingResponse = await FetchingData.getData(
+        ApiEndpoint.getAllBusBooking,
+        header,
+      );
+      print(
+        'Get all bus that I have booking: ${getAllBusBookingResponse.body}',
+      );
+      if (getAllBusBookingResponse.statusCode == 200) {
+        final jsonResponse = json.decode(getAllBusBookingResponse.body);
+        final dataObject = jsonResponse['data'] as Map<String, dynamic>? ?? {};
+        return [BusBookingListResponse.fromJson(dataObject)];
+      } else {
+        throw Exception(
+          'Failed to load bus booking bookings: ${getAllBusBookingResponse.statusCode}',
+        );
       }
     } catch (e) {
       rethrow;

@@ -11,7 +11,7 @@ class BusDetailResponse {
 
     // Handle both 'schedule' (singular) and 'schedules' (plural) keys
     final scheduleJson =
-        (busData['schedule'] ?? busData['schedules']) as Map<String, dynamic>?;
+        (busData['schedule'] ?? busData['journeys']) as Map<String, dynamic>?;
     if (scheduleJson == null) {
       throw FormatException('Missing schedule data in response');
     }

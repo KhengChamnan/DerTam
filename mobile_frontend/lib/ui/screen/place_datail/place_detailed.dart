@@ -3,17 +3,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:mobile_frontend/models/place/place_detail.dart';
+import 'package:mobile_frontend/models/place/place.dart';
+import 'package:mobile_frontend/models/trips/trips.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/screen/hotel/hotel_detail_screen.dart';
-import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_detail_info.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_hotel_nearby_card.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_image_slidshow.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_nearby_place_card.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_retauanrant_nearby_card.dart';
+import 'package:mobile_frontend/ui/screen/place_datail/widget/trip_selection_modal.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/restaurant_detail_screen_new.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_add_place_to_trip.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:provider/provider.dart';
 
 class DetailEachPlace extends StatefulWidget {
@@ -25,52 +29,13 @@ class DetailEachPlace extends StatefulWidget {
 
 class _DetailEachPlaceState extends State<DetailEachPlace> {
   late PageController _pageController;
-  final int _currentImageIndex = 0;
   Timer? _autoScrollTimer;
-  final bool _isAutoScrolling = true;
-
-  final PlaceDetailData _dummyPlaceData = PlaceDetailData(
-    placeDetail: PlaceDetail(
-      placeID: 4,
-      name: 'Sample Place',
-      description:
-          'Angkor Wat is a unique combination of the temple mountain(the standard design for the empire state temples) and the later plan of concentric galleries, most of which were originally derived from religious beliefs ofmore.',
-      categoryName: 'Tourist Attraction',
-      categoryDescription:
-          'Historical sites, temples, museums, monuments, and cultural attractions',
-      googleMapsLink: 'https://maps.google.com/?q=11.5564,104.9282',
-      ratings: 4.50,
-      reviewsCount: 10,
-      entryFree: true,
-      operatingHours: {'mon': '9:00-17:00', 'tue': '9:00-17:00'},
-      bestSeasonToVisit: 'Summer',
-      provinceCategoryName: 'Phnom Penh',
-      provinceDescription:
-          'Capital and most populous city of Cambodia, located at the confluence of the Mekong and Tonlé Sap rivers',
-      latitude: 11.5564,
-      longitude: 104.9282,
-      createdAt: '2025-10-18 08:35:46',
-      updatedAt: '2025-10-18 08:35:46',
-    ),
-    listOfImageUrl: [
-      'https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg',
-      'https://upload.wikimedia.org/wikipedia/commons/4/41/Angkor_Wat.jpg',
-    ],
-    nearbyPlace: [],
-    hotelNearby: [],
-    restaurantNearby: [],
-  );
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    _startAutoScroll();
-    // Fetch recommended places and upcoming events when the page loads
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final placeProvider = context.read<PlaceProvider>();
       placeProvider.getPlaceDetail(widget.placeId);
@@ -84,32 +49,86 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
     super.dispose();
   }
 
-  void _startAutoScroll() {
-    _autoScrollTimer?.cancel();
-    if (_isAutoScrolling && _dummyPlaceData.listOfImageUrl.length > 1) {
-      _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-        if (_pageController.hasClients) {
-          int nextPage =
-              (_currentImageIndex + 1) % _dummyPlaceData.listOfImageUrl.length;
-          _pageController.animateToPage(
-            nextPage,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
+  void _showTripSelectionModal() {
+    final placeProvider = context.read<PlaceProvider>();
+    final placeDetail = placeProvider.placeDetail.data?.placeDetail;
+
+    if (placeDetail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Place details not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
+
+    // Create a Place object from PlaceDetail to pass to the trip
+    final place = Place(
+      placeId: placeDetail.placeID.toString(),
+      name: placeDetail.name,
+      description: placeDetail.description,
+      categoryId: 0, // Not available in PlaceDetail
+      googleMapsLink: placeDetail.googleMapsLink,
+      ratings: placeDetail.ratings,
+      reviewsCount: placeDetail.reviewsCount,
+      imagesUrl:
+          placeProvider.placeDetail.data?.listOfImageUrl.isNotEmpty == true
+          ? placeProvider.placeDetail.data!.listOfImageUrl.first
+          : '',
+      imagePublicIds: '',
+      entryFree: placeDetail.entryFree,
+      operatingHours: placeDetail.operatingHours,
+      bestSeasonToVisit: placeDetail.bestSeasonToVisit,
+      provinceId: 0, // Not directly available
+      latitude: placeDetail.latitude,
+      longitude: placeDetail.longitude,
+      createdAt: DateTime.tryParse(placeDetail.createdAt) ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(placeDetail.updatedAt) ?? DateTime.now(),
+      locationName: placeDetail.provinceCategoryName,
+    );
+
+    TripSelectionModal.show(
+      context: context,
+      onTripSelected: (trip) {
+        _navigateToAddPlaceWithTrip(trip, place);
+      },
+      onCreateNewTrip: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TripPlanning()),
+        );
+      },
+      onCancel: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  void _navigateToAddPlaceWithTrip(Trip trip, Place place) {
+    // Navigate to DertamAddPlaceToTrip with the selected trip
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DertamAddPlaceToTrip(
+          tripId: trip.tripId.toString(),
+          existingPlaces: [place],
+          preSelectedDate: trip.startDate,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final placeProvider = context.watch<PlaceProvider>();
     final placeDetailData = placeProvider.placeDetail;
-    // final hotelData = hotelProvider.hotels;
-    Widget content;
+
+    // Nearby Hotel Widget
+    Widget nearByHotel;
     switch (placeDetailData.state) {
       case AsyncValueState.empty:
-        content = SizedBox(
+        nearByHotel = SizedBox(
           height: 150,
           child: Center(
             child: Text(
@@ -120,13 +139,13 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
         );
         break;
       case AsyncValueState.loading:
-        content = SizedBox(
+        nearByHotel = SizedBox(
           height: 150,
           child: Center(child: CircularProgressIndicator()),
         );
         break;
       case AsyncValueState.error:
-        content = SizedBox(
+        nearByHotel = SizedBox(
           height: 150,
           child: Center(
             child: Column(
@@ -149,10 +168,9 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
           ),
         );
         break;
-
       case AsyncValueState.success:
         if (placeDetailData.data?.hotelNearby.isEmpty == true) {
-          content = SizedBox(
+          nearByHotel = SizedBox(
             height: 150,
             child: Center(
               child: Text(
@@ -162,7 +180,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
             ),
           );
         } else {
-          content = SizedBox(
+          nearByHotel = SizedBox(
             height: 150,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -196,6 +214,191 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
         break;
     }
 
+    // Nearby Place Widget
+    Widget nearByPlace;
+    switch (placeDetailData.state) {
+      case AsyncValueState.empty:
+        nearByPlace = SizedBox(
+          height: 200,
+          child: Center(
+            child: Text(
+              'No places available',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
+        );
+        break;
+      case AsyncValueState.loading:
+        nearByPlace = SizedBox(
+          height: 200,
+          child: Center(child: CircularProgressIndicator()),
+        );
+        break;
+      case AsyncValueState.error:
+        nearByPlace = SizedBox(
+          height: 200,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 8),
+                const Text(
+                  'Failed to load nearby places',
+                  style: TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  placeDetailData.error.toString(),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+        break;
+      case AsyncValueState.success:
+        if (placeDetailData.data?.nearbyPlace.isEmpty == true) {
+          nearByPlace = SizedBox(
+            height: 200,
+            child: Center(
+              child: Text(
+                'No nearby places found',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ),
+          );
+        } else {
+          nearByPlace = SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const BouncingScrollPhysics(),
+              itemCount: placeDetailData.data?.nearbyPlace.length,
+              itemBuilder: (context, index) {
+                final place = placeDetailData.data?.nearbyPlace[index];
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 16),
+                  child: DertamNearbyPlace(
+                    name: place?.name ?? '',
+                    location:
+                        place?.provinceCategoryName ?? 'Nearby not available',
+                    rating: place?.ratings ?? 0.0,
+                    imageUrl: place?.imagesUrl.isNotEmpty ?? false
+                        ? (place?.imagesUrl.first ?? '')
+                        : '',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailEachPlace(
+                          placeId: place?.placeID.toString() ?? '',
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+        break;
+    }
+
+    // Nearby Restaurant Widget
+    Widget nearByRestaurant;
+    switch (placeDetailData.state) {
+      case AsyncValueState.empty:
+        nearByRestaurant = SizedBox(
+          height: 200,
+          child: Center(
+            child: Text(
+              'No restaurants available',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
+        );
+        break;
+      case AsyncValueState.loading:
+        nearByRestaurant = SizedBox(
+          height: 200,
+          child: Center(child: CircularProgressIndicator()),
+        );
+        break;
+      case AsyncValueState.error:
+        nearByRestaurant = SizedBox(
+          height: 200,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 8),
+                const Text(
+                  'Failed to load restaurants',
+                  style: TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  placeDetailData.error.toString(),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+        break;
+      case AsyncValueState.success:
+        if (placeDetailData.data?.restaurantNearby.isEmpty == true) {
+          nearByRestaurant = SizedBox(
+            height: 200,
+            child: Center(
+              child: Text(
+                'No nearby restaurants found',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ),
+          );
+        } else {
+          nearByRestaurant = SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const BouncingScrollPhysics(),
+              itemCount: placeDetailData.data?.restaurantNearby.length,
+              itemBuilder: (context, index) {
+                final restaurant =
+                    placeDetailData.data?.restaurantNearby[index];
+                return Container(
+                  width: 260,
+                  margin: const EdgeInsets.only(right: 16),
+                  child: DertamRetauanrantNearby(
+                    name: restaurant?.name ?? '',
+                    location: restaurant?.provinceCategoryName ?? '',
+                    rating: restaurant?.ratings.toString() ?? '0.0',
+                    imageUrl: restaurant?.imagesUrl.isNotEmpty ?? false
+                        ? (restaurant?.imagesUrl.first ?? '')
+                        : '',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            RestaurantDetailScreen(restaurant: restaurant!),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+        break;
+    }
+
     return Scaffold(
       backgroundColor: DertamColors.white,
       body: CustomScrollView(
@@ -217,8 +420,8 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
           SliverPersistentHeader(
             pinned: true,
             delegate: _PlaceInfoHeaderDelegate(
-              minHeight: 90,
-              maxHeight: 90,
+              minHeight: 80,
+              maxHeight: 80,
               child: Container(
                 color: DertamColors.white,
                 child: Padding(
@@ -235,7 +438,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                               placeDetailData.data?.placeDetail.name ??
                                   'Not Available',
                               style: const TextStyle(
-                                fontSize: 28,
+                                fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
                               maxLines: 2,
@@ -249,7 +452,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
@@ -264,8 +467,8 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                                           .toString() ??
                                       '0.0',
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontWeight: FontWeight.normal,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
@@ -286,6 +489,17 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: DertamButton(
+                      height: 50,
+                      text: 'Start Planning',
+                      onPressed: () {
+                        _showTripSelectionModal();
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   // Location
                   Row(
                     children: [
@@ -302,95 +516,6 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     ],
                   ), // Quick Info Cards
                   const SizedBox(height: 16),
-
-                  SizedBox(
-                    height: 110,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      children: [
-                        SizedBox(
-                          width: 160,
-                          child: DertamDetailInfo(
-                            icon: Iconsax.clock,
-                            title: 'Opening Hours',
-                            value: () {
-                              final operatingHours = placeDetailData
-                                  .data
-                                  ?.placeDetail
-                                  .operatingHours;
-
-                              if (operatingHours == null ||
-                                  operatingHours.isEmpty) {
-                                return 'Not Available';
-                              }
-
-                              // Get current day of week (lowercase, 3 letters)
-                              final now = DateTime.now();
-                              final dayNames = [
-                                'mon',
-                                'tue',
-                                'wed',
-                                'thu',
-                                'fri',
-                                'sat',
-                                'sun',
-                              ];
-                              final currentDay = dayNames[now.weekday - 1];
-
-                              // Get hours for current day
-                              final todayHours = operatingHours[currentDay];
-
-                              if (todayHours != null) {
-                                return 'Today: $todayHours';
-                              } else {
-                                return 'Not Available';
-                              }
-                            }(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 160,
-                          child: DertamDetailInfo(
-                            icon: Iconsax.ticket,
-                            title: 'Entry Fee',
-                            value:
-                                placeDetailData.data?.placeDetail.entryFree ==
-                                    true
-                                ? 'Free'
-                                : 'Paid',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 160,
-                          child: DertamDetailInfo(
-                            icon: Iconsax.calendar,
-                            title: 'Best Season',
-                            value:
-                                placeDetailData
-                                    .data
-                                    ?.placeDetail
-                                    .bestSeasonToVisit ??
-                                'Not Available',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 160,
-                          child: DertamDetailInfo(
-                            icon: Iconsax.people,
-                            title: 'Reviews',
-                            value:
-                                '${placeDetailData.data?.placeDetail.reviewsCount ?? 0}+',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
                   const Text(
                     'Description',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -417,75 +542,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  placeDetailData.data?.nearbyPlace.isEmpty ?? true
-                      ? SizedBox(
-                          height: 150,
-                          child: Center(
-                            child: Text(
-                              'No nearby places found',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        )
-                      : SizedBox(
-                          height: 200,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: placeDetailData.data?.nearbyPlace.length,
-                            itemBuilder: (context, index) {
-                              return Container(
-                                width: 200,
-                                margin: const EdgeInsets.only(right: 16),
-                                child: DertamNearbyPlace(
-                                  name:
-                                      placeDetailData
-                                          .data
-                                          ?.nearbyPlace[index]
-                                          .name ??
-                                      '',
-                                  location:
-                                      placeDetailData
-                                          .data
-                                          ?.nearbyPlace[index]
-                                          .provinceCategoryName ??
-                                      'Nearby not available',
-                                  rating:
-                                      placeDetailData
-                                          .data
-                                          ?.nearbyPlace[index]
-                                          .ratings ??
-                                      0.0,
-                                  imageUrl:
-                                      placeDetailData
-                                          .data
-                                          ?.nearbyPlace[index]
-                                          .imagesUrl
-                                          .first ??
-                                      '',
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DetailEachPlace(
-                                        placeId:
-                                            placeDetailData
-                                                .data
-                                                ?.nearbyPlace[index]
-                                                .placeID
-                                                .toString() ??
-                                            '',
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                  nearByPlace,
                   SizedBox(height: 18),
                   Text(
                     'Nearby Hotels',
@@ -497,8 +554,8 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                   ),
                   SizedBox(height: 18),
 
-                  // Hotel List with State Management
-                  content,
+                  /// NearBy Hotel
+                  nearByHotel,
 
                   SizedBox(height: 18),
                   Text(
@@ -510,57 +567,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     ),
                   ),
                   SizedBox(height: 18),
-                  placeDetailData.data?.restaurantNearby.isEmpty ?? true
-                      ? SizedBox(
-                          height: 150,
-                          child: Center(
-                            child: Text(
-                              'No nearby restaurants found',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        )
-                      : SizedBox(
-                          height: 200,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount:
-                                placeDetailData.data?.restaurantNearby.length,
-                            itemBuilder: (context, index) {
-                              final restaurant =
-                                  placeDetailData.data?.restaurantNearby[index];
-                              return Container(
-                                width: 260,
-                                margin: const EdgeInsets.only(right: 16),
-                                child: DertamRetauanrantNearby(
-                                  name: restaurant?.name ?? '',
-                                  location:
-                                      restaurant?.provinceCategoryName ?? '',
-                                  rating:
-                                      restaurant?.ratings.toString() ?? '0.0',
-                                  imageUrl:
-                                      restaurant?.imagesUrl.isNotEmpty ?? false
-                                      ? (restaurant?.imagesUrl.first ?? '')
-                                      : '',
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          RestaurantDetailScreen(
-                                            restaurant: restaurant!,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                  nearByRestaurant,
                   SizedBox(height: 18),
                 ],
               ),

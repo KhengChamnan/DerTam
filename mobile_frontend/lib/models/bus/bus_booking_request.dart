@@ -6,11 +6,7 @@ class BusBookingResponse {
   final String message;
   final BusBookingData? data;
 
-  BusBookingResponse({
-    required this.success,
-    required this.message,
-    this.data,
-  });
+  BusBookingResponse({required this.success, required this.message, this.data});
 
   factory BusBookingResponse.fromJson(Map<String, dynamic> json) {
     return BusBookingResponse(
@@ -39,11 +35,12 @@ class BusBookingData {
         json['aba_response'] as Map<String, dynamic>,
       ),
     );
-  } 
+  }
   Map<String, dynamic> toJson() {
     return {'booking': booking.toJson(), 'aba_response': abaResponse.toJson()};
   }
 }
+
 class BusBooking {
   final int? id;
   final String? totalAmount;
@@ -64,15 +61,16 @@ class BusBooking {
   factory BusBooking.fromJson(Map<String, dynamic> json) {
     return BusBooking(
       id: json['id'] as int?,
-      totalAmount: json['total_amount'] as String?,
-      currency: json['currency'] as String?,
-      status: json['status'] as String?,
+      totalAmount: json['total_amount']?.toString(),
+      currency: json['currency']?.toString(),
+      status: json['status']?.toString(),
       schedule: json['schedule'] != null
           ? BusSchedule.fromJson(json['schedule'] as Map<String, dynamic>)
           : null,
       seat: (json['seats'] as List?)
-          ?.map((seatJson) =>
-              BusSeat.fromJson(seatJson as Map<String, dynamic>))
+          ?.map(
+            (seatJson) => BusSeat.fromJson(seatJson as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -86,6 +84,7 @@ class BusBooking {
     };
   }
 }
+
 class AbaResponse {
   final AbaStatus status;
   final String description;
@@ -108,12 +107,12 @@ class AbaResponse {
   factory AbaResponse.fromJson(Map<String, dynamic> json) {
     return AbaResponse(
       status: AbaStatus.fromJson(json['status'] as Map<String, dynamic>),
-      description: json['description'] as String,
-      qrString: json['qrString'] as String,
-      qrImage: json['qrImage'] as String,
-      abapayDeeplink: json['abapay_deeplink'] as String,
-      appStore: json['app_store'] as String,
-      playStore: json['play_store'] as String,
+      description: json['description']?.toString() ?? '',
+      qrString: json['qrString']?.toString() ?? '',
+      qrImage: json['qrImage']?.toString() ?? '',
+      abapayDeeplink: json['abapay_deeplink']?.toString() ?? '',
+      appStore: json['app_store']?.toString() ?? '',
+      playStore: json['play_store']?.toString() ?? '',
     );
   }
 
@@ -139,13 +138,12 @@ class AbaStatus {
 
   factory AbaStatus.fromJson(Map<String, dynamic> json) {
     return AbaStatus(
-      code: json['code'] as String,
-      message: json['message'] as String,
-      tranId: json['tran_id'] as String,
+      code: json['code']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
+      tranId: json['tran_id']?.toString() ?? '',
     );
   }
   Map<String, dynamic> toJson() {
     return {'code': code, 'message': message, 'tran_id': tranId};
   }
 }
-

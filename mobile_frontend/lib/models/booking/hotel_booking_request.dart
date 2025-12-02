@@ -8,7 +8,6 @@ class HotelBookingResponse {
     required this.message,
     this.data,
   });
-
   factory HotelBookingResponse.fromJson(Map<String, dynamic> json) {
     return HotelBookingResponse(
       success: json['success'] as bool,

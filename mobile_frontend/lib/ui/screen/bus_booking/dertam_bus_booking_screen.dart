@@ -109,17 +109,24 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
     }
   }
 
+  Future<void> _refreshData() async {
+    final busProvider = context.read<BusBookingProvider>();
+    final authProvider = context.read<AuthProvider>();
+
+    // Fetch all data in parallel
+    await Future.wait([
+      busProvider.fetchUpcomingJourney(),
+      authProvider.getUserInfo(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.read<AuthProvider>();
-    final busBookingProvider = context.watch<BusBookingProvider>();
-    final upcomingJourney = busBookingProvider.upcomingJourneys;
     final userData = authProvider.userInfo;
-    print(
-      'UpcomingJourney bus name: ${(upcomingJourney.data?.schedule?.isNotEmpty ?? false) ? upcomingJourney.data!.schedule!.first.busName : "No data"}',
-    );
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Padding(
           padding: const EdgeInsets.fromLTRB(15, 19, 15, 16),
           child: Row(
@@ -205,77 +212,45 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
       ),
       backgroundColor: DertamColors.backgroundWhite,
       body: SafeArea(
-        // child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with avatar and greeting
-            const SizedBox(height: 20),
-            // Search card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: DertamColors.primaryDark,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    // Boarding From field
-                    GestureDetector(
-                      onTap: _selectFromLocation,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 18,
-                        ),
-                        decoration: BoxDecoration(
-                          color: DertamColors.white.withOpacity(0.91),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              fromLocation?.provinceCategoryName ??
-                                  'Boarding From',
-                              style: DertamTextStyles.body.copyWith(
-                                fontWeight: fromLocation != null
-                                    ? FontWeight.w500
-                                    : FontWeight.w300,
-                                color: DertamColors.primaryDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with avatar and greeting
+                const SizedBox(height: 20),
+                // Search card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: DertamColors.primaryDark,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-
-                    const SizedBox(height: 15),
-
-                    // Swap button
-                    Stack(
-                      alignment: Alignment.centerRight,
+                    child: Column(
                       children: [
-                        // Where are you going field
+                        // Boarding From field
                         GestureDetector(
-                          onTap: _selectToLocation,
+                          onTap: _selectFromLocation,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 18,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.91),
+                              color: DertamColors.white,
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
                               children: [
                                 Text(
-                                  toLocation?.provinceCategoryName ??
-                                      'Where are you going?',
+                                  fromLocation?.provinceCategoryName ??
+                                      'Boarding From',
                                   style: DertamTextStyles.body.copyWith(
-                                    fontWeight: toLocation != null
+                                    fontWeight: fromLocation != null
                                         ? FontWeight.w500
                                         : FontWeight.w300,
                                     color: DertamColors.primaryDark,
@@ -286,229 +261,275 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                           ),
                         ),
 
-                        // Swap icon button
-                        Transform.translate(
-                          offset: const Offset(0, -37),
-                          child: GestureDetector(
-                            onTap: _swapLocations,
-                            child: Container(
-                              width: 58,
-                              height: 58,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFE0E0E0),
-                                  ],
+                        // Swap button positioned between the two fields
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Column(
+                              children: [
+                                const SizedBox(height: 15),
+                                // Where are you going field
+                                GestureDetector(
+                                  onTap: _selectToLocation,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 18,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: DertamColors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          toLocation?.provinceCategoryName ??
+                                              'Where are you going?',
+                                          style: DertamTextStyles.body.copyWith(
+                                            fontWeight: toLocation != null
+                                                ? FontWeight.w500
+                                                : FontWeight.w300,
+                                            color: DertamColors.primaryDark,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // Swap icon button - positioned absolutely
+                            Positioned(
+                              right: 0,
+                              top: -14,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _swapLocations,
+                                child: Container(
+                                  width: 58,
+                                  height: 58,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Color(0xFFFFFFFF),
+                                        Color(0xFFE0E0E0),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.swap_vert,
+                                    color: DertamColors.primaryBlue,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
-                              child: Icon(
-                                Icons.swap_vert,
-                                color: DertamColors.primaryBlue,
-                                size: 28,
-                              ),
                             ),
-                          ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 15),
+
+                        // Date selection buttons
+                        Row(
+                          children: [
+                            DertamDateButton(
+                              label: 'Today',
+                              isSelected: selectedDateOption == 0,
+                              onTap: () {
+                                setState(() {
+                                  selectedDateOption = 0;
+                                  selectedDate = DateTime.now();
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 12),
+                            DertamDateButton(
+                              label: 'Tomorrow',
+                              isSelected: selectedDateOption == 1,
+                              onTap: () {
+                                setState(() {
+                                  selectedDateOption = 1;
+                                  selectedDate = DateTime.now().add(
+                                    const Duration(days: 1),
+                                  );
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 12),
+                            DertamDateButtonWithIcon(
+                              label: 'Other',
+                              isSelected: selectedDateOption == 2,
+                              onTap: _selectDate,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        DertamButton(
+                          text: 'Find Buses',
+                          onPressed: () async {
+                            // Validate inputs
+                            if (fromLocation == null || toLocation == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Please select both locations'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (selectedDate == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Please select a date'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Fetch bus schedules
+                            try {
+                              await context
+                                  .read<BusBookingProvider>()
+                                  .fetchBusSchedul(
+                                    fromLocation?.provinceCategoryID ?? 0,
+                                    toLocation?.provinceCategoryID ?? 0,
+                                    selectedDate ?? DateTime.now(),
+                                  );
+
+                              // Navigate to results screen
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      DertamAvailableBusesScreen(
+                                        fromLocation: fromLocation,
+                                        toLocation: toLocation,
+                                        date: selectedDate!,
+                                      ),
+                                ),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to search buses: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          backgroundColor: DertamColors.white,
+                          textColor: DertamColors.primaryBlue,
+                          height: 50,
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 15),
-
-                    // Date selection buttons
-                    Row(
-                      children: [
-                        DertamDateButton(
-                          label: 'Today',
-                          isSelected: selectedDateOption == 0,
-                          onTap: () {
-                            setState(() {
-                              selectedDateOption = 0;
-                              selectedDate = DateTime.now();
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        DertamDateButton(
-                          label: 'Tomorrow',
-                          isSelected: selectedDateOption == 1,
-                          onTap: () {
-                            setState(() {
-                              selectedDateOption = 1;
-                              selectedDate = DateTime.now().add(
-                                const Duration(days: 1),
-                              );
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        DertamDateButtonWithIcon(
-                          label: 'Other',
-                          isSelected: selectedDateOption == 2,
-                          onTap: _selectDate,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    DertamButton(
-                      text: 'Find Buses',
-                      onPressed: () async {
-                        // Validate inputs
-                        if (fromLocation == null || toLocation == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Please select both locations'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (selectedDate == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Please select a date'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        // Fetch bus schedules
-                        try {
-                          await context
-                              .read<BusBookingProvider>()
-                              .fetchBusSchedul(
-                                fromLocation?.provinceCategoryID ?? 0,
-                                toLocation?.provinceCategoryID ?? 0,
-                                selectedDate ?? DateTime.now(),
-                              );
-
-                          // Navigate to results screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DertamAvailableBusesScreen(
-                                fromLocation: fromLocation,
-                                toLocation: toLocation,
-                                date: selectedDate!,
-                              ),
-                            ),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to search buses: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                      backgroundColor: DertamColors.white,
-                      textColor: DertamColors.primaryBlue,
-                      height: 50,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            // Upcoming Journey title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Upcoming Journey',
-                style: DertamTextStyles.body.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: DertamColors.black,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            // Journey cards
-            Consumer<BusBookingProvider>(
-              builder: (context, placeProvider, child) {
-                final upcomingJourney = placeProvider.upcomingJourneys;
-
-                // Handle loading state
-                if (upcomingJourney.state == AsyncValueState.loading) {
-                  return SizedBox(
-                    height: 280,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: DertamColors.primaryBlue,
-                      ),
+                const SizedBox(height: 30),
+                // Upcoming Journey title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Upcoming Journey',
+                    style: DertamTextStyles.subtitle.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: DertamColors.black,
                     ),
-                  );
-                }
-                // Handle error state
-                if (upcomingJourney.state == AsyncValueState.error) {
-                  return SizedBox(
-                    height: 280,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.wifi_off_rounded,
-                            size: 48,
-                            color: Colors.red,
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                // Journey cards
+                Consumer<BusBookingProvider>(
+                  builder: (context, placeProvider, child) {
+                    final upcomingJourney = placeProvider.upcomingJourneys;
+
+                    // Handle loading state
+                    if (upcomingJourney.state == AsyncValueState.loading) {
+                      return SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: DertamColors.primaryBlue,
                           ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Lost connection. Failed to upcomming journey! Please check your connection!',
+                        ),
+                      );
+                    }
+                    // Handle error state
+                    if (upcomingJourney.state == AsyncValueState.error) {
+                      return SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.wifi_off_rounded,
+                                  size: 48,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Lost connection. Failed to load upcoming journey! Please check your connection!',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    context
+                                        .read<BusBookingProvider>()
+                                        .fetchUpcomingJourney();
+                                  },
+                                  child: Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Handle empty state
+                    if (upcomingJourney.state == AsyncValueState.empty ||
+                        upcomingJourney.data == null ||
+                        upcomingJourney.data?.schedule == null ||
+                        upcomingJourney.data!.schedule!.isEmpty) {
+                      return SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: Text(
+                            'No upcoming journeys available',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
-                          SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              context
-                                  .read<BusBookingProvider>()
-                                  .fetchUpcomingJourney();
-                            },
-                            child: Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                // Handle empty state
-                if (upcomingJourney.state == AsyncValueState.empty ||
-                    upcomingJourney.data == null ||
-                    upcomingJourney.data?.schedule == null) {
-                  return SizedBox(
-                    height: 280,
-                    child: Center(
-                      child: Text(
-                        'No recommendations available',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ),
-                  );
-                }
-                // Handle success state
-                return Expanded(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: upcomingJourney.data?.schedule?.length ?? 0,
-                    itemBuilder: (context, index) {
-                      final journey = upcomingJourney.data?.schedule?[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: DertamUpcomingJourneyCard(
-                          number: index + 1,
-                          terminalName: journey?.busName ?? 'Bus Terminal',
-                          from: journey?.fromLocation ?? 'N/A',
-                          to: journey?.toLocation ?? 'N/A',
-                          time: journey?.departureTime ?? 'N/A',
-                          date: journey?.departureDate ?? 'N/A',
-                          onTap: () => Navigator.push(
+                        ),
+                      );
+                    }
+                    // Handle success state
+                    return ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: upcomingJourney.data?.schedule?.length ?? 0,
+                      itemBuilder: (context, index) {
+                        final journey = upcomingJourney.data?.schedule?[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: DertamUpcomingJourneyCard(
+                            number: index + 1,
+                            terminalName: journey?.busName ?? 'Bus Terminal',
+                            from: journey?.fromLocation ?? 'N/A',
+                            to: journey?.toLocation ?? 'N/A',
+                            time: journey?.departureTime ?? 'N/A',
+                            date: journey?.departureDate ?? 'N/A',
+                            onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DertamSelectSeat(
@@ -516,16 +537,15 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                                 ),
                               ),
                             ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
-
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
 
