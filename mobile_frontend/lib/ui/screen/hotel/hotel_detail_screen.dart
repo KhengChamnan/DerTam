@@ -347,7 +347,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          hotel.place.provinceCategory.provinceCategoryName,
+                          hotel.place.provinceCategory.provinceCategoryName??'No Province Found!',
                           style: DertamTextStyles.bodyMedium.copyWith(
                             color: DertamColors.primaryDark,
                           ),

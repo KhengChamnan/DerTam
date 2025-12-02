@@ -91,7 +91,6 @@ class _DertamTripScreenState extends State<DertamTripScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DertamColors.white,
-
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         automaticallyImplyLeading: false,
@@ -210,21 +209,30 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                 children: [
                   // Upcoming Trips Tab
                   upcomingTrips.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.card_travel,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'No upcoming trips',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                      ? RefreshIndicator(
+                          onRefresh: () => tripProvider.fetchAllTrip(),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 200),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.card_travel,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'No upcoming trips',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -259,17 +267,30 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                         ),
                   // Past Trips Tab
                   pastTrips.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.history, size: 64, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text(
-                                'No past trips',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                      ? RefreshIndicator(
+                          onRefresh: () => tripProvider.fetchAllTrip(),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 200),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.history,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'No past trips',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],

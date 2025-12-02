@@ -6,14 +6,6 @@ import 'package:mobile_frontend/ui/screen/restaurant/widget/food_category_tab.da
 import 'package:mobile_frontend/ui/screen/restaurant/widget/list_food_menu.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
-///
-/// Restaurant Detail Screen displays detailed information about a restaurant.
-/// Users can:
-/// - View restaurant images
-/// - See location, ratings, and description
-/// - Browse menu items by category (Food, Drink, Snack, Others)
-/// - See menu item prices
-///
 class RestaurantDetailScreen extends StatefulWidget {
   final NearByRestaurant restaurant;
 

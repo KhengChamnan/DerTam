@@ -57,6 +57,11 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::controller(SocialAuthController::class)->group(function(){
         Route::post('auth/logout', 'logout');
     });
+
+    // Events CRUD (create, update, delete - protected)
+    Route::post('events', [ApiEventController::class, 'store']);
+    Route::put('events/{id}', [ApiEventController::class, 'update']);
+    Route::delete('events/{id}', [ApiEventController::class, 'destroy']);
 });
 
 Route::post(
@@ -81,6 +86,10 @@ Route::get('place-categories', [PlaceCategoryController::class, 'index']);
 Route::get('places/recommended', [RecommendationController::class, 'index']);
 Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
 
+// Events CRUD routes (public read, auth required for write)
+Route::get('events', [ApiEventController::class, 'index']);
+Route::get('events/{id}', [ApiEventController::class, 'show']);
+
 // Place detail routes (public)
 Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']);  // Get place details with nearby hotels & restaurants
 
@@ -91,6 +100,9 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 // room 
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 Route::post('/rooms/search', [App\Http\Controllers\API\Hotel\RoomSearchController::class, 'searchAvailableRooms']);
+
+// Hotel search by province
+Route::get('/hotels/search', [App\Http\Controllers\API\Hotel\HotelSearchController::class, 'searchHotels']);
 
 // Public bus schedule search route
 Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
@@ -165,6 +177,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/cancel', [HotelBookingController::class, 'cancelHotelBooking']);
         });
         
+
         // Bus booking routes
         Route::prefix('bus')->group(function () {
             Route::post('/create', [BusBookingController::class, 'createBusBooking']);

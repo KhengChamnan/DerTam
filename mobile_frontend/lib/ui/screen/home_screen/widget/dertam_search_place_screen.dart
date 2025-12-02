@@ -1,5 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:mobile_frontend/models/place/place.dart';
+import 'package:mobile_frontend/ui/providers/place_provider.dart';
+import 'package:mobile_frontend/ui/screen/place_datail/place_detailed.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/ui/widgets/place_search_card.dart';
+import 'package:provider/provider.dart';
 
 class DertamSearchPlaceScreen extends StatefulWidget {
   const DertamSearchPlaceScreen({super.key});
@@ -14,153 +21,76 @@ class _DertamSearchPlaceScreenState extends State<DertamSearchPlaceScreen> {
   // Search State
   // ----------------------------------
 
-  List<SearchResult> allResults = [];
-  List<SearchResult> filteredResults = [];
+  List<Place> searchResults = [];
   String searchText = '';
   bool isLoading = false;
+  String? errorMessage;
+  Timer? _debounceTimer;
 
   @override
-  void initState() {
-    super.initState();
-    _initializeSearchData();
-  }
-
-  void _initializeSearchData() {
-    // Initialize with sample data - Replace with API call
-    allResults = [
-      // Places
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Sigiriya Rock Fortress',
-        subtitle: 'Cultural Triangle • Historical Site',
-        province: 'Central Province',
-        categoryName: 'Historical Site',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Temple of the Tooth',
-        subtitle: 'Kandy • Religious Site',
-        province: 'Central Province',
-        categoryName: 'Religious Site',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Yala National Park',
-        subtitle: 'Yala • Wildlife',
-        province: 'Southern Province',
-        categoryName: 'National Park',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Galle Fort',
-        subtitle: 'Galle • Historical Site',
-        province: 'Southern Province',
-        categoryName: 'Historical Site',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Ella Rock',
-        subtitle: 'Ella • Nature & Adventure',
-        province: 'Uva Province',
-        categoryName: 'Mountain',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Nine Arch Bridge',
-        subtitle: 'Ella • Landmark',
-        province: 'Uva Province',
-        categoryName: 'Landmark',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Mirissa Beach',
-        subtitle: 'Mirissa • Beach',
-        province: 'Southern Province',
-        categoryName: 'Beach',
-      ),
-      SearchResult(
-        type: SearchResultType.place,
-        title: 'Horton Plains',
-        subtitle: 'Nuwara Eliya • Nature Reserve',
-        province: 'Central Province',
-        categoryName: 'National Park',
-      ),
-      // Categories
-      SearchResult(
-        type: SearchResultType.category,
-        title: 'Historical Sites',
-        subtitle: 'Ancient temples, forts & ruins',
-        categoryName: 'Historical Site',
-      ),
-      SearchResult(
-        type: SearchResultType.category,
-        title: 'Beaches',
-        subtitle: 'Coastal attractions & water sports',
-        categoryName: 'Beach',
-      ),
-      SearchResult(
-        type: SearchResultType.category,
-        title: 'Wildlife & Nature',
-        subtitle: 'National parks & safaris',
-        categoryName: 'Wildlife',
-      ),
-      SearchResult(
-        type: SearchResultType.category,
-        title: 'Religious Sites',
-        subtitle: 'Temples, churches & sacred places',
-        categoryName: 'Religious Site',
-      ),
-      // Provinces
-      SearchResult(
-        type: SearchResultType.province,
-        title: 'Western Province',
-        subtitle: 'Colombo, Gampaha, Kalutara',
-        province: 'Western Province',
-      ),
-      SearchResult(
-        type: SearchResultType.province,
-        title: 'Central Province',
-        subtitle: 'Kandy, Matale, Nuwara Eliya',
-        province: 'Central Province',
-      ),
-      SearchResult(
-        type: SearchResultType.province,
-        title: 'Southern Province',
-        subtitle: 'Galle, Matara, Hambantota',
-        province: 'Southern Province',
-      ),
-    ];
-
-    filteredResults = allResults;
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   void onBackSelected() {
     Navigator.of(context).pop();
   }
 
-  void onResultSelected(SearchResult result) {
-    // Return the selected result to the previous screen
-    Navigator.of(context).pop(result);
+  void onPlaceSelected(Place place) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailEachPlace(placeId: place.placeId),
+      ),
+    );
+  }
+
+  Future<void> _performSearch(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        searchResults = [];
+        isLoading = false;
+        errorMessage = null;
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final placeProvider = context.read<PlaceProvider>();
+      final results = await placeProvider.searchAllPlace(query);
+      if (mounted) {
+        setState(() {
+          searchResults = results;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Failed to search places. Please try again.';
+        });
+      }
+    }
   }
 
   void onSearchChanged(String searchText) {
     setState(() {
       this.searchText = searchText;
-      if (searchText.isEmpty) {
-        filteredResults = allResults;
-      } else {
-        final query = searchText.toLowerCase();
-        filteredResults = allResults.where((result) {
-          final titleMatch = result.title.toLowerCase().contains(query);
-          final subtitleMatch = result.subtitle.toLowerCase().contains(query);
-          final provinceMatch =
-              result.province?.toLowerCase().contains(query) ?? false;
-          final categoryMatch =
-              result.categoryName?.toLowerCase().contains(query) ?? false;
+    });
 
-          return titleMatch || subtitleMatch || provinceMatch || categoryMatch;
-        }).toList();
-      }
+    // Cancel the previous timer
+    _debounceTimer?.cancel();
+
+    // Set a new timer for debouncing (wait 500ms after user stops typing)
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(searchText);
     });
   }
 
@@ -181,162 +111,81 @@ class _DertamSearchPlaceScreenState extends State<DertamSearchPlaceScreen> {
 
               const SizedBox(height: 16),
               // Search results
-              Expanded(
-                child: filteredResults.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: DertamColors.textLight.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              searchText.isEmpty
-                                  ? 'Search for places, categories, or provinces'
-                                  : 'No results found',
-                              style: DertamTextStyles.body.copyWith(
-                                color: DertamColors.textLight,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredResults.length,
-                        itemBuilder: (ctx, index) => _SearchResultTile(
-                          result: filteredResults[index],
-                          onSelected: onResultSelected,
-                        ),
-                      ),
-              ),
+              Expanded(child: _buildSearchContent()),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-// ============= SEARCH RESULT MODEL =============
-
-enum SearchResultType { place, category, province }
-
-class SearchResult {
-  final SearchResultType type;
-  final String title;
-  final String subtitle;
-  final String? province;
-  final String? categoryName;
-  final String? placeId;
-  final int? categoryId;
-  final int? provinceId;
-
-  SearchResult({
-    required this.type,
-    required this.title,
-    required this.subtitle,
-    this.province,
-    this.categoryName,
-    this.placeId,
-    this.categoryId,
-    this.provinceId,
-  });
-}
-
-// ============= SEARCH RESULT TILE =============
-
-class _SearchResultTile extends StatelessWidget {
-  final SearchResult result;
-  final Function(SearchResult) onSelected;
-
-  const _SearchResultTile({required this.result, required this.onSelected});
-
-  IconData get _icon {
-    switch (result.type) {
-      case SearchResultType.place:
-        return Icons.place;
-      case SearchResultType.category:
-        return Icons.category;
-      case SearchResultType.province:
-        return Icons.map;
+  Widget _buildSearchContent() {
+    // Show loading indicator
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
-  }
 
-  Color get _iconColor {
-    switch (result.type) {
-      case SearchResultType.place:
-        return DertamColors.primaryBlue;
-      case SearchResultType.category:
-        return const Color(0xFFF5A522);
-      case SearchResultType.province:
-        return const Color(0xFF4CAF50);
-    }
-  }
-
-  String get _typeLabel {
-    switch (result.type) {
-      case SearchResultType.place:
-        return 'Place';
-      case SearchResultType.category:
-        return 'Category';
-      case SearchResultType.province:
-        return 'Province';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: () => onSelected(result),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: _iconColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(_icon, color: _iconColor, size: 24),
-      ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              result.title,
+    // Show error message
+    if (errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: DertamColors.red.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              errorMessage!,
               style: DertamTextStyles.body.copyWith(
-                color: DertamColors.primaryDark,
-                fontWeight: FontWeight.w500,
+                color: DertamColors.textLight,
               ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _performSearch(searchText),
+              child: const Text('Retry'),
             ),
-            child: Text(
-              _typeLabel,
-              style: DertamTextStyles.label.copyWith(
-                color: _iconColor,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+          ],
+        ),
+      );
+    }
+
+    // Show empty state
+    if (searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search,
+              size: 64,
+              color: DertamColors.textLight.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              searchText.isEmpty
+                  ? 'Search for places'
+                  : 'No places found for "$searchText"',
+              style: DertamTextStyles.body.copyWith(
+                color: DertamColors.textLight,
               ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
-      ),
-      subtitle: Text(
-        result.subtitle,
-        style: DertamTextStyles.label.copyWith(color: DertamColors.textLight),
-      ),
-      trailing: Icon(
-        Icons.arrow_forward_ios,
-        color: DertamColors.textLight,
-        size: 16,
+          ],
+        ),
+      );
+    }
+
+    // Show search results
+    return ListView.builder(
+      itemCount: searchResults.length,
+      itemBuilder: (ctx, index) => PlaceSearchCard(
+        place: searchResults[index],
+        onTap: () => onPlaceSelected(searchResults[index]),
       ),
     );
   }
@@ -389,7 +238,7 @@ class _DertamSearchBarState extends State<_DertamSearchBar> {
         children: [
           // Left icon
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: IconButton(
               onPressed: widget.onBackPressed,
               icon: Icon(

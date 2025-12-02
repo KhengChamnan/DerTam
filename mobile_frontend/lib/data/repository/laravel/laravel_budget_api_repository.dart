@@ -10,7 +10,7 @@ import 'package:mobile_frontend/models/budget/expense_category.dart';
 
 class LaravelBudgetApiRepository implements BudgetRepository {
   final LaravelAuthApiRepository repository;
-  LaravelBudgetApiRepository({required this.repository});
+  LaravelBudgetApiRepository(this.repository);
   final _baseHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

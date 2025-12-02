@@ -11,6 +11,7 @@ class Room {
   final List<String> imagesUrl;
   final List<String> imagePublicIds;
   final List<Amendities> amenities;
+  final int? availableRoomcount;
 
   Room({
     required this.roomPropertiesId,
@@ -23,6 +24,7 @@ class Room {
     required this.imagesUrl,
     required this.imagePublicIds,
     required this.amenities,
+    this.availableRoomcount,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class Room {
       amenities: List<Amendities>.from(
         json['amenities']?.map((item) => Amendities.fromJson(item)) ?? [],
       ),
+      availableRoomcount: json['available_rooms_count'] ?? 0,
     );
   }
 

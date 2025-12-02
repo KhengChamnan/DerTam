@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class DertamHotelNearby extends StatelessWidget {
   final String name;
   final String location;
   final String rating;
   final String imageUrl;
-  final String? description;
+  final String? reviewCount;
   final VoidCallback? onTap;
 
   const DertamHotelNearby({
@@ -16,7 +15,7 @@ class DertamHotelNearby extends StatelessWidget {
     required this.location,
     required this.rating,
     required this.imageUrl,
-    this.description,
+    this.reviewCount,
     this.onTap,
   });
 
@@ -199,10 +198,10 @@ class DertamHotelNearby extends StatelessWidget {
                     ),
 
                     // Description (if provided)
-                    if (description != null && description!.isNotEmpty) ...[
+                    if (reviewCount != null && reviewCount!.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(
-                        description!,
+                        '${reviewCount!} reviews',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[700],
@@ -212,21 +211,6 @@ class DertamHotelNearby extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-
-                    const SizedBox(height: 8),
-
-                    // Show more link
-                    GestureDetector(
-                      onTap: onTap,
-                      child: Text(
-                        'Show more',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: DertamColors.primaryPurple,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

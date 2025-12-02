@@ -1,4 +1,3 @@
-// Model for booking list API response
 class BookingListResponse {
   final bool success;
   final BookingListData data;
@@ -21,7 +20,7 @@ class BookingListData {
   final int currentPage;
   final List<BookingItem> data;
   final String firstPageUrl;
-  final int from;
+  final int? from;
   final int lastPage;
   final String lastPageUrl;
   final List<PageLink> links;
@@ -29,14 +28,14 @@ class BookingListData {
   final String path;
   final int perPage;
   final String? prevPageUrl;
-  final int to;
+  final int? to;
   final int total;
 
   BookingListData({
     required this.currentPage,
     required this.data,
     required this.firstPageUrl,
-    required this.from,
+    this.from,
     required this.lastPage,
     required this.lastPageUrl,
     required this.links,
@@ -44,29 +43,35 @@ class BookingListData {
     required this.path,
     required this.perPage,
     this.prevPageUrl,
-    required this.to,
+    this.to,
     required this.total,
   });
 
   factory BookingListData.fromJson(Map<String, dynamic> json) {
     return BookingListData(
-      currentPage: json['current_page'] as int,
-      data: (json['data'] as List)
-          .map((item) => BookingItem.fromJson(item as Map<String, dynamic>))
-          .toList(),
-      firstPageUrl: json['first_page_url'] as String,
-      from: json['from'] as int,
-      lastPage: json['last_page'] as int,
-      lastPageUrl: json['last_page_url'] as String,
-      links: (json['links'] as List)
-          .map((link) => PageLink.fromJson(link as Map<String, dynamic>))
-          .toList(),
+      currentPage: json['current_page'] as int? ?? 1,
+      data:
+          (json['data'] as List?)
+              ?.map(
+                (item) => BookingItem.fromJson(item as Map<String, dynamic>),
+              )
+              .toList() ??
+          [],
+      firstPageUrl: json['first_page_url'] as String? ?? '',
+      from: json['from'] as int?,
+      lastPage: json['last_page'] as int? ?? 1,
+      lastPageUrl: json['last_page_url'] as String? ?? '',
+      links:
+          (json['links'] as List?)
+              ?.map((link) => PageLink.fromJson(link as Map<String, dynamic>))
+              .toList() ??
+          [],
       nextPageUrl: json['next_page_url'] as String?,
-      path: json['path'] as String,
-      perPage: json['per_page'] as int,
+      path: json['path'] as String? ?? '',
+      perPage: json['per_page'] as int? ?? 10,
       prevPageUrl: json['prev_page_url'] as String?,
-      to: json['to'] as int,
-      total: json['total'] as int,
+      to: json['to'] as int?,
+      total: json['total'] as int? ?? 0,
     );
   }
 

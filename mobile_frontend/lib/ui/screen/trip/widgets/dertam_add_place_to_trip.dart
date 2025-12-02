@@ -65,12 +65,11 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
     });
     if (searchQuery.isNotEmpty) {
       // If there's a search query, use search API
-      await placeProvider.searchPlaces(searchQuery);
+      await placeProvider.searchAllPlace(searchQuery);
     } else if (_selectedCategoryId != null) {
       // If a category is selected, fetch places by category
       await placeProvider.getPlacesByCategory(_selectedCategoryId!);
     } else {
-      // If 'All' is selected and no search, show recommended places
       await placeProvider.fetchRecommendedPlaces();
     }
 
@@ -172,12 +171,30 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_rounded,
-            color: DertamColors.primaryBlue,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           tripData?.data.tripName ?? 'Don not Have Trip',
