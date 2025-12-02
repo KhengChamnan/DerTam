@@ -85,6 +85,7 @@ Route::controller(PlaceBrowseController::class)->group(function(){
 Route::get('place-categories', [PlaceCategoryController::class, 'index']);
 Route::get('places/recommended', [RecommendationController::class, 'index']);
 Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
+Route::get('slideshow', [ApiEventController::class, 'slideshow']);
 
 // Events CRUD routes (public read, auth required for write)
 Route::get('events', [ApiEventController::class, 'index']);
