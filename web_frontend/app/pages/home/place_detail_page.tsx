@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router";
 import { useState } from "react";
-import { ChevronLeft, Navigation } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 // Import components
 import ImageGallery from "./components/imagegallery";
@@ -9,18 +9,21 @@ import PlaceHeader from "./components/placeheader";
 import DetailInfo from "./components/detailinfo";
 import GuideSection from "./components/guidesection";
 import NearbyPlaceCard from "./components/nearbyplacecard";
-import HotelNearbyCard from "./components/hotalnearbycard";
+import HotelNearbyCard from "./components/hotelnearbycard";
 import RestaurantNearbyCard from "./components/restaurantnearbycard";
 
-// Import custom hook
+// Import custom hooks
 import { usePlaceData } from "./hooks/usePlaceData";
+import { useFavorites } from '../profile/hooks/usefavorites';
 
 export default function PlaceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { place, loading } = usePlaceData(id);
   
-  const [isFavorite, setIsFavorite] = useState(false);
+  // Remove local state, use favorites hook instead
+  const { isFavorite, toggleFavorite } = useFavorites();
+  
   const [selectedImage, setSelectedImage] = useState(0);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
@@ -44,6 +47,23 @@ export default function PlaceDetailPage() {
 
   const handleStartPlanning = () => {
     navigate("/trip_plan");
+  };
+
+  // Handle toggle favorite with complete place data
+  const handleToggleFavorite = () => {
+    if (!place) return;
+    
+    toggleFavorite({
+      id: place.id.toString(),
+      name: place.name,
+      location: place.location,
+      type: 'destination',
+      image: place.images?.[0] || '',
+      description: place.description,
+      price: place.entryFee?.price,
+      rating: place.rating,
+      category: place.category || 'Destination',
+    });
   };
 
   if (loading) {
@@ -111,14 +131,14 @@ export default function PlaceDetailPage() {
         />
       )}
 
-      {/* Place Header */}
+      {/* Place Header - Now synced with favorites */}
       <PlaceHeader
         name={place.name}
         rating={place.rating}
         reviews={place.reviews}
         location={place.location}
-        isFavorite={isFavorite}
-        onToggleFavorite={() => setIsFavorite(!isFavorite)}
+        isFavorite={isFavorite(place.id.toString())}
+        onToggleFavorite={handleToggleFavorite}
         onStartPlanning={handleStartPlanning}
       />
 
@@ -201,4 +221,4 @@ export default function PlaceDetailPage() {
       </main>
     </div>
   );
-} 
+}

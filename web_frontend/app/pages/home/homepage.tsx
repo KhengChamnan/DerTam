@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router'; 
 import { Heart, Star, MapPin, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import Carousel from '../../components/carousel';
 import Navigation from '../../components/navigation';
+import { useSearch } from '../../components/useSearch';
+import { useFavorites } from '../profile/hooks/usefavorites';
 
 // Hero carousel images
 const heroImages = [
@@ -30,29 +33,49 @@ const mockEvents = [
 const categories = ['All', 'Historical', 'Standard', 'Villa', 'Cottages', 'Townhouses', 'Shared Space'];
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [favorites, setFavorites] = useState<number[]>([]);
-  const [eventFavorites, setEventFavorites] = useState<number[]>([]);
   const [currentEventPage, setCurrentEventPage] = useState(0);
 
-  // Filter destinations based on category
-  const filteredDestinations = mockDestinations.filter(dest => {
+  // Use favorites hook instead of local state
+  const { toggleFavorite, isFavorite, favorites } = useFavorites();
+
+  // Use search hook
+  const { searchQuery, setSearchQuery, filteredResults } = useSearch(mockDestinations);
+
+  // Filter destinations based on category AND search
+  const filteredDestinations = filteredResults.filter(dest => {
     const matchesCategory = selectedCategory === 'All' || dest.category === selectedCategory;
     return matchesCategory;
   });
 
-  // Toggle favorite
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
-    );
+  // Toggle favorite for destinations
+  const handleToggleFavorite = (dest: typeof mockDestinations[0]) => {
+    toggleFavorite({
+      id: dest.id.toString(),
+      name: dest.name,
+      location: dest.location,
+      type: 'destination',
+      image: dest.image,
+      description: `${dest.category} destination`,
+      price: dest.price,
+      rating: dest.rating,
+      category: dest.category,
+    });
   };
 
-  // Toggle event favorite
-  const toggleEventFavorite = (id: number) => {
-    setEventFavorites(prev => 
-      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
-    );
+  // Toggle favorite for events
+  const handleToggleEventFavorite = (event: typeof mockEvents[0]) => {
+    toggleFavorite({
+      id: `event_${event.id}`,
+      name: event.name,
+      location: event.location,
+      type: 'event',
+      image: event.image,
+      description: 'Upcoming event',
+      price: event.price,
+      rating: event.rating,
+    });
   };
 
   // Event pagination
@@ -73,27 +96,58 @@ export default function HomePage() {
 
   return (
     <div className="font-sans min-h-screen bg-white">
-      {/* Navigation */}
-      <Navigation activeNav="Home" />
 
-      {/* Hero Section with Carousel */}
-      <section className="relative overflow-hidden">
-        <Carousel 
-          images={heroImages} 
-          autoPlay={true}
-          autoPlayInterval={5000}
-          className="w-full h-[600px]"
-        />
-      </section>
+      {/* Navigation - Enable search on homepage */}
+      <Navigation 
+        activeNav="Home" 
+        showSearch={true}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
+      {/* Hero Section with Carousel - Hide when searching */}
+      {!searchQuery && (
+        <section className="relative overflow-hidden">
+          <Carousel 
+            images={heroImages} 
+            autoPlay={true}
+            autoPlayInterval={5000}
+            className="w-full h-[600px]"
+          />
+        </section>
+      )}
+
+      {/* Show search results header with clear visual separation */}
+      {searchQuery && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+          <div className="max-w-[1400px] mx-auto px-10 py-6">
+            <h2 className="text-2xl font-bold mb-2" style={{ color: '#01005B' }}>
+              Search Results
+            </h2>
+            <p className="text-gray-600">
+              Showing results for "<span className="font-semibold text-[#01005B]">{searchQuery}</span>"
+              <span className="ml-2 text-sm">({filteredDestinations.length} found)</span>
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-3 text-sm text-gray-600 hover:text-[#01005B] underline cursor-pointer bg-transparent border-none"
+            >
+              Clear search
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-[1400px] mx-auto px-10 py-16">
         {/* Popular Nearby Section */}
         <section className="mb-20">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Popular Nearby</h2>
-            <p className="text-gray-600">Quality as judged user preference</p>
-          </div>
+          {!searchQuery && (
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">Popular Nearby</h2>
+              <p className="text-gray-600">Quality as judged user preference</p>
+            </div>
+          )}
 
           {/* Categories */}
           <div className="flex gap-5 mb-8 flex-wrap">
@@ -117,17 +171,24 @@ export default function HomePage() {
           {filteredDestinations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredDestinations.map((dest) => (
-                <div key={dest.id} className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
+                <div 
+                  key={dest.id} 
+                  onClick={() => navigate(`/place/${dest.id}`)} 
+                  className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
+                >
                   <div className="relative">
                     <img src={dest.image} alt={dest.name} className="w-full h-64 object-cover" />
                     <button 
-                      onClick={() => toggleFavorite(dest.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); 
+                        handleToggleFavorite(dest);
+                      }}
                       className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
                     >
                       <Heart 
                         size={20} 
                         color="#ef4444" 
-                        fill={favorites.includes(dest.id) ? "#ef4444" : "none"}
+                        fill={isFavorite(dest.id.toString()) ? "#ef4444" : "none"}
                       />
                     </button>
                   </div>
@@ -193,17 +254,24 @@ export default function HomePage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {currentEvents.map((event) => (
-                <div key={event.id} className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
+                <div 
+                  key={event.id} 
+                  onClick={() => navigate(`/place/${event.id}`)} 
+                  className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
+                >
                   <div className="relative">
                     <img src={event.image} alt={event.name} className="w-full h-64 object-cover" />
                     <button 
-                      onClick={() => toggleEventFavorite(event.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); 
+                        handleToggleEventFavorite(event);
+                      }}
                       className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
                     >
                       <Heart 
                         size={20} 
                         color="#ef4444"
-                        fill={eventFavorites.includes(event.id) ? "#ef4444" : "none"}
+                        fill={isFavorite(`event_${event.id}`) ? "#ef4444" : "none"}
                       />
                     </button>
                   </div>

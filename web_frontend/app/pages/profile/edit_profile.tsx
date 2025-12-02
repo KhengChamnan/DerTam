@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Camera, User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import { useNavigate } from 'react-router';
@@ -6,18 +6,47 @@ import { useNavigate } from 'react-router';
 export default function EditProfilePage() {
   const navigate = useNavigate();
   
-  // Mock user data
   const [formData, setFormData] = useState({
-    firstName: 'Saduni',
-    lastName: 'Silva',
-    email: 'saduni.silva@example.com',
-    phone: '+94 77 123 4567',
-    address: 'Colombo, Sri Lanka',
-    dateOfBirth: '1995-05-15',
-    gender: 'female',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    dateOfBirth: '',
+    gender: 'prefer-not-to-say',
   });
 
+  const [avatar, setAvatar] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const authStatus = localStorage.getItem('isAuthenticated');
+    const user = localStorage.getItem('user');
+
+    if (authStatus !== 'true' || !user) {
+      // Redirect to login if not authenticated
+      navigate('/login');
+      return;
+    }
+
+    // Load user data from localStorage
+    const userInfo = JSON.parse(user);
+    const nameParts = userInfo.name.split(' ');
+    
+    setFormData({
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      email: userInfo.email || '',
+      phone: userInfo.phone || '',
+      address: userInfo.address || '',
+      dateOfBirth: userInfo.dateOfBirth || '',
+      gender: userInfo.gender || 'prefer-not-to-say',
+    });
+
+    // Generate avatar from name
+    setAvatar(userInfo.name.split(' ').map((n: string) => n[0]).join('').toUpperCase());
+  }, [navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -27,8 +56,22 @@ export default function EditProfilePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    // Simulate API call
+
+    // Simulate API call and update localStorage
     setTimeout(() => {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const updatedUser = {
+        name: fullName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+      };
+
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
       setIsSaving(false);
       navigate('/profile');
     }, 1500);
@@ -61,7 +104,7 @@ export default function EditProfilePage() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-[#01005B] flex items-center justify-center text-white text-3xl font-bold">
-                SS
+                {avatar}
               </div>
               <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
                 <Camera size={16} className="text-gray-700" />
@@ -150,7 +193,6 @@ export default function EditProfilePage() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
-                    required
                   />
                 </div>
               </div>

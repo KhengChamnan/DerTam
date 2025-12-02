@@ -1,22 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Heart, Settings, LogOut, ChevronRight } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import { useNavigate } from 'react-router';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-
-  // Mock user data
-  const userData = {
-    name: 'Saduni Silva',
-    email: 'saduni.silva@example.com',
-    phone: '+94 77 123 4567',
-    avatar: 'SS',
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    avatar: '',
     memberSince: 'January 2024',
-  };
+  });
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const authStatus = localStorage.getItem('isAuthenticated');
+    const user = localStorage.getItem('user');
+
+    if (authStatus !== 'true' || !user) {
+      // Redirect to login if not authenticated
+      navigate('/login');
+      return;
+    }
+
+    // Load user data from localStorage
+    const userInfo = JSON.parse(user);
+    setUserData({
+      name: userInfo.name,
+      email: userInfo.email,
+      avatar: userInfo.name.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+      memberSince: 'January 2024',
+    });
+  }, [navigate]);
 
   const handleLogout = () => {
-    // Add logout logic here
+    // Clear localStorage
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rememberMe');
+    
+    // Redirect to home
     navigate('/');
   };
 
