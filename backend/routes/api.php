@@ -166,7 +166,11 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         
         // Bus booking routes
-        Route::post('/bus/create', [BusBookingController::class, 'createBusBooking']);
+        Route::prefix('bus')->group(function () {
+            Route::post('/create', [BusBookingController::class, 'createBusBooking']);
+            Route::get('/my-bookings', [BusBookingController::class, 'getMyBusBookings']);
+            Route::get('/{id}', [BusBookingController::class, 'getBusBookingDetails']);
+        });
         
         // Payment operations
         Route::get('/payment/status/{transactionId}', [PaymentCallbackController::class, 'checkPaymentStatus']);
