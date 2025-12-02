@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
+import 'package:mobile_frontend/ui/screen/dertam_map/place_map_screen.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_booking_room_screen.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_room_card.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_search_room_result.dart';
@@ -205,7 +206,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                 ),
               ),
             ),
-            
+
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -250,42 +251,85 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                         ),
                   // Route button overlay
                   Positioned(
-                    bottom: 16,
                     right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            spreadRadius: 0,
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Iconsax.routing_2,
-                            size: 18,
-                            color: DertamColors.primaryDark,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Route',
-                            style: DertamTextStyles.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: DertamColors.primaryDark,
+                    bottom: 20,
+                    child: GestureDetector(
+                      onTap: () {
+                        final placeDetail = hotel.place;
+                        print(
+                          'Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatt: ${placeDetail.latitude}',
+                        );
+                        print(
+                          'Looooooooooooooooooooooooooooooong: ${placeDetail.longitude}',
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PlaceMapScreen(
+                              latitude: placeDetail.latitude,
+                              longitude: placeDetail.longitude,
+                              placeName: placeDetail.name,
+                              googleMapsLink: placeDetail.googleMapLink,
                             ),
                           ),
-                        ],
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              DertamColors.primaryBlue,
+                              DertamColors.primaryBlue,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: DertamColors.primaryBlue.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                              spreadRadius: 0,
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Iconsax.routing,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Route',
+                              style: DertamTextStyles.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -347,7 +391,8 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          hotel.place.provinceCategory.provinceCategoryName??'No Province Found!',
+                          hotel.place.provinceCategory.provinceCategoryName ??
+                              'No Province Found!',
                           style: DertamTextStyles.bodyMedium.copyWith(
                             color: DertamColors.primaryDark,
                           ),

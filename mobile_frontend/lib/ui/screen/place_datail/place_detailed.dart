@@ -12,6 +12,7 @@ import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_hotel_nearb
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_image_slidshow.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_nearby_place_card.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_retauanrant_nearby_card.dart';
+import 'package:mobile_frontend/ui/screen/dertam_map/place_map_screen.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/trip_selection_modal.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/restaurant_detail_screen_new.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_add_place_to_trip.dart';
@@ -413,6 +414,32 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
             flexibleSpace: FlexibleSpaceBar(
               background: DertamImageSlideshow(
                 images: placeDetailData.data?.listOfImageUrl ?? [],
+                onRoutePressed: () {
+                  final placeDetail = placeDetailData.data?.placeDetail;
+                  print(
+                    'Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatt${placeDetail?.latitude}',
+                  );
+                  if (placeDetail != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlaceMapScreen(
+                          latitude: placeDetail.latitude,
+                          longitude: placeDetail.longitude,
+                          placeName: placeDetail.name,
+                          googleMapsLink: placeDetail.googleMapsLink,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Location data not available'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
               ),
             ),
           ),

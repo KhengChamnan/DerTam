@@ -5,6 +5,7 @@ import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/dertam_search_place_screen.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/widget/dertam_upcoming_detail_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/home_slide_show.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/places_category.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/recommendation_place_card.dart';
@@ -406,8 +407,8 @@ class _HomePageState extends State<HomePage> {
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => DetailEachPlace(
-                                          placeId: event.id.toString(),
+                                        builder: (context) => DertamUpcomingDetailScreen(
+                                          eventId: event.id.toString(),
                                         ),
                                       ),
                                     ),

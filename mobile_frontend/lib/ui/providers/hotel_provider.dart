@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/hotel_repository.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_request.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_request.dart';
 import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';

@@ -10,4 +10,6 @@ abstract class PlaceRepository {
   Future<PlaceDetailData> getPlaceDetails(String placeId);
   Future<List<Place>> searchPlaces(String query);
   Future<List<UpcomingEventPlace>> getUpcomingEvents();
+  Future<UpcomingEventPlace> getUpcomingEventDetail(String eventId);
+  Future<List<UpcomingEventPlace>> getSlideShow();
 }
