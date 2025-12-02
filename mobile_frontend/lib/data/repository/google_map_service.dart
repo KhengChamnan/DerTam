@@ -12,25 +12,25 @@ class DirectionsService {
     required LatLng destination,
   }) async {
     // Use the new Routes API instead of the older Directions API
-    final String url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
-    
+    final String url =
+        'https://routes.googleapis.com/directions/v2:computeRoutes';
     // Create request body for the Routes API
     final Map<String, dynamic> requestBody = {
       "origin": {
         "location": {
           "latLng": {
             "latitude": origin.latitude,
-            "longitude": origin.longitude
-          }
-        }
+            "longitude": origin.longitude,
+          },
+        },
       },
       "destination": {
         "location": {
           "latLng": {
             "latitude": destination.latitude,
-            "longitude": destination.longitude
-          }
-        }
+            "longitude": destination.longitude,
+          },
+        },
       },
       "travelMode": "DRIVE",
       "routingPreference": "TRAFFIC_AWARE",
@@ -38,55 +38,58 @@ class DirectionsService {
       "routeModifiers": {
         "avoidTolls": false,
         "avoidHighways": false,
-        "avoidFerries": false
+        "avoidFerries": false,
       },
       "languageCode": "en-US",
-      "units": "METRIC"
+      "units": "METRIC",
     };
 
     print("Calling Routes API: $url");
-    
+
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'
+          'X-Goog-FieldMask':
+              'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline',
         },
         body: jsonEncode(requestBody),
       );
-      
       print("Response status code: ${response.statusCode}");
       print("Response body: ${response.body}");
-      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data.containsKey('routes') && data['routes'].isNotEmpty) {
           final route = data['routes'][0];
-          
+
           // Extract distance in meters and convert to km
           final int distanceMeters = route['distanceMeters'];
-          final String distance = '${(distanceMeters / 1000).toStringAsFixed(1)} km';
-          
+          final String distance =
+              '${(distanceMeters / 1000).toStringAsFixed(1)} km';
+
           // Extract duration in seconds and format
           final String durationString = route['duration'];
           final String duration = _formatDuration(durationString);
-          
+
           // Extract encoded polyline
           final String encodedPolyline = route['polyline']['encodedPolyline'];
           print("Received polyline points: Valid data");
-          
           // Decode polyline to coordinates
-          final List<LatLng> polylineCoordinates = _decodePolyline(encodedPolyline);
-          print("Decoded ${polylineCoordinates.length} coordinates from polyline");
-          
+          final List<LatLng> polylineCoordinates = _decodePolyline(
+            encodedPolyline,
+          );
+          print(
+            "Decoded ${polylineCoordinates.length} coordinates from polyline",
+          );
+
           if (polylineCoordinates.isEmpty) {
             print("Polyline decoded to empty list");
             throw Exception('Failed to decode polyline data');
           }
-          
+
           return {
             'distance': distance,
             'duration': duration,
@@ -105,14 +108,14 @@ class DirectionsService {
       rethrow; // Let the map screen handle the error
     }
   }
-  
+
   // Helper method to format duration from "123456s" to "X hrs Y mins"
   String _formatDuration(String durationString) {
     // Remove the 's' at the end and parse to integer
     int seconds = int.parse(durationString.replaceAll('s', ''));
     int hours = seconds ~/ 3600;
     int minutes = (seconds % 3600) ~/ 60;
-    
+
     if (hours > 0) {
       return '$hours hr ${minutes > 0 ? '$minutes min' : ''}';
     } else {
@@ -149,7 +152,7 @@ class DirectionsService {
 
         polyline.add(LatLng(lat / 1E5, lng / 1E5));
       }
-      
+
       print("Successfully decoded polyline with ${polyline.length} points");
       return polyline;
     } catch (e) {
@@ -158,4 +161,3 @@ class DirectionsService {
     }
   }
 }
-

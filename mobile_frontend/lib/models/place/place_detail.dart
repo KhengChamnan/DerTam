@@ -216,7 +216,8 @@ class NearbyPlace {
       reviewsCount: json['reviews_count'] ?? 0,
       imagesUrl: List<String>.from(json['images_url'] ?? []),
       entryFree: json['entry_free'] ?? false,
-      operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
+      operatingHours: (json['operating_hours'] as Map<String, dynamic>? ?? {})
+          .map((key, value) => MapEntry(key, value?.toString() ?? '')),
       provinceCategoryName: json['province_categoryName'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),
@@ -306,7 +307,8 @@ class NearByRestaurant {
       reviewsCount: json['reviews_count'] ?? 0,
       imagesUrl: List<String>.from(json['images_url'] ?? []),
       entryFree: json['entry_free'] ?? false,
-      operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
+      operatingHours: (json['operating_hours'] as Map<String, dynamic>? ?? {})
+          .map((key, value) => MapEntry(key, value?.toString() ?? '')),
       provinceCategoryName: json['province_categoryName'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),
@@ -395,7 +397,8 @@ class NearByHotel {
       reviewsCount: json['reviews_count'] ?? 0,
       imagesUrl: List<String>.from(json['images_url'] ?? []),
       entryFree: json['entry_free'] ?? false,
-      operatingHours: Map<String, String>.from(json['operating_hours'] ?? {}),
+      operatingHours: (json['operating_hours'] as Map<String, dynamic>? ?? {})
+          .map((key, value) => MapEntry(key, value?.toString() ?? '')),
       provinceCategoryName: json['province_categoryName'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:mobile_frontend/data/repository/abstract/trip_repsitory.dart';
 import 'package:mobile_frontend/models/trips/create_trip_response.dart';
 import 'package:mobile_frontend/models/trips/confirm_trip_response.dart';
+import 'package:mobile_frontend/models/trips/trip_share_model.dart';
 import 'package:mobile_frontend/models/trips/trips.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 
@@ -13,6 +14,7 @@ class TripProvider extends ChangeNotifier {
   AsyncValue<ConfirmTripResponse> _getTripDetail = AsyncValue.empty();
   AsyncValue<List<Trip>> _getTripList = AsyncValue.empty();
   List<Map<String, dynamic>> _addedPlaces = [];
+  AsyncValue<TripShareResponse> _tripShareResponse = AsyncValue.empty();
 
   ///Getter
   AsyncValue<TripResponse> get createTrip => _createTrip;
@@ -20,6 +22,7 @@ class TripProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get addedPlaces => _addedPlaces;
   AsyncValue<ConfirmTripResponse> get getTripDetail => _getTripDetail;
   AsyncValue<List<Trip>> get getTripList => _getTripList;
+  AsyncValue<TripShareResponse> get tripShareResponse => _tripShareResponse;
 
   Future<TripResponse> createTripPlan(
     String tripName,
@@ -91,6 +94,22 @@ class TripProvider extends ChangeNotifier {
       rethrow;
     }
   }
+  Future<TripShareResponse> generateShareableLink(String tripId) async {
+    _tripShareResponse = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final shareResponse =
+          await tripRepository.generateShareableLink(tripId);
+      _tripShareResponse = AsyncValue.success(shareResponse);
+      notifyListeners();
+      return shareResponse;
+    } catch (e) {
+      _tripShareResponse = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+  
 
   // Methods to manage added places
   void addPlaceToTrip(Map<String, dynamic> placeData) {

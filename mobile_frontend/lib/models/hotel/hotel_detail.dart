@@ -49,6 +49,61 @@ class HotelDetail {
   }
 }
 
+class HotelListResponseData {
+  final SearchParams? searchParams;
+  final int totalResults;
+  final List<HotelPlace> hotels;
+
+  HotelListResponseData({
+    this.searchParams,
+    required this.totalResults,
+    required this.hotels,
+  });
+
+  factory HotelListResponseData.fromJson(Map<String, dynamic> json) {
+    final jsonData = json['data'] ?? json;
+    final dataJson = jsonData['hotels'] as List<dynamic>? ?? [];
+    return HotelListResponseData(
+      searchParams: jsonData['search_params'] != null
+          ? SearchParams.fromJson(jsonData['search_params'])
+          : null,
+      totalResults: jsonData['total_results'] ?? 0,
+      hotels: dataJson
+          .map((item) => HotelPlace.fromHotelList(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+/// Model for search parameters in hotel list response
+class SearchParams {
+  final String provinceId;
+  final String provinceName;
+  final String checkIn;
+  final String checkOut;
+  final int nights;
+
+  SearchParams({
+    required this.provinceId,
+    required this.provinceName,
+    required this.checkIn,
+    required this.checkOut,
+    required this.nights,
+  });
+
+  factory SearchParams.fromJson(Map<String, dynamic> json) {
+    return SearchParams(
+      provinceId: json['province_id']?.toString() ?? '',
+      provinceName: json['province_name'] ?? '',
+      checkIn: json['check_in'] ?? '',
+      checkOut: json['check_out'] ?? '',
+      nights: json['nights'] ?? 0,
+    );
+  }
+}
+
+/// Model for hotel items in the list response (simpler structure)
+
 class HotelPlace {
   final int placeId;
   final String name;
@@ -61,8 +116,8 @@ class HotelPlace {
   final Map<String, dynamic> operatingHour;
   final double latitude;
   final double longitude;
-  final int provinceId;
-  final int categoryId;
+  final int? provinceId;
+  final int? categoryId;
   final ProvinceCategoryDetail provinceCategory;
   final Category category;
 
@@ -78,11 +133,36 @@ class HotelPlace {
     required this.operatingHour,
     required this.latitude,
     required this.longitude,
-    required this.provinceId,
-    required this.categoryId,
+    this.provinceId,
+    this.categoryId,
     required this.provinceCategory,
     required this.category,
   });
+  factory HotelPlace.fromHotelList(Map<String, dynamic> json) {
+    return HotelPlace(
+      placeId: json['placeID'] ?? 0,
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+      category: Category(
+        placeCategoryId: json['category_id'] ?? 0,
+        categoryName: json['category_name'] ?? '',
+        categoryDescription: '',
+      ),
+      googleMapLink: json['google_maps_link'] ?? '',
+      rating: (json['ratings'] ?? 0.0).toDouble(),
+      reviewCount: json['reviews_count'] ?? 0,
+      imagesUrl: List<String>.from(json['images_url'] ?? []),
+      entryFee: json['entry_free'] ?? false,
+      operatingHour: json['operating_hours'] ?? {},
+      provinceCategory: ProvinceCategoryDetail(
+        provinceCategoryID: json['province_id'] ?? 0,
+        provinceCategoryName: json['province_categoryName'] ?? '',
+        categoryDescription: '',
+      ),
+      latitude: (json['latitude'] ?? 0.0).toDouble(),
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
+    );
+  }
 
   factory HotelPlace.fromJson(Map<String, dynamic> json) {
     return HotelPlace(
@@ -106,8 +186,6 @@ class HotelPlace {
     );
   }
 }
-
-
 
 class Category {
   final int placeCategoryId;

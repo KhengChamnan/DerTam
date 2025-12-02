@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_budget_api_repository.dart';
+import 'package:mobile_frontend/data/repository/laravel/laravel_bus_booking_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_hotel_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_trip_api_repository.dart';
 import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/screen/splash/spalsh_screen.dart';
@@ -20,9 +22,8 @@ void main() {
   final authRepository = LaravelAuthApiRepository();
   final hotelRepository = LaravelHotelApiRepository(authRepository);
   final tripRepository = LaravelTripApiRepository(authRepository);
-  final budgetRepository = LaravelBudgetApiRepository(
-    repository: authRepository,
-  );
+  final budgetRepository = LaravelBudgetApiRepository(authRepository);
+  final busBookingRepository = LaravelBusBookingApiRepository(authRepository);
 
   runApp(
     MultiProvider(
@@ -42,6 +43,10 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => BudgetProvider(repository: budgetRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              BusBookingProvider(busBookingRepository: busBookingRepository),
         ),
       ],
       child: MyApp(),

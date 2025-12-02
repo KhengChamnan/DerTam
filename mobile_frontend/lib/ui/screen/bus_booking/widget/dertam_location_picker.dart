@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/models/booking/location.dart';
+import 'package:mobile_frontend/models/province/province_category_detail.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:provider/provider.dart';
 
 class DertamLocationPicker extends StatefulWidget {
-  final Location?
-  initLocation; 
+  final ProvinceCategoryDetail? initLocation;
 
   const DertamLocationPicker({super.key, this.initLocation});
 
@@ -13,68 +14,42 @@ class DertamLocationPicker extends StatefulWidget {
 }
 
 class _DertamLocationPickerState extends State<DertamLocationPicker> {
-  // ----------------------------------
-  // Initialize the Form attributes
-  // ----------------------------------
-
-  // Sample locations for Sri Lanka (you can expand this list)
-  final List<Location> allLocations = const [
-    Location(
-      name: 'Colombo',
-      country: Country.france,
-    ), // Using france as placeholder for Sri Lanka
-    Location(name: 'Kelaniya', country: Country.france),
-    Location(name: 'Biyagama', country: Country.france),
-    Location(name: 'Gampaha', country: Country.france),
-    Location(name: 'Negombo', country: Country.france),
-    Location(name: 'Kandy', country: Country.france),
-    Location(name: 'Galle', country: Country.france),
-    Location(name: 'Matara', country: Country.france),
-    Location(name: 'Jaffna', country: Country.france),
-    Location(name: 'Trincomalee', country: Country.france),
-    Location(name: 'Anuradhapura', country: Country.france),
-    Location(name: 'Polonnaruwa', country: Country.france),
-    Location(name: 'Batticaloa', country: Country.france),
-    Location(name: 'Kurunegala', country: Country.france),
-    Location(name: 'Ratnapura', country: Country.france),
-  ];
-
-  List<Location> filteredLocations = [];
+  // State variables
   String searchText = '';
+  List<ProvinceCategoryDetail> filteredProvinces = [];
 
   @override
   void initState() {
     super.initState();
-    filteredLocations = allLocations; // Initially show all locations
+    final busBookingProvider = context.read<BusBookingProvider>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      busBookingProvider.fetchListLocation();
+    });
   }
 
   void onBackSelected() {
     Navigator.of(context).pop();
   }
 
-  void onLocationSelected(Location location) {
-    Navigator.of(context).pop(location);
+  void onLocationSelected(ProvinceCategoryDetail province) {
+    // Return the province with ID when selected
+    Navigator.of(context).pop(province);
   }
 
-  void onSearchChanged(String searchText) {
+  void onSearchChanged(String newSearchText) {
     setState(() {
-      this.searchText = searchText;
-      if (searchText.isEmpty) {
-        filteredLocations = allLocations;
-      } else {
-        filteredLocations = allLocations
-            .where(
-              (location) => location.name.toLowerCase().contains(
-                searchText.toLowerCase(),
-              ),
-            )
-            .toList();
-      }
+      searchText = newSearchText;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final busBookingProvider = context.watch<BusBookingProvider>();
+    final locationAsyncValue = busBookingProvider.location;
+
+    // Debug print to see the state
+    print('Location Picker - State: ${locationAsyncValue.state}');
+
     return Scaffold(
       backgroundColor: DertamColors.backgroundWhite,
       body: SafeArea(
@@ -87,25 +62,85 @@ class _DertamLocationPickerState extends State<DertamLocationPicker> {
                 onBackPressed: onBackSelected,
                 onSearchChanged: onSearchChanged,
               ),
-
               const SizedBox(height: 16),
+
+              // Handle async states
               Expanded(
-                child: filteredLocations.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No locations found',
+                child: locationAsyncValue.when(
+                  empty: () =>
+                      const Center(child: Text('Tap to search locations')),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: DertamColors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load locations',
                           style: DertamTextStyles.body.copyWith(
-                            color: DertamColors.textLight,
+                            color: DertamColors.red,
                           ),
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredLocations.length,
-                        itemBuilder: (ctx, index) => LocationTile(
-                          location: filteredLocations[index],
-                          onSelected: onLocationSelected,
+                        const SizedBox(height: 8),
+                        Text(
+                          error.toString(),
+                          style: DertamTextStyles.label.copyWith(
+                            color: DertamColors.textLight,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                      ],
+                    ),
+                  ),
+                  success: (provinceResponse) {
+                    // Debug print
+                    final provinces = provinceResponse.provinces;
+                    print('Provinces loaded: ${provinces.length}');
+                    if (provinces.isNotEmpty) {
+                      print(
+                        'First province: ${provinces.first.provinceCategoryName}',
+                      );
+                    }
+
+                    // Filter provinces based on search text
+                    final displayProvinces = searchText.isEmpty
+                        ? provinces
+                        : provinces.where((province) {
+                            final name =
+                                province.provinceCategoryName?.toLowerCase() ??
+                                '';
+                            final description =
+                                province.categoryDescription?.toLowerCase() ??
+                                '';
+                            final search = searchText.toLowerCase();
+                            return name.contains(search) ||
+                                description.contains(search);
+                          }).toList();
+
+                    return displayProvinces.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No locations found',
+                              style: DertamTextStyles.body.copyWith(
+                                color: DertamColors.textLight,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: displayProvinces.length,
+                            itemBuilder: (ctx, index) => LocationTile(
+                              location: displayProvinces[index],
+                              onSelected: onLocationSelected,
+                            ),
+                          );
+                  },
+                ),
               ),
             ],
           ),
@@ -115,10 +150,9 @@ class _DertamLocationPickerState extends State<DertamLocationPicker> {
   }
 }
 
-
 class LocationTile extends StatelessWidget {
-  final Location location;
-  final Function(Location location) onSelected;
+  final ProvinceCategoryDetail location;
+  final Function(ProvinceCategoryDetail location) onSelected;
 
   const LocationTile({
     super.key,
@@ -126,9 +160,7 @@ class LocationTile extends StatelessWidget {
     required this.onSelected,
   });
 
-  String get title => location.name;
-
-  String get subTitle => 'Sri Lanka'; 
+  String get title => location.provinceCategoryName ?? 'Unknown';
 
   @override
   Widget build(BuildContext context) {
@@ -145,10 +177,7 @@ class LocationTile extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      subtitle: Text(
-        subTitle,
-        style: DertamTextStyles.label.copyWith(color: DertamColors.textLight),
-      ),
+
       trailing: Icon(
         Icons.arrow_forward_ios,
         color: DertamColors.textLight,

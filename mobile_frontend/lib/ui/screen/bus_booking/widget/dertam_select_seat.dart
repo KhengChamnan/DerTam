@@ -1,34 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile_frontend/models/bus/bus_detail_response.dart';
+import 'package:mobile_frontend/models/bus/bus_seat.dart';
+import 'package:mobile_frontend/models/bus/seat_layout_config.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
+import 'package:mobile_frontend/ui/screen/bus_booking/widget/bus_seat_grid_builder.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_booking_checkout.dart';
-import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_seat_label_widget.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
+import 'package:provider/provider.dart';
 
 class DertamSelectSeat extends StatefulWidget {
-  final String fromLocation;
-  final String toLocation;
-  final String date;
-  final String busName;
-  final String busType;
-  final String departureTime;
-  final String arrivalTime;
-  final String duration;
-  final int pricePerSeat;
-  final int seatsLeft;
+  final String scheduleId;
 
-  const DertamSelectSeat({
-    super.key,
-    required this.fromLocation,
-    required this.toLocation,
-    required this.date,
-    required this.busName,
-    required this.busType,
-    required this.departureTime,
-    required this.arrivalTime,
-    required this.duration,
-    required this.pricePerSeat,
-    required this.seatsLeft,
-  });
+  const DertamSelectSeat({super.key, required this.scheduleId});
 
   @override
   State<DertamSelectSeat> createState() => _DertamSelectSeatState();
@@ -37,152 +23,291 @@ class DertamSelectSeat extends StatefulWidget {
 class _DertamSelectSeatState extends State<DertamSelectSeat> {
   // Track selected deck (true = lower, false = upper)
   bool isLowerDeck = true;
+  // Bus detail data from provider
 
-  // Track selected seats (seat number as key, true if selected)
-  Set<int> selectedSeats = {};
-
-  // Lower deck seat configuration (4 seats per row, 6 rows = 24 seats)
-  // 0 = available, 1 = booked, 2 = selected
-  final List<List<int>> lowerDeckSeats = [
-    [1, 0, 0, 0], // Row 1: A1 booked
-    [0, 0, 0, 1], // Row 2: D2 booked
-    [0, 0, 2, 2], // Row 3: C3, D3 your seat (selected)
-    [1, 1, 0, 0], // Row 4: A4, B4 booked
-    [0, 0, 0, 1], // Row 5: D5 booked
-    [0, 0, 0, 0], // Row 6: All available
-  ];
-
-  // Upper deck seat configuration (example)
-  final List<List<int>> upperDeckSeats = [
-    [0, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ];
-
-  void _toggleSeat(int row, int col) {
-    setState(() {
-      int seatNumber = row * 4 + col + 1;
-      List<List<int>> currentDeck = isLowerDeck
-          ? lowerDeckSeats
-          : upperDeckSeats;
-
-      // Only toggle if seat is available (0) or already selected (2)
-      if (currentDeck[row][col] == 0) {
-        currentDeck[row][col] = 2;
-        selectedSeats.add(seatNumber);
-      } else if (currentDeck[row][col] == 2) {
-        currentDeck[row][col] = 0;
-        selectedSeats.remove(seatNumber);
-      }
+  BusDetailResponse? _busDetail;
+  bool _isLoading = true;
+  String? _errorMessage;
+  @override
+  void initState() {
+    super.initState();
+    // Defer the loading to after the first frame to avoid calling notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadBusDetails();
     });
   }
+  Future<void> _loadBusDetails() async {
+    if (!mounted) return;
 
-  Color _getSeatColor(int status) {
-    switch (status) {
-      case 1: // Booked
-        return const Color(0xFF01015B);
-      case 2: // Your seat (selected)
-        return const Color(0xFFF5A522);
-      default: // Available
-        return const Color(0xFFDAD9DB);
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+      final provider = context.read<BusBookingProvider>();
+      final busDetail = await provider.fetchBusScheduleDetail(
+        widget.scheduleId,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _busDetail = busDetail;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
     }
+  }
+
+  void _toggleSeat(BusSeat seat) {
+    if (seat.id == null) return;
+    context.read<BusBookingProvider>().toggleSeatSelection(seat.id!);
+  }
+
+  String _formatDateDisplay(String date) {
+    if (date.isEmpty) {
+      return '';
+    }
+    try {
+      DateTime parsedDate;
+      // Handle different date formats
+      if (date.contains('T')) {
+        // ISO 8601 format: 2025-11-29T09:30:00.000000Z
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('.')) {
+        // Format: 2025.11.29
+        parsedDate = DateFormat('yyyy.MM.dd').parse(date);
+      } else if (date.contains('-')) {
+        // Format: 2025-11-29
+        parsedDate = DateTime.parse(date);
+      } else if (date.contains('/')) {
+        // Format: 29/11/2025
+        parsedDate = DateFormat('dd/MM/yyyy').parse(date);
+      } else {
+        return date;
+      }
+      // Get day with ordinal suffix
+      int day = parsedDate.day;
+      String suffix = _getOrdinalSuffix(day);
+      String dayStr = day.toString().padLeft(2, '0');
+      // Get month abbreviation
+      String month = DateFormat('MMM').format(parsedDate);
+      // Get year
+      String year = parsedDate.year.toString();
+      return '$dayStr$suffix - $month - $year';
+    } catch (e) {
+      // If parsing fails, return original format
+      return date;
+    }
+  }
+
+  String _getOrdinalSuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return 'th';
+    }
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
+
+  /// Get the seat layout configuration based on bus type
+  SeatLayoutConfig _getLayoutConfig() {
+    final busType = _busDetail?.schedule.busType;
+    print('Buss typppppppppppp: $busType');
+    final totalSeats = _getTotalSeatCount();
+    return SeatLayoutConfig.fromTypeAndCount(busType, totalSeats);
+  }
+
+  /// Get total seat count from all decks
+  int _getTotalSeatCount() {
+    final busLayout = _busDetail?.busLayout;
+    int count = 0;
+    if (busLayout?.lowerDeck?.seats != null) {
+      count += busLayout!.lowerDeck!.seats!.length;
+    }
+    if (busLayout?.upperDeck?.seats != null) {
+      count += busLayout!.upperDeck!.seats!.length;
+    }
+    return count;
+  }
+
+  /// Check if the bus has multiple decks
+  bool _hasMultipleDecks() {
+    final busLayout = _busDetail?.busLayout;
+    return busLayout?.upperDeck?.seats != null &&
+        busLayout!.upperDeck!.seats!.isNotEmpty;
   }
 
   @override
   Widget build(BuildContext context) {
-    List<List<int>> currentDeck = isLowerDeck ? lowerDeckSeats : upperDeckSeats;
-    int totalFare = selectedSeats.length * widget.pricePerSeat;
-    List<int> selectedSeatsList = selectedSeats.toList()..sort();
-    String seatsDisplay = selectedSeatsList.isEmpty
+    final authProvider = context.read<AuthProvider>();
+    final userData = authProvider.userInfo;
+    // Show loading state
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: DertamColors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Show error state
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: DertamColors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $_errorMessage'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadBusDetails,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Extract data from bus detail
+    final schedule = _busDetail?.schedule;
+    final busLayout = _busDetail?.busLayout;
+    final currentDeck = isLowerDeck
+        ? busLayout?.lowerDeck
+        : busLayout?.upperDeck;
+    final seats = currentDeck?.seats ?? [];
+
+    // Calculate price per seat from first available seat or schedule price
+    final pricePerSeat =
+        double.tryParse(
+          seats
+                  .firstWhere(
+                    (s) => s.price != null,
+                    orElse: () => BusSeat(price: schedule?.price ?? '0'),
+                  )
+                  .price ??
+              '0',
+        ) ??
+        0.0;
+
+    // Get selected seat IDs from provider
+    final selectedSeatIds = context.watch<BusBookingProvider>().selectedSeatIds;
+    final totalFare = selectedSeatIds.length * pricePerSeat;
+    // Get selected seat numbers for display
+    final selectedSeatNumbers =
+        seats
+            .where((s) => selectedSeatIds.contains(s.id))
+            .map((s) => s.seatNumber ?? '')
+            .toList()
+          ..sort();
+    final seatsDisplay = selectedSeatNumbers.isEmpty
         ? 'None'
-        : selectedSeatsList.map((s) => s.toString()).join(', ');
+        : selectedSeatNumbers.join(', ');
 
     return Scaffold(
       backgroundColor: DertamColors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 20, 15, 0),
-              child: Row(
+      appBar: AppBar(
+        leading: // Back button
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ),
+        title: // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+          child: Row(
+            children: [
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent,
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18,
-                        color: DertamColors.black,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 19),
-
-                  // Avatar and greeting
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(9999),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Hello ',
-                            style: DertamTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF757575),
-                              height: 1.4,
-                            ),
-                          ),
-                          Text(
-                            'Saduni Silva!',
-                            style: DertamTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF757575),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Hello ',
+                        style: DertamTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF757575),
+                          height: 1.4,
+                        ),
                       ),
                       Text(
-                        'Where you want go',
+                        userData.data?.name ?? '',
                         style: DertamTextStyles.body.copyWith(
-                          color: const Color(0xFF192588),
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF757575),
                           height: 1.4,
                         ),
                       ),
                     ],
                   ),
+                  Text(
+                    'Where you want go',
+                    style: DertamTextStyles.body.copyWith(
+                      color: const Color(0xFF192588),
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
-            ),
-
+            ],
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
             const SizedBox(height: 13),
 
             // Trip info card
@@ -200,7 +325,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        widget.fromLocation,
+                        schedule?.fromLocation ?? '',
                         style: DertamTextStyles.subtitle.copyWith(
                           color: DertamColors.white,
                           fontWeight: FontWeight.w600,
@@ -223,7 +348,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                         ),
                       ),
                       Text(
-                        widget.toLocation,
+                        schedule?.toLocation ?? '',
                         style: DertamTextStyles.subtitle.copyWith(
                           color: DertamColors.white,
                           fontWeight: FontWeight.w600,
@@ -245,7 +370,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      widget.date,
+                      _formatDateDisplay(schedule?.departureDate ?? ''),
                       style: DertamTextStyles.body.copyWith(
                         color: const Color(0xFFEEEEEE),
                       ),
@@ -254,107 +379,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                 ],
               ),
             ),
-
             const SizedBox(height: 17),
-
-            // Bus details card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 15),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.busName,
-                            style: DertamTextStyles.subtitle.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF585656),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.busType,
-                            style: DertamTextStyles.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w300,
-                              color: const Color(0xFF616161),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        'LKR ${widget.pricePerSeat}',
-                        style: DertamTextStyles.title.copyWith(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFF5A522),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        widget.departureTime,
-                        style: DertamTextStyles.bodySmall.copyWith(
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 10,
-                        height: 2,
-                        color: const Color(0xFF9E9E9E),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.arrivalTime,
-                        style: DertamTextStyles.bodySmall.copyWith(
-                          color: const Color(0xFF616161),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        widget.duration,
-                        style: DertamTextStyles.bodyMedium.copyWith(
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${widget.seatsLeft} Seats left',
-                    style: DertamTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w300,
-                      color: const Color(0xFF43A047),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
             // Seat selection area
             Expanded(
               child: SingleChildScrollView(
@@ -366,109 +391,95 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                       // Bus seat layout
                       Expanded(
                         flex: 3,
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFFE0E0E0),
-                              width: 2,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              // Steering wheel
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Image.network(
-                                    'https://cdn-icons-png.flaticon.com/512/3097/3097138.png',
-                                    width: 40,
-                                    height: 40,
-                                    color: const Color(0xFF9E9E9E),
-                                  ),
-                                ],
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Calculate responsive seat size based on available width
+                            // For 4 seats + aisle: width = 4*seatSize + 3*spacing + aisle
+                            // For 5 seats (last row): width = 5*seatSize + 4*spacing
+                            final availableWidth =
+                                constraints.maxWidth - 20; // padding
+                            // Calculate seat size to fit 5 seats with spacing (for last row)
+                            final maxSeatSize =
+                                (availableWidth - (4 * 4) - 16) /
+                                5; // 5 seats, 4 spacings of 4px, 16px for gaps
+                            final seatSize = maxSeatSize.clamp(
+                              28.0,
+                              36.0,
+                            ); // Min 28, max 36
+                            final seatSpacing = 4.0;
+                            final aisleWidth =
+                                seatSize * 0.8; // Proportional aisle
+
+                            return Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: DertamColors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFE0E0E0),
+                                  width: 2,
+                                ),
                               ),
-
-                              const SizedBox(height: 15),
-
-                              // Column labels
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+                              child: Column(
                                 children: [
-                                  DertamSeatLabelWidget(label: 'A'),
-                                  DertamSeatLabelWidget(label: 'B'),
-                                  const SizedBox(width: 40),
-                                  DertamSeatLabelWidget(label: 'C'),
-                                  DertamSeatLabelWidget(label: 'D'),
-                                ],
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // Seats grid
-                              ...List.generate(6, (rowIndex) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
+                                  // Steering wheel
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      // Left side (A, B)
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 0,
-                                        status: currentDeck[rowIndex][0],
-                                        onTap: () => _toggleSeat(rowIndex, 0),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 1,
-                                        status: currentDeck[rowIndex][1],
-                                        onTap: () => _toggleSeat(rowIndex, 1),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                      const SizedBox(width: 40),
-                                      // Right side (C, D)
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 2,
-                                        status: currentDeck[rowIndex][2],
-                                        onTap: () => _toggleSeat(rowIndex, 2),
-                                        getSeatColor: _getSeatColor,
-                                      ),
-                                      _SeatWidget(
-                                        row: rowIndex,
-                                        col: 3,
-                                        status: currentDeck[rowIndex][3],
-                                        onTap: () => _toggleSeat(rowIndex, 3),
-                                        getSeatColor: _getSeatColor,
+                                      Image.network(
+                                        'https://cdn-icons-png.flaticon.com/512/3097/3097138.png',
+                                        width: 32,
+                                        height: 32,
+                                        color: const Color(0xFF9E9E9E),
                                       ),
                                     ],
                                   ),
-                                );
-                              }),
-
-                              const SizedBox(height: 10),
-
-                              // Lower deck label
-                              RotatedBox(
-                                quarterTurns: 3,
-                                child: Text(
-                                  'LOWER DECK',
-                                  style: DertamTextStyles.bodyMedium.copyWith(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFFD9D9D9),
-                                    letterSpacing: 1.5,
+                                  const SizedBox(height: 12),
+                                  // Column labels - dynamically based on layout config
+                                  SeatColumnLabels(
+                                    config: _getLayoutConfig(),
+                                    customLabels: currentDeck?.columns,
+                                    seatSize: seatSize,
+                                    seatSpacing: seatSpacing,
+                                    aisleWidth: aisleWidth,
                                   ),
-                                ),
+
+                                  const SizedBox(height: 8),
+                                  // Seats grid using the new BusSeatGridBuilder
+                                  BusSeatGridBuilder(
+                                    seats: seats,
+                                    selectedSeatIds: selectedSeatIds,
+                                    busType: schedule?.busType,
+                                    onSeatTap: _toggleSeat,
+                                    seatSize: seatSize,
+                                    seatSpacing: seatSpacing,
+                                    aisleWidth: aisleWidth,
+                                    rowSpacing: 10,
+                                  ),
+
+                                  const SizedBox(height: 10),
+
+                                  // Deck label - only show if multiple decks
+                                  if (_hasMultipleDecks())
+                                    RotatedBox(
+                                      quarterTurns: 3,
+                                      child: Text(
+                                        isLowerDeck
+                                            ? 'LOWER DECK'
+                                            : 'UPPER DECK',
+                                        style: DertamTextStyles.bodyMedium
+                                            .copyWith(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFFD9D9D9),
+                                              letterSpacing: 1.5,
+                                            ),
+                                      ),
+                                    ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
 
@@ -492,32 +503,34 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                             ),
                             const SizedBox(height: 12),
                             _LegendItem(
-                              color: DertamColors.white,
+                              color: const Color(0xFFDAEAFE),
                               label: 'Available',
                             ),
-                            const SizedBox(height: 20),
-                            // Deck selector buttons
-                            _DeckButton(
-                              label: 'LOWER',
-                              isLower: true,
-                              isSelected: isLowerDeck,
-                              onTap: () {
-                                setState(() {
-                                  isLowerDeck = true;
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 10),
-                            _DeckButton(
-                              label: 'UPPER',
-                              isLower: false,
-                              isSelected: !isLowerDeck,
-                              onTap: () {
-                                setState(() {
-                                  isLowerDeck = false;
-                                });
-                              },
-                            ),
+                            // Deck selector buttons - only show for multi-deck buses
+                            if (_hasMultipleDecks()) ...[
+                              const SizedBox(height: 20),
+                              _DeckButton(
+                                label: 'LOWER',
+                                isLower: true,
+                                isSelected: isLowerDeck,
+                                onTap: () {
+                                  setState(() {
+                                    isLowerDeck = true;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 10),
+                              _DeckButton(
+                                label: 'UPPER',
+                                isLower: false,
+                                isSelected: !isLowerDeck,
+                                onTap: () {
+                                  setState(() {
+                                    isLowerDeck = false;
+                                  });
+                                },
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -581,7 +594,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '\$$totalFare',
+                            '\$${totalFare.toStringAsFixed(0)}',
                             style: DertamTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.bold,
                               color: DertamColors.black,
@@ -594,8 +607,8 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                   const SizedBox(height: 15),
                   // Book button
                   DertamButton(
-                    text: 'Booked',
-                    onPressed: selectedSeats.isEmpty
+                    text: 'Book Now',
+                    onPressed: selectedSeatIds.isEmpty
                         ? () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -612,23 +625,17 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DertamBookingCheckout(
-                                  fromLocation: widget.fromLocation,
-                                  toLocation: widget.toLocation,
-                                  busName: widget.busName,
-                                  busType: widget.busType,
-                                  departureTime: widget.departureTime,
-                                  arrivalTime: widget.arrivalTime,
-                                  selectedSeats: [widget.seatsLeft],
-                                  pricePerSeat: widget.pricePerSeat,
+                                  scheduleId: schedule?.id ?? '',
+                                  fromLocation: schedule?.fromLocation ?? '',
+                                  toLocation: schedule?.toLocation ?? '',
+                                  busName: schedule?.busName ?? '',
+                                  busType: schedule?.busType ?? '',
+                                  departureTime: schedule?.departureTime ?? '',
+                                  arrivalTime: schedule?.arrivalTime ?? '',
+                                  displaySeat: seatsDisplay,
+                                  selectedSeats: selectedSeatIds.toList(),
+                                  pricePerSeat: pricePerSeat.toInt(),
                                 ),
-                              ),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Booking ${selectedSeats.length} seat(s)',
-                                ),
-                                backgroundColor: Colors.green,
                               ),
                             );
                           },
@@ -639,39 +646,6 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SeatWidget extends StatelessWidget {
-  final int row;
-  final int col;
-  final int status;
-  final VoidCallback onTap;
-  final Color Function(int) getSeatColor;
-
-  const _SeatWidget({
-    required this.row,
-    required this.col,
-    required this.status,
-    required this.onTap,
-    required this.getSeatColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    bool isClickable = status != 1; // Can't click booked seats
-
-    return GestureDetector(
-      onTap: isClickable ? onTap : null,
-      child: Container(
-        width: 31,
-        height: 31,
-        decoration: BoxDecoration(
-          color: getSeatColor(status),
-          borderRadius: BorderRadius.circular(5),
         ),
       ),
     );

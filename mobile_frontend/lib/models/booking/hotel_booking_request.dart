@@ -8,7 +8,6 @@ class HotelBookingResponse {
     required this.message,
     this.data,
   });
-
   factory HotelBookingResponse.fromJson(Map<String, dynamic> json) {
     return HotelBookingResponse(
       success: json['success'] as bool,
@@ -198,7 +197,6 @@ class AbaStatus {
       tranId: json['tran_id'] as String,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {'code': code, 'message': message, 'tran_id': tranId};
   }

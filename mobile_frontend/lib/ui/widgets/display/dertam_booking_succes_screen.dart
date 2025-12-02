@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../home_screen/home_page.dart';
-import '../../../theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+
 
 class DertamBookingSuccessScreen extends StatefulWidget {
   const DertamBookingSuccessScreen({super.key});
