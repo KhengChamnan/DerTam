@@ -12,6 +12,7 @@ class Event extends Model
 
 	protected $fillable = [
 		'title',
+		'type',
 		'description',
 		'image_url',
 		'image_public_id',
@@ -19,6 +20,11 @@ class Event extends Model
 		'province_id',
 		'start_at',
 		'end_at',
+	];
+
+	protected $hidden = [
+		'type',
+		'image_public_id',
 	];
 
 	protected $casts = [

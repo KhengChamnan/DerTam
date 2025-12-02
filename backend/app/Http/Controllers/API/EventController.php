@@ -84,6 +84,36 @@ class EventController extends Controller
 	}
 
 	/**
+	 * Get slideshow images (events with type = 1)
+	 * GET /api/events/slideshow
+	 */
+	public function slideshow(Request $request)
+	{
+		$request->validate([
+			'limit' => 'nullable|integer|min:1|max:10',
+		]);
+
+		$limit = $request->integer('limit') ?: 5;
+
+		$cacheKey = 'events:slideshow:'.$limit;
+		return Cache::remember($cacheKey, 300, function () use ($limit) {
+			$images = DB::table('events')
+				->select('id', 'title', 'image_url')
+				->where('type', 1)
+				->whereNotNull('image_url')
+				->orderBy('created_at', 'desc')
+				->limit($limit)
+				->get();
+
+			return response()->json([
+				'success' => true,
+				'message' => 'Slideshow images retrieved successfully',
+				'data' => $images,
+			]);
+		});
+	}
+
+	/**
 	 * Get a single event
 	 * GET /api/events/{id}
 	 */
@@ -114,6 +144,7 @@ class EventController extends Controller
 	{
 		$validator = Validator::make($request->all(), [
 			'title' => 'required|string|max:255',
+			'type' => 'nullable|integer',
 			'description' => 'nullable|string',
 			'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
 			'place_id' => 'nullable|exists:places,placeID',
@@ -147,6 +178,7 @@ class EventController extends Controller
 
 			$event = Event::create([
 				'title' => $request->input('title'),
+				'type' => $request->input('type', 0),
 				'description' => $request->input('description'),
 				'image_url' => $imageUrl,
 				'image_public_id' => $imagePublicId,
@@ -190,6 +222,7 @@ class EventController extends Controller
 
 		$validator = Validator::make($request->all(), [
 			'title' => 'sometimes|required|string|max:255',
+			'type' => 'nullable|integer',
 			'description' => 'nullable|string',
 			'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
 			'place_id' => 'nullable|exists:places,placeID',
@@ -209,6 +242,7 @@ class EventController extends Controller
 		try {
 			$updateData = $request->only([
 				'title',
+				'type',
 				'description',
 				'place_id',
 				'province_id',
