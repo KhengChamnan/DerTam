@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_list_response.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';

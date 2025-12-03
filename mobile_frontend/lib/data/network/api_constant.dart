@@ -17,7 +17,8 @@ class ApiEndpoint {
   static const String placeDetails = '/api/places/1/details';
   static const String upcomingEvents = '/api/events/upcoming';
   static const String recommendedPlaces = '/api/places/recommended';
-
+  static const String upcomingEventDetail = '/api/events';
+  static const String slideShow = '/api/slideshow';
   // Hotel Endpoints
   static const String getListHotel = '/api/hotels/properties';
   static const String hotelDetails = '/api/hotel-details';
@@ -58,5 +59,6 @@ class ApiEndpoint {
   static const String scheduleDetails = '/api/bus/schedule';
   static const String upcomingJourneys = '/api/bus/upcoming-journeys';
   static const String busBooking = '/api/booking/bus/create';
-  static const String getAllBusBooking = '';
+  static const String getAllBusBooking = '/api/booking/bus/my-bookings';
+  static const String getBusBookingDetail = '/api/booking/bus';
 }

@@ -15,6 +15,8 @@ class PlaceProvider extends ChangeNotifier {
   AsyncValue<List<UpcomingEventPlace>> _upcomingEvents = AsyncValue.empty();
   AsyncValue<PlaceDetailData> _placeDetail = AsyncValue.empty();
   AsyncValue<List<Place>> _searchPlaceResult = AsyncValue.empty();
+  AsyncValue<UpcomingEventPlace> _upcomingEventDetail = AsyncValue.empty();
+  AsyncValue<List<UpcomingEventPlace>> _slideShow = AsyncValue.empty();
 
   // Getters
   AsyncValue<List<Place>> get places => _places;
@@ -23,6 +25,9 @@ class PlaceProvider extends ChangeNotifier {
   AsyncValue<List<UpcomingEventPlace>> get upcomingEvents => _upcomingEvents;
   AsyncValue<PlaceDetailData> get placeDetail => _placeDetail;
   AsyncValue<List<Place>> get searchPlaceResult => _searchPlaceResult;
+  AsyncValue<UpcomingEventPlace> get upcomingEventDetail =>
+      _upcomingEventDetail;
+  AsyncValue<List<UpcomingEventPlace>> get slideShow => _slideShow;
 
   Future<void> fetchPlaceCategories() async {
     _placeCategory = AsyncValue.loading();
@@ -77,6 +82,21 @@ class PlaceProvider extends ChangeNotifier {
     }
   }
 
+  Future<UpcomingEventPlace> fetchUpcomingEventDetail(String eventId) async {
+    _upcomingEventDetail = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final detailEvent = await repository.getUpcomingEventDetail(eventId);
+      _upcomingEventDetail = AsyncValue.success(detailEvent);
+      notifyListeners();
+      return detailEvent;
+    } catch (e) {
+      _upcomingEventDetail = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> getPlaceDetail(String placeId) async {
     _placeDetail = AsyncValue.loading();
     notifyListeners();
@@ -100,6 +120,21 @@ class PlaceProvider extends ChangeNotifier {
       return searchPlace;
     } catch (e) {
       _searchPlaceResult = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<List<UpcomingEventPlace>> fetchSlideShow() async {
+    _slideShow = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final getSlideShow = await repository.getSlideShow();
+      _slideShow = AsyncValue.success(getSlideShow);
+      notifyListeners();
+      return getSlideShow;
+    } catch (e) {
+      _slideShow = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }

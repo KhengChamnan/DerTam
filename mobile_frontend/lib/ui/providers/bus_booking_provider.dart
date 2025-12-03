@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/bus_booking_repository.dart';
 import 'package:mobile_frontend/models/bus/bus_booking_api_response.dart';
-import 'package:mobile_frontend/models/bus/bus_booking_request.dart';
+import 'package:mobile_frontend/models/bus/bus_booking_request.dart'
+    hide BusBookingData;
 import 'package:mobile_frontend/models/bus/bus_detail_response.dart';
 import 'package:mobile_frontend/models/bus/bus_schedule.dart';
 import 'package:mobile_frontend/models/province/province_category_detail.dart';
@@ -15,18 +16,21 @@ class BusBookingProvider extends ChangeNotifier {
   AsyncValue<BusDetailResponse> _busScheduleDetail = AsyncValue.empty();
   AsyncValue<BusScheduleData> _upcomingJourneys = AsyncValue.empty();
   AsyncValue<BusBookingResponse> _busBookingResponse = AsyncValue.empty();
-  AsyncValue<List<BusBookingListResponse>> _getAllBusBookingResponse =
+  AsyncValue<BusBookingApiResponse> _getAllBusBookingResponse =
       AsyncValue.empty();
+  AsyncValue<BusBookingDataResponse> _busBookingDetail = AsyncValue.empty();
   // Selected seat IDs for booking
   Set<int> _selectedSeatIds = {};
+
   /// Getter
   AsyncValue<ProvinceResponseData> get location => _location;
   AsyncValue<BusScheduleData> get busSchedule => _busSchedule;
   AsyncValue<BusDetailResponse> get busScheduleDetail => _busScheduleDetail;
   AsyncValue<BusScheduleData> get upcomingJourneys => _upcomingJourneys;
   AsyncValue<BusBookingResponse> get busBookingResponse => _busBookingResponse;
-  AsyncValue<List<BusBookingListResponse>> get getAllBusBookingResponse =>
+  AsyncValue<BusBookingApiResponse> get getAllBusBookingResponse =>
       _getAllBusBookingResponse;
+  AsyncValue<BusBookingDataResponse> get busBookingDetail => _busBookingDetail;
   Set<int> get selectedSeatIds => _selectedSeatIds;
 
   // Methods for managing selected seats
@@ -38,6 +42,7 @@ class BusBookingProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
   void clearSelectedSeats() {
     _selectedSeatIds.clear();
     notifyListeners();
@@ -150,7 +155,8 @@ class BusBookingProvider extends ChangeNotifier {
       rethrow;
     }
   }
-  Future<List<BusBookingListResponse>> fetchAllBusBooking() async {
+
+  Future<BusBookingApiResponse> fetchAllBusBooking() async {
     _getAllBusBookingResponse = AsyncValue.loading();
     notifyListeners();
     try {
@@ -160,6 +166,23 @@ class BusBookingProvider extends ChangeNotifier {
       return allBusBooking;
     } catch (e) {
       _getAllBusBookingResponse = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<BusBookingDataResponse> fetchBusBookingDetails(String bookingId) async {
+    _busBookingDetail = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final bookingDetails = await busBookingRepository.getBookingDetails(
+        bookingId,
+      );
+      _busBookingDetail = AsyncValue.success(bookingDetails);
+      notifyListeners();
+      return bookingDetails;
+    } catch (e) {
+      _busBookingDetail = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }

@@ -6,7 +6,7 @@ class PlaceDto {
   static Place fromJson(Map<String, dynamic> json) {
     try {
       return Place(
-        placeId: json['placeID']?.toString() ?? '',
+        placeId: (json['placeID'] ?? json['place_id'])?.toString() ?? '',
         name: json['name']?.toString() ?? '',
         description: json['description']?.toString() ?? '',
         categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,

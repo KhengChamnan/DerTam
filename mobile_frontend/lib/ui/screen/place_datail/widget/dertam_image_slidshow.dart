@@ -241,33 +241,57 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
         Positioned(
           right: 16,
           bottom: 20,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: ElevatedButton.icon(
-              onPressed: widget.onRoutePressed,
-              icon: const Icon(Iconsax.routing, size: 16),
-              label: Text(
-                'Route',
-                style: DertamTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: DertamColors.primaryDark,
+          child: GestureDetector(
+            onTap: widget.onRoutePressed,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [DertamColors.primaryBlue, DertamColors.primaryBlue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: DertamColors.primaryBlue.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: DertamColors.primaryDark,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 18,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  side: BorderSide(color: DertamColors.primaryDark, width: 0.5),
-                ),
-                elevation: 8,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Iconsax.routing,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Route',
+                    style: DertamTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

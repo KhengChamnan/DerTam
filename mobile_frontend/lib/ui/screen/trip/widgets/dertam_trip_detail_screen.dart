@@ -15,9 +15,7 @@ import 'package:provider/provider.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final String tripId;
-
   const TripDetailScreen({super.key, required this.tripId});
-
   @override
   State<TripDetailScreen> createState() => _TripDetailScreenState();
 }

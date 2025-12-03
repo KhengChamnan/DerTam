@@ -88,6 +88,15 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
       return;
     }
 
+    // Get trip dates - prioritize getTripDetail (for editing) over createTrip (for new trips)
+    final tripDetail = tripProvider.getTripDetail.data?.data;
+    final createTripData = tripProvider.createTrip.data?.trip;
+
+    final startDate =
+        tripDetail?.startDate ?? createTripData?.startDate ?? DateTime.now();
+    final endDate =
+        tripDetail?.endDate ?? createTripData?.endDate ?? DateTime.now();
+
     // Otherwise, show the date selection modal as before
     showModalBottomSheet(
       context: context,
@@ -99,10 +108,8 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
         onWillPop: () async => false,
         child: DateSelectionModal(
           place: place,
-          startDate:
-              tripProvider.createTrip.data?.trip?.startDate ?? DateTime.now(),
-          endDate:
-              tripProvider.createTrip.data?.trip?.endDate ?? DateTime.now(),
+          startDate: startDate,
+          endDate: endDate,
           onDateSelected: (selectedDate) {
             _addPlaceToTrip(place, selectedDate);
             Navigator.pop(context);
@@ -141,17 +148,30 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
       );
       return;
     }
+
+    // Get trip data - prioritize getTripDetail (for editing) over createTrip (for new trips)
+    final tripDetail = tripProvider.getTripDetail.data?.data;
+    final createTripData = tripProvider.createTrip.data?.trip;
+
+    final tripId =
+        tripDetail?.tripId?.toString() ??
+        createTripData?.tripId.toString() ??
+        '';
+    final tripName = tripDetail?.tripName ?? createTripData?.tripName ?? '';
+    final startDate =
+        tripDetail?.startDate ?? createTripData?.startDate ?? DateTime.now();
+    final endDate =
+        tripDetail?.endDate ?? createTripData?.endDate ?? DateTime.now();
+
     // Navigate to itinerary review screen
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ReviewTripScreen(
-          tripId: tripProvider.createTrip.data?.trip?.tripId.toString() ?? '',
-          tripName: tripProvider.createTrip.data?.trip?.tripName ?? '',
-          startDate:
-              tripProvider.createTrip.data?.trip?.startDate ?? DateTime.now(),
-          endDate:
-              tripProvider.createTrip.data?.trip?.endDate ?? DateTime.now(),
+          tripId: tripId,
+          tripName: tripName,
+          startDate: startDate,
+          endDate: endDate,
           addedPlaces: tripProvider.addedPlaces,
         ),
       ),

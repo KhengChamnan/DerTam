@@ -5,7 +5,8 @@ import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/bus_booking_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
 import 'package:mobile_frontend/models/bus/bus_booking_api_response.dart';
-import 'package:mobile_frontend/models/bus/bus_booking_request.dart';
+import 'package:mobile_frontend/models/bus/bus_booking_request.dart'
+    hide BusBookingData, BusBooking;
 import 'package:mobile_frontend/models/bus/bus_detail_response.dart';
 import 'package:mobile_frontend/models/bus/bus_schedule.dart';
 import 'package:mobile_frontend/models/province/province_category_detail.dart';
@@ -165,7 +166,7 @@ class LaravelBusBookingApiRepository extends BusBookingRepository {
   }
 
   @override
-  Future<List<BusBookingListResponse>> getAllBusBookings() async {
+  Future<BusBookingApiResponse> getAllBusBookings() async {
     try {
       final token = await authentocation.getToken();
       if (token == null) {
@@ -181,11 +182,44 @@ class LaravelBusBookingApiRepository extends BusBookingRepository {
       );
       if (getAllBusBookingResponse.statusCode == 200) {
         final jsonResponse = json.decode(getAllBusBookingResponse.body);
-        final dataObject = jsonResponse['data'] as Map<String, dynamic>? ?? {};
-        return [BusBookingListResponse.fromJson(dataObject)];
+        return BusBookingApiResponse.fromJson(jsonResponse);
       } else {
         throw Exception(
           'Failed to load bus booking bookings: ${getAllBusBookingResponse.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<BusBookingDataResponse> getBookingDetails(String bookingId) async {
+    try {
+      final token = await authentocation.getToken();
+      if (token == null) {
+        throw Exception('Token not found on get bus booking detail!');
+      }
+      final header = _getAuthHeaders(token);
+      final getBusBookingDetailResponse = await FetchingData.getData(
+        '${ApiEndpoint.getBusBookingDetail}/$bookingId',
+        header,
+      );
+      print('Bus booking Detaiiiiiiil: ${getBusBookingDetailResponse.body}');
+      if (getBusBookingDetailResponse.statusCode == 200) {
+        final jsonResponse = json.decode(getBusBookingDetailResponse.body);
+        // The detail API returns a single booking in 'data', not a list
+        // So we parse it as a single BusBooking and wrap it in BusBookingDataResponse
+        final bookingData = jsonResponse['data'];
+        if (bookingData != null) {
+          final booking = BusBooking.fromJson(bookingData);
+          return BusBookingDataResponse(bookings: [booking], total: 1);
+        } else {
+          return BusBookingDataResponse(bookings: [], total: 0);
+        }
+      } else {
+        throw Exception(
+          'Failed to load bus booking detail: ${getBusBookingDetailResponse.statusCode}',
         );
       }
     } catch (e) {

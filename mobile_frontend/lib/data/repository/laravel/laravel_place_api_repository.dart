@@ -129,11 +129,13 @@ class LaravelPlaceApiRepository implements PlaceRepository {
       print('🌐 [DEBUG] Upcoming Event Data: ${response.body}');
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(response.body);
-        final places = jsonData.map((json) => UpcomingEventPlace.fromJson(json)).toList();
+        final places = jsonData
+            .map((json) => UpcomingEventPlace.fromJson(json))
+            .toList();
         return places;
       } else {
         throw Exception(
-          'Failed to load recommended places: ${response.statusCode}',
+          'Failed to load upcoming event places: ${response.statusCode}',
         );
       }
     } catch (e) {
@@ -142,10 +144,10 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   }
 
   @override
-  Future<List<Place>> searchPlaces(String query) async{
+  Future<List<Place>> searchPlaces(String query) async {
     try {
       final param = {'q': query};
-     final searchPlaceReponse = await FetchingData.getDataPar(
+      final searchPlaceReponse = await FetchingData.getDataPar(
         ApiEndpoint.searchPlaces,
         param,
         _baseHeaders,
@@ -157,6 +159,74 @@ class LaravelPlaceApiRepository implements PlaceRepository {
       } else {
         throw Exception(
           'Failed to search places: ${searchPlaceReponse.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<UpcomingEventPlace> getUpcomingEventDetail(String eventId) async {
+    try {
+      final upcomingEventDetailResponse = await FetchingData.getData(
+        '${ApiEndpoint.upcomingEventDetail}/$eventId',
+        _baseHeaders,
+      );
+      print(
+        'Upcoming Event Detail Response: ${upcomingEventDetailResponse.body}',
+      );
+      if (upcomingEventDetailResponse.statusCode == 200) {
+        final Map<String, dynamic> jsonData = json.decode(
+          upcomingEventDetailResponse.body,
+        );
+
+        // Handle nested response structure
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          final data = jsonData['data'];
+          // Check if data contains a list (paginated response)
+          if (data is Map && data['data'] != null && data['data'] is List) {
+            final List<dynamic> eventsList = data['data'];
+            if (eventsList.isNotEmpty) {
+              return UpcomingEventPlace.fromJson(eventsList.first);
+            }
+          }
+          // Check if data is directly the event object
+          else if (data is Map<String, dynamic>) {
+            return UpcomingEventPlace.fromJson(data);
+          }
+        }
+
+        throw Exception('Invalid response format or no event found');
+      } else {
+        throw Exception(
+          '  Failed to load upcoming event places: ${upcomingEventDetailResponse.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<UpcomingEventPlace>> getSlideShow() async {
+    try {
+      final slideShowResponse = await FetchingData.getData(
+        ApiEndpoint.slideShow,
+        _baseHeaders,
+      );
+      print('Slide Show Response: ${slideShowResponse.body}');
+      if (slideShowResponse.statusCode == 200) {
+        final jsonData = json.decode(slideShowResponse.body);
+        final bookingData = jsonData['data'] as List;
+        final slides = bookingData
+            .map((json) => UpcomingEventPlace.fromJson(json))
+            .toList()
+            .cast<UpcomingEventPlace>();
+        return slides;
+      } else {
+        throw Exception(
+          'Failed to load slide show: ${slideShowResponse.statusCode}',
         );
       }
     } catch (e) {
