@@ -143,10 +143,14 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
       final dayKey = _normalizeDate(day);
       final placesForDay = _organizedPlaces[dayKey] ?? [];
 
-      final placeIds = placesForDay.map((item) {
-        final place = item['place'] as Place;
-        return int.parse(place.placeId);
-      }).toList();
+      final placeIds = placesForDay
+          .map((item) {
+            final place = item['place'] as Place;
+            return int.tryParse(place.placeId);
+          })
+          .where((id) => id != null)
+          .cast<int>()
+          .toList();
       dayPlaceIds['day${i + 1}'] = placeIds;
     }
     return dayPlaceIds;

@@ -484,23 +484,6 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
                           });
                         },
                       ),
-                      const SizedBox(height: 16),
-                      PaymentOptionItem(
-                        value: 'cash',
-                        label: 'Cash',
-                        imagePath: 'assets/images/cash.jpg',
-                        isSelected:
-                            _selectedPaymentMethod == 'cash' &&
-                            _selectedPaymentDisplay == 'cash',
-                        hasCheckMark: true,
-                        onTap: () {
-                          setState(() {
-                            _selectedPaymentMethod = 'cash';
-                            _selectedPaymentDisplay = 'cash';
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
 
                       const SizedBox(height: 16),
                     ],

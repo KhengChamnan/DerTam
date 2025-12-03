@@ -13,12 +13,14 @@ import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_image_slids
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_nearby_place_card.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_retauanrant_nearby_card.dart';
 import 'package:mobile_frontend/ui/screen/dertam_map/place_map_screen.dart';
+import 'package:mobile_frontend/ui/screen/place_datail/widget/trip_day_selection_modal.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/trip_selection_modal.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/restaurant_detail_screen_new.dart';
-import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_add_place_to_trip.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
+import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:provider/provider.dart';
 
 class DetailEachPlace extends StatefulWidget {
@@ -107,17 +109,122 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
   }
 
   void _navigateToAddPlaceWithTrip(Trip trip, Place place) {
-    // Navigate to DertamAddPlaceToTrip with the selected trip
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DertamAddPlaceToTrip(
-          tripId: trip.tripId.toString(),
-          existingPlaces: [place],
-          preSelectedDate: trip.startDate,
-        ),
+    // Show the day selection modal for the selected trip
+    TripDaySelectionModal.show(
+      context: context,
+      trip: trip,
+      place: place,
+      onDaySelected: (selectedDate) {
+        _addPlaceToTripDay(trip, place, selectedDate);
+      },
+      onCancel: () {
+        // Go back to trip selection modal
+        Navigator.pop(context);
+        _showTripSelectionModalWithPlace(place);
+      },
+    );
+  }
+
+  void _showTripSelectionModalWithPlace(Place place) {
+    TripSelectionModal.show(
+      context: context,
+      onTripSelected: (trip) {
+        _navigateToAddPlaceWithTrip(trip, place);
+      },
+      onCreateNewTrip: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TripPlanning()),
+        );
+      },
+      onCancel: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  void _addPlaceToTripDay(Trip trip, Place place, DateTime selectedDate) async {
+    final tripProvider = context.read<TripProvider>();
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(color: DertamColors.primaryBlue),
       ),
     );
+
+    try {
+      // Fetch trip details to get existing places
+      await tripProvider.fetchTripDetail(trip.tripId.toString());
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading indicator
+
+      final tripDetail = tripProvider.getTripDetail.data?.data;
+      final existingDays = tripDetail?.days;
+
+      // Collect existing places from all days
+      final existingPlaces = <Map<String, dynamic>>[];
+      if (existingDays != null) {
+        existingDays.forEach((dayKey, dayData) {
+          final dayDate =
+              dayData.date ??
+              trip.startDate.add(
+                Duration(days: int.parse(dayKey.replaceAll('day_', '')) - 1),
+              );
+          final placesForDay = dayData.places ?? [];
+
+          for (var existingPlace in placesForDay) {
+            existingPlaces.add({
+              'place': existingPlace,
+              'selectedDate': dayDate,
+              'addedAt': DateTime.now(),
+            });
+          }
+        });
+      }
+
+      // Clear provider's added places and set with existing + new place
+      tripProvider.clearAddedPlaces();
+
+      // Add all existing places
+      for (var placeData in existingPlaces) {
+        tripProvider.addPlaceToTrip(placeData);
+      }
+
+      // Add the new place
+      tripProvider.addPlaceToTrip({
+        'place': place,
+        'selectedDate': selectedDate,
+        'addedAt': DateTime.now(),
+      });
+
+      // Navigate to review trip screen to confirm the addition
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReviewTripScreen(
+            tripId: trip.tripId.toString(),
+            tripName: trip.tripName,
+            startDate: trip.startDate,
+            endDate: trip.endDate,
+            addedPlaces: tripProvider.addedPlaces,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading indicator
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load trip details: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

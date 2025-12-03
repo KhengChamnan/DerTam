@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/screen/bus_booking/dertam_bus_booking_screen.dart';
+import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_bus_qr_code_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
-import 'package:mobile_frontend/ui/widgets/display/dertam_qr_code_screen.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,7 +41,6 @@ class DertamBookingCheckout extends StatefulWidget {
 }
 
 class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
-  String _selectedPaymentMethod = 'abapay_khqr_deeplink';
   String _selectedPaymentDisplay = 'deeplink';
   bool _isProcessing = false;
 
@@ -88,10 +87,8 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
         widget.scheduleId,
         widget.selectedSeats,
       );
-
       // Get the response AFTER createBusBooking completes
       final busBookingResponse = busBooking.busBookingResponse;
-
       if (_selectedPaymentDisplay == 'deeplink') {
         // ABA PayWay - Open ABA app via deeplink
         final deeplink =
@@ -138,20 +135,18 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
         final qrString = busBookingResponse.data?.data?.abaResponse.qrString;
         final qrImage = busBookingResponse.data?.data?.abaResponse.qrImage;
         final bookingId = busBookingResponse.data?.data?.booking.id;
-
         // Validate QR data is available
         if (qrString == null || qrString.isEmpty) {
           throw Exception('No QR code received from server');
         }
         print('QR String: $qrString');
         print('QR Image available: ${qrImage != null && qrImage.isNotEmpty}');
-
         // Navigate to QR code screen and wait for user to complete payment
         if (mounted) {
           final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder: (context) => DertamQrCodeScreen(
+              builder: (context) => DertamBusQrCodeScreen(
                 qrData: qrString,
                 qrImage: qrImage,
                 bookingId: bookingId.toString(),
@@ -500,7 +495,6 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                         hasCheckMark: true,
                         onTap: () {
                           setState(() {
-                            _selectedPaymentMethod = 'abapay_khqr_deeplink';
                             _selectedPaymentDisplay = 'deeplink';
                           });
                         },
@@ -514,27 +508,11 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                         hasCheckMark: true,
                         onTap: () {
                           setState(() {
-                            _selectedPaymentMethod = 'abapay_khqr_deeplink';
                             _selectedPaymentDisplay = 'qr';
                           });
                         },
                       ),
-                      const SizedBox(height: 16),
-                      PaymentOptionItem(
-                        value: 'cash',
-                        label: 'Cash',
-                        imagePath: 'assets/images/cash.jpg',
-                        isSelected:
-                            _selectedPaymentMethod == 'cash' &&
-                            _selectedPaymentDisplay == 'cash',
-                        hasCheckMark: true,
-                        onTap: () {
-                          setState(() {
-                            _selectedPaymentMethod = 'cash';
-                            _selectedPaymentDisplay = 'cash';
-                          });
-                        },
-                      ),
+
                       const SizedBox(height: 16),
                     ],
                   ),
