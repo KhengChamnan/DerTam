@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/auth_repository.dart';
 import 'package:mobile_frontend/models/user/user_model.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   // Repository instance
@@ -16,6 +17,8 @@ class AuthProvider extends ChangeNotifier {
   AsyncValue<User>? googleSignInValue;
   AsyncValue<String?> _userToken = AsyncValue.empty();
   AsyncValue<User> _userInfo = AsyncValue.empty();
+  AsyncValue<bool> _hasCompletedPreferences = AsyncValue.loading();
+  AsyncValue<bool> get hasCompletedPreferences => _hasCompletedPreferences;
 
   // User state
   String? _authToken;
@@ -172,7 +175,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-/// Get user Information
+  /// Get user Information
   Future<void> getUserInfo() async {
     _userInfo = AsyncValue.loading();
     notifyListeners();
@@ -234,5 +237,32 @@ class AuthProvider extends ChangeNotifier {
   void clearGoogleSignInValue() {
     googleSignInValue = null;
     notifyListeners();
+  }
+
+  Future<void> checkPreferencesCompleted() async {
+    try {
+      _hasCompletedPreferences = AsyncValue.loading();
+      notifyListeners();
+      // Check if user has completed preferences (from SharedPreferences or API)
+      final prefs = await SharedPreferences.getInstance();
+      final completed = prefs.getBool('preferences_completed') ?? false;
+      _hasCompletedPreferences = AsyncValue.success(completed);
+      notifyListeners();
+    } catch (e) {
+      _hasCompletedPreferences = AsyncValue.error(e);
+      notifyListeners();
+    }
+  }
+
+  Future<void> markPreferencesCompleted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('preferences_completed', true);
+      _hasCompletedPreferences = AsyncValue.success(true);
+      notifyListeners();
+    } catch (e) {
+      _hasCompletedPreferences = AsyncValue.error(e);
+      notifyListeners();
+    }
   }
 }
