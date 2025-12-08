@@ -64,7 +64,7 @@ interface BusSchedule {
     departure_time: string;
     arrival_time: string;
     price: number;
-    status: "scheduled" | "departed" | "completed" | "cancelled";
+    status: "scheduled" | "departed" | "arrived" | "cancelled";
     available_seats: number;
     created_at: string;
     bus: {
@@ -233,7 +233,7 @@ export default function TransportationOwnerSchedulesIndex({
         const arrivalTime = parseAsLocalTime(schedule.arrival_time);
 
         if (now >= arrivalTime) {
-            return "completed";
+            return "arrived";
         } else if (now >= departureTime) {
             return "departed";
         } else {
@@ -269,8 +269,8 @@ export default function TransportationOwnerSchedulesIndex({
                         Departed {isOutdated && "⚠️"}
                     </Badge>
                 );
-            case "completed":
-                return <Badge variant="outline">Completed</Badge>;
+            case "arrived":
+                return <Badge variant="outline">Arrived</Badge>;
             case "cancelled":
                 return <Badge variant="destructive">Cancelled</Badge>;
             default:
@@ -300,7 +300,7 @@ export default function TransportationOwnerSchedulesIndex({
                     };
                 }
                 if (
-                    schedule.status === "completed" ||
+                    schedule.status === "arrived" ||
                     schedule.status === "cancelled"
                 ) {
                     return {
@@ -310,39 +310,38 @@ export default function TransportationOwnerSchedulesIndex({
                 }
                 return { allowed: true };
 
-            case "completed":
-                // Can only complete if departed and current time is close to or past arrival time
-                if (schedule.status !== "departed") {
+            case "arrived":
+                // Can only mark as arrived if current time is past arrival time
+                // For auto-update, we allow scheduled -> arrived if past arrival time
+                if (schedule.status === "cancelled") {
                     return {
                         allowed: false,
-                        message:
-                            "Bus must be departed before it can be completed",
+                        message: "Cannot mark cancelled schedule as arrived",
                     };
                 }
-                if (now < departureTime) {
+                if (now < arrivalTime) {
                     return {
                         allowed: false,
-                        message:
-                            "Cannot mark as completed before departure time",
+                        message: "Cannot mark as arrived before arrival time",
                     };
                 }
                 return { allowed: true };
 
             case "cancelled":
-                // Can cancel if not yet completed
-                if (schedule.status === "completed") {
+                // Can cancel if not yet arrived
+                if (schedule.status === "arrived") {
                     return {
                         allowed: false,
-                        message: "Cannot cancel an already completed schedule",
+                        message: "Cannot cancel an already arrived schedule",
                     };
                 }
                 return { allowed: true };
 
             case "scheduled":
-                // Can reschedule if not yet departed or completed
+                // Can reschedule if not yet departed or arrived
                 if (
                     schedule.status === "departed" ||
-                    schedule.status === "completed"
+                    schedule.status === "arrived"
                 ) {
                     return {
                         allowed: false,
@@ -401,9 +400,24 @@ export default function TransportationOwnerSchedulesIndex({
         if (outdatedSchedules.length > 0) {
             setIsAutoUpdating(true);
 
+            // Sort schedules to update in logical order: scheduled->departed->arrived
+            const sortedSchedules = outdatedSchedules.sort((a, b) => {
+                const statusOrder: Record<string, number> = {
+                    scheduled: 1,
+                    departed: 2,
+                    arrived: 3,
+                };
+                const aExpected = getExpectedStatus(a);
+                const bExpected = getExpectedStatus(b);
+                return (
+                    (statusOrder[aExpected] || 0) -
+                    (statusOrder[bExpected] || 0)
+                );
+            });
+
             // Update all outdated schedules one at a time to prevent race conditions
             let completed = 0;
-            outdatedSchedules.forEach((schedule, index) => {
+            sortedSchedules.forEach((schedule, index) => {
                 const expectedStatus = getExpectedStatus(schedule);
                 const validation = canChangeToStatus(schedule, expectedStatus);
 
@@ -418,23 +432,27 @@ export default function TransportationOwnerSchedulesIndex({
                                 only: ["schedules"],
                                 onFinish: () => {
                                     completed++;
-                                    if (
-                                        completed === outdatedSchedules.length
-                                    ) {
+                                    if (completed === sortedSchedules.length) {
                                         setIsAutoUpdating(false);
                                         if (
                                             index ===
-                                            outdatedSchedules.length - 1
+                                            sortedSchedules.length - 1
                                         ) {
                                             toast.success(
-                                                `Auto-updated ${outdatedSchedules.length} schedule(s)`
+                                                `Auto-updated ${sortedSchedules.length} schedule(s)`
                                             );
                                         }
                                     }
                                 },
                             }
                         );
-                    }, index * 100); // Stagger updates by 100ms
+                    }, index * 200); // Stagger updates by 200ms to ensure order
+                } else {
+                    // If validation fails, still count it as completed to avoid hanging
+                    completed++;
+                    if (completed === sortedSchedules.length) {
+                        setIsAutoUpdating(false);
+                    }
                 }
             });
         }
@@ -1021,19 +1039,19 @@ export default function TransportationOwnerSchedulesIndex({
                                                                       handleStatusChange(
                                                                           schedule.id,
                                                                           schedule,
-                                                                          "completed"
+                                                                          "arrived"
                                                                       )
                                                                   }
                                                                   disabled={
                                                                       schedule.status ===
-                                                                      "completed"
+                                                                      "arrived"
                                                                   }
                                                               >
                                                                   <Badge
                                                                       variant="outline"
                                                                       className="mr-2"
                                                                   >
-                                                                      Completed
+                                                                      Arrived
                                                                   </Badge>
                                                               </DropdownMenuItem>
                                                               <DropdownMenuSeparator />

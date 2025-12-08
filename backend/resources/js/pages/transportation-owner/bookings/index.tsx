@@ -55,6 +55,7 @@ import {
     Pencil,
     MoreHorizontal,
     Trash,
+    RefreshCw,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -275,6 +276,21 @@ export default function TransportationOwnerBookingsIndex({
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {/* Refresh Button */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.reload({ only: ["bookings"] })}
+                        disabled={isLoading}
+                    >
+                        <RefreshCw
+                            className={`h-4 w-4 ${
+                                isLoading ? "animate-spin" : ""
+                            }`}
+                        />
+                        Refresh
+                    </Button>
 
                     {/* Column Toggle */}
                     <DropdownMenu>

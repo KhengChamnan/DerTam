@@ -742,6 +742,25 @@ class TransportationOwnerController extends Controller
         ->with('busProperty:id,seat_capacity')
         ->findOrFail($validated['bus_id']);
         
+        // Check for overlapping schedules
+        $overlappingSchedule = BusSchedule::where('bus_id', $validated['bus_id'])
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('departure_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhereBetween('arrival_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('departure_time', '<=', $validated['departure_time'])
+                          ->where('arrival_time', '>=', $validated['arrival_time']);
+                    });
+            })
+            ->whereIn('status', ['scheduled', 'departed'])
+            ->first();
+        
+        if ($overlappingSchedule) {
+            return back()->withErrors([
+                'bus_id' => 'This bus already has a schedule during the selected time period. Please choose a different time or bus.'
+            ])->withInput();
+        }
+        
         $schedule = BusSchedule::create([
             'bus_id' => $validated['bus_id'],
             'route_id' => $validated['route_id'],
@@ -817,7 +836,7 @@ class TransportationOwnerController extends Controller
         // Check if this is a status-only update (for quick status changes from index page)
         if ($request->has('status') && count($request->all()) === 1) {
             $validated = $request->validate([
-                'status' => 'required|string|in:scheduled,departed,completed,cancelled',
+                'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
             ]);
             
             $schedule->update([
@@ -834,7 +853,7 @@ class TransportationOwnerController extends Controller
             'departure_time' => 'required|date',
             'arrival_time' => 'required|date|after:departure_time',
             'price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:scheduled,departed,completed,cancelled',
+            'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
         ]);
         
         // Verify bus belongs to user
@@ -842,6 +861,26 @@ class TransportationOwnerController extends Controller
             $q->where('owner_user_id', $user->id);
         })
         ->findOrFail($validated['bus_id']);
+        
+        // Check for overlapping schedules (exclude current schedule)
+        $overlappingSchedule = BusSchedule::where('bus_id', $validated['bus_id'])
+            ->where('id', '!=', $schedule->id)
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('departure_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhereBetween('arrival_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('departure_time', '<=', $validated['departure_time'])
+                          ->where('arrival_time', '>=', $validated['arrival_time']);
+                    });
+            })
+            ->whereIn('status', ['scheduled', 'departed'])
+            ->first();
+        
+        if ($overlappingSchedule) {
+            return back()->withErrors([
+                'bus_id' => 'This bus already has a schedule during the selected time period. Please choose a different time or bus.'
+            ])->withInput();
+        }
         
         $schedule->update([
             'bus_id' => $validated['bus_id'],

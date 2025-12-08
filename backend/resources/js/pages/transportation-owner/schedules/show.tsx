@@ -274,7 +274,6 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                             Departure
                                         </p>
                                         <div className="flex items-center gap-2">
-                                            <Clock className="h-4 w-4 text-muted-foreground" />
                                             <div>
                                                 <p className="font-medium">
                                                     {formatTime(
@@ -295,7 +294,6 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                             Arrival
                                         </p>
                                         <div className="flex items-center gap-2">
-                                            <Clock className="h-4 w-4 text-muted-foreground" />
                                             <div>
                                                 <p className="font-medium">
                                                     {formatTime(
@@ -318,8 +316,8 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                             Price
                                         </p>
                                         <div className="flex items-center gap-2">
-                                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                                             <p className="text-lg font-semibold">
+                                                $
                                                 {Number(schedule.price).toFixed(
                                                     2
                                                 )}
@@ -333,7 +331,6 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                 Distance
                                             </p>
                                             <div className="flex items-center gap-2">
-                                                <Navigation className="h-4 w-4 text-muted-foreground" />
                                                 <p className="font-medium">
                                                     {schedule.route.distance_km}{" "}
                                                     km
@@ -497,8 +494,8 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                     {/* Legend */}
                                     <div className="flex items-center gap-4 text-sm">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded border-2 border-green-500 bg-green-50 flex items-center justify-center">
-                                                <span className="text-xs font-medium text-green-700">
+                                            <div className="w-8 h-8 rounded border-2 border-primary bg-primary/10 flex items-center justify-center">
+                                                <span className="text-xs font-medium text-primary">
                                                     A
                                                 </span>
                                             </div>
@@ -554,27 +551,6 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                     {seatLayout ? (
                                         <div className="p-4 bg-muted/30 rounded-lg">
                                             {/* Column Labels */}
-                                            <div className="flex gap-1 justify-center items-center mb-2">
-                                                <div className="w-8 text-center text-xs font-medium text-muted-foreground">
-                                                    Row
-                                                </div>
-                                                {seatLayout.columns.map(
-                                                    (col, idx) =>
-                                                        col === "" ? (
-                                                            <div
-                                                                key={`aisle-header-${idx}`}
-                                                                className="w-8"
-                                                            />
-                                                        ) : (
-                                                            <div
-                                                                key={`col-${idx}`}
-                                                                className="w-12 text-center text-xs font-medium text-muted-foreground"
-                                                            >
-                                                                {col}
-                                                            </div>
-                                                        )
-                                                )}
-                                            </div>
 
                                             {/* Render seats by row */}
                                             {(() => {
@@ -652,11 +628,10 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                                     seat.number !==
                                                                         null
                                                                 ) {
-                                                                    const seatNumber = `S${seat.number
+                                                                    const seatNumber = `${seat.number
                                                                         .toString()
                                                                         .padStart(
-                                                                            2,
-                                                                            "0"
+                                                                            2
                                                                         )}`;
                                                                     const isBooked =
                                                                         bookedSeatNumbers.has(
@@ -684,7 +659,7 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                                             ${
                                                                                 isBooked
                                                                                     ? "border-red-500 bg-red-50 hover:bg-red-100 text-red-700"
-                                                                                    : "border-green-500 bg-green-50 hover:bg-green-100 text-green-700"
+                                                                                    : "border-primary bg-primary/10 hover:bg-primary/20 text-primary"
                                                                             }
                                                                         `}
                                                                             title={
@@ -787,7 +762,7 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                                 ${
                                                                     isBooked
                                                                         ? "border-red-500 bg-red-50 hover:bg-red-100"
-                                                                        : "border-green-500 bg-green-50 hover:bg-green-100"
+                                                                        : "border-primary bg-primary/10 hover:bg-primary/20"
                                                                 }
                                                             `}
                                                             title={
@@ -806,7 +781,7 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                                 className={`text-xs font-bold ${
                                                                     isBooked
                                                                         ? "text-red-700"
-                                                                        : "text-green-700"
+                                                                        : "text-primary"
                                                                 }`}
                                                             >
                                                                 {seatNumber}
