@@ -38,6 +38,13 @@ import {
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
+interface Room {
+    room_id: number;
+    room_number: string;
+    is_available: boolean;
+    status: string;
+}
+
 interface BookingItem {
     id: number;
     booking_id: number;
@@ -82,6 +89,7 @@ interface BookingItem {
         check_out: string;
         nights: number;
     };
+    assigned_room?: Room;
     quantity: number;
     unit_price: number;
     total_price: number;
@@ -91,6 +99,7 @@ interface BookingItem {
 
 interface Props {
     bookingItem: BookingItem;
+    availableRooms: Room[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -108,9 +117,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function BookingShow({ bookingItem }: Props) {
+export default function BookingShow({ bookingItem, availableRooms }: Props) {
     const [status, setStatus] = useState(bookingItem.booking.status);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(
+        bookingItem.assigned_room?.room_id
+    );
 
     const handleStatusUpdate = () => {
         setIsUpdating(true);
@@ -118,6 +130,23 @@ export default function BookingShow({ bookingItem }: Props) {
             `/hotel-owner/bookings/${bookingItem.id}`,
             { status },
             {
+                onFinish: () => setIsUpdating(false),
+            }
+        );
+    };
+
+    const handleRoomAssignment = () => {
+        setIsUpdating(true);
+        router.put(
+            `/hotel-owner/bookings/${bookingItem.id}`,
+            {
+                status: bookingItem.booking.status,
+                room_id: selectedRoomId,
+            },
+            {
+                onSuccess: () => {
+                    router.reload();
+                },
                 onFinish: () => setIsUpdating(false),
             }
         );
@@ -493,6 +522,150 @@ export default function BookingShow({ bookingItem }: Props) {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Room Assignment */}
+                        {(bookingItem.booking.status === "confirmed" ||
+                            bookingItem.booking.status === "completed") && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <BedDouble className="h-5 w-5" />
+                                        Room Assignment
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {bookingItem.assigned_room ? (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                                <span className="text-sm text-muted-foreground">
+                                                    Assigned Room:
+                                                </span>
+                                                <Badge
+                                                    variant="default"
+                                                    className="text-base"
+                                                >
+                                                    Room{" "}
+                                                    {
+                                                        bookingItem
+                                                            .assigned_room
+                                                            .room_number
+                                                    }
+                                                </Badge>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-medium">
+                                                    Change Room Assignment
+                                                </p>
+                                                <Select
+                                                    value={selectedRoomId?.toString()}
+                                                    onValueChange={(value) =>
+                                                        setSelectedRoomId(
+                                                            Number(value)
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a room" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {availableRooms.map(
+                                                            (room) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        room.room_id
+                                                                    }
+                                                                    value={room.room_id.toString()}
+                                                                >
+                                                                    Room{" "}
+                                                                    {
+                                                                        room.room_number
+                                                                    }
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+
+                                                {selectedRoomId !==
+                                                    bookingItem.assigned_room
+                                                        .room_id && (
+                                                    <Button
+                                                        onClick={
+                                                            handleRoomAssignment
+                                                        }
+                                                        disabled={isUpdating}
+                                                        className="w-full"
+                                                    >
+                                                        {isUpdating
+                                                            ? "Updating..."
+                                                            : "Update Room"}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <p className="text-sm text-muted-foreground">
+                                                No room assigned yet. Select a
+                                                room to assign:
+                                            </p>
+                                            <Select
+                                                value={selectedRoomId?.toString()}
+                                                onValueChange={(value) =>
+                                                    setSelectedRoomId(
+                                                        Number(value)
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a room" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availableRooms.map(
+                                                        (room) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    room.room_id
+                                                                }
+                                                                value={room.room_id.toString()}
+                                                            >
+                                                                Room{" "}
+                                                                {
+                                                                    room.room_number
+                                                                }
+                                                            </SelectItem>
+                                                        )
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+
+                                            {selectedRoomId && (
+                                                <Button
+                                                    onClick={
+                                                        handleRoomAssignment
+                                                    }
+                                                    disabled={isUpdating}
+                                                    className="w-full"
+                                                >
+                                                    {isUpdating
+                                                        ? "Assigning..."
+                                                        : "Assign Room"}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {availableRooms.length === 0 &&
+                                        !bookingItem.assigned_room && (
+                                            <p className="text-sm text-muted-foreground text-center py-4">
+                                                No available rooms for this room
+                                                type
+                                            </p>
+                                        )}
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>

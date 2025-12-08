@@ -112,6 +112,7 @@ class HotelOwnerController extends Controller
         $property = Property::where('owner_user_id', $user->id)
             ->with([
                 'place',
+                'roomProperties',
                 'roomProperties.rooms',
                 'roomProperties.amenities',
                 'facilities'
@@ -190,7 +191,8 @@ class HotelOwnerController extends Controller
                 'booking.user',
                 'booking.payments',
                 'roomProperty.property.place',
-                'hotelDetails'
+                'hotelDetails',
+                'assignedRoom'
             ])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
@@ -203,6 +205,7 @@ class HotelOwnerController extends Controller
                 'booking' => $item->booking,
                 'room_property' => $item->roomProperty,
                 'hotel_details' => $item->hotelDetails,
+                'assigned_room' => $item->assignedRoom,
                 'quantity' => $item->quantity,
                 'unit_price' => $item->unit_price,
                 'total_price' => $item->total_price,
@@ -233,12 +236,21 @@ class HotelOwnerController extends Controller
                 'booking.payments',
                 'roomProperty.property.place',
                 'roomProperty.amenities',
-                'hotelDetails'
+                'hotelDetails',
+                'assignedRoom'
             ])
             ->firstOrFail();
         
+        // Get available rooms for this room type
+        $availableRooms = Room::where('room_properties_id', $bookingItem->item_id)
+            ->where('is_available', true)
+            ->where('status', 'available')
+            ->orderBy('room_number')
+            ->get();
+        
         return Inertia::render('hotel-owner/bookings/show', [
-            'bookingItem' => $bookingItem
+            'bookingItem' => $bookingItem,
+            'availableRooms' => $availableRooms
         ]);
     }
 
@@ -288,7 +300,8 @@ class HotelOwnerController extends Controller
             'check_in' => 'nullable|date',
             'check_out' => 'nullable|date|after:check_in',
             'quantity' => 'nullable|integer|min:1',
-            'notes' => 'nullable|string|max:1000'
+            'notes' => 'nullable|string|max:1000',
+            'room_id' => 'nullable|exists:rooms,room_id'
         ]);
         
         // Update booking status
@@ -321,6 +334,19 @@ class HotelOwnerController extends Controller
             // Update booking total
             $bookingItem->booking->update([
                 'total_amount' => $bookingItem->total_price
+            ]);
+        }
+        
+        // Handle room assignment
+        if (isset($validated['room_id'])) {
+            // Validate that the room belongs to the correct room type
+            $room = Room::where('room_id', $validated['room_id'])
+                ->where('room_properties_id', $bookingItem->item_id)
+                ->firstOrFail();
+            
+            // Update the assigned room
+            $bookingItem->update([
+                'room_id' => $validated['room_id']
             ]);
         }
         

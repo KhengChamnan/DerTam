@@ -44,6 +44,7 @@ import {
     MapPin,
     Users,
     MoreHorizontal,
+    Trash,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 import {
@@ -1108,9 +1109,9 @@ export default function TransportationOwnerSchedulesIndex({
                                                                   <Link
                                                                       href={`/transportation-owner/schedules/${schedule.id}`}
                                                                   >
+                                                                      <Eye className="mr-2 h-4 w-4" />
                                                                       View
                                                                       details
-                                                                      <Eye className="ml-2 h-4 w-4" />
                                                                   </Link>
                                                               </DropdownMenuItem>
                                                               <DropdownMenuItem
@@ -1119,9 +1120,9 @@ export default function TransportationOwnerSchedulesIndex({
                                                                   <Link
                                                                       href={`/transportation-owner/schedules/${schedule.id}/edit`}
                                                                   >
+                                                                      <Pencil className="mr-2 h-4 w-4" />
                                                                       Edit
                                                                       schedule
-                                                                      <Pencil className="ml-5 h-4 w-4" />
                                                                   </Link>
                                                               </DropdownMenuItem>
                                                               <DropdownMenuSeparator />
@@ -1137,6 +1138,7 @@ export default function TransportationOwnerSchedulesIndex({
                                                                           }
                                                                           className="text-red-600 focus:text-red-600"
                                                                       >
+                                                                          <Trash className="mr-2 h-4 w-4" />
                                                                           Delete
                                                                           schedule
                                                                       </DropdownMenuItem>

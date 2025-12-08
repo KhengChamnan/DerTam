@@ -492,6 +492,11 @@ class TransportationOwnerController extends Controller
             'route:id,from_location,to_location,distance_km,duration_hours',
             'route.fromProvince:province_categoryID,province_categoryName',
             'route.toProvince:province_categoryID,province_categoryName',
+            'bookings' => function($query) {
+                $query->whereHas('booking', function($q) {
+                    $q->whereIn('status', ['pending', 'confirmed', 'completed']);
+                });
+            },
             'bookings.booking:id,user_id,status',
             'bookings.booking.user:id,name,email,phone_number',
             'bookings.seat:id,seat_number',

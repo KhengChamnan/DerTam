@@ -29,7 +29,7 @@ import {
     CheckCircle,
     AlertCircle,
     Sparkles,
-    Edit,
+    Pencil,
     Maximize,
     Home,
     Search,
@@ -542,7 +542,7 @@ export default function AllRooms({ rooms }: Props) {
                                                   <Link
                                                       href={`/hotel-owner/rooms/${room.room_id}/edit`}
                                                   >
-                                                      <Edit className="h-4 w-4 mr-2" />
+                                                      <Pencil className="h-4 w-4 mr-2" />
                                                       Edit
                                                   </Link>
                                               </Button>

@@ -43,8 +43,8 @@ import {
     Search,
     Plus,
     Eye,
-    Edit,
-    Trash2,
+    Pencil,
+    Trash,
     Star,
     MapPin,
     Users,
@@ -718,7 +718,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                                                         variant="ghost"
                                                         size="sm"
                                                     >
-                                                        <Edit className="h-4 w-4" />
+                                                        <Pencil className="h-4 w-4" />
                                                     </Button>
                                                 </Link>
                                                 <DropdownMenu>
@@ -739,8 +739,8 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                                                             <Link
                                                                 href={`/hotels/${property.property_id}`}
                                                             >
+                                                                <Eye className="mr-2 h-4 w-4" />
                                                                 View details
-                                                                <Eye className="ml-2 h-4 w-4" />
                                                             </Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
@@ -749,8 +749,8 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                                                             <Link
                                                                 href={`/hotels/${property.property_id}/edit`}
                                                             >
+                                                                <Pencil className="mr-2 h-4 w-4" />
                                                                 Edit hotel
-                                                                <Edit className="ml-5 h-4 w-4" />
                                                             </Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
@@ -766,6 +766,7 @@ export default function HotelIndex({ properties, filters, provinces }: Props) {
                                                                     }
                                                                     className="text-red-600 focus:text-red-600"
                                                                 >
+                                                                    <Trash className="mr-2 h-4 w-4" />
                                                                     Delete hotel
                                                                 </DropdownMenuItem>
                                                             </AlertDialogTrigger>

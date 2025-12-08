@@ -42,8 +42,8 @@ import {
     Search,
     Plus,
     Eye,
-    Edit,
-    Trash2,
+    Pencil,
+    Trash,
     Bus,
     MapPin,
     Users,
@@ -592,7 +592,7 @@ export default function TransportationIndex({
                                                                 variant="ghost"
                                                                 size="sm"
                                                             >
-                                                                <Edit className="h-4 w-4" />
+                                                                <Pencil className="h-4 w-4" />
                                                             </Button>
                                                         </Link>
                                                         <DropdownMenu>
@@ -613,9 +613,9 @@ export default function TransportationIndex({
                                                                     <Link
                                                                         href={`/transportations/${transport.id}`}
                                                                     >
+                                                                        <Eye className="h-4 w-4 mr-2" />
                                                                         View
                                                                         Details
-                                                                        <Eye className="h-4 w-4 ml-13" />
                                                                     </Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem
@@ -624,9 +624,9 @@ export default function TransportationIndex({
                                                                     <Link
                                                                         href={`/transportations/${transport.id}/edit`}
                                                                     >
+                                                                        <Pencil className="h-4 w-4 mr-2" />
                                                                         Edit
                                                                         Transportation
-                                                                        <Edit className="h-4 w-4 ml-2" />
                                                                     </Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
@@ -641,6 +641,7 @@ export default function TransportationIndex({
                                                                         )
                                                                     }
                                                                 >
+                                                                    <Trash className="h-4 w-4 mr-2" />
                                                                     Delete
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuContent>

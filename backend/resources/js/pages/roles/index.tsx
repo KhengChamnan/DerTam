@@ -45,8 +45,8 @@ import {
     Search,
     Shield,
     Plus,
-    Edit,
-    Trash2,
+    Pencil,
+    Trash,
     Users,
     Key,
     Settings2,
@@ -464,7 +464,7 @@ export default function RolesIndex({ roles, filters }: Props) {
                                                             variant="ghost"
                                                             size="sm"
                                                         >
-                                                            <Edit className="h-4 w-4" />
+                                                            <Pencil className="h-4 w-4" />
                                                         </Button>
                                                     </Link>
                                                     <DropdownMenu>
@@ -485,8 +485,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                                                                 <Link
                                                                     href={`/roles/${role.id}/edit`}
                                                                 >
+                                                                    <Pencil className="mr-2 h-4 w-4" />
                                                                     Edit role
-                                                                    <Edit className="ml-9 h-4 w-4" />
                                                                 </Link>
                                                             </DropdownMenuItem>
                                                             {role.name.toLowerCase() !==
@@ -505,6 +505,7 @@ export default function RolesIndex({ roles, filters }: Props) {
                                                                                 }
                                                                                 className="text-red-600 focus:text-red-600"
                                                                             >
+                                                                                <Trash className="mr-2 h-4 w-4" />
                                                                                 Delete
                                                                                 role
                                                                             </DropdownMenuItem>

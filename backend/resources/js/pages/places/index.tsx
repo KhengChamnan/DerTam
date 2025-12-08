@@ -19,8 +19,8 @@ import {
     Plus,
     MapPin,
     Star,
-    Edit,
-    Trash2,
+    Pencil,
+    Trash,
     Filter,
     Eye,
     MoreHorizontal,
@@ -777,7 +777,7 @@ export default function PlacesIndex({
                                                             variant="ghost"
                                                             size="sm"
                                                         >
-                                                            <Edit className="h-4 w-4" />
+                                                            <Pencil className="h-4 w-4" />
                                                         </Button>
                                                     </Link>
                                                     <DropdownMenu>
@@ -799,8 +799,8 @@ export default function PlacesIndex({
                                                                     )
                                                                 }
                                                             >
+                                                                <Eye className="mr-2 h-4 w-4" />
                                                                 View details
-                                                                <Eye className="ml-2 h-4 w-4" />
                                                             </DropdownMenuItem>
                                                             {canEditPlaces() && (
                                                                 <DropdownMenuItem
@@ -809,9 +809,9 @@ export default function PlacesIndex({
                                                                     <Link
                                                                         href={`/places/${place.placeID}/edit`}
                                                                     >
+                                                                        <Pencil className="mr-2 h-4 w-4" />
                                                                         Edit
                                                                         place
-                                                                        <Edit className="ml-5 h-4 w-4" />
                                                                     </Link>
                                                                 </DropdownMenuItem>
                                                             )}
@@ -830,6 +830,7 @@ export default function PlacesIndex({
                                                                                 }
                                                                                 className="text-red-600 focus:text-red-600"
                                                                             >
+                                                                                <Trash className="mr-2 h-4 w-4" />
                                                                                 Delete
                                                                                 place
                                                                             </DropdownMenuItem>

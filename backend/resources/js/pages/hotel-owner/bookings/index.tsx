@@ -33,7 +33,7 @@ import {
     Users,
     DollarSign,
     Eye,
-    Edit,
+    Pencil,
     Hotel,
     Phone,
     Settings2,
@@ -87,6 +87,10 @@ interface Booking {
         check_out: string;
         nights: number;
     };
+    assigned_room?: {
+        room_id: number;
+        room_number: string;
+    };
     quantity: number;
     unit_price: number;
     total_price: number;
@@ -109,6 +113,7 @@ interface PaginatedBookings {
 
 interface ColumnVisibility {
     property: boolean;
+    assignedRoom: boolean;
     checkIn: boolean;
     checkOut: boolean;
     bookedOn: boolean;
@@ -207,6 +212,7 @@ export default function HotelOwnerBookingsIndex({
             }
             return {
                 property: true,
+                assignedRoom: true,
                 checkIn: true,
                 checkOut: true,
                 bookedOn: true,
@@ -340,6 +346,17 @@ export default function HotelOwnerBookingsIndex({
                             </DropdownMenuCheckboxItem>
                             <DropdownMenuCheckboxItem
                                 className="capitalize"
+                                checked={columnVisibility.assignedRoom}
+                                onCheckedChange={(value) =>
+                                    updateColumnVisibility({
+                                        assignedRoom: !!value,
+                                    })
+                                }
+                            >
+                                Assigned Room
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
                                 checked={columnVisibility.checkIn}
                                 onCheckedChange={(value) =>
                                     updateColumnVisibility({ checkIn: !!value })
@@ -395,6 +412,10 @@ export default function HotelOwnerBookingsIndex({
                                     gridTemplateColumns: `2fr ${
                                         columnVisibility.property ? "2fr" : ""
                                     } ${
+                                        columnVisibility.assignedRoom
+                                            ? "1.2fr"
+                                            : ""
+                                    } ${
                                         columnVisibility.checkIn ? "1.5fr" : ""
                                     } ${
                                         columnVisibility.checkOut ? "1.5fr" : ""
@@ -411,6 +432,11 @@ export default function HotelOwnerBookingsIndex({
                                 {columnVisibility.property && (
                                     <div className="text-sm font-medium">
                                         Property
+                                    </div>
+                                )}
+                                {columnVisibility.assignedRoom && (
+                                    <div className="text-sm font-medium">
+                                        Assigned Room
                                     </div>
                                 )}
                                 {columnVisibility.checkIn && (
@@ -459,6 +485,10 @@ export default function HotelOwnerBookingsIndex({
                                                           ? "2fr"
                                                           : ""
                                                   } ${
+                                                      columnVisibility.assignedRoom
+                                                          ? "1.2fr"
+                                                          : ""
+                                                  } ${
                                                       columnVisibility.checkIn
                                                           ? "1.5fr"
                                                           : ""
@@ -483,6 +513,9 @@ export default function HotelOwnerBookingsIndex({
                                               </div>
                                               {columnVisibility.property && (
                                                   <Skeleton className="h-4 w-24" />
+                                              )}
+                                              {columnVisibility.assignedRoom && (
+                                                  <Skeleton className="h-4 w-16" />
                                               )}
                                               {columnVisibility.checkIn && (
                                                   <Skeleton className="h-4 w-20" />
@@ -551,6 +584,24 @@ export default function HotelOwnerBookingsIndex({
                                                           ?.name || "Unknown"}
                                                   </div>
                                               )}
+                                              {columnVisibility.assignedRoom && (
+                                                  <div className="text-sm">
+                                                      {booking.assigned_room ? (
+                                                          <Badge variant="secondary">
+                                                              Room{" "}
+                                                              {
+                                                                  booking
+                                                                      .assigned_room
+                                                                      .room_number
+                                                              }
+                                                          </Badge>
+                                                      ) : (
+                                                          <span className="text-muted-foreground text-xs">
+                                                              Not assigned
+                                                          </span>
+                                                      )}
+                                                  </div>
+                                              )}
                                               {columnVisibility.checkIn && (
                                                   <div className="flex items-center gap-1 text-sm">
                                                       <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -609,7 +660,7 @@ export default function HotelOwnerBookingsIndex({
                                                           variant="ghost"
                                                           size="sm"
                                                       >
-                                                          <Edit className="h-4 w-4" />
+                                                          <Pencil className="h-4 w-4" />
                                                       </Button>
                                                   </Link>
                                                   <DropdownMenu>
@@ -630,8 +681,8 @@ export default function HotelOwnerBookingsIndex({
                                                               <Link
                                                                   href={`/hotel-owner/bookings/${booking.id}`}
                                                               >
+                                                                  <Eye className="mr-2 h-4 w-4" />
                                                                   View details
-                                                                  <Eye className="ml-2 h-4 w-4" />
                                                               </Link>
                                                           </DropdownMenuItem>
                                                           <DropdownMenuItem
@@ -640,8 +691,8 @@ export default function HotelOwnerBookingsIndex({
                                                               <Link
                                                                   href={`/hotel-owner/bookings/${booking.id}/edit`}
                                                               >
+                                                                  <Pencil className="mr-2 h-4 w-4" />
                                                                   Edit booking
-                                                                  <Edit className="ml-2 h-4 w-4" />
                                                               </Link>
                                                           </DropdownMenuItem>
                                                           {booking.booking.user

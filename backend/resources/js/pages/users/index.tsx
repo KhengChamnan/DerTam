@@ -44,8 +44,8 @@ import { type BreadcrumbItem, type User } from "@/types";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
     SearchIcon,
-    EditIcon,
-    TrashIcon,
+    Pencil,
+    Trash,
     Filter,
     Shield,
     Users,
@@ -633,7 +633,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                         variant="ghost"
                                                         size="sm"
                                                     >
-                                                        <EditIcon className="h-4 w-4" />
+                                                        <Pencil className="h-4 w-4" />
                                                     </Button>
                                                 </Link>
                                                 <DropdownMenu>
@@ -654,8 +654,8 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                             <Link
                                                                 href={`/users/${user.id}/edit`}
                                                             >
+                                                                <Pencil className="mr-2 h-4 w-4" />
                                                                 Edit user
-                                                                <EditIcon className="ml-8 h-4 w-4" />
                                                             </Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
@@ -671,6 +671,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                                     }
                                                                     className="text-red-600 focus:text-red-600"
                                                                 >
+                                                                    <Trash className="mr-2 h-4 w-4" />
                                                                     Delete user
                                                                 </DropdownMenuItem>
                                                             </AlertDialogTrigger>
