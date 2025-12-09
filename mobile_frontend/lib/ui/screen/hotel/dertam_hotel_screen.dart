@@ -199,41 +199,52 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
           ),
         );
         break;
-
       case AsyncValueState.success:
-        hotelList = SizedBox(
-          height: 150,
-          child: ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: hotelListData.data?.hotels.length ?? 0,
-            itemBuilder: (context, index) {
-              final hotel = hotelListData.data?.hotels[index];
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: DertamHotelNearby(
-                  name: hotel?.name ?? 'No Hotel',
-                  location:
-                      hotel?.provinceCategory.provinceCategoryName ??
-                      'No Province',
-                  rating: hotel?.rating.toString() ?? '',
-                  imageUrl: hotel?.imagesUrl.first ?? '',
-                  reviewCount: hotel?.reviewCount.toString(),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HotelDetailScreen(
-                        hotelId: hotel?.placeId.toString() ?? '',
+        if (hotelListData.data?.hotels.isEmpty ?? true) {
+          hotelList = SizedBox(
+            height: 150,
+            child: Center(
+              child: Text(
+                'No hotels found for the selected criteria',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ),
+          );
+        } else {
+          hotelList = SizedBox(
+            height: 150,
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: hotelListData.data?.hotels.length ?? 0,
+              itemBuilder: (context, index) {
+                final hotel = hotelListData.data?.hotels[index];
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: DertamHotelNearby(
+                    name: hotel?.name ?? 'No Hotel',
+                    location:
+                        hotel?.provinceCategory.provinceCategoryName ??
+                        'No Province',
+                    rating: hotel?.rating.toString() ?? '',
+                    imageUrl: hotel?.imagesUrl.first ?? '',
+                    reviewCount: hotel?.reviewCount.toString(),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HotelDetailScreen(
+                          hotelId: hotel?.placeId.toString() ?? '',
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        );
+                );
+              },
+            ),
+          );
 
-        break;
+          break;
+        }
     }
     return Scaffold(
       backgroundColor: Colors.white,
