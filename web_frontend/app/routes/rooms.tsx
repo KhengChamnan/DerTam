@@ -1,5 +1,5 @@
 import type { Route } from "./+types/rooms";
-import AvailableRoomsPage from '~/pages/hotal/available_rooms_page';
+import AvailableRoomsPage from '~/pages/hotel/available_rooms_page';
 
 export function meta({}: Route.MetaArgs) {
   return [

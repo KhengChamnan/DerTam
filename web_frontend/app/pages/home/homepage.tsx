@@ -1,15 +1,10 @@
-import { useState } from "react";
-import {
-  Heart,
-  Star,
-  MapPin,
-  DollarSign,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { Link } from "react-router";
-import Carousel from "../../components/carousel";
-import Navigation from "../../components/navigation";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router'; 
+import { Heart, Star, MapPin, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import Carousel from '../../components/carousel';
+import Navigation from '../../components/navigation';
+import { useSearch } from '../../components/useSearch';
+import { useFavorites } from '../profile/hooks/usefavorites';
 
 // Hero carousel images
 const heroImages = [
@@ -115,29 +110,28 @@ const categories = [
 ];
 
 export default function HomePage() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [eventFavorites, setEventFavorites] = useState<number[]>([]);
   const [currentEventPage, setCurrentEventPage] = useState(0);
 
   // Filter destinations based on category
-  const filteredDestinations = mockDestinations.filter((dest) => {
-    const matchesCategory =
-      selectedCategory === "All" || dest.category === selectedCategory;
+  const filteredDestinations = mockDestinations.filter(dest => {
+    const matchesCategory = selectedCategory === 'All' || dest.category === selectedCategory;
     return matchesCategory;
   });
 
   // Toggle favorite
   const toggleFavorite = (id: number) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
   };
 
   // Toggle event favorite
   const toggleEventFavorite = (id: number) => {
-    setEventFavorites((prev) =>
-      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
+    setEventFavorites(prev => 
+      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
   };
 
@@ -161,13 +155,19 @@ export default function HomePage() {
 
   return (
     <div className="font-sans min-h-screen bg-white">
-      {/* Navigation */}
-      <Navigation activeNav="Home" />
+
+      {/* Navigation - Enable search on homepage */}
+      <Navigation 
+        activeNav="Home" 
+        showSearch={true}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       {/* Hero Section with Carousel */}
       <section className="relative overflow-hidden">
-        <Carousel
-          images={heroImages}
+        <Carousel 
+          images={heroImages} 
           autoPlay={true}
           autoPlayInterval={5000}
           className="w-full h-[600px]"
@@ -178,10 +178,12 @@ export default function HomePage() {
       <main className="max-w-[1400px] mx-auto px-10 py-16">
         {/* Popular Nearby Section */}
         <section className="mb-20">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Popular Nearby</h2>
-            <p className="text-gray-600">Quality as judged user preference</p>
-          </div>
+          {!searchQuery && (
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">Popular Nearby</h2>
+              <p className="text-gray-600">Quality as judged user preference</p>
+            </div>
+          )}
 
           {/* Categories */}
           <div className="flex gap-5 mb-8 flex-wrap">
@@ -207,54 +209,43 @@ export default function HomePage() {
           {filteredDestinations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredDestinations.map((dest) => (
-                <Link key={dest.id} to={`/place/${dest.id}`}>
-                  <div className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
-                    <div className="relative">
-                      <img
-                        src={dest.image}
-                        alt={dest.name}
-                        className="w-full h-64 object-cover"
+                <div 
+                  key={dest.id} 
+                  onClick={() => navigate(`/place/${dest.id}`)} 
+                  className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
+                >
+                  <div className="relative">
+                    <img src={dest.image} alt={dest.name} className="w-full h-64 object-cover" />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation(); 
+                        handleToggleFavorite(dest);
+                      }}
+                      className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
+                    >
+                      <Heart 
+                        size={20} 
+                        color="#ef4444" 
+                        fill={isFavorite(dest.id.toString()) ? "#ef4444" : "none"}
                       />
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleFavorite(dest.id);
-                        }}
-                        className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
-                      >
-                        <Heart
-                          size={20}
-                          color="#ef4444"
-                          fill={
-                            favorites.includes(dest.id) ? "#ef4444" : "none"
-                          }
-                        />
-                      </button>
-                    </div>
-                    <div className="p-5">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold">{dest.name}</h3>
-                        <div className="flex items-center gap-1">
-                          <Star size={16} fill="#fbbf24" color="#fbbf24" />
-                          <span className="text-sm font-bold">
-                            {dest.rating}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
-                        <MapPin size={16} color="#ef4444" />
-                        {dest.location}
-                      </p>
+                    </button>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-bold">{dest.name}</h3>
                       <div className="flex items-center gap-1">
-                        <DollarSign size={16} color="#666" />
-                        <span
-                          className="text-base font-bold"
-                          style={{ color: "#01005B" }}
-                        >
-                          ${dest.price}
-                        </span>
-                        <span className="text-sm text-gray-600">/Person</span>
+                        <Star size={16} fill="#fbbf24" color="#fbbf24" />
+                        <span className="text-sm font-bold">{dest.rating}</span>
                       </div>
+                    </div>
+                    <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
+                      <MapPin size={16} color="#ef4444" />
+                      {dest.location}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <DollarSign size={16} color="#666" />
+                      <span className="text-base font-bold" style={{ color: '#01005B' }}>${dest.price}</span>
+                      <span className="text-sm text-gray-600">/Person</span>
                     </div>
                   </div>
                 </Link>
@@ -316,26 +307,17 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {currentEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
-                >
+                <div key={event.id} className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
                   <div className="relative">
-                    <img
-                      src={event.image}
-                      alt={event.name}
-                      className="w-full h-64 object-cover"
-                    />
-                    <button
+                    <img src={event.image} alt={event.name} className="w-full h-64 object-cover" />
+                    <button 
                       onClick={() => toggleEventFavorite(event.id)}
                       className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
                     >
                       <Heart
                         size={20}
                         color="#ef4444"
-                        fill={
-                          eventFavorites.includes(event.id) ? "#ef4444" : "none"
-                        }
+                        fill={eventFavorites.includes(event.id) ? "#ef4444" : "none"}
                       />
                     </button>
                   </div>
