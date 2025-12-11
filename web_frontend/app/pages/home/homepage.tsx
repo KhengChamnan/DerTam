@@ -388,7 +388,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="bg-gray-50 px-4 sm:px-6 md:px-8 lg:px-10 py-12 sm:py-16 mt-12 sm:mt-16 lg:mt-20">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-10">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-10">
           <div>
             <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-5">DerTam</h3>
             <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
@@ -396,7 +396,7 @@ export default function HomePage() {
             </p>
           </div>
           <div>
-            <h4 className="text-base font-bold mb-4">Help</h4>
+            <h4 className="text-base font-bold mb-4">Route</h4>
             <ul className="list-none p-0 m-0">
               <li className="mb-2">
                 <a
@@ -408,31 +408,31 @@ export default function HomePage() {
               </li>
               <li className="mb-2">
                 <a
-                  href="#"
+                  href="/trip_plan"
                   className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
                 >
-                  About Us
+                  Plan Trip
                 </a>
               </li>
               <li className="mb-2">
                 <a
-                  href="#"
+                  href="/bus_booking"
                   className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
                 >
-                  FAQ
+                  Bus Booking
                 </a>
               </li>
               <li className="mb-2">
                 <a
-                  href="#"
+                  href="/hotels"
                   className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
                 >
-                  Contact
+                  Hotel
                 </a>
               </li>
             </ul>
           </div>
-          <div>
+          {/* <div>
             <h4 className="text-base font-bold mb-4">Tools</h4>
             <ul className="list-none p-0 m-0">
               <li className="mb-2">
@@ -460,13 +460,13 @@ export default function HomePage() {
                 </a>
               </li>
             </ul>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1">
-            <h4 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Newsletter</h4>
+          </div> */}
+          {/* <div className="sm:col-span-2 lg:col-span-1"> */}
+            {/* <h4 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Newsletter</h4>
             <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
               Enter your email address
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
+            </p> */}
+            {/* <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 placeholder="Your email"
@@ -478,8 +478,8 @@ export default function HomePage() {
               >
                 Subscribe
               </button>
-            </div>
-          </div>
+            </div> */}
+          {/* </div> */}
         </div>
         <div className="border-t border-gray-200 pt-5 text-center text-gray-600 text-sm">
           2025 DerTam. All rights reserved
