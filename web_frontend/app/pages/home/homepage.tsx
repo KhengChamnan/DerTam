@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router'; 
+import { useNavigate, Link } from 'react-router'; 
 import { Heart, Star, MapPin, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import Carousel from '../../components/carousel';
 import Navigation from '../../components/navigation';
-import { useSearch } from '../../components/useSearch';
 import { useFavorites } from '../profile/hooks/usefavorites';
 
 // Hero carousel images
@@ -110,23 +109,40 @@ const categories = [
 ];
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const { isFavorite, toggleFavorite: toggleFavoriteHook } = useFavorites();
+  
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [eventFavorites, setEventFavorites] = useState<number[]>([]);
   const [currentEventPage, setCurrentEventPage] = useState(0);
 
-  // Filter destinations based on category
+  // Filter destinations based on category and search
   const filteredDestinations = mockDestinations.filter(dest => {
     const matchesCategory = selectedCategory === 'All' || dest.category === selectedCategory;
-    return matchesCategory;
+    const matchesSearch = !searchQuery || 
+      dest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      dest.location.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
-
-  // Toggle favorite
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
-    );
+  
+  // Handle favorite toggle with complete data
+  const handleToggleFavorite = (dest: any) => {
+    toggleFavoriteHook({
+      id: dest.id.toString(),
+      name: dest.name,
+      location: dest.location,
+      type: 'destination',
+      image: dest.image,
+      description: `${dest.name} in ${dest.location}`,
+      price: dest.price,
+      rating: dest.rating,
+      category: dest.category,
+    });
   };
+
+
 
   // Toggle event favorite
   const toggleEventFavorite = (id: number) => {
@@ -170,23 +186,23 @@ export default function HomePage() {
           images={heroImages} 
           autoPlay={true}
           autoPlayInterval={5000}
-          className="w-full h-[600px]"
+          className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
         />
       </section>
 
       {/* Main Content */}
-      <main className="max-w-[1400px] mx-auto px-10 py-16">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 lg:py-16">
         {/* Popular Nearby Section */}
-        <section className="mb-20">
+        <section className="mb-12 sm:mb-16 lg:mb-20">
           {!searchQuery && (
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Popular Nearby</h2>
-              <p className="text-gray-600">Quality as judged user preference</p>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2">Popular Nearby</h2>
+              <p className="text-sm sm:text-base text-gray-600">Quality as judged user preference</p>
             </div>
           )}
 
           {/* Categories */}
-          <div className="flex gap-5 mb-8 flex-wrap">
+          <div className="flex gap-2 sm:gap-3 lg:gap-5 mb-6 sm:mb-8 flex-wrap overflow-x-auto pb-2">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -195,7 +211,7 @@ export default function HomePage() {
                   selectedCategory === cat
                     ? "text-white border-none"
                     : "bg-transparent text-gray-600 border border-gray-300 hover:border-[#01005B]"
-                } px-6 py-2 rounded-full cursor-pointer text-sm transition-all`}
+                } px-4 sm:px-6 py-2 rounded-full cursor-pointer text-xs sm:text-sm whitespace-nowrap transition-all`}
                 style={
                   selectedCategory === cat ? { backgroundColor: "#01005B" } : {}
                 }
@@ -207,45 +223,43 @@ export default function HomePage() {
 
           {/* Destination Cards */}
           {filteredDestinations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {filteredDestinations.map((dest) => (
-                <div 
-                  key={dest.id} 
-                  onClick={() => navigate(`/place/${dest.id}`)} 
-                  className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
-                >
-                  <div className="relative">
-                    <img src={dest.image} alt={dest.name} className="w-full h-64 object-cover" />
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation(); 
-                        handleToggleFavorite(dest);
-                      }}
-                      className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
-                    >
-                      <Heart 
-                        size={20} 
-                        color="#ef4444" 
-                        fill={isFavorite(dest.id.toString()) ? "#ef4444" : "none"}
-                      />
-                    </button>
-                  </div>
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold">{dest.name}</h3>
-                      <div className="flex items-center gap-1">
-                        <Star size={16} fill="#fbbf24" color="#fbbf24" />
-                        <span className="text-sm font-bold">{dest.rating}</span>
-                      </div>
+                <Link key={dest.id} to={`/place/${dest.id}`}>
+                  <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
+                    <div className="relative">
+                      <img src={dest.image} alt={dest.name} className="w-full h-48 sm:h-56 lg:h-64 object-cover" />
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleToggleFavorite(dest);
+                        }}
+                        className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
+                      >
+                        <Heart 
+                          size={20} 
+                          color="#ef4444" 
+                          fill={isFavorite(dest.id.toString()) ? "#ef4444" : "none"}
+                        />
+                      </button>
                     </div>
-                    <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
-                      <MapPin size={16} color="#ef4444" />
-                      {dest.location}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <DollarSign size={16} color="#666" />
-                      <span className="text-base font-bold" style={{ color: '#01005B' }}>${dest.price}</span>
-                      <span className="text-sm text-gray-600">/Person</span>
+                    <div className="p-4 sm:p-5">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-base sm:text-lg font-bold">{dest.name}</h3>
+                        <div className="flex items-center gap-1">
+                          <Star size={16} fill="#fbbf24" color="#fbbf24" />
+                          <span className="text-sm font-bold">{dest.rating}</span>
+                        </div>
+                      </div>
+                      <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
+                        <MapPin size={16} color="#ef4444" />
+                        {dest.location}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <DollarSign size={16} color="#666" />
+                        <span className="text-base font-bold" style={{ color: '#01005B' }}>${dest.price}</span>
+                        <span className="text-sm text-gray-600">/Person</span>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -259,10 +273,10 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="text-center mt-10">
+          <div className="text-center mt-8 sm:mt-10">
             <Link to="/hotels">
               <button
-                className="text-white border-none px-10 py-3 rounded-lg cursor-pointer text-base font-medium transition-all"
+                className="text-white border-none px-8 sm:px-10 py-2.5 sm:py-3 rounded-lg cursor-pointer text-sm sm:text-base font-medium transition-all"
                 style={{ backgroundColor: "#01005B" }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = "#000047";
@@ -281,9 +295,9 @@ export default function HomePage() {
 
         {/* Upcoming Events Section */}
         <section>
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Upcoming event</h2>
-            <p className="text-gray-600">Quality as judged user preference</p>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">Upcoming event</h2>
+            <p className="text-sm sm:text-base text-gray-600">Quality as judged user preference</p>
           </div>
 
           {/* Event Cards with Navigation */}
@@ -292,24 +306,24 @@ export default function HomePage() {
               <>
                 <button
                   onClick={prevEventPage}
-                  className="absolute left-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 flex items-center justify-center hover:border-[#01005B] transition-all"
+                  className="hidden sm:flex absolute left-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 items-center justify-center hover:border-[#01005B] transition-all"
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button
                   onClick={nextEventPage}
-                  className="absolute right-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 flex items-center justify-center hover:border-[#01005B] transition-all"
+                  className="hidden sm:flex absolute right-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 items-center justify-center hover:border-[#01005B] transition-all"
                 >
                   <ChevronRight size={20} />
                 </button>
               </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {currentEvents.map((event) => (
-                <div key={event.id} className="rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
+                <div key={event.id} className="rounded-xl sm:rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
                   <div className="relative">
-                    <img src={event.image} alt={event.name} className="w-full h-64 object-cover" />
+                    <img src={event.image} alt={event.name} className="w-full h-48 sm:h-56 lg:h-64 object-cover" />
                     <button 
                       onClick={() => toggleEventFavorite(event.id)}
                       className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
@@ -321,9 +335,9 @@ export default function HomePage() {
                       />
                     </button>
                   </div>
-                  <div className="p-5">
+                  <div className="p-4 sm:p-5">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold">{event.name}</h3>
+                      <h3 className="text-base sm:text-lg font-bold">{event.name}</h3>
                       <div className="flex items-center gap-1">
                         <Star size={16} fill="#fbbf24" color="#fbbf24" />
                         <span className="text-sm font-bold">
@@ -373,11 +387,11 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-50 px-10 py-16 mt-20">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
+      <footer className="bg-gray-50 px-4 sm:px-6 md:px-8 lg:px-10 py-12 sm:py-16 mt-12 sm:mt-16 lg:mt-20">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-10">
           <div>
-            <h3 className="text-lg font-bold mb-5">DerTam</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
+            <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-5">DerTam</h3>
+            <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
               Explore Cambodia's hidden gems and popular destinations with us.
             </p>
           </div>
@@ -447,19 +461,19 @@ export default function HomePage() {
               </li>
             </ul>
           </div>
-          <div>
-            <h4 className="text-base font-bold mb-4">Newsletter</h4>
-            <p className="text-gray-600 text-sm mb-4">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <h4 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Newsletter</h4>
+            <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
               Enter your email address
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 placeholder="Your email"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#01005B]"
+                className="flex-1 w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#01005B]"
               />
               <button
-                className="text-white border-none px-5 py-2 rounded cursor-pointer hover:opacity-90"
+                className="text-white border-none px-5 py-2 rounded cursor-pointer text-sm hover:opacity-90"
                 style={{ backgroundColor: "#01005B" }}
               >
                 Subscribe
