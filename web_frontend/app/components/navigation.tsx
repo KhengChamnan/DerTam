@@ -12,8 +12,8 @@ export default function Navigation({ activeNav }: NavigationProps) {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Plan Trip', path: '/trip_plan' },
-    { name: 'Bus Booking', path: '/bus-booking' },
-    { name: 'Hotel', path: '/hotels' },
+    { name: 'Bus Booking', path: '/bus_booking' },
+    { name: 'Hotel', path: '/hotel' },
   ];
 
   return (
