@@ -30,6 +30,9 @@ use App\Http\Controllers\API\Booking\HotelBookingController;
 use App\Http\Controllers\API\Booking\BusBookingController;
 use App\Http\Controllers\API\Payment\PaymentCallbackController;
 use App\Http\Controllers\API\Bus\BusScheduleController;
+use App\Http\Controllers\API\Restaurant\MenuItemController;
+use App\Http\Controllers\API\Restaurant\RestaurantPropertyController;
+use App\Http\Controllers\API\Restaurant\MenuCategoryController;
 
 
 
@@ -110,6 +113,23 @@ Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
 Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
 
 Route::get('expense-categories', [ExpenseController::class, 'getExpenseCategories']); // Get all expense categories
+
+// Restaurant Menu Categories routes (public)
+Route::get('menu-categories', [MenuCategoryController::class, 'index']);           // Get all menu categories
+Route::get('menu-categories/{id}', [MenuCategoryController::class, 'show']);       // Get single menu category
+
+// Restaurant Menu Items routes (public read)
+Route::get('menu-items', [MenuItemController::class, 'index']);                    // Get all menu items with filters
+Route::get('menu-items/{id}', [MenuItemController::class, 'show']);                // Get single menu item
+Route::post('menu-items', [MenuItemController::class, 'store']);                   // Create menu item
+Route::post('menu-items/{id}', [MenuItemController::class, 'update']);             // Update menu item (POST for file uploads)
+Route::delete('menu-items/{id}', [MenuItemController::class, 'destroy']);          // Delete menu item
+Route::patch('menu-items/{id}/toggle-availability', [MenuItemController::class, 'toggleAvailability']); // Toggle availability
+
+// Restaurant Property routes (public)
+Route::get('restaurants', [RestaurantPropertyController::class, 'index']);         // Get all restaurant properties
+Route::get('restaurants/{placeId}', [RestaurantPropertyController::class, 'show']); // Get restaurant details with menu by place_id
+Route::get('restaurants/place/{placeId}', [RestaurantPropertyController::class, 'getByPlace']); // Get restaurants by place
 
 // ABA PayWay payment return/callback routes (must be public - no auth)
 Route::prefix('payments/aba')->group(function () {
