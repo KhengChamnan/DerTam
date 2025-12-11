@@ -112,6 +112,7 @@ class HotelOwnerController extends Controller
         $property = Property::where('owner_user_id', $user->id)
             ->with([
                 'place',
+                'roomProperties',
                 'roomProperties.rooms',
                 'roomProperties.amenities',
                 'facilities'
@@ -190,7 +191,8 @@ class HotelOwnerController extends Controller
                 'booking.user',
                 'booking.payments',
                 'roomProperty.property.place',
-                'hotelDetails'
+                'hotelDetails',
+                'assignedRoom'
             ])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
@@ -203,6 +205,7 @@ class HotelOwnerController extends Controller
                 'booking' => $item->booking,
                 'room_property' => $item->roomProperty,
                 'hotel_details' => $item->hotelDetails,
+                'assigned_room' => $item->assignedRoom,
                 'quantity' => $item->quantity,
                 'unit_price' => $item->unit_price,
                 'total_price' => $item->total_price,
@@ -214,6 +217,141 @@ class HotelOwnerController extends Controller
         return Inertia::render('hotel-owner/bookings/index', [
             'bookings' => $bookings
         ]);
+    }
+
+    /**
+     * Show a specific booking detail
+     */
+    public function showBooking($id): Response
+    {
+        $user = Auth::user();
+        
+        $bookingItem = BookingItem::where('id', $id)
+            ->where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with([
+                'booking.user',
+                'booking.payments',
+                'roomProperty.property.place',
+                'roomProperty.amenities',
+                'hotelDetails',
+                'assignedRoom'
+            ])
+            ->firstOrFail();
+        
+        // Get available rooms for this room type
+        $availableRooms = Room::where('room_properties_id', $bookingItem->item_id)
+            ->where('is_available', true)
+            ->where('status', 'available')
+            ->orderBy('room_number')
+            ->get();
+        
+        return Inertia::render('hotel-owner/bookings/show', [
+            'bookingItem' => $bookingItem,
+            'availableRooms' => $availableRooms
+        ]);
+    }
+
+    /**
+     * Show edit form for a specific booking
+     */
+    public function editBooking($id): Response
+    {
+        $user = Auth::user();
+        
+        $bookingItem = BookingItem::where('id', $id)
+            ->where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with([
+                'booking.user',
+                'booking.payments',
+                'roomProperty.property.place',
+                'roomProperty.amenities',
+                'hotelDetails'
+            ])
+            ->firstOrFail();
+        
+        return Inertia::render('hotel-owner/bookings/createEdit', [
+            'bookingItem' => $bookingItem
+        ]);
+    }
+
+    /**
+     * Update booking details
+     */
+    public function updateBooking(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        $bookingItem = BookingItem::where('id', $id)
+            ->where('item_type', 'hotel_room')
+            ->whereHas('roomProperty.property', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->with(['hotelDetails'])
+            ->firstOrFail();
+        
+        $validated = $request->validate([
+            'status' => 'required|in:pending,confirmed,cancelled,completed',
+            'check_in' => 'nullable|date',
+            'check_out' => 'nullable|date|after:check_in',
+            'quantity' => 'nullable|integer|min:1',
+            'notes' => 'nullable|string|max:1000',
+            'room_id' => 'nullable|exists:rooms,room_id'
+        ]);
+        
+        // Update booking status
+        $bookingItem->booking->update([
+            'status' => $validated['status']
+        ]);
+        
+        // Update hotel details if provided
+        if (isset($validated['check_in']) || isset($validated['check_out'])) {
+            $checkIn = $validated['check_in'] ?? $bookingItem->hotelDetails->check_in;
+            $checkOut = $validated['check_out'] ?? $bookingItem->hotelDetails->check_out;
+            
+            // Calculate nights
+            $nights = max(1, (strtotime($checkOut) - strtotime($checkIn)) / 86400);
+            
+            $bookingItem->hotelDetails->update([
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'nights' => $nights,
+            ]);
+        }
+        
+        // Update quantity if provided
+        if (isset($validated['quantity'])) {
+            $bookingItem->update([
+                'quantity' => $validated['quantity'],
+                'total_price' => $bookingItem->unit_price * $bookingItem->hotelDetails->nights * $validated['quantity']
+            ]);
+            
+            // Update booking total
+            $bookingItem->booking->update([
+                'total_amount' => $bookingItem->total_price
+            ]);
+        }
+        
+        // Handle room assignment
+        if (isset($validated['room_id'])) {
+            // Validate that the room belongs to the correct room type
+            $room = Room::where('room_id', $validated['room_id'])
+                ->where('room_properties_id', $bookingItem->item_id)
+                ->firstOrFail();
+            
+            // Update the assigned room
+            $bookingItem->update([
+                'room_id' => $validated['room_id']
+            ]);
+        }
+        
+        return redirect()->route('hotel-owner.bookings.show', $id)
+            ->with('success', 'Booking updated successfully.');
     }
 
     /**

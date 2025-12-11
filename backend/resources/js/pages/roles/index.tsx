@@ -1,10 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import { toast } from "sonner";
 import {
     Select,
@@ -38,8 +45,8 @@ import {
     Search,
     Shield,
     Plus,
-    Edit,
-    Trash2,
+    Pencil,
+    Trash,
     Users,
     Key,
     Settings2,
@@ -82,8 +89,12 @@ interface ColumnVisibility {
 }
 
 export default function RolesIndex({ roles, filters }: Props) {
-    const [search, setSearch] = useState(filters.search || "");
-    const [isLoading, setIsLoading] = useState(false);
+    // Client-side filter state
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -119,50 +130,35 @@ export default function RolesIndex({ roles, filters }: Props) {
         );
     }, [columnVisibility]);
 
-    // Use useRef to track if this is the initial mount
-    const isInitialMount = useRef(true);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Client-side filtering - instant results
+    const filteredRoles = useMemo(() => {
+        return roles.data.filter((role) => {
+            // Search filter - only match role name with prefix
+            const matchesSearch =
+                searchQuery === "" ||
+                role.name.toLowerCase().startsWith(searchQuery.toLowerCase());
 
-    // Auto-search with debouncing
+            return matchesSearch;
+        });
+    }, [roles.data, searchQuery]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredRoles.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedRoles = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredRoles.slice(start, end);
+    }, [filteredRoles, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
     useEffect(() => {
-        // Skip the initial mount
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        // Clear previous timer
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        // Set new timer for debounced search
-        debounceTimer.current = setTimeout(() => {
-            router.get(
-                "/roles",
-                {
-                    search: search || undefined,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                }
-            );
-        }, 500); // 500ms debounce
-
-        // Cleanup function
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [search]);
-
-    // Update state when filters change from server (e.g., pagination)
-    useEffect(() => {
-        setSearch(filters.search || "");
-    }, [filters.search]);
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -224,8 +220,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search roles..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
                         />
                     </div>
@@ -326,210 +322,259 @@ export default function RolesIndex({ roles, filters }: Props) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {roles.data.map((role) => (
-                                <div
-                                    key={role.id}
-                                    className="p-4 hover:bg-muted/50"
-                                >
+                            {paginatedRoles.length === 0 ? (
+                                <div className="col-span-full p-12">
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Shield className="h-8 w-8" />
+                                            </EmptyMedia>
+                                            <EmptyTitle className="text-xl">
+                                                No roles found
+                                            </EmptyTitle>
+                                            <EmptyDescription className="text-base">
+                                                {searchQuery
+                                                    ? "No roles match your search. Try adjusting your search criteria."
+                                                    : "Get started by creating your first role."}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent className="flex gap-2">
+                                            {searchQuery && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setSearchQuery("")
+                                                    }
+                                                >
+                                                    Clear Search
+                                                </Button>
+                                            )}
+                                            {!searchQuery && (
+                                                <Link href="/roles/create">
+                                                    <Button>
+                                                        <Shield className="h-4 w-4 mr-2" />
+                                                        Create Role
+                                                    </Button>
+                                                </Link>
+                                            )}
+                                        </EmptyContent>
+                                    </Empty>
+                                </div>
+                            ) : (
+                                paginatedRoles.map((role) => (
                                     <div
-                                        className="grid gap-4 items-start"
-                                        style={{
-                                            gridTemplateColumns: `3fr ${
-                                                columnVisibility.permissions
-                                                    ? "4fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.users
-                                                    ? "2fr"
-                                                    : ""
-                                            } ${
-                                                columnVisibility.type
-                                                    ? "2fr"
-                                                    : ""
-                                            } 1fr`.trim(),
-                                        }}
+                                        key={role.id}
+                                        className="p-4 hover:bg-muted/50"
                                     >
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Shield className="h-4 w-4 text-muted-foreground" />
-                                                <span className="font-medium capitalize">
-                                                    {role.name}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {columnVisibility.permissions && (
+                                        <div
+                                            className="grid gap-4 items-start"
+                                            style={{
+                                                gridTemplateColumns: `3fr ${
+                                                    columnVisibility.permissions
+                                                        ? "4fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.users
+                                                        ? "2fr"
+                                                        : ""
+                                                } ${
+                                                    columnVisibility.type
+                                                        ? "2fr"
+                                                        : ""
+                                                } 1fr`.trim(),
+                                            }}
+                                        >
                                             <div>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {role.permissions
-                                                        .slice(0, 3)
-                                                        .map((permission) => (
-                                                            <Badge
-                                                                key={
-                                                                    permission.id
-                                                                }
-                                                                variant="outline"
-                                                                className="text-xs"
-                                                            >
-                                                                {
-                                                                    permission.name
-                                                                }
-                                                            </Badge>
-                                                        ))}
-                                                    {role.permissions.length >
-                                                        3 && (
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                        >
-                                                            +
-                                                            {role.permissions
-                                                                .length -
-                                                                3}{" "}
-                                                            more
-                                                        </Badge>
-                                                    )}
-                                                    {role.permissions.length ===
-                                                        0 && (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            No permissions
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {columnVisibility.users && (
-                                            <div>
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="text-sm">
-                                                        {role.users_count} users
+                                                <div className="flex items-center gap-2">
+                                                    <Shield className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="font-medium capitalize">
+                                                        {role.name}
                                                     </span>
                                                 </div>
                                             </div>
-                                        )}
-                                        {columnVisibility.type && (
+                                            {columnVisibility.permissions && (
+                                                <div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {role.permissions
+                                                            .slice(0, 3)
+                                                            .map(
+                                                                (
+                                                                    permission
+                                                                ) => (
+                                                                    <Badge
+                                                                        key={
+                                                                            permission.id
+                                                                        }
+                                                                        variant="outline"
+                                                                        className="text-xs"
+                                                                    >
+                                                                        {
+                                                                            permission.name
+                                                                        }
+                                                                    </Badge>
+                                                                )
+                                                            )}
+                                                        {role.permissions
+                                                            .length > 3 && (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="text-xs"
+                                                            >
+                                                                +
+                                                                {role
+                                                                    .permissions
+                                                                    .length -
+                                                                    3}{" "}
+                                                                more
+                                                            </Badge>
+                                                        )}
+                                                        {role.permissions
+                                                            .length === 0 && (
+                                                            <span className="text-sm text-muted-foreground">
+                                                                No permissions
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {columnVisibility.users && (
+                                                <div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm">
+                                                            {role.users_count}{" "}
+                                                            users
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {columnVisibility.type && (
+                                                <div>
+                                                    {getSystemRoleBadge(
+                                                        role.name
+                                                    )}
+                                                </div>
+                                            )}
                                             <div>
-                                                {getSystemRoleBadge(role.name)}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <Link
-                                                    href={`/roles/${role.id}/edit`}
-                                                >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
+                                                <div className="flex items-center gap-2">
+                                                    <Link
+                                                        href={`/roles/${role.id}/edit`}
                                                     >
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
                                                         >
-                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <Pencil className="h-4 w-4" />
                                                         </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
+                                                    </Link>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
                                                             asChild
                                                         >
-                                                            <Link
-                                                                href={`/roles/${role.id}/edit`}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                             >
-                                                                Edit role
-                                                                <Edit className="ml-9 h-4 w-4" />
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        {role.name.toLowerCase() !==
-                                                            "superadmin" && (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <AlertDialog>
-                                                                    <AlertDialogTrigger
-                                                                        asChild
-                                                                    >
-                                                                        <DropdownMenuItem
-                                                                            onSelect={(
-                                                                                e
-                                                                            ) =>
-                                                                                e.preventDefault()
-                                                                            }
-                                                                            className="text-red-600 focus:text-red-600"
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem
+                                                                asChild
+                                                            >
+                                                                <Link
+                                                                    href={`/roles/${role.id}/edit`}
+                                                                >
+                                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                                    Edit role
+                                                                </Link>
+                                                            </DropdownMenuItem>
+                                                            {role.name.toLowerCase() !==
+                                                                "superadmin" && (
+                                                                <>
+                                                                    <DropdownMenuSeparator />
+                                                                    <AlertDialog>
+                                                                        <AlertDialogTrigger
+                                                                            asChild
                                                                         >
-                                                                            Delete
-                                                                            role
-                                                                        </DropdownMenuItem>
-                                                                    </AlertDialogTrigger>
-                                                                    <AlertDialogContent>
-                                                                        <AlertDialogHeader>
-                                                                            <AlertDialogTitle>
-                                                                                Are
-                                                                                you
-                                                                                absolutely
-                                                                                sure?
-                                                                            </AlertDialogTitle>
-                                                                            <AlertDialogDescription>
-                                                                                This
-                                                                                action
-                                                                                cannot
-                                                                                be
-                                                                                undone.
-                                                                                This
-                                                                                will
-                                                                                permanently
-                                                                                delete
-                                                                                the
-                                                                                role
-                                                                                "
-                                                                                {
-                                                                                    role.name
+                                                                            <DropdownMenuItem
+                                                                                onSelect={(
+                                                                                    e
+                                                                                ) =>
+                                                                                    e.preventDefault()
                                                                                 }
-
-                                                                                "
-                                                                                and
-                                                                                remove
-                                                                                it
-                                                                                from
-                                                                                all
-                                                                                users
-                                                                                who
-                                                                                have
-                                                                                it
-                                                                                assigned.
-                                                                            </AlertDialogDescription>
-                                                                        </AlertDialogHeader>
-                                                                        <AlertDialogFooter>
-                                                                            <AlertDialogCancel>
-                                                                                Cancel
-                                                                            </AlertDialogCancel>
-                                                                            <AlertDialogAction
-                                                                                onClick={() =>
-                                                                                    handleDelete(
-                                                                                        role.id
-                                                                                    )
-                                                                                }
-                                                                                className="bg-red-600 hover:bg-red-700"
+                                                                                className="text-red-600 focus:text-red-600"
                                                                             >
+                                                                                <Trash className="mr-2 h-4 w-4" />
                                                                                 Delete
-                                                                            </AlertDialogAction>
-                                                                        </AlertDialogFooter>
-                                                                    </AlertDialogContent>
-                                                                </AlertDialog>
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                                                role
+                                                                            </DropdownMenuItem>
+                                                                        </AlertDialogTrigger>
+                                                                        <AlertDialogContent>
+                                                                            <AlertDialogHeader>
+                                                                                <AlertDialogTitle>
+                                                                                    Are
+                                                                                    you
+                                                                                    absolutely
+                                                                                    sure?
+                                                                                </AlertDialogTitle>
+                                                                                <AlertDialogDescription>
+                                                                                    This
+                                                                                    action
+                                                                                    cannot
+                                                                                    be
+                                                                                    undone.
+                                                                                    This
+                                                                                    will
+                                                                                    permanently
+                                                                                    delete
+                                                                                    the
+                                                                                    role
+                                                                                    "
+                                                                                    {
+                                                                                        role.name
+                                                                                    }
+
+                                                                                    "
+                                                                                    and
+                                                                                    remove
+                                                                                    it
+                                                                                    from
+                                                                                    all
+                                                                                    users
+                                                                                    who
+                                                                                    have
+                                                                                    it
+                                                                                    assigned.
+                                                                                </AlertDialogDescription>
+                                                                            </AlertDialogHeader>
+                                                                            <AlertDialogFooter>
+                                                                                <AlertDialogCancel>
+                                                                                    Cancel
+                                                                                </AlertDialogCancel>
+                                                                                <AlertDialogAction
+                                                                                    onClick={() =>
+                                                                                        handleDelete(
+                                                                                            role.id
+                                                                                        )
+                                                                                    }
+                                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                                >
+                                                                                    Delete
+                                                                                </AlertDialogAction>
+                                                                            </AlertDialogFooter>
+                                                                        </AlertDialogContent>
+                                                                    </AlertDialog>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
@@ -537,31 +582,22 @@ export default function RolesIndex({ roles, filters }: Props) {
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {(roles.current_page - 1) * roles.per_page + 1}{" "}
-                        to{" "}
-                        {Math.min(
-                            roles.current_page * roles.per_page,
-                            roles.total
-                        )}{" "}
-                        of {roles.total} row(s).
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={String(roles.per_page)}
+                                value={String(perPage)}
                                 onValueChange={(value) => {
-                                    router.get("/roles", {
-                                        ...filters,
-                                        per_page: value,
-                                        page: 1,
-                                    });
+                                    setPerPage(Number(value));
+                                    setCurrentPage(1);
                                 }}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
                                     <SelectValue
-                                        placeholder={String(roles.per_page)}
+                                        placeholder={String(perPage)}
                                     />
                                 </SelectTrigger>
                                 <SelectContent side="top">
@@ -574,19 +610,14 @@ export default function RolesIndex({ roles, filters }: Props) {
                             </Select>
                         </div>
                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                            Page {roles.current_page} of {roles.last_page}
+                            Page {currentPage} of {lastPage || 1}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: 1,
-                                    })
-                                }
-                                disabled={roles.current_page === 1}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to first page
@@ -610,13 +641,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: roles.current_page - 1,
-                                    })
-                                }
-                                disabled={roles.current_page === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to previous page
@@ -639,15 +665,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: roles.current_page + 1,
-                                    })
-                                }
-                                disabled={
-                                    roles.current_page === roles.last_page
-                                }
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to next page</span>
                                 <svg
@@ -668,15 +687,8 @@ export default function RolesIndex({ roles, filters }: Props) {
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/roles", {
-                                        ...filters,
-                                        page: roles.last_page,
-                                    })
-                                }
-                                disabled={
-                                    roles.current_page === roles.last_page
-                                }
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to last page</span>
                                 <svg

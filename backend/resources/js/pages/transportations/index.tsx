@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -35,8 +42,8 @@ import {
     Search,
     Plus,
     Eye,
-    Edit,
-    Trash2,
+    Pencil,
+    Trash,
     Bus,
     MapPin,
     Users,
@@ -49,6 +56,8 @@ import {
     ChevronsRight,
     MoreHorizontal,
     Calendar,
+    ArrowUp,
+    ArrowDown,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -118,8 +127,44 @@ export default function TransportationIndex({
     transportations,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search || "");
-    const [isLoading, setIsLoading] = useState(false);
+    // Client-side filter state
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+
+    // Client-side filtering - instant results
+    const filteredTransportations = useMemo(() => {
+        return transportations.data.filter((transport) => {
+            // Search filter - only match place name with prefix
+            const matchesSearch =
+                searchQuery === "" ||
+                transport.place.name
+                    .toLowerCase()
+                    .startsWith(searchQuery.toLowerCase());
+
+            return matchesSearch;
+        });
+    }, [transportations.data, searchQuery]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredTransportations.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedTransportations = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredTransportations.slice(start, end);
+    }, [filteredTransportations, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
     const [deleteDialog, setDeleteDialog] = useState<{
         open: boolean;
         id: number | null;
@@ -160,52 +205,6 @@ export default function TransportationIndex({
         );
     }, [columnVisibility]);
 
-    const isInitialMount = useRef(true);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Set initial mount to false after first render
-    useEffect(() => {
-        isInitialMount.current = false;
-    }, []);
-
-    // Auto-search with debouncing
-    useEffect(() => {
-        if (isInitialMount.current) {
-            return;
-        }
-
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => {
-            setIsLoading(true);
-            router.get(
-                "/transportations",
-                {
-                    search: search || undefined,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                    onFinish: () => setIsLoading(false),
-                }
-            );
-        }, 500);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [search]);
-
-    // Update state when filters change from server
-    useEffect(() => {
-        setSearch(filters.search || "");
-    }, [filters.search]);
-
     const handleDelete = (id: number, name: string) => {
         setDeleteDialog({ open: true, id, name });
     };
@@ -220,14 +219,18 @@ export default function TransportationIndex({
         }
     };
 
-    const changePage = (page: number) => {
+    const navigateToPage = (page?: number, perPage?: number) => {
         router.get(
             "/transportations",
             {
-                search: search || undefined,
-                page: page,
+                page: page || transportations.current_page,
+                per_page: perPage || transportations.per_page,
             },
-            { preserveState: true, preserveScroll: true }
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ["transportations", "filters"],
+            }
         );
     };
 
@@ -253,91 +256,101 @@ export default function TransportationIndex({
                         </Button>
                     </Link>
                 </div>
-
-                {/* Filters */}
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
+                {/* Unified Filters */}
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Single unified search */}
+                    <div className="relative w-full sm:w-[320px]">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by company name, place, or owner..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search transportations..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
                         />
+                        {searchQuery && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-1 top-1 h-7 w-7 p-0"
+                                onClick={() => setSearchQuery("")}
+                            >
+                                ×
+                            </Button>
+                        )}
                     </div>
 
                     {/* Column Toggle */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="ml-auto"
+                    <div className="ml-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <Settings2 className="h-4 w-4" />
+                                    View
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                className="w-[150px]"
                             >
-                                <Settings2 className="h-4 w-4" />
-                                View
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[150px]">
-                            <DropdownMenuCheckboxItem
-                                checked={columnVisibility.location}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        location: !!value,
-                                    }))
-                                }
-                            >
-                                Location
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                checked={columnVisibility.owner}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        owner: !!value,
-                                    }))
-                                }
-                            >
-                                Owner
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                checked={columnVisibility.buses}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        buses: !!value,
-                                    }))
-                                }
-                            >
-                                Buses
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                checked={columnVisibility.routes}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        routes: !!value,
-                                    }))
-                                }
-                            >
-                                Active Routes
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                checked={columnVisibility.capacity}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        capacity: !!value,
-                                    }))
-                                }
-                            >
-                                Total Capacity
-                            </DropdownMenuCheckboxItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.location}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            location: !!value,
+                                        }))
+                                    }
+                                >
+                                    Location
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.owner}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            owner: !!value,
+                                        }))
+                                    }
+                                >
+                                    Owner
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.buses}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            buses: !!value,
+                                        }))
+                                    }
+                                >
+                                    Buses
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.routes}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            routes: !!value,
+                                        }))
+                                    }
+                                >
+                                    Active Routes
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.capacity}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            capacity: !!value,
+                                        }))
+                                    }
+                                >
+                                    Total Capacity
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>{" "}
                 {/* Table */}
                 <div className="rounded-md border overflow-hidden">
                     <div className="overflow-x-auto">
@@ -378,313 +391,290 @@ export default function TransportationIndex({
                                 </tr>
                             </thead>
                             <tbody>
-                                {isLoading ? (
-                                    // Skeleton loading state
-                                    Array.from({ length: 5 }).map(
-                                        (_, index) => (
-                                            <tr
-                                                key={index}
-                                                className="border-b"
-                                            >
-                                                <td className="p-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <Skeleton className="h-12 w-12 rounded-lg" />
-                                                        <div className="space-y-2">
-                                                            <Skeleton className="h-4 w-32" />
-                                                            <Skeleton className="h-3 w-48" />
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                {columnVisibility.location && (
-                                                    <td className="p-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <Skeleton className="h-4 w-4" />
-                                                            <Skeleton className="h-4 w-24" />
-                                                        </div>
-                                                    </td>
-                                                )}
-                                                {columnVisibility.owner && (
-                                                    <td className="p-4">
-                                                        <div className="space-y-1">
-                                                            <Skeleton className="h-4 w-28" />
-                                                            <Skeleton className="h-3 w-32" />
-                                                        </div>
-                                                    </td>
-                                                )}
-                                                {columnVisibility.buses && (
-                                                    <td className="p-4">
-                                                        <Skeleton className="h-4 w-8" />
-                                                    </td>
-                                                )}
-                                                {columnVisibility.routes && (
-                                                    <td className="p-4">
-                                                        <Skeleton className="h-4 w-8" />
-                                                    </td>
-                                                )}
-                                                {columnVisibility.capacity && (
-                                                    <td className="p-4">
-                                                        <Skeleton className="h-4 w-12" />
-                                                    </td>
-                                                )}
-                                                <td className="p-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <Skeleton className="h-8 w-8 rounded-md" />
-                                                        <Skeleton className="h-8 w-8 rounded-md" />
-                                                        <Skeleton className="h-8 w-8 rounded-md" />
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )
-                                    )
-                                ) : transportations.data.length === 0 ? (
+                                {paginatedTransportations.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={7}
-                                            className="h-24 text-center text-muted-foreground"
+                                            className="h-48 text-center"
                                         >
-                                            No transportation companies found.
+                                            <Empty>
+                                                <EmptyHeader>
+                                                    <EmptyMedia variant="icon">
+                                                        <Bus className="h-8 w-8" />
+                                                    </EmptyMedia>
+                                                    <EmptyTitle className="text-xl">
+                                                        No transportations found
+                                                    </EmptyTitle>
+                                                    <EmptyDescription className="text-base">
+                                                        {searchQuery
+                                                            ? "No transportations match your search. Try adjusting your search criteria."
+                                                            : "Get started by adding your first transportation company."}
+                                                    </EmptyDescription>
+                                                </EmptyHeader>
+                                                <EmptyContent className="flex gap-2 justify-center">
+                                                    {searchQuery && (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setSearchQuery(
+                                                                    ""
+                                                                )
+                                                            }
+                                                        >
+                                                            Clear Search
+                                                        </Button>
+                                                    )}
+                                                </EmptyContent>
+                                            </Empty>
                                         </td>
                                     </tr>
                                 ) : (
-                                    transportations.data.map((transport) => (
-                                        <tr
-                                            key={transport.id}
-                                            className="border-b transition-colors hover:bg-muted/50"
-                                        >
-                                            {/* Company Name */}
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    {transport.place
-                                                        .images_url &&
-                                                    transport.place.images_url
-                                                        .length > 0 ? (
-                                                        <img
-                                                            src={
-                                                                transport.place
-                                                                    .images_url[0]
-                                                            }
-                                                            alt={
-                                                                transport.place
-                                                                    .name
-                                                            }
-                                                            className="h-12 w-12 rounded-lg object-cover"
-                                                            onError={(e) => {
-                                                                // Fallback to icon if image fails to load
-                                                                e.currentTarget.style.display =
-                                                                    "none";
-                                                                if (
+                                    paginatedTransportations.map(
+                                        (transport) => (
+                                            <tr
+                                                key={transport.id}
+                                                className="border-b transition-colors hover:bg-muted/50"
+                                            >
+                                                {/* Company Name */}
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        {transport.place
+                                                            .images_url &&
+                                                        transport.place
+                                                            .images_url.length >
+                                                            0 ? (
+                                                            <img
+                                                                src={
+                                                                    transport
+                                                                        .place
+                                                                        .images_url[0]
+                                                                }
+                                                                alt={
+                                                                    transport
+                                                                        .place
+                                                                        .name
+                                                                }
+                                                                className="h-12 w-12 rounded-lg object-cover"
+                                                                onError={(
                                                                     e
-                                                                        .currentTarget
-                                                                        .nextElementSibling
-                                                                ) {
-                                                                    (
+                                                                ) => {
+                                                                    // Fallback to icon if image fails to load
+                                                                    e.currentTarget.style.display =
+                                                                        "none";
+                                                                    if (
                                                                         e
                                                                             .currentTarget
-                                                                            .nextElementSibling as HTMLElement
-                                                                    ).style.display =
-                                                                        "flex";
-                                                                }
+                                                                            .nextElementSibling
+                                                                    ) {
+                                                                        (
+                                                                            e
+                                                                                .currentTarget
+                                                                                .nextElementSibling as HTMLElement
+                                                                        ).style.display =
+                                                                            "flex";
+                                                                    }
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <div
+                                                            className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10"
+                                                            style={{
+                                                                display:
+                                                                    transport
+                                                                        .place
+                                                                        .images_url &&
+                                                                    transport
+                                                                        .place
+                                                                        .images_url
+                                                                        .length >
+                                                                        0
+                                                                        ? "none"
+                                                                        : "flex",
                                                             }}
-                                                        />
-                                                    ) : null}
-                                                    <div
-                                                        className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10"
-                                                        style={{
-                                                            display:
-                                                                transport.place
-                                                                    .images_url &&
-                                                                transport.place
-                                                                    .images_url
-                                                                    .length > 0
-                                                                    ? "none"
-                                                                    : "flex",
-                                                        }}
-                                                    >
-                                                        <Bus className="h-6 w-6 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-medium">
-                                                            {
-                                                                transport.place
-                                                                    .name
-                                                            }
+                                                        >
+                                                            <Bus className="h-6 w-6 text-primary" />
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {transport.place
-                                                                .description
-                                                                ? transport.place.description.substring(
-                                                                      0,
-                                                                      50
-                                                                  ) + "..."
-                                                                : "Transportation Company"}
+                                                        <div>
+                                                            <div className="font-medium">
+                                                                {
+                                                                    transport
+                                                                        .place
+                                                                        .name
+                                                                }
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {transport.place
+                                                                    .description
+                                                                    ? transport.place.description.substring(
+                                                                          0,
+                                                                          50
+                                                                      ) + "..."
+                                                                    : "Transportation Company"}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
+                                                </td>
 
-                                            {/* Location */}
-                                            {columnVisibility.location && (
+                                                {/* Location */}
+                                                {columnVisibility.location && (
+                                                    <td className="p-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <span>
+                                                                {transport.place
+                                                                    .provinceCategory
+                                                                    ?.province_categoryName ||
+                                                                    "N/A"}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                )}
+
+                                                {/* Owner */}
+                                                {columnVisibility.owner && (
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">
+                                                                {
+                                                                    transport
+                                                                        .owner
+                                                                        .name
+                                                                }
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {
+                                                                    transport
+                                                                        .owner
+                                                                        .email
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                )}
+
+                                                {/* Buses */}
+                                                {columnVisibility.buses && (
+                                                    <td className="p-4">
+                                                        <span className="font-semibold">
+                                                            {transport.buses_count ||
+                                                                0}
+                                                        </span>
+                                                    </td>
+                                                )}
+
+                                                {/* Active Routes */}
+                                                {columnVisibility.routes && (
+                                                    <td className="p-4">
+                                                        <Badge variant="outline">
+                                                            {transport.active_routes_count ||
+                                                                0}{" "}
+                                                            routes
+                                                        </Badge>
+                                                    </td>
+                                                )}
+
+                                                {/* Total Capacity */}
+                                                {columnVisibility.capacity && (
+                                                    <td className="p-4">
+                                                        <span>
+                                                            {transport.total_capacity ||
+                                                                0}
+                                                        </span>
+                                                    </td>
+                                                )}
+
+                                                {/* Actions */}
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-2">
-                                                        <span>
-                                                            {transport.place
-                                                                .provinceCategory
-                                                                ?.province_categoryName ||
-                                                                "N/A"}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            )}
-
-                                            {/* Owner */}
-                                            {columnVisibility.owner && (
-                                                <td className="p-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">
-                                                            {
-                                                                transport.owner
-                                                                    .name
-                                                            }
-                                                        </span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {
-                                                                transport.owner
-                                                                    .email
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            )}
-
-                                            {/* Buses */}
-                                            {columnVisibility.buses && (
-                                                <td className="p-4">
-                                                    <span className="font-semibold">
-                                                        {transport.buses_count ||
-                                                            0}
-                                                    </span>
-                                                </td>
-                                            )}
-
-                                            {/* Active Routes */}
-                                            {columnVisibility.routes && (
-                                                <td className="p-4">
-                                                    <Badge variant="outline">
-                                                        {transport.active_routes_count ||
-                                                            0}{" "}
-                                                        routes
-                                                    </Badge>
-                                                </td>
-                                            )}
-
-                                            {/* Total Capacity */}
-                                            {columnVisibility.capacity && (
-                                                <td className="p-4">
-                                                    <span>
-                                                        {transport.total_capacity ||
-                                                            0}
-                                                    </span>
-                                                </td>
-                                            )}
-
-                                            {/* Actions */}
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Link
-                                                        href={`/transportations/${transport.id}/edit`}
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                    </Link>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger
-                                                            asChild
+                                                        <Link
+                                                            href={`/transportations/${transport.id}/edit`}
                                                         >
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
                                                             >
-                                                                <MoreHorizontal className="h-4 w-4" />
+                                                                <Pencil className="h-4 w-4" />
                                                             </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem
+                                                        </Link>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger
                                                                 asChild
                                                             >
-                                                                <Link
-                                                                    href={`/transportations/${transport.id}`}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
                                                                 >
-                                                                    View Details
-                                                                    <Eye className="h-4 w-4 ml-13" />
-                                                                </Link>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                asChild
-                                                            >
-                                                                <Link
-                                                                    href={`/transportations/${transport.id}/edit`}
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    asChild
                                                                 >
-                                                                    Edit
-                                                                    Transportation
-                                                                    <Edit className="h-4 w-4 ml-2" />
-                                                                </Link>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                className="text-destructive focus:text-destructive"
-                                                                onClick={() =>
-                                                                    handleDelete(
-                                                                        transport.id,
-                                                                        transport
-                                                                            .place
-                                                                            .name
-                                                                    )
-                                                                }
-                                                            >
-                                                                Delete
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                                    <Link
+                                                                        href={`/transportations/${transport.id}`}
+                                                                    >
+                                                                        <Eye className="h-4 w-4 mr-2" />
+                                                                        View
+                                                                        Details
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    asChild
+                                                                >
+                                                                    <Link
+                                                                        href={`/transportations/${transport.id}/edit`}
+                                                                    >
+                                                                        <Pencil className="h-4 w-4 mr-2" />
+                                                                        Edit
+                                                                        Transportation
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive focus:text-destructive"
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            transport.id,
+                                                                            transport
+                                                                                .place
+                                                                                .name
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash className="h-4 w-4 mr-2" />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    )
                                 )}
                             </tbody>
                         </table>
                     </div>
                 </div>
-
                 {/* Pagination */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {transportations.from || 0} to{" "}
-                        {transportations.to || 0} of {transportations.total}{" "}
-                        row(s).
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={String(transportations.per_page || 10)}
+                                value={String(perPage)}
                                 onValueChange={(value) => {
-                                    router.get("/transportations", {
-                                        search: search || undefined,
-                                        per_page: value,
-                                        page: 1,
-                                    });
+                                    setPerPage(Number(value));
+                                    setCurrentPage(1);
                                 }}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
                                     <SelectValue
-                                        placeholder={String(
-                                            transportations.per_page || 10
-                                        )}
+                                        placeholder={String(perPage)}
                                     />
                                 </SelectTrigger>
                                 <SelectContent side="top">
@@ -700,15 +690,14 @@ export default function TransportationIndex({
                             </Select>
                         </div>
                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                            Page {transportations.current_page} of{" "}
-                            {transportations.last_page}
+                            Page {currentPage} of {lastPage || 1}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() => changePage(1)}
-                                disabled={transportations.current_page === 1}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to first page
@@ -718,10 +707,8 @@ export default function TransportationIndex({
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    changePage(transportations.current_page - 1)
-                                }
-                                disabled={transportations.current_page === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to previous page
@@ -731,13 +718,8 @@ export default function TransportationIndex({
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    changePage(transportations.current_page + 1)
-                                }
-                                disabled={
-                                    transportations.current_page ===
-                                    transportations.last_page
-                                }
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to next page</span>
                                 <ChevronRight className="h-4 w-4" />
@@ -745,13 +727,8 @@ export default function TransportationIndex({
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    changePage(transportations.last_page)
-                                }
-                                disabled={
-                                    transportations.current_page ===
-                                    transportations.last_page
-                                }
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to last page</span>
                                 <ChevronsRight className="h-4 w-4" />

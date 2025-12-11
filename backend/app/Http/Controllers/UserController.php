@@ -20,12 +20,19 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // Search functionality
+        // Search functionality (prefix filtering with word boundaries)
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+            $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], trim($request->search));
+            
+            $query->where(function ($q) use ($escapedTerm) {
+                $q->where('name', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+                  ->orWhere('email', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('email', 'LIKE', '% ' . $escapedTerm . '%')
+                  ->orWhere('username', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('username', 'LIKE', '% ' . $escapedTerm . '%')
+                  ->orWhere('phone_number', 'LIKE', $escapedTerm . '%')
+                  ->orWhere('phone_number', 'LIKE', '% ' . $escapedTerm . '%');
             });
         }
 
@@ -42,7 +49,10 @@ class UserController extends Controller
         }
 
         $users = $query->with('roles')
-                      ->orderBy('created_at', 'desc')
+                      ->when(!$request->filled('search'), function ($q) {
+                          // Only order by name alphabetically if no search term
+                          return $q->orderBy('name', 'asc');
+                      })
                       ->paginate(10)
                       ->withQueryString();
 

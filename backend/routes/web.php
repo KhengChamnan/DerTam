@@ -35,9 +35,7 @@ Route::middleware([
     'redirect.transportation.owners',
 ])->group(function () {
     Route::middleware(['auth', 'verified'])->group(function () {
-        Route::get('dashboard', function () {
-            return Inertia::render('dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
         // ============================================
         //  PLACE CRUD
@@ -174,6 +172,9 @@ Route::middleware([
                 ->name('properties.show');
             Route::get('/rooms', [HotelOwnerController::class, 'allRooms'])->name('rooms.all');
             Route::get('/bookings', [HotelOwnerController::class, 'bookings'])->name('bookings.index');
+            Route::get('/bookings/{id}', [HotelOwnerController::class, 'showBooking'])->name('bookings.show');
+            Route::get('/bookings/{id}/edit', [HotelOwnerController::class, 'editBooking'])->name('bookings.edit');
+            Route::put('/bookings/{id}', [HotelOwnerController::class, 'updateBooking'])->name('bookings.update');
             
             // Room Property (Room Types) Management
             Route::prefix('properties/{property_id}/room-properties')
