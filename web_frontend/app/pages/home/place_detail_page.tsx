@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles , MapPinHouse, LucideHotel, Utensils} from "lucide-react";
 import { getPlaceById, type Place } from "~/api/place";
 import Navigation from "~/components/navigation";
 import PlaceHeader from "./components/placeheader";
@@ -21,7 +21,7 @@ export default function PlaceDetailPage() {
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const [showAllHotels, setShowAllHotels] = useState(false);
   const [showAllRestaurants, setShowAllRestaurants] = useState(false);
-
+  
   useEffect(() => {
     if (id) {
       loadPlaceDetails(id);
@@ -93,10 +93,10 @@ export default function PlaceDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
       <Navigation activeNav="Destinations" />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
         <PlaceHeader 
           name={place.name}
           location={place.location}
@@ -117,7 +117,7 @@ export default function PlaceDetailPage() {
           onImageClick={handleImageClick}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mt-8">
           <div className="lg:col-span-2 space-y-6">
             <DetailInfo
               description={place.description}
@@ -129,37 +129,39 @@ export default function PlaceDetailPage() {
             <GuideSection tips={place.tips || []} />
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 pb-6">
             {/* Nearby Places */}
             {place.nearbyPlaces && place.nearbyPlaces.length > 0 && (
-              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-6 border-2 border-gray-100">
-                <div className="mb-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-14 h-14 bg-gray-300 rounded-xl flex items-center justify-center">
-                        <span className="text-2xl">📍</span>
+              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-4 sm:p-6 border-2 border-gray-100 overflow-hidden">
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2 overflow-hidden">
+                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-300 rounded-xl flex items-center justify-center shrink-0">
+                        <span className="text-xl sm:text-2xl">
+                          <MapPinHouse className="w-5 h-5 sm:w-6 sm:h-6"/>
+                        </span>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-0.5">Nearby Places</h3>
-                        <p className="text-xs text-gray-500">Locations within 5km radius</p>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-0.5 truncate">Nearby Places</h3>
+                        <p className="text-xs text-gray-500 truncate">Locations within 5km radius</p>
                         {/* <div className="flex items-center gap-2 mt-1.5">
                           <span className="text-xs text-[#01005B] bg-[#01005B]/10 px-2 py-0.5 rounded font-medium">Updated</span>
                         </div> */}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-4xl font-black text-[#01005B] leading-none">{place.nearbyPlaces.length}</div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-3xl sm:text-4xl font-black text-[#01005B] leading-none">{place.nearbyPlaces.length}</div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Total</div>
                     </div>
                   </div>
                   
                   {place.nearbyPlaces.length > 2 && (
-                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-[#01005B] rounded-full"></div>
-                        <span className="text-sm text-gray-700">Showing <span className="font-bold text-[#01005B]">{showAllPlaces ? place.nearbyPlaces.length : 2}</span> of {place.nearbyPlaces.length}</span>
+                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-hidden">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="w-2 h-2 bg-[#01005B] rounded-full shrink-0"></div>
+                        <span className="text-xs sm:text-sm text-gray-700 break-words">Showing <span className="font-bold text-[#01005B]">{showAllPlaces ? place.nearbyPlaces.length : 2}</span> of {place.nearbyPlaces.length}</span>
                       </div>
-                      <span className="text-xs text-gray-500 font-medium">{place.nearbyPlaces.length - 2} more items</span>
+                      <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{place.nearbyPlaces.length - 2} more items</span>
                     </div>
                   )}
                 </div>
@@ -171,7 +173,7 @@ export default function PlaceDetailPage() {
                 {place.nearbyPlaces.length > 2 && (
                   <button
                     onClick={() => setShowAllPlaces(!showAllPlaces)}
-                    className="w-full mt-5 py-3 px-5 bg-[#01005B] text-white text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
+                    className="w-full mt-4 sm:mt-5 py-2.5 sm:py-3 px-4 sm:px-5 bg-[#01005B] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
                   >
                     {showAllPlaces ? (
                       <>
@@ -191,34 +193,36 @@ export default function PlaceDetailPage() {
 
             {/* Nearby Hotels */}
             {place.nearbyHotels && place.nearbyHotels.length > 0 && (
-              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-6 border-2 border-gray-100">
-                <div className="mb-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-14 h-14 bg-gray-300 rounded-xl flex items-center justify-center shadow-sm">
-                        <span className="text-2xl">🏨</span>
+              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-4 sm:p-6 border-2 border-gray-100 overflow-hidden">
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2 overflow-hidden">
+                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-300 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                        <span className="text-xl sm:text-2xl">
+                          <LucideHotel className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </span>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-0.5">Nearby Hotels</h3>
-                        <p className="text-xs text-gray-500">Accommodations nearby</p>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-0.5 truncate">Nearby Hotels</h3>
+                        <p className="text-xs text-gray-500 truncate">Accommodations nearby</p>
                         {/* <div className="flex items-center gap-2 mt-1.5">
                           <span className="text-xs text-[#01005B] bg-[#01005B]/10 px-2 py-0.5 rounded font-medium">Updated</span>
                         </div> */}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-4xl font-black text-[#01005B] leading-none">{place.nearbyHotels.length}</div>
+                    <div className="text-right shrink-0 min-w-[60px] max-w-[80px]">
+                      <div className="text-2xl sm:text-3xl md:text-4xl font-black text-[#01005B] leading-none break-words">{place.nearbyHotels.length}</div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Total</div>
                     </div>
                   </div>
                   
                   {place.nearbyHotels.length > 3 && (
-                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-[#01005B] rounded-full"></div>
-                        <span className="text-sm text-gray-700">Showing <span className="font-bold text-[#01005B]">{showAllHotels ? place.nearbyHotels.length : 3}</span> of {place.nearbyHotels.length}</span>
+                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-hidden">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="w-2 h-2 bg-[#01005B] rounded-full shrink-0"></div>
+                        <span className="text-xs sm:text-sm text-gray-700 break-words">Showing <span className="font-bold text-[#01005B]">{showAllHotels ? place.nearbyHotels.length : 3}</span> of {place.nearbyHotels.length}</span>
                       </div>
-                      <span className="text-xs text-gray-500 font-medium">{place.nearbyHotels.length - 3} more items</span>
+                      <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{place.nearbyHotels.length - 3} more items</span>
                     </div>
                   )}
                 </div>
@@ -230,7 +234,7 @@ export default function PlaceDetailPage() {
                 {place.nearbyHotels.length > 3 && (
                   <button
                     onClick={() => setShowAllHotels(!showAllHotels)}
-                    className="w-full mt-5 py-3 px-5 bg-[#01005B] text-white text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
+                    className="w-full mt-4 sm:mt-5 py-2.5 sm:py-3 px-4 sm:px-5 bg-[#01005B] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
                   >
                     {showAllHotels ? (
                       <>
@@ -250,31 +254,33 @@ export default function PlaceDetailPage() {
 
             {/* Nearby Restaurants */}
             {place.nearbyRestaurants && place.nearbyRestaurants.length > 0 && (
-              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-6 border-2 border-gray-100">
-                <div className="mb-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-14 h-14 bg-gray-300 rounded-xl flex items-center justify-center shadow-sm">
-                        <span className="text-2xl">🍽️</span>
+              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-4 sm:p-6 border-2 border-gray-100 overflow-hidden">
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2 overflow-hidden">
+                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-300 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                        <span className="text-xl sm:text-2xl">
+                          <Utensils className="w-5 h-5 sm:w-6 sm:h-6"/>
+                        </span>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-0.5">Nearby Restaurants</h3>
-                        <p className="text-xs text-gray-500">Dining options available</p>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-0.5 truncate">Nearby Restaurants</h3>
+                        <p className="text-xs text-gray-500 truncate">Dining options available</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-4xl font-black text-[#01005B] leading-none">{place.nearbyRestaurants.length}</div>
+                    <div className="text-right shrink-0 min-w-[60px] max-w-[80px]">
+                      <div className="text-2xl sm:text-3xl md:text-4xl font-black text-[#01005B] leading-none break-words">{place.nearbyRestaurants.length}</div>
                       <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Total</div>
                     </div>
                   </div>
                   
                   {place.nearbyRestaurants.length > 3 && (
-                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-[#01005B] rounded-full"></div>
-                        <span className="text-sm text-gray-700">Showing <span className="font-bold text-[#01005B]">{showAllRestaurants ? place.nearbyRestaurants.length : 3}</span> of {place.nearbyRestaurants.length}</span>
+                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-hidden">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="w-2 h-2 bg-[#01005B] rounded-full shrink-0"></div>
+                        <span className="text-xs sm:text-sm text-gray-700 break-words">Showing <span className="font-bold text-[#01005B]">{showAllRestaurants ? place.nearbyRestaurants.length : 3}</span> of {place.nearbyRestaurants.length}</span>
                       </div>
-                      <span className="text-xs text-gray-500 font-medium">{place.nearbyRestaurants.length - 3} more items</span>
+                      <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{place.nearbyRestaurants.length - 3} more items</span>
                     </div>
                   )}
                 </div>
@@ -286,7 +292,7 @@ export default function PlaceDetailPage() {
                 {place.nearbyRestaurants.length > 3 && (
                   <button
                     onClick={() => setShowAllRestaurants(!showAllRestaurants)}
-                    className="w-full mt-5 py-3 px-5 bg-[#01005B] text-white text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
+                    className="w-full mt-4 sm:mt-5 py-2.5 sm:py-3 px-4 sm:px-5 bg-[#01005B] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
                   >
                     {showAllRestaurants ? (
                       <>
