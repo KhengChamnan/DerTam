@@ -1,169 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Calendar, MapPin, Clock, Plus, X, ChevronRight, Edit2, DollarSign } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import PlaceCard from './components/place_card';
+import { createTrip, getPlacesForTripPlanning, addPlacesToTripDay, type PlaceForPlanning, type CreateTripData } from '../../api/trips';
 
+// Using PlaceForPlanning from API
 interface Place {
-  placeId: string;
+  placeID: number;
   name: string;
   description: string;
-  categoryId: number;
-  googleMapsLink: string;
+  category_id: number;
+  category_name: string;
+  google_maps_link: string;
   ratings: number;
-  reviewsCount: number;
-  imagesUrl: string;
-  imagePublicIds: string;
-  entryFree: boolean;
-  operatingHours: Record<string, any>;
-  bestSeasonToVisit: string;
-  provinceId: number;
+  reviews_count: number;
+  images_url: string[];
+  entry_free: boolean;
+  operating_hours?: any;
+  best_season_to_visit?: string;
+  province_id: number;
+  province_categoryName: string;
   latitude: number;
   longitude: number;
-  createdAt: string;
-  updatedAt: string;
-  locationName: string;
 }
 
 interface TripDay {
   dayNumber: number;
   date: string;
   places: Place[];
+  trip_day_id?: number; // Will be populated after trip creation
 }
 
 interface Trip {
-  id?: string;
-  userId?: string;
-  tripName: string;
-  startDate: string;
-  endDate: string;
+  trip_id?: number;
+  user_id?: number;
+  trip_name: string;
+  start_date: string;
+  end_date: string;
   days: TripDay[];
-  budgetId?: string;
   province?: string;
 }
 
-const mockPlaces: Place[] = [
-  { 
-    placeId: '1',
-    name: "Angkor Wat", 
-    description: "Ancient temple complex",
-    locationName: "Siem Reap",
-    imagesUrl: "https://images.unsplash.com/photo-1598616264509-edd7f9312b3c?w=400",
-    categoryId: 1,
-    googleMapsLink: "",
-    ratings: 4.8,
-    reviewsCount: 1250,
-    imagePublicIds: "",
-    entryFree: false,
-    operatingHours: { open: "05:00", close: "18:00" },
-    bestSeasonToVisit: "November to March",
-    provinceId: 1,
-    latitude: 13.4125,
-    longitude: 103.8670,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  { 
-    placeId: '2',
-    name: "Bayon Temple", 
-    description: "Famous for its smiling stone faces",
-    locationName: "Siem Reap",
-    imagesUrl: "https://images.unsplash.com/photo-1563931138-a7a5d4be4f0a?w=400",
-    categoryId: 1,
-    googleMapsLink: "",
-    ratings: 4.7,
-    reviewsCount: 980,
-    imagePublicIds: "",
-    entryFree: false,
-    operatingHours: { open: "05:00", close: "18:00" },
-    bestSeasonToVisit: "November to March",
-    provinceId: 1,
-    latitude: 13.4412,
-    longitude: 103.8589,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  { 
-    placeId: '3',
-    name: "Ta Prohm", 
-    description: "Temple embraced by giant tree roots",
-    locationName: "Siem Reap",
-    imagesUrl: "https://images.unsplash.com/photo-1547534208-b9a1cf0e5de0?w=400",
-    categoryId: 1,
-    googleMapsLink: "",
-    ratings: 4.9,
-    reviewsCount: 1100,
-    imagePublicIds: "",
-    entryFree: false,
-    operatingHours: { open: "07:00", close: "17:30" },
-    bestSeasonToVisit: "November to March",
-    provinceId: 1,
-    latitude: 13.4350,
-    longitude: 103.8892,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  { 
-    placeId: '4',
-    name: "Tonle Sap Lake", 
-    description: "Southeast Asia's largest freshwater lake",
-    locationName: "Siem Reap",
-    imagesUrl: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
-    categoryId: 2,
-    googleMapsLink: "",
-    ratings: 4.5,
-    reviewsCount: 750,
-    imagePublicIds: "",
-    entryFree: true,
-    operatingHours: { open: "06:00", close: "18:00" },
-    bestSeasonToVisit: "August to October",
-    provinceId: 1,
-    latitude: 12.9667,
-    longitude: 104.1333,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  { 
-    placeId: '5',
-    name: "Royal Palace", 
-    description: "Official residence of the King of Cambodia",
-    locationName: "Phnom Penh",
-    imagesUrl: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400",
-    categoryId: 3,
-    googleMapsLink: "",
-    ratings: 4.6,
-    reviewsCount: 890,
-    imagePublicIds: "",
-    entryFree: false,
-    operatingHours: { open: "08:00", close: "17:00" },
-    bestSeasonToVisit: "November to March",
-    provinceId: 2,
-    latitude: 11.5639,
-    longitude: 104.9282,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  { 
-    placeId: '6',
-    name: "Central Market", 
-    description: "Historic art deco market",
-    locationName: "Phnom Penh",
-    imagesUrl: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400",
-    categoryId: 4,
-    googleMapsLink: "",
-    ratings: 4.3,
-    reviewsCount: 650,
-    imagePublicIds: "",
-    entryFree: true,
-    operatingHours: { open: "07:00", close: "17:00" },
-    bestSeasonToVisit: "Year-round",
-    provinceId: 2,
-    latitude: 11.5696,
-    longitude: 104.9200,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-];
+// Removed mock places - will fetch from API
 
 const categories = [
   { id: 0, name: 'All' },
@@ -178,22 +57,54 @@ export default function TripPlanningPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<'setup' | 'places' | 'review'>('setup');
   const [trip, setTrip] = useState<Trip>({
-    tripName: '',
-    startDate: '',
-    endDate: '',
+    trip_name: '',
+    start_date: '',
+    end_date: '',
     days: [],
-    province: '',
-    budgetId: undefined
+    province: ''
   });
   const [selectedDay, setSelectedDay] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(0);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Fetch places from API when in places step
+  useEffect(() => {
+    if (step === 'places') {
+      fetchPlaces();
+    }
+  }, [step, selectedCategory, searchQuery, currentPage]);
+
+  const fetchPlaces = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getPlacesForTripPlanning({
+        page: currentPage,
+        per_page: 20,
+        ...(selectedCategory !== 0 && { category_id: selectedCategory }),
+        ...(searchQuery && { search: searchQuery }),
+      });
+      setPlaces(result.data);
+      setTotalPages(result.pagination.last_page);
+    } catch (err) {
+      console.error('Failed to fetch places:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load places');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate number of days
   const calculateDays = () => {
-    if (!trip.startDate || !trip.endDate) return 0;
-    const start = new Date(trip.startDate);
-    const end = new Date(trip.endDate);
+    if (!trip.start_date || !trip.end_date) return 0;
+    const start = new Date(trip.start_date);
+    const end = new Date(trip.end_date);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     return diffDays;
@@ -203,7 +114,7 @@ export default function TripPlanningPage() {
   const initializeDays = () => {
     const numDays = calculateDays();
     const days: TripDay[] = [];
-    const start = new Date(trip.startDate);
+    const start = new Date(trip.start_date);
     
     for (let i = 0; i < numDays; i++) {
       const date = new Date(start);
@@ -219,20 +130,15 @@ export default function TripPlanningPage() {
     setStep('places');
   };
 
-  // Filter places
-  const filteredPlaces = mockPlaces.filter(place => {
-    const matchesCategory = selectedCategory === 0 || place.categoryId === selectedCategory;
-    const matchesSearch = place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         place.locationName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Places are already filtered by API, just use them
+  const filteredPlaces = places;
 
   // Add place to trip
   const addPlaceToDay = (place: Place) => {
     setTrip(prev => {
       const newDays = [...prev.days];
       // Check if place already exists in the day
-      const placeExists = newDays[selectedDay].places.some(p => p.placeId === place.placeId);
+      const placeExists = newDays[selectedDay].places.some(p => p.placeID === place.placeID);
       if (!placeExists) {
         newDays[selectedDay].places.push(place);
       }
@@ -241,10 +147,10 @@ export default function TripPlanningPage() {
   };
 
   // Remove place from trip
-  const removePlaceFromDay = (dayIndex: number, placeId: string) => {
+  const removePlaceFromDay = (dayIndex: number, placeId: number) => {
     setTrip(prev => {
       const newDays = [...prev.days];
-      newDays[dayIndex].places = newDays[dayIndex].places.filter(p => p.placeId !== placeId);
+      newDays[dayIndex].places = newDays[dayIndex].places.filter(p => p.placeID !== placeId);
       return { ...prev, days: newDays };
     });
   };
@@ -255,9 +161,29 @@ export default function TripPlanningPage() {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  // Get category name
-  const getCategoryName = (categoryId: number) => {
-    return categories.find(cat => cat.id === categoryId)?.name || 'Unknown';
+  // Get category name (from place data)
+  const getCategoryName = (place: Place) => {
+    return place.category_name || 'Unknown';
+  };
+
+  // Safely get image URL from place
+  const getPlaceImage = (place: Place): string => {
+    try {
+      // If images_url is a string, try to parse it as JSON
+      if (typeof place.images_url === 'string') {
+        const parsed = JSON.parse(place.images_url as any);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed[0];
+        }
+      }
+      // If it's already an array
+      if (Array.isArray(place.images_url) && place.images_url.length > 0) {
+        return place.images_url[0];
+      }
+    } catch (e) {
+      console.error('Error parsing images_url:', e);
+    }
+    return 'https://via.placeholder.com/400?text=No+Image';
   };
 
   // Handle step navigation
@@ -270,7 +196,7 @@ export default function TripPlanningPage() {
     
     // Validate before allowing navigation forward
     if (targetStep === 'places') {
-      if (!trip.tripName || !trip.startDate || !trip.endDate) {
+      if (!trip.trip_name || !trip.start_date || !trip.end_date) {
         alert('Please complete trip details first');
         return;
       }
@@ -291,7 +217,7 @@ export default function TripPlanningPage() {
   // Check if a step is accessible (completed)
   const isStepCompleted = (stepName: 'setup' | 'places' | 'review') => {
     if (stepName === 'setup') {
-      return trip.tripName && trip.startDate && trip.endDate;
+      return trip.trip_name && trip.start_date && trip.end_date;
     }
     if (stepName === 'places') {
       return trip.days.length > 0;
@@ -303,39 +229,68 @@ export default function TripPlanningPage() {
   };
 
   // Save trip and navigate to detail page
-  const handleSaveTrip = () => {
-    // Generate unique trip ID
-    const tripId = `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Create complete trip object with ID
-    const completedTrip: Trip = {
-      ...trip,
-      id: tripId,
-      userId: 'current_user', // Replace with actual user ID from auth later
-    };
-
+  const handleSaveTrip = async () => {
     try {
-      // Save to localStorage (replace with API call later)
-      const existingTrips = localStorage.getItem('trips');
-      const trips = existingTrips ? JSON.parse(existingTrips) : [];
-      trips.push(completedTrip);
-      localStorage.setItem('trips', JSON.stringify(trips));
+      setSaving(true);
+      setError(null);
 
-      console.log('Trip saved:', completedTrip);
+      // Create trip via API
+      const tripData: CreateTripData = {
+        trip_name: trip.trip_name,
+        start_date: trip.start_date,
+        end_date: trip.end_date,
+      };
 
+      const result = await createTrip(tripData);
+      console.log('Trip created:', result);
+
+      // Convert days object to array
+      const daysArray = Object.values(result.days);
+      console.log('Days array:', daysArray);
+
+      // Now add places to each day
+      for (let i = 0; i < trip.days.length; i++) {
+        const day = trip.days[i];
+        const correspondingTripDay = daysArray[i];
+        
+        console.log(`Processing day ${i + 1}:`, {
+          localDay: day,
+          backendDay: correspondingTripDay,
+          placesCount: day.places.length,
+          placeIds: day.places.map(p => p.placeID)
+        });
+        
+        if (day.places.length > 0 && correspondingTripDay) {
+          const placeIds = day.places.map(p => p.placeID);
+          try {
+            const addResult = await addPlacesToTripDay(correspondingTripDay.trip_day_id, {
+              place_ids: placeIds,
+            });
+            console.log(`Places added to day ${i + 1}:`, addResult);
+          } catch (err) {
+            console.error(`Failed to add places to day ${i + 1}:`, err);
+            // Continue with other days even if one fails
+          }
+        } else {
+          console.log(`Skipping day ${i + 1} - no places or no corresponding trip day`);
+        }
+      }
+
+      console.log('All places added, navigating to trip detail...');
       // Navigate to trip detail page
-      navigate(`/trip_detail/${tripId}`);
+      navigate(`/trip_detail/${result.trip.trip_id}`);
     } catch (error) {
       console.error('Error saving trip:', error);
-      alert('Failed to save trip. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to save trip. Please try again.');
+      setSaving(false);
     }
   };
 
-  const handleRemovePlace = (dayIndex: number, placeId: string) => {
+  const handleRemovePlace = (dayIndex: number, placeId: number) => {
     removePlaceFromDay(dayIndex, placeId);
   };
 
-  const handleViewPlaceDetails = (placeId: string) => {
+  const handleViewPlaceDetails = (placeId: number) => {
     // Navigate to place detail page or open modal
     console.log('View place details:', placeId);
     alert('Place details coming soon!');
@@ -347,7 +302,7 @@ export default function TripPlanningPage() {
       <Navigation activeNav="Plan Trip" />
 
       {/* Progress Steps - Interactive */}
-      {step !== 'setup' && (
+      {(step === 'places' || step === 'review') && (
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-center gap-4">
@@ -358,17 +313,15 @@ export default function TripPlanningPage() {
               >
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-medium transition-all ${
-                    step === 'setup'
-                      ? 'text-white scale-110'
-                      : isStepCompleted('setup')
+                    isStepCompleted('setup')
                       ? 'text-white'
                       : 'text-gray-400 border-2 border-gray-300'
                   }`}
-                  style={step === 'setup' || isStepCompleted('setup') ? { backgroundColor: '#01005B' } : {}}
+                  style={isStepCompleted('setup') ? { backgroundColor: '#01005B' } : {}}
                 >
                   1
                 </div>
-                <span className={`text-sm font-medium ${step === 'setup' ? 'text-[#01005B]' : 'text-gray-600'}`}>
+                <span className="text-sm font-medium text-gray-600">
                   Trip Details
                 </span>
               </button>
@@ -441,8 +394,8 @@ export default function TripPlanningPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Trip Name</label>
                 <input
                   type="text"
-                  value={trip.tripName}
-                  onChange={(e) => setTrip(prev => ({ ...prev, tripName: e.target.value }))}
+                  value={trip.trip_name}
+                  onChange={(e) => setTrip(prev => ({ ...prev, trip_name: e.target.value }))}
                   placeholder="My Cambodia Adventure"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B]/20 focus:border-[#01005B]"
                 />
@@ -468,8 +421,8 @@ export default function TripPlanningPage() {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
                       type="date"
-                      value={trip.startDate}
-                      onChange={(e) => setTrip(prev => ({ ...prev, startDate: e.target.value }))}
+                      value={trip.start_date}
+                      onChange={(e) => setTrip(prev => ({ ...prev, start_date: e.target.value }))}
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B]/20 focus:border-[#01005B]"
                     />
                   </div>
@@ -480,9 +433,9 @@ export default function TripPlanningPage() {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
                       type="date"
-                      value={trip.endDate}
-                      onChange={(e) => setTrip(prev => ({ ...prev, endDate: e.target.value }))}
-                      min={trip.startDate}
+                      value={trip.end_date}
+                      onChange={(e) => setTrip(prev => ({ ...prev, end_date: e.target.value }))}
+                      min={trip.start_date}
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B]/20 focus:border-[#01005B]"
                     />
                   </div>
@@ -490,7 +443,7 @@ export default function TripPlanningPage() {
               </div>
 
               {/* Trip Summary */}
-              {trip.startDate && trip.endDate && (
+              {trip.start_date && trip.end_date && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <h3 className="font-medium mb-2">Trip Summary</h3>
                   <p className="text-sm text-gray-600">Duration: {calculateDays()} days</p>
@@ -501,7 +454,7 @@ export default function TripPlanningPage() {
               {/* Continue Button */}
               <button
                 onClick={() => handleStepClick('places')}
-                disabled={!trip.tripName || !trip.startDate || !trip.endDate}
+                disabled={!trip.trip_name || !trip.start_date || !trip.end_date}
                 className="w-full py-3 rounded-lg text-white font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: '#01005B' }}
               >
@@ -558,21 +511,41 @@ export default function TripPlanningPage() {
                 </div>
 
                 {/* Places Grid */}
+                {loading && (
+                  <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B]"></div>
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                )}
+
+                {!loading && !error && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2">
                   {filteredPlaces.map((place) => (
-                    <div key={place.placeId} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all">
-                      <img src={place.imagesUrl} alt={place.name} className="w-full h-40 object-cover" />
+                    <div key={place.placeID} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all">
+                      <img 
+                        src={getPlaceImage(place)} 
+                        alt={place.name} 
+                        className="w-full h-40 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/400?text=Image+Not+Found';
+                        }}
+                      />
                       <div className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">
                             <h3 className="font-bold text-lg">{place.name}</h3>
                             <p className="text-sm text-gray-600 flex items-center gap-1">
                               <MapPin size={14} />
-                              {place.locationName}
+                              {place.province_categoryName}
                             </p>
                           </div>
                           <span className="text-xs px-2 py-1 bg-gray-100 rounded-full ml-2">
-                            {getCategoryName(place.categoryId)}
+                            {place.category_name}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-2">
@@ -580,11 +553,11 @@ export default function TripPlanningPage() {
                             <span className="text-yellow-500">★</span>
                             <span className="text-sm font-medium">{place.ratings}</span>
                           </div>
-                          <span className="text-xs text-gray-500">({place.reviewsCount} reviews)</span>
+                          <span className="text-xs text-gray-500">({place.reviews_count} reviews)</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {place.entryFree ? (
+                            {place.entry_free ? (
                               <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">Free Entry</span>
                             ) : (
                               <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full flex items-center gap-1">
@@ -606,6 +579,30 @@ export default function TripPlanningPage() {
                     </div>
                   ))}
                 </div>
+                )}
+
+                {/* Pagination Controls */}
+                {!loading && !error && totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -647,17 +644,24 @@ export default function TripPlanningPage() {
                   ) : (
                     trip.days[selectedDay].places.map((place, placeIndex) => (
                       <div key={placeIndex} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg">
-                        <img src={place.imagesUrl} alt={place.name} className="w-16 h-16 rounded-lg object-cover" />
+                        <img 
+                          src={getPlaceImage(place)} 
+                          alt={place.name} 
+                          className="w-16 h-16 rounded-lg object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://via.placeholder.com/64?text=No+Image';
+                          }}
+                        />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-sm truncate">{place.name}</h4>
-                          <p className="text-xs text-gray-600">{place.locationName}</p>
+                          <p className="text-xs text-gray-600">{place.province_categoryName}</p>
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-yellow-500 text-xs">★</span>
                             <span className="text-xs">{place.ratings}</span>
                           </div>
                         </div>
                         <button
-                          onClick={() => removePlaceFromDay(selectedDay, place.placeId)}
+                          onClick={() => removePlaceFromDay(selectedDay, place.placeID)}
                           className="text-red-500 hover:bg-red-50 p-1 rounded"
                         >
                           <X size={16} />
@@ -688,11 +692,11 @@ export default function TripPlanningPage() {
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-3xl font-bold mb-2">{trip.tripName}</h2>
+                <h2 className="text-3xl font-bold mb-2">{trip.trip_name}</h2>
                 <div className="flex items-center gap-6 text-gray-600">
                   <p className="flex items-center gap-2">
                     <Calendar size={18} />
-                    {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+                    {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
                   </p>
                   {trip.province && (
                     <p className="flex items-center gap-2">
@@ -726,11 +730,11 @@ export default function TripPlanningPage() {
                     <div className="space-y-4">
                       {day.places.map((place, placeIndex) => (
                         <PlaceCard
-                          key={place.placeId}
+                          key={place.placeID}
                           place={place}
                           index={placeIndex}
-                          onDelete={() => handleRemovePlace(dayIndex, place.placeId)}
-                          onViewDetails={() => handleViewPlaceDetails(place.placeId)}
+                          onDelete={() => handleRemovePlace(dayIndex, place.placeID)}
+                          onViewDetails={() => handleViewPlaceDetails(place.placeID)}
                           showDelete={true}
                           showViewDetails={true}
                           showOrderNumber={true}
@@ -751,11 +755,12 @@ export default function TripPlanningPage() {
                 Back to Edit
               </button>
               <button
-                className="flex-1 py-3 rounded-lg text-white font-medium transition-all shadow-md hover:shadow-lg"
+                className="flex-1 py-3 rounded-lg text-white font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: '#01005B' }}
                 onClick={handleSaveTrip}
+                disabled={saving}
               >
-                Save Trip Plan
+                {saving ? 'Saving...' : 'Save Trip Plan'}
               </button>
             </div>
           </div>

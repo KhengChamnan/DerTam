@@ -3,42 +3,45 @@ import { Calendar, MapPin, Edit2, Map as MapIcon, Share2, DollarSign, ArrowLeft,
 import Navigation from '../../components/navigation';
 import { useNavigate } from 'react-router';
 import PlaceCard from './components/place_card';
+import { getTripById, getPlacesForTripDay, addPlacesToTripDay } from '../../api/trips';
 
 interface Place {
-  placeId: string;
+  placeID: number;
   name: string;
   description: string;
-  categoryId: number;
-  googleMapsLink: string;
+  category_id: number;
+  category_name: string;
+  google_maps_link: string;
   ratings: number;
-  reviewsCount: number;
-  imagesUrl: string;
-  imagePublicIds: string;
-  entryFree: boolean;
-  operatingHours: Record<string, any>;
-  bestSeasonToVisit: string;
-  provinceId: number;
+  reviews_count: number;
+  images_url: string[];
+  entry_free: boolean;
+  operating_hours?: Record<string, any>;
+  best_season_to_visit?: string;
+  province_id: number;
+  province_categoryName: string;
   latitude: number;
   longitude: number;
-  createdAt: string;
-  updatedAt: string;
-  locationName: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface TripDay {
   dayNumber: number;
   date: string;
   places: Place[];
+  trip_day_id?: number;
+
 }
 
 interface Trip {
-  id: string;
-  userId?: string;
-  tripName: string;
-  startDate: string;
-  endDate: string;
+  trip_id: number;
+  user_id?: number;
+  trip_name: string;
+  start_date: string;
+  end_date: string;
   days: TripDay[];
-  budgetId?: string;
+  budget_id?: number;
   province?: string;
 }
 
@@ -77,27 +80,101 @@ export default function TripDetailPage({ tripId }: TripDetailPageProps) {
   const navigate = useNavigate();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load trip from localStorage or API
-    const loadTrip = () => {
+    const loadTrip = async () => {
       try {
-        const savedTrips = localStorage.getItem('trips');
-        if (savedTrips) {
-          const trips = JSON.parse(savedTrips);
-          const foundTrip = trips.find((t: Trip) => t.id === tripId);
-          if (foundTrip) {
-            setTrip(foundTrip);
-          }
+        setLoading(true);
+        setError(null);
+        
+        // Fetch trip from API
+        const tripData = await getTripById(tripId);
+        
+        console.log('Trip data received:', tripData); // Debug log
+        
+        // Validate response structure
+        if (!tripData || !tripData.trip) {
+          throw new Error('Invalid trip data received');
         }
-      } catch (error) {
-        console.error('Error loading trip:', error);
+
+        // Convert days object to array if needed
+        let daysArray: any[] = [];
+        if (Array.isArray(tripData.days)) {
+          daysArray = tripData.days;
+        } else if (typeof tripData.days === 'object' && tripData.days !== null) {
+          daysArray = Object.values(tripData.days);
+        } else {
+          throw new Error('Invalid trip days data');
+        }
+
+        // Fetch places for each day
+        const daysWithPlaces = await Promise.all(
+          daysArray.map(async (day) => {
+            if (day.places_count === 0) {
+              // No places, skip API call
+              return {
+                dayNumber: day.day_number,
+                date: day.date,
+                places: [],
+                trip_day_id: day.trip_day_id,
+              };
+            }
+            try {
+              const dayPlaces = await getPlacesForTripDay(day.trip_day_id);
+              return {
+                dayNumber: day.day_number,
+                date: day.date,
+                places: dayPlaces.places.map(p => ({
+                  placeID: p.place_id,
+                  name: p.place_name,
+                  description: p.place_description,
+                  category_id: p.category_id,
+                  category_name: p.category_name,
+                  google_maps_link: p.google_maps_link,
+                  ratings: p.ratings,
+                  reviews_count: p.reviews_count,
+                  images_url: p.images_url,
+                  entry_free: p.entry_free,
+                  operating_hours: p.operating_hours,
+                  province_id: p.province_id,
+                  province_categoryName: p.province_categoryName,
+                  latitude: p.latitude,
+                  longitude: p.longitude,
+                })),
+                trip_day_id: day.trip_day_id,
+              };
+            } catch (err) {
+              console.error(`Failed to load places for day ${day.day_number}:`, err);
+              return {
+                dayNumber: day.day_number,
+                date: day.date,
+                places: [],
+                trip_day_id: day.trip_day_id,
+              };
+            }
+          })
+        );
+        
+        setTrip({
+          trip_id: tripData.trip.trip_id,
+          user_id: tripData.trip.user_id,
+          trip_name: tripData.trip.trip_name,
+          start_date: tripData.trip.start_date,
+          end_date: tripData.trip.end_date,
+          days: daysWithPlaces,
+        });
+      } catch (err) {
+        console.error('Error loading trip:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load trip');
       } finally {
         setLoading(false);
       }
     };
 
-    loadTrip();
+    if (tripId) {
+      loadTrip();
+    }
   }, [tripId]);
 
   const formatDate = (dateString: string) => {
@@ -145,6 +222,31 @@ export default function TripDetailPage({ tripId }: TripDetailPageProps) {
     alert('Place details coming soon!');
   };
 
+  // Sync places with trip day on mount
+  useEffect(() => {
+    const syncPlacesWithTripDay = async () => {
+      if (!trip) return;
+
+      try {
+        // For each day in the trip
+        for (let i = 0; i < trip.days.length; i++) {
+          const day = trip.days[i];
+          // Use day.trip_day_id if available
+          if (day.places.length > 0 && day.trip_day_id) {
+            const placeIds = day.places.map(p => p.placeID);
+            await addPlacesToTripDay(day.trip_day_id, {
+              place_ids: placeIds,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error syncing places with trip day:', err);
+      }
+    };
+
+    syncPlacesWithTripDay();
+  }, [trip]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -159,15 +261,17 @@ export default function TripDetailPage({ tripId }: TripDetailPageProps) {
     );
   }
 
-  if (!trip) {
+  if (error || !trip) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation activeNav="Plan Trip" />
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <p className="text-xl text-gray-600">Trip not found</p>
+            <p className="text-xl text-gray-600">
+              {error || 'Trip not found'}
+            </p>
             <button
-              onClick={() => navigate('/trip-plan')}
+              onClick={() => navigate('/trip_plan')}
               className="mt-4 px-6 py-2 rounded-lg text-white"
               style={{ backgroundColor: '#01005B' }}
             >
@@ -194,7 +298,7 @@ export default function TripDetailPage({ tripId }: TripDetailPageProps) {
             e.currentTarget.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200';
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gray-900/50" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent to-gray-900/50" />
         
         {/* Back Button */}
         <button
@@ -210,8 +314,8 @@ export default function TripDetailPage({ tripId }: TripDetailPageProps) {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{trip.tripName}</h1>
-              <p className="text-sm text-gray-600 mt-1">{formatDateRange(trip.startDate, trip.endDate)}</p>
+              <h1 className="text-2xl font-bold text-gray-900">{trip.trip_name}</h1>
+              <p className="text-sm text-gray-600 mt-1">{formatDateRange(trip.start_date, trip.end_date)}</p>
             </div>
             
             <div className="flex items-center gap-4">
@@ -265,10 +369,10 @@ export default function TripDetailPage({ tripId }: TripDetailPageProps) {
                 <div className="space-y-4">
                   {day.places.map((place, index) => (
                     <PlaceCard
-                      key={place.placeId}
+                      key={place.placeID}
                       place={place}
                       index={index}
-                      onViewDetails={() => handleViewPlaceDetails(place.placeId)}
+                      onViewDetails={() => handleViewPlaceDetails(String(place.placeID))}
                       showDelete={false}
                       showViewDetails={true}
                       showOrderNumber={true}

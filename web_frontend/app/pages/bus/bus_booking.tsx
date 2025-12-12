@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Calendar, Search, MapPin, ArrowLeftRight } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Bus, Calendar, Search, MapPin, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import Navigation from '../../components/navigation';
+import { getProvinces, getUpcomingJourneys, type Province, type UpcomingJourney } from '../../api/bus';
 
 export default function BusBookingPage() {
   const navigate = useNavigate();
@@ -9,40 +10,29 @@ export default function BusBookingPage() {
   const [to, setTo] = useState('');
   const [date, setDate] = useState('');
   const [searchType, setSearchType] = useState<'today' | 'tomorrow' | 'other'>('today');
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [upcomingJourneys, setUpcomingJourneys] = useState<UpcomingJourney[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const popularRoutes = [
-    { from: 'Kelaniya', to: 'Colombo', distance: '15 km' },
-    { from: 'Colombo', to: 'Kandy', distance: '115 km' },
-    { from: 'Colombo', to: 'Galle', distance: '119 km' },
-    { from: 'Kandy', to: 'Nuwara Eliya', distance: '77 km' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [provincesData, journeysData] = await Promise.all([
+          getProvinces(),
+          getUpcomingJourneys(10)
+        ]);
+        setProvinces(provincesData);
+        setUpcomingJourneys(journeysData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const upcomingJourneys = [
-    {
-      id: 1,
-      terminal: 'Bus terminal 1',
-      from: 'Kelaniya',
-      to: 'Colombo',
-      departureTime: '9 AM',
-      date: 'Sun 2024.12.08',
-    },
-    {
-      id: 2,
-      terminal: 'Bus terminal 2',
-      from: 'Biyagama',
-      to: 'Kaduriya',
-      departureTime: '2 PM',
-      date: 'Sun 2024.12.08',
-    },
-    {
-      id: 3,
-      terminal: 'Bus terminal 3',
-      from: 'Kelaniya',
-      to: 'Colombo',
-      departureTime: '9 AM',
-      date: 'Sun 2024.12.08',
-    },
-  ];
+    fetchData();
+  }, []);
 
   const handleSwapLocations = () => {
     const temp = from;
@@ -65,17 +55,54 @@ export default function BusBookingPage() {
       searchDate = tomorrow.toISOString().split('T')[0];
     }
 
-    navigate(`/bus/select?from=${from}&to=${to}&date=${searchDate}`);
+    // Find province names from IDs
+    const fromProvince = provinces.find(p => p.id.toString() === from);
+    const toProvince = provinces.find(p => p.id.toString() === to);
+
+    navigate(`/bus/select?from=${from}&to=${to}&fromName=${fromProvince?.name || ''}&toName=${toProvince?.name || ''}&date=${searchDate}`);
   };
 
   const getTodayDate = () => {
     return new Date().toISOString().split('T')[0];
   };
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+  const getBusTypeColor = (type?: string) => {
+    switch (type) {
+      case 'sleeping-bus':
+        return 'bg-purple-100 text-purple-800';
+      case 'mini-van':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getBusTypeLabel = (type?: string) => {
+    switch (type) {
+      case 'sleeping-bus':
+        return 'Sleeping Bus';
+      case 'mini-van':
+        return 'Mini Van';
+      default:
+        return 'Regular Bus';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Date unavailable';
+      }
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Date unavailable';
+    }
   };
 
   return (
@@ -87,104 +114,99 @@ export default function BusBookingPage() {
           {/* Search Card */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6" style={{ backgroundColor: '#01005B' }}>
-              {/* User Info */}
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  <span className="text-sm font-medium">SS</span>
-                </div>
-                <div className="text-white">
-                  <p className="font-medium">Hello Saduni Silva!</p>
-                  <p className="text-sm text-gray-300">Where you want go</p>
-                </div>
+                <Bus className="text-white" size={28} />
+                <h2 className="text-2xl font-bold text-white">Find Your Bus</h2>
               </div>
 
               {/* From Location */}
               <div className="mb-4">
-                <label className="block text-white text-sm mb-2">Boarding From</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    value={from}
-                    onChange={(e) => setFrom(e.target.value)}
-                    placeholder="Enter departure location"
-                    className="w-full pl-12 pr-4 py-3 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/10 text-white"
-                  />
-                </div>
+                <label className="block text-white text-sm mb-2">From</label>
+                <select
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className={`w-full px-4 py-3 bg-white rounded-lg border-none focus:ring-2 focus:ring-[#01005B] ${!from ? 'text-gray-400' : 'text-gray-900'}`}
+                >
+                  <option value="" className="text-gray-400">Select departure</option>
+                  {provinces.map((province) => (
+                    <option key={province.id} value={province.id} className="text-gray-900">
+                      {province.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Swap Button */}
               <div className="flex justify-center -my-2 relative z-10">
                 <button
                   onClick={handleSwapLocations}
-                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all"
+                  className="bg-white rounded-full p-2 hover:bg-gray-100 transition-colors"
                 >
-                  <ArrowLeftRight size={20} style={{ color: '#01005B' }} />
+                  <RefreshCw size={20} className="text-[#01005B]" />
                 </button>
               </div>
 
               {/* To Location */}
               <div className="mb-4">
-                <label className="block text-white text-sm mb-2">Where are you going?</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    value={to}
-                    onChange={(e) => setTo(e.target.value)}
-                    placeholder="Enter destination"
-                    className="w-full pl-12 pr-4 py-3 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/10 text-white"
-                  />
-                </div>
+                <label className="block text-white text-sm mb-2">To</label>
+                <select
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className={`w-full px-4 py-3 bg-white rounded-lg border-none focus:ring-2 focus:ring-[#01005B] ${!to ? 'text-gray-400' : 'text-gray-900'}`}
+                >
+                  <option value="" className="text-gray-400">Select destination</option>
+                  {provinces.map((province) => (
+                    <option key={province.id} value={province.id} className="text-gray-900">
+                      {province.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Date Selection */}
               <div className="mb-6">
-                <div className="flex gap-2">
+                <label className="block text-white text-sm mb-2">Travel Date</label>
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   <button
                     onClick={() => setSearchType('today')}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                       searchType === 'today'
                         ? 'bg-white text-[#01005B]'
-                        : 'bg-white/10 text-white hover:bg-white/20'
+                        : 'bg-white/20 text-white hover:bg-white/30'
                     }`}
                   >
                     Today
                   </button>
                   <button
                     onClick={() => setSearchType('tomorrow')}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                       searchType === 'tomorrow'
                         ? 'bg-white text-[#01005B]'
-                        : 'bg-white/10 text-white hover:bg-white/20'
+                        : 'bg-white/20 text-white hover:bg-white/30'
                     }`}
                   >
                     Tomorrow
                   </button>
                   <button
                     onClick={() => setSearchType('other')}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                       searchType === 'other'
                         ? 'bg-white text-[#01005B]'
-                        : 'bg-white/10 text-white hover:bg-white/20'
+                        : 'bg-white/20 text-white hover:bg-white/30'
                     }`}
                   >
-                    <Calendar size={16} />
                     Other
                   </button>
                 </div>
                 {searchType === 'other' && (
-  <input
-    type="date"
-    value={date}
-    onChange={(e) => setDate(e.target.value)}
-    min={getTodayDate()}
-    className="w-full mt-2 px-4 py-3 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-white/20 bg-white/10 text-white [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200"
-    style={{
-      colorScheme: 'dark'
-    }}
-  />
-)}
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    min={getTodayDate()}
+                    className="w-full px-4 py-3 rounded-lg border-none focus:ring-2 focus:ring-white"
+                  />
+                )}
               </div>
 
               {/* Search Button */}
@@ -203,68 +225,75 @@ export default function BusBookingPage() {
             {/* Upcoming Journeys */}
             <div>
               <h2 className="text-2xl font-bold mb-4">Upcoming Journey</h2>
-              <div className="space-y-4">
-                {upcomingJourneys.map((journey) => (
-                  <div
-                    key={journey.id}
-                    className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                          style={{ backgroundColor: '#FF6B35' }}
-                        >
-                          {journey.id}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#01005B] mx-auto"></div>
+                </div>
+              ) : upcomingJourneys.length === 0 ? (
+                <div className="bg-white rounded-2xl shadow-md p-6 text-center text-gray-500">
+                  No upcoming journeys available
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {upcomingJourneys.map((journey, index) => (
+                    <button
+                      key={journey.id}
+                      onClick={() => {
+                        // Format date to YYYY-MM-DD
+                        const formattedDate = journey.date.includes('T') ? journey.date.split('T')[0] : journey.date;
+                        // Map bus type correctly
+                        const mappedType = journey.type === 'mini-van' ? 'mini-van' : 
+                                         journey.type === 'sleeping-bus' ? 'sleeping-bus' : 'regular-bus';
+                        // Use actual price from journey data (you need to add price field to UpcomingJourney interface)
+                        const price = journey.price;
+                        navigate(`/bus/seats?busId=${journey.id}&date=${formattedDate}&busType=${mappedType}&from=${journey.from}&to=${journey.to}&company=${journey.company || journey.terminal}&departureTime=${journey.departureTime}&price=${price}`);
+                      }}
+                      className="w-full bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-all text-left"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+                            style={{ backgroundColor: '#FA9A47' }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm text-gray-600">
+                                {journey.company || journey.terminal}
+                              </p>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getBusTypeColor(journey.type)}`}>
+                                {getBusTypeLabel(journey.type)}
+                              </span>
+                            </div>
+                            {journey.busNumber && (
+                              <p className="text-xs text-gray-500 mb-2">{journey.busNumber}</p>
+                            )}
+                            <p className="font-bold text-lg">
+                              From: <span className="text-[#01005B]">{journey.from}</span>
+                            </p>
+                            <p className="font-bold text-lg">
+                              to: <span className="text-[#01005B]">{journey.to}</span>
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600">{journey.terminal}</p>
-                          <p className="font-bold text-lg">
-                            From: <span className="text-[#01005B]">{journey.from}</span>
-                          </p>
-                          <p className="font-bold text-lg">
-                            to: <span className="text-[#01005B]">{journey.to}</span>
-                          </p>
+                        <div className="text-right">
+                          <div
+                            className="inline-block px-4 py-2 rounded-lg text-white text-sm font-medium mb-2"
+                            style={{ backgroundColor: '#01005B' }}
+                          >
+                            departure time
+                          </div>
+                          <p className="text-2xl font-bold">{journey.departureTime}</p>
+                          <p className="text-sm text-gray-600">{formatDate(journey.date)}</p>
+                          <p className="text-xs text-[#01005B] font-medium mt-2">Click to book seats →</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div
-                          className="inline-block px-4 py-2 rounded-lg text-white text-sm font-medium mb-2"
-                          style={{ backgroundColor: '#01005B' }}
-                        >
-                          departure time
-                        </div>
-                        <p className="text-2xl font-bold">{journey.departureTime}</p>
-                        <p className="text-sm text-gray-600">{journey.date}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Popular Routes */}
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Popular Routes</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {popularRoutes.map((route, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setFrom(route.from);
-                      setTo(route.to);
-                    }}
-                    className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all text-left"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-lg">{route.from}</span>
-                      <ArrowLeftRight size={20} className="text-gray-400" />
-                      <span className="font-bold text-lg">{route.to}</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{route.distance}</p>
-                  </button>
-                ))}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
