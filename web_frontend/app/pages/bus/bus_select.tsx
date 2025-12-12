@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MapPin, Clock, Users, Star } from 'lucide-react';
+import { MapPin, Clock, Users, Star, ArrowLeftRight } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import { searchBuses, type Bus } from '../../api/bus';
 
@@ -65,6 +65,14 @@ export default function BusSelectPage() {
     return 'text-green-600';
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    return `${date.getDate()}th - ${months[date.getMonth()]} - ${date.getFullYear()} | ${days[date.getDay()]}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -103,30 +111,19 @@ export default function BusSelectPage() {
       <Navigation activeNav="Bus Booking" />
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Search Summary */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <MapPin size={20} className="text-[#01005B]" />
-                <span className="font-semibold">{fromName}</span>
+         {/* Route Info */}
+              <div className="bg-[#01005B] rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-center gap-6 text-white">
+                  <div className="text-center">
+                    <p className="text-xl font-bold">{fromName}</p>
+                  </div>
+                  <ArrowLeftRight size={20} />
+                  <div className="text-center">
+                    <p className="text-xl font-bold">{toName}</p>
+                  </div>
+                </div>
+                <p className="text-center text-white/80 mt-2 text-sm">{formatDate(date)}</p>
               </div>
-              <span className="text-gray-400">→</span>
-              <div className="flex items-center gap-2">
-                <MapPin size={20} className="text-[#01005B]" />
-                <span className="font-semibold">{toName}</span>
-              </div>
-            </div>
-            <div className="text-gray-600">
-              {new Date(date).toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-              })}
-            </div>
-          </div>
-        </div>
 
         {/* Results Header */}
         <h1 className="text-2xl font-bold mb-6">
@@ -160,10 +157,10 @@ export default function BusSelectPage() {
                       </span>
                     </div>
                     <p className="text-gray-600">{bus.busNumber}</p>
-                    <div className="flex items-center gap-1 mt-1">
+                    {/* <div className="flex items-center gap-1 mt-1">
                       <Star size={16} className="fill-yellow-400 text-yellow-400" />
                       <span className="text-sm font-medium">{bus.rating}</span>
-                    </div>
+                    </div> */}
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-[#FA9A47]"> ${bus.price} /Seat</div>
