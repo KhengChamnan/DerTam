@@ -1,24 +1,24 @@
 import { MapPin, Trash2, Eye } from 'lucide-react';
 
 interface Place {
-  placeId: string;
+  placeID: number;
   name: string;
   description: string;
-  categoryId: number;
-  googleMapsLink: string;
+  category_id: number;
+  category_name: string;
+  google_maps_link: string;
   ratings: number;
-  reviewsCount: number;
-  imagesUrl: string;
-  imagePublicIds: string;
-  entryFree: boolean;
-  operatingHours: Record<string, any>;
-  bestSeasonToVisit: string;
-  provinceId: number;
+  reviews_count: number;
+  images_url: string[];
+  entry_free: boolean;
+  operating_hours?: Record<string, any>;
+  best_season_to_visit?: string;
+  province_id: number;
+  province_categoryName: string;
   latitude: number;
   longitude: number;
-  createdAt: string;
-  updatedAt: string;
-  locationName: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface PlaceCardProps {
@@ -53,12 +53,32 @@ export default function PlaceCard({
     onViewDetails?.();
   };
 
+  // Safely get image URL
+  const getImageUrl = (): string => {
+    try {
+      // If images_url is a string, try to parse it as JSON
+      if (typeof place.images_url === 'string') {
+        const parsed = JSON.parse(place.images_url as any);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed[0];
+        }
+      }
+      // If it's already an array
+      if (Array.isArray(place.images_url) && place.images_url.length > 0) {
+        return place.images_url[0];
+      }
+    } catch (e) {
+      console.error('Error parsing images_url:', e);
+    }
+    return 'https://via.placeholder.com/80?text=No+Image';
+  };
+
   return (
     <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all group">
       {/* Order Number */}
       {showOrderNumber && (
         <div 
-          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" 
+          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" 
           style={{ backgroundColor: '#01005B' }}
         >
           {index + 1}
@@ -67,9 +87,12 @@ export default function PlaceCard({
 
       {/* Place Image */}
       <img
-        src={place.imagesUrl}
+        src={getImageUrl()}
         alt={place.name}
         className="w-20 h-20 rounded-lg object-cover"
+        onError={(e) => {
+          e.currentTarget.src = 'https://via.placeholder.com/80?text=Image+Not+Found';
+        }}
       />
 
       {/* Place Info */}
@@ -77,14 +100,14 @@ export default function PlaceCard({
         <h3 className="font-bold text-lg">{place.name}</h3>
         <p className="text-sm text-gray-600 flex items-center gap-1">
           <MapPin size={14} />
-          {place.locationName}
+          {place.province_categoryName}
         </p>
         <div className="flex items-center gap-3 mt-1">
           <div className="flex items-center gap-1">
             <span className="text-yellow-500">★</span>
             <span className="text-sm">{place.ratings}</span>
           </div>
-          {place.entryFree && (
+          {place.entry_free && (
             <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
               Free Entry
             </span>

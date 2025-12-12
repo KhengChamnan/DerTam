@@ -1,156 +1,97 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, MapPin, Users, Wifi, Coffee, ArrowLeftRight } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MapPin, Clock, Users, Star } from 'lucide-react';
 import Navigation from '../../components/navigation';
+import { searchBuses, type Bus } from '../../api/bus';
 
-interface Bus {
-  id: string;
-  companyName: string;
-  busType: 'mini-van' | 'sleeping-bus' | 'regular-bus';
-  busTypeName: string;
-  from: string;
-  to: string;
-  departureTime: string;
-  arrivalTime: string;
-  duration: string;
-  price: number;
-  currency: string;
-  availableSeats: number;
-  totalSeats: number;
-  rating: number;
-  amenities: string[];
-}
-
-export default function BusSelectionPage() {
-  const navigate = useNavigate();
+export default function BusSelectPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [buses, setBuses] = useState<Bus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
+  const fromName = searchParams.get('fromName') || from;
+  const toName = searchParams.get('toName') || to;
   const date = searchParams.get('date') || '';
 
   useEffect(() => {
-    loadBuses();
+    const fetchBuses = async () => {
+      try {
+        setLoading(true);
+        const data = await searchBuses({ from, to, date });
+        setBuses(data);
+      } catch (err) {
+        setError('Failed to load buses. Please try again.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (from && to && date) {
+      fetchBuses();
+    }
   }, [from, to, date]);
 
-  const loadBuses = () => {
-    // Mock data - replace with API call
-    const mockBuses: Bus[] = [
-      {
-        id: 'bus1',
-        companyName: 'Perera Travels',
-        busType: 'mini-van',
-        busTypeName: 'Mini Van (15 seats)',
-        from,
-        to,
-        departureTime: '9:00 AM',
-        arrivalTime: '9:45 AM',
-        duration: '45 Min',
-        price: 200,
-        currency: '$',
-        availableSeats: 15,
-        totalSeats: 15,
-        rating: 4.5,
-        amenities: ['WiFi', 'AC', 'Charging Port'],
-      },
-      {
-        id: 'bus2',
-        companyName: 'Gayan Express',
-        busType: 'sleeping-bus',
-        busTypeName: 'Sleeping Bus (34 seats)',
-        from,
-        to,
-        departureTime: '10:00 AM',
-        arrivalTime: '10:20 AM',
-        duration: '20 Min',
-        price: 250,
-        currency: '$',
-        availableSeats: 20,
-        totalSeats: 34,
-        rating: 4.8,
-        amenities: ['WiFi', 'AC', 'Snacks', 'Blanket'],
-      },
-      {
-        id: 'bus3',
-        companyName: 'Lanka Transport',
-        busType: 'regular-bus',
-        busTypeName: 'Regular Bus (45 seats)',
-        from,
-        to,
-        departureTime: '11:00 AM',
-        arrivalTime: '11:45 AM',
-        duration: '45 Min',
-        price: 180,
-        currency: '$',
-        availableSeats: 30,
-        totalSeats: 45,
-        rating: 4.3,
-        amenities: ['WiFi', 'AC'],
-      },
-      {
-        id: 'bus4',
-        companyName: 'Comfort Express',
-        busType: 'sleeping-bus',
-        busTypeName: 'Sleeping Bus (34 seats)',
-        from,
-        to,
-        departureTime: '1:00 PM',
-        arrivalTime: '1:20 PM',
-        duration: '20 Min',
-        price: 280,
-        currency: '$',
-        availableSeats: 10,
-        totalSeats: 34,
-        rating: 4.9,
-        amenities: ['WiFi', 'AC', 'Snacks', 'Charging Port', 'Entertainment'],
-      },
-      {
-        id: 'bus5',
-        companyName: 'Quick Shuttle',
-        busType: 'mini-van',
-        busTypeName: 'Mini Van (15 seats)',
-        from,
-        to,
-        departureTime: '2:00 PM',
-        arrivalTime: '2:45 PM',
-        duration: '45 Min',
-        price: 220,
-        currency: '$',
-        availableSeats: 8,
-        totalSeats: 15,
-        rating: 4.6,
-        amenities: ['WiFi', 'AC'],
-      },
-    ];
-
-    setTimeout(() => {
-      setBuses(mockBuses);
-      setLoading(false);
-    }, 500);
+  const getBusTypeColor = (type: string) => {
+    switch (type) {
+      case 'sleeping-bus':
+        return 'bg-purple-100 text-purple-800';
+      case 'mini-van':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    return `${date.getDate()}th - ${months[date.getMonth()]} - ${date.getFullYear()} | ${days[date.getDay()]}`;
+  const getBusTypeLabel = (type: string) => {
+    switch (type) {
+      case 'sleeping-bus':
+        return 'Sleeping Bus';
+      case 'mini-van':
+        return 'Mini Van';
+      default:
+        return 'Regular Bus';
+    }
   };
 
-  const handleSelectBus = (bus: Bus) => {
-    navigate(`/bus/seats?busId=${bus.id}&busType=${bus.busType}&from=${from}&to=${to}&date=${date}`);
+  const getSeatAvailabilityColor = (available: number, total: number) => {
+    const percentage = (available / total) * 100;
+    if (percentage <= 20) return 'text-red-600';
+    if (percentage <= 50) return 'text-orange-600';
+    return 'text-green-600';
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation activeNav="Bus Booking" />
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#01005B] mx-auto"></div>
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B] mx-auto"></div>
             <p className="mt-4 text-gray-600">Searching for buses...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation activeNav="Bus Booking" />
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => navigate('/bus_booking')}
+              className="mt-4 px-6 py-2 bg-[#01005B] text-white rounded-lg hover:bg-[#000442]"
+            >
+              Back to Search
+            </button>
           </div>
         </div>
       </div>
@@ -161,125 +102,127 @@ export default function BusSelectionPage() {
     <div className="min-h-screen bg-gray-50">
       <Navigation activeNav="Bus Booking" />
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Back
-          </button>
-
-          {/* User Info */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-              <span className="text-sm font-medium">SS</span>
-            </div>
-            <div>
-              <p className="font-medium">Hello Saduni Silva!</p>
-              <p className="text-sm text-gray-600">Where you want go</p>
-            </div>
-          </div>
-
-          {/* Route Info */}
-          <div className="bg-white rounded-2xl shadow-lg p-6" style={{ backgroundColor: '#01005B' }}>
-            <div className="flex items-center justify-center gap-6 text-white">
-              <div className="text-center">
-                <p className="text-2xl font-bold">{from}</p>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Search Summary */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <MapPin size={20} className="text-[#01005B]" />
+                <span className="font-semibold">{fromName}</span>
               </div>
-              <div className="flex flex-col items-center">
-                <ArrowLeftRight size={24} />
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{to}</p>
+              <span className="text-gray-400">→</span>
+              <div className="flex items-center gap-2">
+                <MapPin size={20} className="text-[#01005B]" />
+                <span className="font-semibold">{toName}</span>
               </div>
             </div>
-            <p className="text-center text-white/80 mt-3">{formatDate(date)}</p>
+            <div className="text-gray-600">
+              {new Date(date).toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              })}
+            </div>
           </div>
         </div>
 
+        {/* Results Header */}
+        <h1 className="text-2xl font-bold mb-6">
+          Available Buses ({buses.length})
+        </h1>
+
         {/* Bus List */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold">Select bus</h2>
-          
-          {buses.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-md p-12 text-center">
-              <p className="text-gray-600 mb-4">No buses available for this route</p>
-              <button
-                onClick={() => navigate(-1)}
-                className="px-6 py-2 rounded-lg text-white font-medium"
-                style={{ backgroundColor: '#01005B' }}
-              >
-                Try Another Search
-              </button>
-            </div>
-          ) : (
-            buses.map((bus) => (
+        {buses.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg">
+            <p className="text-gray-600">No buses found for this route.</p>
+            <button
+              onClick={() => navigate('/bus_booking')}
+              className="mt-4 px-6 py-2 bg-[#01005B] text-white rounded-lg hover:bg-[#000442]"
+            >
+              Try Another Search
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {buses.map((bus) => (
               <div
                 key={bus.id}
-                className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-all"
+                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border border-gray-100"
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold mb-1">{bus.companyName}</h3>
-                    <p className="text-sm text-gray-600">{bus.busTypeName}</p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-gray-900">{bus.company}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getBusTypeColor(bus.type)}`}>
+                        {getBusTypeLabel(bus.type)}
+                      </span>
+                    </div>
+                    <p className="text-gray-600">{bus.busNumber}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star size={16} className="fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm font-medium">{bus.rating}</span>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold" style={{ color: '#FF6B35' }}>
-                      {bus.currency} {bus.price}
-                    </p>
-                    <p className="text-sm text-gray-600">{bus.duration}</p>
+                    <div className="text-2xl font-bold text-[#FA9A47]"> ${bus.price} /Seat</div>
+                    <div className="text-sm text-gray-500">per seat</div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-gray-400" />
-                    <span className="text-sm">{bus.departureTime}</span>
-                    <ArrowLeftRight size={14} className="text-gray-400" />
-                    <span className="text-sm">{bus.arrivalTime}</span>
+                <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b">
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500 mb-1">Departure</div>
+                    <div className="font-semibold text-lg">{bus.departureTime}</div>
+                    <div className="text-sm text-gray-600">{fromName}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users size={16} className="text-gray-400" />
-                    <span className="text-sm">
-                      {bus.availableSeats} Seats left
-                    </span>
+                  <div className="text-center flex flex-col items-center justify-center">
+                    <Clock size={20} className="text-gray-400 mb-1" />
+                    <div className="text-sm text-gray-600">{bus.duration}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500 mb-1">Arrival</div>
+                    <div className="font-semibold text-lg">{bus.arrivalTime}</div>
+                    <div className="text-sm text-gray-600">{toName}</div>
                   </div>
                 </div>
 
-                {bus.availableSeats <= 5 && (
-                  <div className="mb-4">
-                    <span className="inline-block px-3 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">
-                      Only {bus.availableSeats} seats left!
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex gap-2">
-                    {bus.amenities.map((amenity, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                      >
-                        {amenity}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Users size={18} className="text-gray-400" />
+                      <span className={`font-semibold ${getSeatAvailabilityColor(bus.availableSeats, bus.totalSeats)}`}>
+                        {bus.availableSeats}/{bus.totalSeats} seats available
                       </span>
-                    ))}
+                    </div>
+                    {bus.amenities && bus.amenities.length > 0 && (
+                      <div className="flex gap-2">
+                        {bus.amenities.slice(0, 3).map((amenity, idx) => (
+                          <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            {amenity}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <button
-                    onClick={() => handleSelectBus(bus)}
-                    className="px-6 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-all"
-                    style={{ backgroundColor: '#01005B' }}
+                    onClick={() => {
+                      // Map bus type correctly
+                      const mappedType = bus.type === 'mini-van' ? 'mini-van' : 
+                                       bus.type === 'sleeping-bus' ? 'sleeping-bus' : 'regular-bus';
+                      navigate(`/bus/seats?busId=${bus.id}&date=${date}&busType=${mappedType}&from=${fromName}&to=${toName}&company=${bus.company}&departureTime=${bus.departureTime}&price=${bus.price}`);
+                    }}
+                    disabled={bus.availableSeats === 0}
+                    className="px-6 py-2 bg-[#01005B] text-white rounded-lg hover:bg-[#000442] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    Select Seats
+                    {bus.availableSeats === 0 ? 'Sold Out' : 'Select Seats'}
                   </button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

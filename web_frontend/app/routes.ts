@@ -29,4 +29,5 @@ export default [
   route("profile/favorites", "routes/profile/favorites.tsx"),
   route("profile/settings", "routes/profile/settings.tsx"),
   route("profile/edit", "routes/profile/edit.tsx"),
+  route("install_app", "components/install_app.tsx"),
 ] satisfies RouteConfig;

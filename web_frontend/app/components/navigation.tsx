@@ -67,7 +67,8 @@ export default function Navigation({
 
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'Plan Trip', path: '/trip_plan' },
+    // { name: 'Plan Trip', path: '/trip_plan' },
+    { name: 'Plan Trip', path: '/install_app' },
     { name: 'Bus Booking', path: '/bus_booking' },
     { name: 'Hotel', path: '/hotels' },
   ];

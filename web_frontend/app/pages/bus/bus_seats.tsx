@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowLeftRight, Users } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import Navigation from '../../components/navigation';
+import InstallAppModal from '../../components/install_app_modal';
+import { getBusById, getBusSeats } from '../../api/bus';
 
 interface Seat {
   id: string;
@@ -66,170 +68,302 @@ export default function SeatSelectionPage() {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDeck, setActiveDeck] = useState<'LOWER' | 'UPPER'>('LOWER');
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   const busId = searchParams.get('busId') || '';
-  const busType = (searchParams.get('busType') as BusType) || 'regular-bus';
+  const busTypeParam = searchParams.get('busType') || 'regular-bus';
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
   const date = searchParams.get('date') || '';
+  const company = searchParams.get('company') || 'Bus Company';
+  const departureTime = searchParams.get('departureTime') || '00:00';
+  const priceParam = searchParams.get('price') || '0';
 
+  // Map API bus type to layout bus type
+  const mapBusType = (type: string): BusType => {
+    console.log('Mapping bus type:', type);
+    switch (type.toLowerCase()) {
+      case 'mini-van':
+        return 'mini-van';
+      case 'sleeping-bus':
+        return 'sleeping-bus';
+      case 'regular':
+      case 'regular-bus':
+      default:
+        return 'regular-bus';
+    }
+  };
+
+  const busType = mapBusType(busTypeParam);
   const currentLayout = busLayouts[busType];
 
-  // Mock bus data
+  // Safety check - redirect if layout not found
+  if (!currentLayout) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation activeNav="Bus Booking" />
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <p className="text-red-500 text-lg mb-4">Invalid bus type: {busTypeParam}</p>
+            <p className="text-gray-600 mb-6">The bus type is not recognized. Please go back and try again.</p>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-6 py-3 bg-[#01005B] text-white rounded-lg hover:bg-[#000442] transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Use real bus data from URL params
   const busData = {
-    companyName: 'Perera Travels',
+    companyName: company,
     busType: currentLayout.name,
-    departureTime: '9:00 AM',
-    arrivalTime: '9:45 AM',
-    price: 200,
+    departureTime: departureTime,
+    arrivalTime: '',
+    price: parseFloat(priceParam),
     currency: '$',
   };
 
   useEffect(() => {
-    loadSeats();
-  }, [busId, busType]);
+    if (busId && date) {
+      loadSeats();
+    }
+  }, [busId, date]);
 
-  const loadSeats = () => {
-    setLoading(true);
-    const mockSeats: Seat[] = [];
-    const layout = currentLayout;
-
-    if (layout.type === 'mini-van') {
-      // Mini Van: Irregular layout - 15 seats total
-      // Row 1: 2 seats (1, 2)
-      // Row 2: 3 seats (3, 4, 5)
-      // Row 3: 2 seats (6, 7) [gap] 1 seat (8)
-      // Row 4: 2 seats (9, 10) [gap] 1 seat (11)
-      // Row 5: 4 seats (12, 13, 14, 15)
+  const loadSeats = async () => {
+    try {
+      setLoading(true);
       
-      const miniVanLayout = [
-        { row: 1, seats: [{ col: 'C', num: 1 }, { col: 'D', num: 2 }] },
-        { row: 2, seats: [{ col: 'A', num: 3 }, { col: 'B', num: 4 }, { col: 'C', num: 5 }] },
-        { row: 3, seats: [{ col: 'A', num: 6 }, { col: 'B', num: 7 }, { col: 'D', num: 8 }] },
-        { row: 4, seats: [{ col: 'A', num: 9 }, { col: 'B', num: 10 }, { col: 'D', num: 11 }] },
-        { row: 5, seats: [{ col: 'A', num: 12 }, { col: 'B', num: 13 }, { col: 'C', num: 14 }, { col: 'D', num: 15 }] },
-      ];
+      console.log('Loading seats for busId:', busId, 'date:', date);
+      
+      // Fetch actual seat data from API
+      const apiSeats = await getBusSeats(busId, date);
+      
+      console.log('Fetched API seats:', apiSeats);
 
-      miniVanLayout.forEach(rowData => {
-        rowData.seats.forEach(seat => {
-          const isBooked = Math.random() > 0.8;
-          mockSeats.push({
-            id: `${seat.num}`,
-            seatNumber: `${seat.num}`,
-            row: rowData.row,
-            column: seat.col,
-            type: 'LOWER',
-            status: isBooked ? 'BOOKED' : 'AVAILABLE',
-            price: 200,
-          });
-        });
+      if (!apiSeats || apiSeats.length === 0) {
+        console.warn('No seats returned from API, generating mock data');
+        generateMockSeats();
+        return;
+      }
+
+      // Transform API seats to match component format
+      const transformedSeats: Seat[] = apiSeats.map((apiSeat) => {
+        const seatNum = apiSeat.number;
+        
+        // Calculate row and column based on seat number and bus type
+        let row = 1;
+        let column = 'A';
+        let type: 'LOWER' | 'UPPER' = apiSeat.deck === 'upper' ? 'UPPER' : 'LOWER';
+
+        if (currentLayout.type === 'mini-van') {
+          // Mini Van: seat number to row/column mapping
+          if (seatNum <= 2) {
+            row = 1;
+            column = seatNum === 1 ? 'C' : 'D';
+          } else if (seatNum <= 5) {
+            row = 2;
+            column = ['A', 'B', 'C'][seatNum - 3];
+          } else if (seatNum <= 8) {
+            row = 3;
+            const cols = ['A', 'B', 'D'];
+            column = cols[seatNum - 6];
+          } else if (seatNum <= 11) {
+            row = 4;
+            const cols = ['A', 'B', 'D'];
+            column = cols[seatNum - 9];
+          } else {
+            row = 5;
+            column = ['A', 'B', 'C', 'D'][seatNum - 12];
+          }
+        } else if (currentLayout.type === 'sleeping-bus') {
+          if (seatNum <= 15) {
+            type = 'LOWER';
+            row = Math.ceil(seatNum / 3);
+            column = ['A', 'B', 'C'][(seatNum - 1) % 3];
+          } else {
+            type = 'UPPER';
+            const upperSeatNum = seatNum - 15;
+            if (upperSeatNum <= 15) {
+              row = Math.ceil(upperSeatNum / 3);
+              column = ['A', 'B', 'C'][(upperSeatNum - 1) % 3];
+            } else {
+              row = 5;
+              column = ['A', 'B', 'C', 'D'][upperSeatNum - 16];
+            }
+          }
+        } else {
+          if (seatNum <= 40) {
+            row = Math.ceil(seatNum / 4);
+            column = ['A', 'B', 'C', 'D'][(seatNum - 1) % 4];
+          } else {
+            row = 11;
+            column = ['A', 'B', 'C', 'D', 'E'][seatNum - 41];
+          }
+        }
+
+        return {
+          id: apiSeat.id,
+          seatNumber: seatNum.toString(),
+          row,
+          column,
+          type,
+          status: apiSeat.status.toUpperCase() as 'AVAILABLE' | 'BOOKED' | 'SELECTED',
+          price: apiSeat.price,
+        };
       });
-    } else if (layout.type === 'sleeping-bus') {
-      // Sleeping Bus: Double-decker - 34 seats total (15 lower + 19 upper)
-      // Layout: 2-1 with aisle (A B [aisle] C)
-      // Lower: rows 1-5 (3 seats each) = 15 seats
-      // Upper: rows 1-5 (3 seats each) + row 6 (3 seats) + row 7 (1 seat) = 19 seats
 
-      // Lower deck (1-15) - 5 rows of 3 seats
-      for (let row = 1; row <= 5; row++) {
-        const columns = ['A', 'B', 'C'];
-        columns.forEach(col => {
-          const seatNum = (row - 1) * 3 + columns.indexOf(col) + 1;
-          const isBooked = Math.random() > 0.7;
+      console.log('Transformed seats for display:', transformedSeats);
+      setSeats(transformedSeats);
+    } catch (error) {
+      console.error('Error loading seats:', error);
+      console.log('Generating mock seats as fallback');
+      generateMockSeats();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateMockSeats = () => {
+    console.log('Generating mock seats for bus type:', currentLayout.type);
+    const mockSeats: Seat[] = [];
+    let seatNumber = 1;
+    const basePrice = parseFloat(priceParam) || 100;
+
+    if (currentLayout.type === 'mini-van') {
+      // Mini Van: 15 seats
+      // Row 1: C, D (seats 1, 2)
+      mockSeats.push(
+        { id: '1', seatNumber: '1', row: 1, column: 'C', type: 'LOWER', status: 'AVAILABLE', price: basePrice },
+        { id: '2', seatNumber: '2', row: 1, column: 'D', type: 'LOWER', status: 'BOOKED', price: basePrice }
+      );
+      seatNumber = 3;
+
+      // Row 2: A, B, C (seats 3, 4, 5)
+      for (let col of ['A', 'B', 'C']) {
+        mockSeats.push({
+          id: seatNumber.toString(),
+          seatNumber: seatNumber.toString(),
+          row: 2,
+          column: col,
+          type: 'LOWER',
+          status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+          price: basePrice,
+        });
+        seatNumber++;
+      }
+
+      // Row 3 & 4: A, B, D (seats 6-11)
+      for (let row = 3; row <= 4; row++) {
+        for (let col of ['A', 'B', 'D']) {
           mockSeats.push({
-            id: `L${seatNum}`,
-            seatNumber: `${seatNum}`,
+            id: seatNumber.toString(),
+            seatNumber: seatNumber.toString(),
             row,
             column: col,
             type: 'LOWER',
-            status: isBooked ? 'BOOKED' : 'AVAILABLE',
-            price: 200,
+            status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+            price: basePrice,
           });
-        });
+          seatNumber++;
+        }
       }
 
-      // Upper deck (16-30) - 5 rows of 3 seats
+      // Row 5: A, B, C, D (seats 12-15)
+      for (let col of ['A', 'B', 'C', 'D']) {
+        mockSeats.push({
+          id: seatNumber.toString(),
+          seatNumber: seatNumber.toString(),
+          row: 5,
+          column: col,
+          type: 'LOWER',
+          status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+          price: basePrice,
+        });
+        seatNumber++;
+      }
+    } else if (currentLayout.type === 'sleeping-bus') {
+      // Lower deck: 15 seats (rows 1-5, 3 per row)
       for (let row = 1; row <= 5; row++) {
-        const columns = ['A', 'B', 'C'];
-        columns.forEach(col => {
-          const seatNum = 15 + (row - 1) * 3 + columns.indexOf(col) + 1;
-          const isBooked = Math.random() > 0.7;
+        for (let col of ['A', 'B', 'C']) {
           mockSeats.push({
-            id: `${seatNum}`,
-            seatNumber: `${seatNum}`,
+            id: seatNumber.toString(),
+            seatNumber: seatNumber.toString(),
+            row,
+            column: col,
+            type: 'LOWER',
+            status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+            price: basePrice,
+          });
+          seatNumber++;
+        }
+      }
+
+      // Upper deck: 19 seats (rows 1-4: 3 per row, row 5: 4 seats)
+      for (let row = 1; row <= 4; row++) {
+        for (let col of ['A', 'B', 'C']) {
+          mockSeats.push({
+            id: seatNumber.toString(),
+            seatNumber: seatNumber.toString(),
             row,
             column: col,
             type: 'UPPER',
-            status: isBooked ? 'BOOKED' : 'AVAILABLE',
-            price: 200,
+            status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+            price: basePrice,
           });
-        });
+          seatNumber++;
+        }
       }
-
-      // Upper deck row 6 (31-34) - 4 seats: A=31, B=32, C=33, D=34
-      ['A', 'B', 'C', 'D'].forEach((col, idx) => {
-        const seatNum = 31 + idx;
-        const isBooked = Math.random() > 0.7;
+      // Upper deck last row: 4 seats
+      for (let col of ['A', 'B', 'C', 'D']) {
         mockSeats.push({
-          id: `${seatNum}`,
-          seatNumber: `${seatNum}`,
-          row: 6,
+          id: seatNumber.toString(),
+          seatNumber: seatNumber.toString(),
+          row: 5,
           column: col,
           type: 'UPPER',
-          status: isBooked ? 'BOOKED' : 'AVAILABLE',
-          price: 200,
+          status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+          price: basePrice,
         });
-      });
-    } else if (layout.type === 'regular-bus') {
-      // Regular Bus: 45 seats - 2-2 layout with aisle
-      // Layout: A B [aisle] C D
-      // 10 rows of 4 seats (40) + 1 back row with 5 seats = 45 seats
-
+        seatNumber++;
+      }
+    } else {
+      // Regular bus: 45 seats (rows 1-10: 4 per row, row 11: 5 seats)
       for (let row = 1; row <= 10; row++) {
-        const columns = ['A', 'B', 'C', 'D'];
-        columns.forEach(col => {
-          const seatNum = (row - 1) * 4 + columns.indexOf(col) + 1;
-          const isBooked = Math.random() > 0.7;
+        for (let col of ['A', 'B', 'C', 'D']) {
           mockSeats.push({
-            id: `${seatNum}`,
-            seatNumber: `${seatNum}`,
+            id: seatNumber.toString(),
+            seatNumber: seatNumber.toString(),
             row,
             column: col,
             type: 'LOWER',
-            status: isBooked ? 'BOOKED' : 'AVAILABLE',
-            price: 200,
+            status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+            price: basePrice,
           });
-        });
+          seatNumber++;
+        }
       }
-
-      // Back row (row 11) - 5 seats (41, 42, 43, 44, 45)
-      // Layout: A B [aisle-C] D E
-      const backRowSeats = [
-        { num: 41, col: 'A' },
-        { num: 42, col: 'B' },
-        { num: 43, col: 'C' }, // Middle aisle position
-        { num: 44, col: 'D' },
-        { num: 45, col: 'E' },
-      ];
-
-      backRowSeats.forEach(seat => {
-        const isBooked = Math.random() > 0.7;
+      // Back row: 5 seats
+      for (let col of ['A', 'B', 'C', 'D', 'E']) {
         mockSeats.push({
-          id: `${seat.num}`,
-          seatNumber: `${seat.num}`,
+          id: seatNumber.toString(),
+          seatNumber: seatNumber.toString(),
           row: 11,
-          column: seat.col,
+          column: col,
           type: 'LOWER',
-          status: isBooked ? 'BOOKED' : 'AVAILABLE',
-          price: 200,
+          status: Math.random() > 0.3 ? 'AVAILABLE' : 'BOOKED',
+          price: basePrice,
         });
-      });
+        seatNumber++;
+      }
     }
 
-    setTimeout(() => {
-      setSeats(mockSeats);
-      setLoading(false);
-    }, 500);
+    console.log('Generated mock seats:', mockSeats.length);
+    setSeats(mockSeats);
   };
 
   const handleSeatClick = (seatId: string, status: string) => {
@@ -271,7 +405,11 @@ export default function SeatSelectionPage() {
       return;
     }
     
-    navigate(`/bus/booking?busId=${busId}&seats=${selectedSeats.join(',')}&from=${from}&to=${to}&date=${date}`);
+    // Show install app modal instead of navigating
+    setShowInstallModal(true);
+    
+    // Optional: If you want to continue to booking page (for web users)
+    // navigate(`/bus/booking?busId=${busId}&seats=${selectedSeats.join(',')}&from=${from}&to=${to}&date=${date}`);
   };
 
   const getSeatColor = (status: string) => {
@@ -560,7 +698,7 @@ export default function SeatSelectionPage() {
           </button>
 
           {/* User Info */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
               <span className="text-sm font-medium">SS</span>
             </div>
@@ -568,7 +706,7 @@ export default function SeatSelectionPage() {
               <p className="font-medium">Hello Saduni Silva!</p>
               <p className="text-sm text-gray-600">Where you want go</p>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -694,6 +832,13 @@ export default function SeatSelectionPage() {
           </div>
         </div>
       </div>
+
+      {/* Install App Modal */}
+      <InstallAppModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        feature="bus booking"
+      />
     </div>
   );
 }
