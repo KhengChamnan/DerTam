@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Globe, User, LogOut, Menu, X } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 
 interface NavigationProps {
   activeNav: string;
@@ -16,6 +16,7 @@ export default function Navigation({
   onSearchChange
 }: NavigationProps) {
   const navigate = useNavigate();
+  const location = useLocation(); // Add this
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -24,29 +25,44 @@ export default function Navigation({
   useEffect(() => {
     // Check authentication status
     const authStatus = localStorage.getItem('isAuthenticated');
-    const user = localStorage.getItem('user');
+    const userString = localStorage.getItem('user');
 
-    if (authStatus === 'true' && user) {
-      setIsAuthenticated(true);
-      const userData = JSON.parse(user);
-      setUserName(userData.name);
+    // Check if user data exists and is valid
+    if (authStatus === 'true' && userString && userString !== 'undefined' && userString !== 'null') {
+      try {
+        const userData = JSON.parse(userString);
+        setIsAuthenticated(true);
+        setUserName(userData.name || 'User');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        // Clear invalid data
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        setUserName('');
+      }
+    } else {
+      // Clear invalid or missing data
+      if (authStatus === 'true' && (!userString || userString === 'undefined' || userString === 'null')) {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+      setIsAuthenticated(false);
+      setUserName('');
     }
-  }, []);
+  }, [location.pathname]); // Add location.pathname as dependency
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     localStorage.removeItem('rememberMe');
     setIsAuthenticated(false);
     setUserName('');
     setShowProfileMenu(false);
     navigate('/');
-  };
-
-  const handleClearSearch = () => {
-    if (onSearchChange) {
-      onSearchChange('');
-    }
   };
 
   const navItems = [
@@ -63,7 +79,6 @@ export default function Navigation({
           <img src="/images/logo.png" alt="DerTam Logo" className="h-10 sm:h-12 cursor-pointer" />
         </a>
 
-        
         {/* Navigation Links - Desktop Only */}
         <nav className="hidden lg:flex gap-2">
           {navItems.map((item) => (
@@ -106,7 +121,7 @@ export default function Navigation({
               />
               {searchQuery && (
                 <button
-                  onClick={handleClearSearch}
+                  onClick={() => onSearchChange?.('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none cursor-pointer p-0 flex items-center justify-center"
                   aria-label="Clear search"
                 >

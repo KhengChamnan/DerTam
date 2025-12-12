@@ -61,7 +61,6 @@ export async function getAllEvents(): Promise<Event[]> {
 // Get upcoming events
 export async function getUpcomingEvents(): Promise<Event[]> {
   try {
-    console.log('Fetching upcoming events from:', `${API_BASE_URL}/api/events/upcoming`);
     const response = await fetch(`${API_BASE_URL}/api/events/upcoming`);
     
     if (!response.ok) {
@@ -70,7 +69,6 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     }
     
     const result = await response.json();
-    console.log('Fetched upcoming events:', result);
     
     // Handle wrapped response
     const data = result.data || result;
@@ -89,18 +87,14 @@ export async function getUpcomingEvents(): Promise<Event[]> {
 // Get event by ID
 export async function getEventById(id: string | number): Promise<Event> {
   try {
-    console.log('Fetching event details from:', `${API_BASE_URL}/api/events/${id}`);
     const response = await fetch(`${API_BASE_URL}/api/events/${id}`);
     
     if (!response.ok) {
       console.error('Event detail API error:', response.status, response.statusText);
-      const errorText = await response.text();
-      console.error('Error response:', errorText);
       throw new Error(`Failed to fetch event details (${response.status})`);
     }
     
     const result = await response.json();
-    console.log('Fetched event details:', result);
     
     // Handle wrapped response - extract data property
     const eventData = result.data || result;
@@ -123,7 +117,7 @@ export async function getEventsByPlaceId(placeId: number): Promise<Event[]> {
     }
     
     const result = await response.json();
-    console.log(`Fetched events for place ${placeId}:`, result);
+
     
     // Handle wrapped response
     const data = result.data || result;

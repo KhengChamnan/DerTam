@@ -1,46 +1,60 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react';
+import { register, type RegisterData } from '~/api/auth';
 
-export default function RegisterPage() {
+export default function Register() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  
+  const [formData, setFormData] = useState<RegisterData & { confirmPassword: string }>({
+    name: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
   });
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+  const validateForm = (): boolean => {
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all required fields');
+      return false;
     }
-    if (!agreeTerms) newErrors.terms = 'You must agree to the terms and conditions';
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+
+    if (formData.phone && !/^\+?[\d\s-()]+$/.test(formData.phone)) {
+      setError('Please enter a valid phone number');
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,205 +62,252 @@ export default function RegisterPage() {
     
     if (!validateForm()) return;
 
-    setIsLoading(true);
+    try {
+      setLoading(true);
+      setError(null);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/login');
-    }, 1500);
+      const registerData: RegisterData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone || undefined,
+      };
+
+      const response = await register(registerData);
+      
+      // Store authentication state
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.token);
+
+      // Dispatch custom event to notify Navigation component
+      window.dispatchEvent(new Event('authChange'));
+
+      setSuccess(true);
+
+      // Navigate to home page after a brief delay
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    // TODO: Implement Google Sign In
+    console.log('Google Sign In clicked');
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Branding/Image */}
-      <div className="w-1/2 bg-white flex items-center justify-center">
-        <div className="w-full h-full flex items-center justify-center">
-          <img 
-            src="/images/dertam.png" 
-            alt="Travel destinations" 
-            className="w-full h-full object-cover"
-          />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
+      <div className="max-w-md w-full">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/">
+            <img 
+              src="/images/logo.png" 
+              alt="DerTam Logo" 
+              className="h-16 mx-auto mb-4 cursor-pointer"
+            />
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-600 mt-2">Start your adventure with us</p>
         </div>
-      </div>
 
-      {/* Right Side - Registration Form */}
-      <div className="w-1/2 bg-gray-100 flex items-center justify-center px-8 py-6">
-        <div className="w-full max-w-md">
-          {/* Title */}
-          <h1 className="text-4xl font-bold text-gray-900 mb-6">Sign Up</h1>
-
-          {errors.terms && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-sm text-red-600">{errors.terms}</p>
+        {/* Register Form */}
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  placeholder="First Name"
-                  className={`w-full px-5 py-2.5 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-gray-900 placeholder-gray-400 ${
-                    errors.firstName ? 'ring-2 ring-red-500' : ''
-                  }`}
-                />
-                {errors.firstName && <p className="text-xs text-red-500 mt-0.5 ml-4">{errors.firstName}</p>}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  placeholder="Last Name"
-                  className={`w-full px-5 py-2.5 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-gray-900 placeholder-gray-400 ${
-                    errors.lastName ? 'ring-2 ring-red-500' : ''
-                  }`}
-                />
-                {errors.lastName && <p className="text-xs text-red-500 mt-0.5 ml-4">{errors.lastName}</p>}
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-green-800">Account created successfully!</p>
               </div>
             </div>
+          )}
 
-            {/* Email Field */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Full Name */}
             <div>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Email"
-                className={`w-full px-5 py-2.5 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-gray-900 placeholder-gray-400 ${
-                  errors.email ? 'ring-2 ring-red-500' : ''
-                }`}
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-0.5 ml-4">{errors.email}</p>}
-            </div>
-
-            {/* Phone Field */}
-            <div>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="Phone Number"
-                className={`w-full px-5 py-2.5 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-gray-900 placeholder-gray-400 ${
-                  errors.phone ? 'ring-2 ring-red-500' : ''
-                }`}
-              />
-              {errors.phone && <p className="text-xs text-red-500 mt-0.5 ml-4">{errors.phone}</p>}
-            </div>
-
-            {/* Password Field */}
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Password"
-                className={`w-full px-5 py-2.5 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-gray-900 placeholder-gray-400 ${
-                  errors.password ? 'ring-2 ring-red-500' : ''
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-[#01005B]"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-              {errors.password && <p className="text-xs text-red-500 mt-0.5 ml-4">{errors.password}</p>}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="Confirm Password"
-                className={`w-full px-5 py-2.5 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-gray-900 placeholder-gray-400 ${
-                  errors.confirmPassword ? 'ring-2 ring-red-500' : ''
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-[#01005B]"
-              >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-              {errors.confirmPassword && <p className="text-xs text-red-500 mt-0.5 ml-4">{errors.confirmPassword}</p>}
-            </div>
-
-            {/* Terms & Conditions */}
-            <div className="pt-1">
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => {
-                    setAgreeTerms(e.target.checked);
-                    setErrors(prev => ({ ...prev, terms: '' }));
-                  }}
-                  className="w-4 h-4 mt-0.5 text-[#01005B] border-gray-300 rounded focus:ring-[#01005B]"
-                />
-                <span className="text-xs text-gray-700">
-                  I agree to the{' '}
-                  <button type="button" className="font-semibold text-[#01005B] hover:underline">
-                    Terms & Conditions
-                  </button>{' '}
-                  and{' '}
-                  <button type="button" className="font-semibold text-[#01005B] hover:underline">
-                    Privacy Policy
-                  </button>
-                </span>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name *
               </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all"
+                  required
+                />
+              </div>
             </div>
 
-            {/* Sign Up Button */}
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address *
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Phone (Optional) */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number <span className="text-gray-400 text-xs">(Optional)</span>
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Enter your phone number"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password *
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Create a password (min. 8 characters)"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all"
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password *
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-[#01005B] text-white font-bold rounded-full hover:bg-[#000047] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || success}
+              className="w-full bg-[#01005B] text-white py-3 rounded-lg font-semibold hover:bg-[#000047] transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Creating Account...' : 'Sign up'}
+              {loading ? 'Creating Account...' : success ? 'Account Created!' : 'Create Account'}
             </button>
           </form>
 
-          {/* Login Link */}
-          <p className="text-center mt-4 text-gray-600 text-sm">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              className="font-semibold text-[#01005B] hover:underline"
-            >
-              Log In
-            </button>
-          </p>
-
           {/* Divider */}
-          <div className="relative my-4">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-gray-100 text-gray-500">OR</span>
+              <span className="px-4 bg-white text-gray-500">Or continue with</span>
             </div>
           </div>
 
-          {/* Google Sign Up */}
-          <button className="w-full py-3 px-6 bg-white border-0 rounded-full font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-3">
-            <img src="/images/google_logo.png" alt="Google Logo" className="w-7 h-7" />
+          {/* Google Sign In */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading || success}
+            className="w-full flex items-center justify-center gap-3 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <img 
+              src="https://www.google.com/favicon.ico" 
+              alt="Google" 
+              className="w-5 h-5"
+            />
             Sign up with Google
           </button>
+
+          {/* Sign In Link */}
+          <p className="text-center mt-6 text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link 
+              to="/login" 
+              className="text-[#01005B] hover:underline font-semibold"
+            >
+              Sign In
+            </Link>
+          </p>
+        </div>
+
+        {/* Back to Home */}
+        <div className="text-center mt-6">
+          <Link 
+            to="/" 
+            className="text-sm text-gray-600 hover:text-[#01005B] transition-colors"
+          >
+            ← Back to Home
+          </Link>
         </div>
       </div>
     </div>
