@@ -154,7 +154,7 @@ export default function Login() {
                 <span className="ml-2 text-xs sm:text-sm text-gray-600">Remember me</span>
               </label>
               <Link 
-                to="/forgot-password" 
+                to="/login/forget-password" 
                 className="text-xs sm:text-sm text-[#01005B] hover:underline font-medium"
               >
                 Forgot Password?
