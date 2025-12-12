@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router'; 
-import { Heart, Star, MapPin, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
-import Carousel from '../../components/carousel';
-import Navigation from '../../components/navigation';
-import { useFavorites } from '../profile/hooks/usefavorites';
+import { useState, useEffect } from "react";
+import { Heart, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { usePlaceData } from "./hooks/usePlaceData";
+import { getPlacesByCategory, type Place } from "~/api/place";
+import Navigation from "~/components/navigation";
+import { Link, useNavigate } from "react-router";
+import EventCard from "./components/eventcard";
 
 // Hero carousel images
 const heroImages = [
@@ -13,166 +14,158 @@ const heroImages = [
   "https://images.unsplash.com/photo-1528127269322-539801943592?w=1200",
 ];
 
-// Mock data
-const mockDestinations = [
-  {
-    id: 1,
-    name: "Angkor Wat",
-    location: "Siem Reap, Cambodia",
-    rating: 5,
-    price: 120,
-    image: "https://images.unsplash.com/photo-1598616264509-edd7f9312b3c?w=400",
-    category: "Historical",
-  },
-  {
-    id: 2,
-    name: "Bou Sra",
-    location: "Mondulkiri, Cambodia",
-    rating: 5,
-    price: 80,
-    image: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400",
-    category: "Standard",
-  },
-  {
-    id: 3,
-    name: "Monument",
-    location: "Phnom Penh, Cambodia",
-    rating: 5,
-    price: 50,
-    image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400",
-    category: "Historical",
-  },
-  {
-    id: 4,
-    name: "Beach Villa",
-    location: "Sihanoukville, Cambodia",
-    rating: 4,
-    price: 200,
-    image: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400",
-    category: "Villa",
-  },
-  {
-    id: 5,
-    name: "Mountain Cottage",
-    location: "Mondulkiri, Cambodia",
-    rating: 4,
-    price: 90,
-    image: "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=400",
-    category: "Cottages",
-  },
-  {
-    id: 6,
-    name: "City Townhouse",
-    location: "Phnom Penh, Cambodia",
-    rating: 4,
-    price: 70,
-    image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
-    category: "Townhouses",
-  },
-];
-
-const mockEvents = [
-  {
-    id: 1,
-    name: "Angkor Songkran",
-    location: "Siem Reap, Cambodia",
-    rating: 5,
-    price: 150,
-    image: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400",
-  },
-  {
-    id: 2,
-    name: "Water Festival",
-    location: "Phnom Penh, Cambodia",
-    rating: 5,
-    price: 80,
-    image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400",
-  },
-  {
-    id: 3,
-    name: "Pchum Ben",
-    location: "Battambang, Cambodia",
-    rating: 4,
-    price: 50,
-    image: "https://images.unsplash.com/photo-1514984879728-be0aff75a6e8?w=400",
-  },
-];
-
-const categories = [
-  "All",
-  "Historical",
-  "Standard",
-  "Villa",
-  "Cottages",
-  "Townhouses",
-  "Shared Space",
-];
-
 export default function HomePage() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const { isFavorite, toggleFavorite: toggleFavoriteHook } = useFavorites();
+
+  const { 
+    categories, 
+    destinations, 
+    events, 
+    loading, 
+    error,
+    search 
+  } = usePlaceData();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentImage, setCurrentImage] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [filteredDestinations, setFilteredDestinations] = useState<Place[]>([]);
+  const [loadingCategory, setLoadingCategory] = useState(false);
   
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [favorites, setFavorites] = useState<number[]>([]);
+  // Favorites from localStorage
+  const [destinationFavorites, setDestinationFavorites] = useState<number[]>([]);
   const [eventFavorites, setEventFavorites] = useState<number[]>([]);
-  const [currentEventPage, setCurrentEventPage] = useState(0);
 
-  // Filter destinations based on category and search
-  const filteredDestinations = mockDestinations.filter(dest => {
-    const matchesCategory = selectedCategory === 'All' || dest.category === selectedCategory;
-    const matchesSearch = !searchQuery || 
-      dest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dest.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-  
-  // Handle favorite toggle with complete data
-  const handleToggleFavorite = (dest: any) => {
-    toggleFavoriteHook({
-      id: dest.id.toString(),
-      name: dest.name,
-      location: dest.location,
-      type: 'destination',
-      image: dest.image,
-      description: `${dest.name} in ${dest.location}`,
-      price: dest.price,
-      rating: dest.rating,
-      category: dest.category,
-    });
-  };
+  // Load favorites from localStorage
+  useEffect(() => {
+    const savedDestFavorites = localStorage.getItem('destinationFavorites');
+    const savedEventFavorites = localStorage.getItem('eventFavorites');
+    
+    if (savedDestFavorites) {
+      setDestinationFavorites(JSON.parse(savedDestFavorites));
+    }
+    if (savedEventFavorites) {
+      setEventFavorites(JSON.parse(savedEventFavorites));
+    }
+  }, []);
 
+  // Save favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem('destinationFavorites', JSON.stringify(destinationFavorites));
+  }, [destinationFavorites]);
 
+  useEffect(() => {
+    localStorage.setItem('eventFavorites', JSON.stringify(eventFavorites));
+  }, [eventFavorites]);
 
-  // Toggle event favorite
-  const toggleEventFavorite = (id: number) => {
-    setEventFavorites(prev => 
+  // Hero carousel auto-slide
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle search
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const debounce = setTimeout(() => {
+        search(searchQuery);
+      }, 500);
+      return () => clearTimeout(debounce);
+    }
+  }, [searchQuery]);
+
+  // Load places by category or show all destinations
+  useEffect(() => {
+    async function loadPlaces() {
+      if (selectedCategory) {
+        try {
+          setLoadingCategory(true);
+          const places = await getPlacesByCategory(selectedCategory);
+          setFilteredDestinations(places);
+        } catch (err) {
+          console.error('Error loading category places:', err);
+          setFilteredDestinations([]);
+        } finally {
+          setLoadingCategory(false);
+        }
+      } else {
+        setFilteredDestinations(destinations);
+      }
+    }
+    
+    loadPlaces();
+  }, [selectedCategory, destinations]);
+
+  // Toggle destination favorite
+  const toggleDestinationFavorite = (id: number) => {
+    setDestinationFavorites(prev =>
       prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
   };
 
-  // Event pagination
-  const eventsPerPage = 3;
-  const totalEventPages = Math.ceil(mockEvents.length / eventsPerPage);
-  const currentEvents = mockEvents.slice(
-    currentEventPage * eventsPerPage,
-    (currentEventPage + 1) * eventsPerPage
-  );
-
-  const nextEventPage = () => {
-    setCurrentEventPage((prev) => (prev + 1) % totalEventPages);
-  };
-
-  const prevEventPage = () => {
-    setCurrentEventPage(
-      (prev) => (prev - 1 + totalEventPages) % totalEventPages
+  // Toggle event favorite
+  const toggleEventFavorite = (id: number) => {
+    setEventFavorites(prev =>
+      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
   };
 
+  // Pagination for destinations
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 6;
+  const totalPages = Math.ceil(filteredDestinations.length / itemsPerPage);
+  const currentDestinations = filteredDestinations.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
+  // Reset page when category changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [selectedCategory]);
+
+  // Pagination for events
+  const [eventPage, setEventPage] = useState(0);
+  const eventsPerPage = 3;
+  const totalEventPages = Math.ceil(events.length / eventsPerPage);
+  const currentEvents = events.slice(
+    eventPage * eventsPerPage,
+    (eventPage + 1) * eventsPerPage
+  );
+
+  // Loading state
+  if (loading && !destinations.length) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading amazing destinations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !destinations.length) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-[#01005B] text-white rounded-lg hover:bg-[#000047] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="font-sans min-h-screen bg-white">
-
-      {/* Navigation - Enable search on homepage */}
       <Navigation 
         activeNav="Home" 
         showSearch={true}
@@ -180,311 +173,238 @@ export default function HomePage() {
         onSearchChange={setSearchQuery}
       />
 
-      {/* Hero Section with Carousel */}
-      <section className="relative overflow-hidden">
-        <Carousel 
-          images={heroImages} 
-          autoPlay={true}
-          autoPlayInterval={5000}
-          className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
-        />
+      {/* Hero Slideshow */}
+      <section className="relative h-[400px] sm:h-[500px] lg:h-[600px] overflow-hidden">
+        {heroImages.map((img, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentImage ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img src={img} alt={`Hero ${index + 1}`} className="w-full h-full object-cover" />
+            {/* <div className="absolute inset-0 bg-black/30" /> */}
+          </div>
+        ))}
+        
+        {/* <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg">
+            Explore Cambodia
+          </h1>
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-8 drop-shadow-md max-w-2xl">
+            Discover amazing places and create unforgettable memories
+          </p>
+        </div> */}
+
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImage(index)}
+              className={`w-2 h-2 rounded-full transition-all ${
+                index === currentImage ? 'bg-white w-8' : 'bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
       </section>
 
-      {/* Main Content */}
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 lg:py-16">
-        {/* Popular Nearby Section */}
-        <section className="mb-12 sm:mb-16 lg:mb-20">
-          {!searchQuery && (
-            <div className="mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-2">Popular Nearby</h2>
-              <p className="text-sm sm:text-base text-gray-600">Quality as judged user preference</p>
-            </div>
-          )}
-
-          {/* Categories */}
-          <div className="flex gap-2 sm:gap-3 lg:gap-5 mb-6 sm:mb-8 flex-wrap overflow-x-auto pb-2">
-            {categories.map((cat) => (
+        
+        {/* Categories */}
+        <section className="mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+            Explore by Category
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {categories.map((category) => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`${
-                  selectedCategory === cat
-                    ? "text-white border-none"
-                    : "bg-transparent text-gray-600 border border-gray-300 hover:border-[#01005B]"
-                } px-4 sm:px-6 py-2 rounded-full cursor-pointer text-xs sm:text-sm whitespace-nowrap transition-all`}
-                style={
-                  selectedCategory === cat ? { backgroundColor: "#01005B" } : {}
-                }
+                key={category.id}
+                onClick={() => setSelectedCategory(
+                  selectedCategory === category.id ? null : category.id
+                )}
+                disabled={loadingCategory}
+                className={`p-4 rounded-xl transition-all cursor-pointer hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                  selectedCategory === category.id
+                    ? 'bg-[#01005B] text-white shadow-lg'
+                    : 'bg-white text-gray-700 shadow-md hover:bg-gray-50'
+                }`}
               >
-                {cat}
+                <div className="text-3xl mb-2">{category.icon}</div>
+                <p className="text-sm font-medium">{category.name}</p>
               </button>
             ))}
           </div>
+        </section>
 
-          {/* Destination Cards */}
-          {filteredDestinations.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {filteredDestinations.map((dest) => (
-                <Link key={dest.id} to={`/place/${dest.id}`}>
-                  <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
-                    <div className="relative">
-                      <img src={dest.image} alt={dest.name} className="w-full h-48 sm:h-56 lg:h-64 object-cover" />
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleToggleFavorite(dest);
-                        }}
-                        className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
-                      >
-                        <Heart 
-                          size={20} 
-                          color="#ef4444" 
-                          fill={isFavorite(dest.id.toString()) ? "#ef4444" : "none"}
+        {/* Popular Destinations */}
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              {selectedCategory 
+                ? `${categories.find(c => c.id === selectedCategory)?.name || 'Filtered'} Destinations` 
+                : 'Popular Destinations'}
+            </h2>
+            {selectedCategory && (
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="text-[#01005B] hover:underline text-sm font-medium"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+          
+          <div className="relative">
+            {loadingCategory ? (
+              <div className="text-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B] mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading destinations...</p>
+              </div>
+            ) : currentDestinations.length === 0 ? (
+              <div className="text-center py-16">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No places available
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {selectedCategory 
+                    ? `No destinations found for "${categories.find(c => c.id === selectedCategory)?.name || 'this category'}". Try another category or clear the filter.`
+                    : 'No destinations available at the moment.'}
+                </p>
+                {selectedCategory && (
+                  <button
+                    onClick={() => setSelectedCategory(null)}
+                    className="px-6 py-3 bg-[#01005B] text-white rounded-lg hover:bg-[#000047] transition-colors"
+                  >
+                    View All Destinations
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                  {currentDestinations.map((destination) => (
+                    <Link 
+                      key={destination.id} 
+                      to={`/place/${destination.id}`}
+                      className="rounded-xl sm:rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all"
+                    >
+                      <div className="relative">
+                        <img 
+                          src={destination.images?.[0] || '/images/placeholder.jpg'} 
+                          alt={destination.name || 'Destination'} 
+                          className="w-full h-48 sm:h-56 lg:h-64 object-cover" 
                         />
-                      </button>
-                    </div>
-                    <div className="p-4 sm:p-5">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-base sm:text-lg font-bold">{dest.name}</h3>
-                        <div className="flex items-center gap-1">
-                          <Star size={16} fill="#fbbf24" color="#fbbf24" />
-                          <span className="text-sm font-bold">{dest.rating}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleDestinationFavorite(destination.id);
+                          }}
+                          className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
+                        >
+                          <Heart
+                            size={20}
+                            color="#ef4444"
+                            fill={destinationFavorites.includes(destination.id) ? "#ef4444" : "none"}
+                          />
+                        </button>
+                      </div>
+                      <div className="p-4 bg-white">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                          {destination.name || 'Unknown Place'}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-3">{destination.location || 'Location not available'}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {destination.rating ? destination.rating.toFixed(1) : '0.0'}
+                            </span>
+                            {/* <span className="text-xs text-gray-500">
+                              ({destination.reviews || 0} reviews)
+                            </span> */}
+                          </div>
+            
                         </div>
                       </div>
-                      <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
-                        <MapPin size={16} color="#ef4444" />
-                        {dest.location}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <DollarSign size={16} color="#666" />
-                        <span className="text-base font-bold" style={{ color: '#01005B' }}>${dest.price}</span>
-                        <span className="text-sm text-gray-600">/Person</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-gray-500 text-lg">
-                No destinations found. Try a different category or search term.
-              </p>
-            </div>
-          )}
+                    </Link>
+                  ))}
+                </div>
 
-          <div className="text-center mt-8 sm:mt-10">
-            <Link to="/hotels">
-              <button
-                className="text-white border-none px-8 sm:px-10 py-2.5 sm:py-3 rounded-lg cursor-pointer text-sm sm:text-base font-medium transition-all"
-                style={{ backgroundColor: "#01005B" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#000047";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#01005B";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                View more
-              </button>
-            </Link>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                      disabled={currentPage === 0}
+                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage + 1} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </section>
 
-        {/* Upcoming Events Section */}
-        <section>
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">Upcoming event</h2>
-            <p className="text-sm sm:text-base text-gray-600">Quality as judged user preference</p>
-          </div>
-
-          {/* Event Cards with Navigation */}
-          <div className="relative">
-            {totalEventPages > 1 && (
-              <>
-                <button
-                  onClick={prevEventPage}
-                  className="hidden sm:flex absolute left-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 items-center justify-center hover:border-[#01005B] transition-all"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <button
-                  onClick={nextEventPage}
-                  className="hidden sm:flex absolute right-[-20px] top-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-full w-10 h-10 cursor-pointer z-10 items-center justify-center hover:border-[#01005B] transition-all"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {currentEvents.map((event) => (
-                <div key={event.id} className="rounded-xl sm:rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-all">
-                  <div className="relative">
-                    <img src={event.image} alt={event.name} className="w-full h-48 sm:h-56 lg:h-64 object-cover" />
-                    <button 
-                      onClick={() => toggleEventFavorite(event.id)}
-                      className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
-                    >
-                      <Heart
-                        size={20}
-                        color="#ef4444"
-                        fill={eventFavorites.includes(event.id) ? "#ef4444" : "none"}
-                      />
-                    </button>
-                  </div>
-                  <div className="p-4 sm:p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-base sm:text-lg font-bold">{event.name}</h3>
-                      <div className="flex items-center gap-1">
-                        <Star size={16} fill="#fbbf24" color="#fbbf24" />
-                        <span className="text-sm font-bold">
-                          {event.rating}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="mb-3 text-gray-600 text-sm flex items-center gap-1">
-                      <MapPin size={16} color="#ef4444" />
-                      {event.location}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <DollarSign size={16} color="#666" />
-                      <span
-                        className="text-base font-bold"
-                        style={{ color: "#01005B" }}
-                      >
-                        ${event.price}
-                      </span>
-                      <span className="text-sm text-gray-600">/Person</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination Dots */}
-            {totalEventPages > 1 && (
-              <div className="flex justify-center gap-2 mt-6">
-                {Array.from({ length: totalEventPages }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentEventPage(idx)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      idx === currentEventPage ? "w-8" : "w-2"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        idx === currentEventPage ? "#01005B" : "#d1d5db",
-                    }}
+        {/* Upcoming Events */}
+        {events.length > 0 && (
+          <section>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+              Upcoming Events
+            </h2>
+            
+            <div className="relative">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                {currentEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    isFavorite={eventFavorites.includes(event.id)}
+                    onToggleFavorite={toggleEventFavorite}
+                    onClick={() => navigate(`/event/${event.id}`)}
                   />
                 ))}
               </div>
-            )}
-          </div>
-        </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-50 px-4 sm:px-6 md:px-8 lg:px-10 py-12 sm:py-16 mt-12 sm:mt-16 lg:mt-20">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-10">
-          <div>
-            <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-5">DerTam</h3>
-            <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
-              Explore Cambodia's hidden gems and popular destinations with us.
-            </p>
-          </div>
-          <div>
-            <h4 className="text-base font-bold mb-4">Route</h4>
-            <ul className="list-none p-0 m-0">
-              <li className="mb-2">
-                <a
-                  href="#"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Home
-                </a>
-              </li>
-              <li className="mb-2">
-                <a
-                  href="/trip_plan"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Plan Trip
-                </a>
-              </li>
-              <li className="mb-2">
-                <a
-                  href="/bus_booking"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Bus Booking
-                </a>
-              </li>
-              <li className="mb-2">
-                <a
-                  href="/hotels"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Hotel
-                </a>
-              </li>
-            </ul>
-          </div>
-          {/* <div>
-            <h4 className="text-base font-bold mb-4">Tools</h4>
-            <ul className="list-none p-0 m-0">
-              <li className="mb-2">
-                <a
-                  href="#"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Payment Options
-                </a>
-              </li>
-              <li className="mb-2">
-                <a
-                  href="#"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Booking Policy
-                </a>
-              </li>
-              <li className="mb-2">
-                <a
-                  href="#"
-                  className="text-gray-600 no-underline text-sm hover:text-[#01005B]"
-                >
-                  Privacy Policies
-                </a>
-              </li>
-            </ul>
-          </div> */}
-          {/* <div className="sm:col-span-2 lg:col-span-1"> */}
-            {/* <h4 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Newsletter</h4>
-            <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">
-              Enter your email address
-            </p> */}
-            {/* <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                placeholder="Your email"
-                className="flex-1 w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#01005B]"
-              />
-              <button
-                className="text-white border-none px-5 py-2 rounded cursor-pointer text-sm hover:opacity-90"
-                style={{ backgroundColor: "#01005B" }}
-              >
-                Subscribe
-              </button>
-            </div> */}
-          {/* </div> */}
-        </div>
-        <div className="border-t border-gray-200 pt-5 text-center text-gray-600 text-sm">
-          2025 DerTam. All rights reserved
-        </div>
-      </footer>
+              {/* Event Pagination */}
+              {totalEventPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={() => setEventPage(prev => Math.max(0, prev - 1))}
+                    disabled={eventPage === 0}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Page {eventPage + 1} of {totalEventPages}
+                  </span>
+                  <button
+                    onClick={() => setEventPage(prev => Math.min(totalEventPages - 1, prev + 1))}
+                    disabled={eventPage === totalEventPages - 1}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
     </div>
   );
 }

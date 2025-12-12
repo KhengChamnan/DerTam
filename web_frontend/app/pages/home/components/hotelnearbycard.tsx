@@ -1,11 +1,12 @@
-import { Star, DollarSign } from 'lucide-react';
+import { Star, DollarSign, MapPin } from 'lucide-react';
 import { Link } from 'react-router';
 
 interface HotelNearbyCardProps {
   hotel: {
     id: number;
     name: string;
-    price: string;
+    price: number;
+    distance: string;
     rating: number;
     image: string;
   };
@@ -24,13 +25,19 @@ export default function HotelNearbyCard({ hotel }: HotelNearbyCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-gray-900 truncate">{hotel.name}</h4>
-          <div className="flex items-center mt-1 text-sm">
-            <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-            <span className="font-semibold">{hotel.rating}</span>
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex items-center text-sm">
+              <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+              <span className="font-semibold">{hotel.rating.toFixed(1)}</span>
+            </div>
+            <div className="flex items-center text-xs text-gray-600">
+              <MapPin className="w-3 h-3 mr-1" />
+              <span>{hotel.distance}</span>
+            </div>
           </div>
           <div className="flex items-center mt-2 text-blue-900 font-semibold">
             <DollarSign className="w-4 h-4" />
-            <span>{hotel.price.replace('$', '')}/night</span>
+            <span>${hotel.price.toFixed(2)}/night</span>
           </div>
         </div>
       </div>

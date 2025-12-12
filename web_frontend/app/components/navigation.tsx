@@ -16,7 +16,6 @@ export default function Navigation({
   onSearchChange
 }: NavigationProps) {
   const navigate = useNavigate();
-  const [showSearchInput, setShowSearchInput] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -44,6 +43,12 @@ export default function Navigation({
     navigate('/');
   };
 
+  const handleClearSearch = () => {
+    if (onSearchChange) {
+      onSearchChange('');
+    }
+  };
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Plan Trip', path: '/trip_plan' },
@@ -53,18 +58,19 @@ export default function Navigation({
 
   return (
     <header className="flex justify-between items-center px-4 sm:px-8 lg:px-16 py-4 border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-      <div className="flex items-center gap-4 lg:gap-12">
-        <a href="/">
+      <div className="flex items-center gap-4 lg:gap-8 flex-1">
+        <a href="/" className="flex-shrink-0">
           <img src="/images/logo.png" alt="DerTam Logo" className="h-10 sm:h-12 cursor-pointer" />
         </a>
 
-        {/* Navigation Links - Desktop */}
+        
+        {/* Navigation Links - Desktop Only */}
         <nav className="hidden lg:flex gap-2">
           {navItems.map((item) => (
             <a
               key={item.name}
               href={item.path}
-              className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 group
+              className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 group whitespace-nowrap
                 ${activeNav === item.name
                   ? 'text-[#01005B]'
                   : 'text-gray-600 hover:text-[#01005B]'
@@ -82,41 +88,39 @@ export default function Navigation({
             </a>
           ))}
         </nav>
-      </div>
 
-      {/* Mobile Menu Toggle */}
-      <button
-        onClick={() => setShowMobileMenu(!showMobileMenu)}
-        className="lg:hidden bg-transparent border-none cursor-pointer p-2 hover:bg-gray-100 rounded-lg transition-all"
-      >
-        {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
-      </button>
+        {/* Search Container - Desktop & Mobile */}
+        {showSearch && (
+          <div className="relative flex-1 max-w-md">
+            <div className="relative">
+              <Search 
+                size={20} 
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+              <input
+                type="text"
+                placeholder="Search destinations, events, hotels..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange?.(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#01005B] focus:ring-2 focus:ring-[#01005B]/20 focus:bg-white transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none cursor-pointer p-0 flex items-center justify-center"
+                  aria-label="Clear search"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
+      </div>
 
       {/* Right side actions - Desktop */}
       <div className="hidden lg:flex items-center gap-4">
-        {/* Search with dropdown - Only show if showSearch prop is true */}
-        {showSearch && (
-          <div className="relative">
-            <button
-              onClick={() => setShowSearchInput(!showSearchInput)}
-              className={`bg-transparent border-none cursor-pointer flex items-center justify-center w-10 h-10 rounded-full transition-all
-                ${showSearchInput ? 'bg-gray-100 text-[#01005B]' : 'hover:bg-gray-100 hover:text-[#01005B]'}`}
-            >
-              <Search size={20} />
-            </button>
-            {showSearchInput && (
-              <input
-                type="text"
-                placeholder="Search destinations..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                className="absolute right-0 top-12 px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-lg w-72 focus:outline-none focus:border-[#01005B] focus:ring-2 focus:ring-[#01005B]/20"
-                autoFocus
-              />
-            )}
-          </div>
-        )}
-
         {/* Language selector */}
         <button className="bg-transparent border-none cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 hover:text-[#01005B] transition-all">
           <Globe size={18} />
@@ -184,6 +188,14 @@ export default function Navigation({
         )}
       </div>
 
+      {/* Mobile Menu Toggle */}
+      <button
+        onClick={() => setShowMobileMenu(!showMobileMenu)}
+        className="lg:hidden bg-transparent border-none cursor-pointer p-2 hover:bg-gray-100 rounded-lg transition-all ml-2"
+      >
+        {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
@@ -203,19 +215,6 @@ export default function Navigation({
               </a>
             ))}
           </nav>
-
-          {/* Mobile Search */}
-          {showSearch && (
-            <div className="px-6 py-4 border-b border-gray-100">
-              <input
-                type="text"
-                placeholder="Search destinations..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#01005B] focus:ring-2 focus:ring-[#01005B]/20"
-              />
-            </div>
-          )}
 
           {/* Mobile Auth/Profile */}
           <div className="px-6 py-4">
