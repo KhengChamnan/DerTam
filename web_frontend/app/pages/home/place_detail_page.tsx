@@ -65,10 +65,10 @@ export default function PlaceDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading place details...</p>
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-[#01005B] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -76,12 +76,14 @@ export default function PlaceDetailPage() {
 
   if (error || !place) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Error: {error || 'Place not found'}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md px-6">
+          <div className="text-red-600 text-5xl mb-4">⚠</div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Error Loading Place</h3>
+          <p className="text-gray-600 mb-6">{error || 'Place not found'}</p>
           <button 
             onClick={() => window.history.back()}
-            className="px-6 py-3 bg-[#01005B] text-white rounded-lg hover:bg-[#000047] transition-colors"
+            className="px-6 py-3 bg-[#01005B] text-white rounded-lg font-medium hover:bg-[#000047] transition-colors"
           >
             Go Back
           </button>
@@ -91,10 +93,10 @@ export default function PlaceDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
       <Navigation activeNav="Destinations" />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <PlaceHeader 
           name={place.name}
           location={place.location}
@@ -102,11 +104,9 @@ export default function PlaceDetailPage() {
           reviews={place.reviews} 
           isFavorite={false} 
           onToggleFavorite={() => {
-            // TODO: Implement favorite toggle
             console.log('Toggle favorite');
           }} 
           onStartPlanning={() => {
-            // TODO: Implement planning
             console.log('Start planning');
           }}        
         />
@@ -117,7 +117,7 @@ export default function PlaceDetailPage() {
           onImageClick={handleImageClick}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mt-6 sm:mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           <div className="lg:col-span-2 space-y-6">
             <DetailInfo
               description={place.description}
@@ -132,16 +132,38 @@ export default function PlaceDetailPage() {
           <div className="space-y-6">
             {/* Nearby Places */}
             {place.nearbyPlaces && place.nearbyPlaces.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Nearby Places</h3>
+              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-6 border-2 border-gray-100">
+                <div className="mb-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-14 h-14 bg-gray-300 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl">📍</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-0.5">Nearby Places</h3>
+                        <p className="text-xs text-gray-500">Locations within 5km radius</p>
+                        {/* <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs text-[#01005B] bg-[#01005B]/10 px-2 py-0.5 rounded font-medium">Updated</span>
+                        </div> */}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-4xl font-black text-[#01005B] leading-none">{place.nearbyPlaces.length}</div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Total</div>
+                    </div>
+                  </div>
+                  
                   {place.nearbyPlaces.length > 2 && (
-                    <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                      {showAllPlaces ? place.nearbyPlaces.length : '2'} of {place.nearbyPlaces.length}
-                    </span>
+                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-[#01005B] rounded-full"></div>
+                        <span className="text-sm text-gray-700">Showing <span className="font-bold text-[#01005B]">{showAllPlaces ? place.nearbyPlaces.length : 2}</span> of {place.nearbyPlaces.length}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium">{place.nearbyPlaces.length - 2} more items</span>
+                    </div>
                   )}
                 </div>
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-4">
                   {(showAllPlaces ? place.nearbyPlaces : place.nearbyPlaces.slice(0, 2)).map((nearby) => (
                     <NearbyPlaceCard key={nearby.id} place={nearby} />
                   ))}
@@ -149,13 +171,19 @@ export default function PlaceDetailPage() {
                 {place.nearbyPlaces.length > 2 && (
                   <button
                     onClick={() => setShowAllPlaces(!showAllPlaces)}
-                    className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-300 transition-all duration-300 group"
+                    className="w-full mt-5 py-3 px-5 bg-[#01005B] text-white text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
                   >
-                    <div className="flex items-center justify-center gap-2 text-blue-900 font-semibold">
-                      <Sparkles className="w-4 h-4 animate-pulse" />
-                      <span>{showAllPlaces ? 'Show Less' : `Discover ${place.nearbyPlaces.length - 2} More Places`}</span>
-                      {showAllPlaces ? <ChevronUp className="w-4 h-4 group-hover:-translate-y-1 transition-transform" /> : <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />}
-                    </div>
+                    {showAllPlaces ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        <span>Show Less</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>View {place.nearbyPlaces.length - 2} More Places</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -163,16 +191,38 @@ export default function PlaceDetailPage() {
 
             {/* Nearby Hotels */}
             {place.nearbyHotels && place.nearbyHotels.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Nearby Hotels</h3>
+              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-6 border-2 border-gray-100">
+                <div className="mb-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-14 h-14 bg-gray-300 rounded-xl flex items-center justify-center shadow-sm">
+                        <span className="text-2xl">🏨</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-0.5">Nearby Hotels</h3>
+                        <p className="text-xs text-gray-500">Accommodations nearby</p>
+                        {/* <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs text-[#01005B] bg-[#01005B]/10 px-2 py-0.5 rounded font-medium">Updated</span>
+                        </div> */}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-4xl font-black text-[#01005B] leading-none">{place.nearbyHotels.length}</div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Total</div>
+                    </div>
+                  </div>
+                  
                   {place.nearbyHotels.length > 3 && (
-                    <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                      {showAllHotels ? place.nearbyHotels.length : '3'} of {place.nearbyHotels.length}
-                    </span>
+                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-[#01005B] rounded-full"></div>
+                        <span className="text-sm text-gray-700">Showing <span className="font-bold text-[#01005B]">{showAllHotels ? place.nearbyHotels.length : 3}</span> of {place.nearbyHotels.length}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium">{place.nearbyHotels.length - 3} more items</span>
+                    </div>
                   )}
                 </div>
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-4">
                   {(showAllHotels ? place.nearbyHotels : place.nearbyHotels.slice(0, 3)).map((hotel) => (
                     <HotelNearbyCard key={hotel.id} hotel={hotel} />
                   ))}
@@ -180,13 +230,19 @@ export default function PlaceDetailPage() {
                 {place.nearbyHotels.length > 3 && (
                   <button
                     onClick={() => setShowAllHotels(!showAllHotels)}
-                    className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-300 transition-all duration-300 group"
+                    className="w-full mt-5 py-3 px-5 bg-[#01005B] text-white text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
                   >
-                    <div className="flex items-center justify-center gap-2 text-purple-900 font-semibold">
-                      <Sparkles className="w-4 h-4 animate-pulse" />
-                      <span>{showAllHotels ? 'Show Less' : `View ${place.nearbyHotels.length - 3} More Hotels`}</span>
-                      {showAllHotels ? <ChevronUp className="w-4 h-4 group-hover:-translate-y-1 transition-transform" /> : <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />}
-                    </div>
+                    {showAllHotels ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        <span>Show Less</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>View {place.nearbyHotels.length - 3} More Hotels</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -194,16 +250,35 @@ export default function PlaceDetailPage() {
 
             {/* Nearby Restaurants */}
             {place.nearbyRestaurants && place.nearbyRestaurants.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Nearby Restaurants</h3>
+              <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-md p-6 border-2 border-gray-100">
+                <div className="mb-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-14 h-14 bg-gray-300 rounded-xl flex items-center justify-center shadow-sm">
+                        <span className="text-2xl">🍽️</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-0.5">Nearby Restaurants</h3>
+                        <p className="text-xs text-gray-500">Dining options available</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-4xl font-black text-[#01005B] leading-none">{place.nearbyRestaurants.length}</div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-0.5">Total</div>
+                    </div>
+                  </div>
+                  
                   {place.nearbyRestaurants.length > 3 && (
-                    <span className="text-xs sm:text-sm text-gray-500 font-medium">
-                      {showAllRestaurants ? place.nearbyRestaurants.length : '3'} of {place.nearbyRestaurants.length}
-                    </span>
+                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-[#01005B] rounded-full"></div>
+                        <span className="text-sm text-gray-700">Showing <span className="font-bold text-[#01005B]">{showAllRestaurants ? place.nearbyRestaurants.length : 3}</span> of {place.nearbyRestaurants.length}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium">{place.nearbyRestaurants.length - 3} more items</span>
+                    </div>
                   )}
                 </div>
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-4">
                   {(showAllRestaurants ? place.nearbyRestaurants : place.nearbyRestaurants.slice(0, 3)).map((restaurant) => (
                     <RestaurantNearbyCard key={restaurant.id} restaurant={restaurant} />
                   ))}
@@ -211,13 +286,19 @@ export default function PlaceDetailPage() {
                 {place.nearbyRestaurants.length > 3 && (
                   <button
                     onClick={() => setShowAllRestaurants(!showAllRestaurants)}
-                    className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 rounded-xl border-2 border-dashed border-amber-200 hover:border-amber-300 transition-all duration-300 group"
+                    className="w-full mt-5 py-3 px-5 bg-[#01005B] text-white text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2"
                   >
-                    <div className="flex items-center justify-center gap-2 text-amber-900 font-semibold">
-                      <Sparkles className="w-4 h-4 animate-pulse" />
-                      <span>{showAllRestaurants ? 'Show Less' : `Explore ${place.nearbyRestaurants.length - 3} More Restaurants`}</span>
-                      {showAllRestaurants ? <ChevronUp className="w-4 h-4 group-hover:-translate-y-1 transition-transform" /> : <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />}
-                    </div>
+                    {showAllRestaurants ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        <span>Show Less</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>View {place.nearbyRestaurants.length - 3} More Restaurants</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 )}
               </div>
