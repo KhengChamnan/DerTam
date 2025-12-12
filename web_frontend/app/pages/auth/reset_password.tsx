@@ -79,122 +79,96 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen max-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-3 sm:py-4 overflow-hidden w-full">
-      <div className="w-full max-w-[95vw] sm:max-w-md overflow-hidden max-h-[98vh] flex flex-col">
-        {/* Logo */}
-        <div className="text-center mb-3 sm:mb-4 shrink-0">
-          <Link to="/">
-            <img 
-              src="/images/logo.png" 
-              alt="DerTam Logo" 
-              className="h-10 sm:h-12 mx-auto mb-2 cursor-pointer"
-            />
-          </Link>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reset Password</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+    <div className="min-h-screen max-h-screen flex flex-col lg:flex-row overflow-hidden">
+      {/* Left Side - Form */}
+      <div className="w-full lg:w-1/2 bg-gray-100 flex items-center justify-center px-6 sm:px-8 lg:px-12 py-4 sm:py-6 lg:py-8 overflow-y-auto">
+        <div className="w-full max-w-md">
+          {/* Title */}
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">Reset Password</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-5 lg:mb-6">
             Enter your new password and confirm it to reset your account password
           </p>
-        </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-5 overflow-hidden flex-1">
           {!success ? (
             <>
               {error && (
-                <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 overflow-hidden">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <p className="text-xs text-red-800 break-words overflow-wrap-anywhere">{error}</p>
-                  </div>
+                <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-xs sm:text-sm text-red-600">{error}</p>
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3">
                 {/* Password Input */}
-                <div>
-                  <label htmlFor="password" className="block text-xs font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (error) setError(null);
-                      }}
-                      placeholder="Enter new password"
-                      className="w-full pl-8 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                      required
-                      disabled={loading}
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="New Password"
+                    className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+                    required
+                    disabled={loading}
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 text-[#01005B]"
+                  >
+                    {showPassword ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
+                  </button>
                 </div>
 
                 {/* Confirm Password Input */}
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-700 mb-1">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        if (error) setError(null);
-                      }}
-                      placeholder="Confirm new password"
-                      className="w-full pl-8 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                      required
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
-                    >
-                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="Confirm Password"
+                    className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 text-[#01005B]"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
+                  </button>
                 </div>
 
                 {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#01005B] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#000047] transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                  className="w-full py-3 sm:py-4 bg-[#01005B] text-white text-sm sm:text-base font-bold rounded-full hover:bg-[#000047] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                 >
                   {loading ? 'Resetting Password...' : 'Reset Password'}
                 </button>
               </form>
 
               {/* Back to Login */}
-              <div className="mt-4 text-center">
-                <p className="text-xs text-gray-600">
-                  Remember your password?{' '}
-                  <Link 
-                    to="/login" 
-                    className="font-semibold text-[#01005B] hover:underline transition-colors"
-                  >
-                    Go Back
-                  </Link>
-                </p>
-              </div>
+              <p className="text-center mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">
+                Remember your password?{' '}
+                <Link
+                  to="/login"
+                  className="font-semibold text-[#01005B] hover:underline"
+                >
+                  Sign In
+                </Link>
+              </p>
             </>
           ) : (
             /* Success State */
@@ -214,15 +188,16 @@ export default function ResetPasswordPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-2 shrink-0">
-          <Link 
-            to="/" 
-            className="text-xs text-gray-600 hover:text-[#01005B] transition-colors"
-          >
-            ← Back to Home
-          </Link>
+      {/* Right Side - Branding/Image */}
+      <div className="hidden lg:flex w-full lg:w-1/2 bg-white items-center justify-center">
+        <div className="w-full h-full flex items-center justify-center">
+          <img 
+            src="/images/dertam.png" 
+            alt="Travel destinations" 
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </div>

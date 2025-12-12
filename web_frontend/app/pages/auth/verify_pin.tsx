@@ -127,31 +127,19 @@ export default function VerifyPinPage() {
   const isPinComplete = pin.every(digit => digit !== '');
 
   return (
-    <div className="min-h-screen max-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-3 sm:py-4 overflow-hidden w-full">
-      <div className="w-full max-w-[95vw] sm:max-w-md overflow-hidden max-h-[98vh] flex flex-col">
-        {/* Logo */}
-        <div className="text-center mb-3 sm:mb-4 shrink-0">
-          <Link to="/">
-            <img 
-              src="/images/logo.png" 
-              alt="DerTam Logo" 
-              className="h-10 sm:h-12 mx-auto mb-2 cursor-pointer"
-            />
-          </Link>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Verify Email</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+    <div className="min-h-screen max-h-screen flex flex-col lg:flex-row overflow-hidden">
+      {/* Left Side - Form */}
+      <div className="w-full lg:w-1/2 bg-gray-100 flex items-center justify-center px-6 sm:px-8 lg:px-12 py-4 sm:py-6 lg:py-8 overflow-y-auto">
+        <div className="w-full max-w-md">
+          {/* Title */}
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">Verify Email</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-5 lg:mb-6">
             Please check your email and enter the 6-digit verification code below
           </p>
-        </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-5 overflow-hidden flex-1">
           {error && (
-            <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 overflow-hidden">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-xs text-red-800 break-words overflow-wrap-anywhere">{error}</p>
-              </div>
+            <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-xs sm:text-sm text-red-600">{error}</p>
             </div>
           )}
 
@@ -178,46 +166,45 @@ export default function VerifyPinPage() {
             <button
               type="submit"
               disabled={!isPinComplete || loading}
-              className="w-full bg-[#01005B] text-white py-2 sm:py-2.5 rounded-lg text-sm font-semibold hover:bg-[#000047] transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+              className="w-full py-3 sm:py-4 bg-[#01005B] text-white text-sm sm:text-base font-bold rounded-full hover:bg-[#000047] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
               {loading ? 'Verifying...' : 'Confirm'}
             </button>
           </form>
 
           {/* Resend PIN */}
-          <div className="mt-3 sm:mt-4 text-center">
-            <p className="text-xs text-gray-600">
-              Don't get the PIN?{' '}
-              <button 
-                onClick={handleResendPin}
-                disabled={resending}
-                className="font-semibold text-[#01005B] hover:underline transition-colors disabled:opacity-50"
-              >
-                {resending ? 'Sending...' : 'Send again'}
-              </button>
-            </p>
-          </div>
+          <p className="text-center mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">
+            Don't get the PIN?{' '}
+            <button 
+              onClick={handleResendPin}
+              disabled={resending}
+              className="font-semibold text-[#01005B] hover:underline transition-colors disabled:opacity-50"
+            >
+              {resending ? 'Sending...' : 'Send again'}
+            </button>
+          </p>
 
           {/* Back to Login */}
-          <div className="mt-3 sm:mt-4 text-center">
-            <Link 
-              to="/login" 
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#01005B] hover:underline transition-colors"
+          <p className="text-center mt-2 sm:mt-3 text-sm sm:text-base text-gray-600">
+            Remember your password?{' '}
+            <Link
+              to="/login"
+              className="font-semibold text-[#01005B] hover:underline"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Login
+              Sign In
             </Link>
-          </div>
+          </p>
         </div>
+      </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-2 shrink-0">
-          <Link 
-            to="/" 
-            className="text-xs text-gray-600 hover:text-[#01005B] transition-colors"
-          >
-            ← Back to Home
-          </Link>
+      {/* Right Side - Branding/Image */}
+      <div className="hidden lg:flex w-full lg:w-1/2 bg-white items-center justify-center">
+        <div className="w-full h-full flex items-center justify-center">
+          <img 
+            src="/images/dertam.png" 
+            alt="Travel destinations" 
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </div>
