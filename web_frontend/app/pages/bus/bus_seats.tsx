@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowLeftRight, Users } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
-import Navigation from '../../components/navigation';
 import InstallAppModal from '../../components/install_app_modal';
 import { getBusById, getBusSeats } from '../../api/bus';
 
@@ -101,7 +100,7 @@ export default function SeatSelectionPage() {
   if (!currentLayout) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Bus Booking" />
+      
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
             <p className="text-red-500 text-lg mb-4">Invalid bus type: {busTypeParam}</p>
@@ -617,7 +616,7 @@ export default function SeatSelectionPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Bus Booking" />
+     
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#01005B] mx-auto"></div>
@@ -630,7 +629,7 @@ export default function SeatSelectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeNav="Bus Booking" />
+    
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}

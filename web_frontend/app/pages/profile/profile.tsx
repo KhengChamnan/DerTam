@@ -3,6 +3,7 @@ import { Calendar, Heart, Settings, LogOut, ChevronRight } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import { useNavigate } from 'react-router';
 import { getCurrentUser, logout as logoutApi } from '../../api/auth';
+import InstallAppModal from '../../components/install_app_modal'; 
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -36,9 +38,9 @@ export default function ProfilePage() {
         setUserData({
           name: user.name,
           email: user.email,
-          phone: user.phone || '',
-          avatar: user.avatar
-            ? (user.avatar.startsWith('http') ? user.avatar : `https://g9-capstone-project-ll.onrender.com/storage/${user.avatar}`)
+          phone: user.phone_number || '',
+          avatar: user.profile_image_url // ⬅️ USE profile_image_url
+            ? user.profile_image_url
             : user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
           memberSince: user.created_at 
             ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -131,7 +133,8 @@ export default function ProfilePage() {
             <div className="bg-white rounded-2xl shadow-lg">
               {/* My Bookings */}
               <button
-                onClick={() => navigate('/profile/my_bookings')}
+              // onClick={() => navigate('//profile/my-bookings')}
+                onClick={() => setShowInstallModal(true)}
                 className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-100"
               >
                 <div className="flex items-center gap-4">
@@ -182,6 +185,13 @@ export default function ProfilePage() {
                 <span className="font-semibold">Logout</span>
               </button>
             </div>
+
+            {/* Install App Modal */}
+            <InstallAppModal
+              isOpen={showInstallModal}
+              onClose={() => setShowInstallModal(false)}
+              feature="booking"
+            />
           </>
         )}
       </div>

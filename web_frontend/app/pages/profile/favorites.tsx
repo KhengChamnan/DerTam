@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Search, Heart, MapPin, Hotel, UtensilsCrossed, Coffee, Building2, Bus, Star, Grid3x3, List, Trash2, Eye, DollarSign } from 'lucide-react';
-import Navigation from '../../components/navigation';
+import { ArrowLeft, Search, Heart, MapPin, Star, Grid3x3, List, Eye, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useFavorites } from './hooks/usefavorites';
 
@@ -10,44 +9,19 @@ export default function FavoritesPage() {
   const { favorites, removeFavorite } = useFavorites();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'destination' | 'event' | 'hotel' | 'restaurant' | 'cafe' | 'museum' | 'bus-route'>('all');
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredFavorites = favorites.filter(fav => {
-    const matchesSearch = fav.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         fav.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = activeFilter === 'all' || fav.type === activeFilter;
-    return matchesSearch && matchesFilter;
+    const name = fav.name?.toLowerCase() || '';
+    const location = fav.location?.toLowerCase() || '';
+    const matchesSearch =
+      name.includes(searchQuery.toLowerCase()) ||
+      location.includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'hotel': return <Hotel size={20} />;
-      case 'restaurant': return <UtensilsCrossed size={20} />;
-      case 'cafe': return <Coffee size={20} />;
-      case 'museum': return <Building2 size={20} />;
-      case 'bus-route': return <Bus size={20} />;
-      case 'destination': return <MapPin size={20} />;
-      case 'event': return <Star size={20} />;
-      default: return <MapPin size={20} />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    const colorMap: { [key: string]: string } = {
-      hotel: 'bg-blue-500',
-      restaurant: 'bg-orange-500',
-      cafe: 'bg-amber-500',
-      museum: 'bg-purple-500',
-      'bus-route': 'bg-green-500',
-      destination: 'bg-indigo-500',
-      event: 'bg-pink-500',
-    };
-    return colorMap[type] || 'bg-gray-500';
-  };
-
-  const handleRemoveFavorite = (id: string, e: React.MouseEvent) => {
+  const handleRemoveFavorite = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setRemovingId(id);
     setTimeout(() => {
@@ -62,15 +36,16 @@ export default function FavoritesPage() {
   };
 
   const handleCardClick = (favorite: any) => {
-    const route = favorite.type === 'destination' || favorite.type === 'event' 
-      ? `/place/${favorite.id}` 
-      : `/${favorite.type}/${favorite.id}`;
-    navigate(route);
+    // Check if it's an event (has start_date/end_date) or a place
+    if ('start_date' in favorite || 'end_date' in favorite) {
+      navigate(`/event/${favorite.id}`);
+    } else {
+      navigate(`/place/${favorite.id}`);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeNav="Profile" />
 
       <div className="max-w-[1400px] mx-auto px-6 py-8">
         {/* Header */}
@@ -117,35 +92,17 @@ export default function FavoritesPage() {
           </div>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search Bar */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search Bar */}
-            <div className="relative flex-1">
-              <Search size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search your favorites..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
-              />
-            </div>
-            
-            {/* Filter Dropdown */}
-            <select
-              value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value as any)}
-              className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent bg-white cursor-pointer"
-            >
-              <option value="all">All Categories</option>
-              <option value="destination">Destinations</option>
-              <option value="event">Events</option>
-              <option value="restaurant">Restaurants</option>
-              <option value="cafe">Cafes</option>
-              <option value="hotel">Hotels</option>
-              <option value="bus-route">Bus Routes</option>
-            </select>
+          <div className="relative flex-1">
+            <Search size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search your favorites..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
+            />
           </div>
         </div>
 
@@ -156,14 +113,14 @@ export default function FavoritesPage() {
               <Heart size={48} className="text-gray-300" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              {searchQuery || activeFilter !== 'all' ? 'No matches found' : 'No favorites yet'}
+              {searchQuery ? 'No matches found' : 'No favorites yet'}
             </h3>
             <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-              {searchQuery || activeFilter !== 'all' 
-                ? 'Try adjusting your search or filter' 
+              {searchQuery 
+                ? 'Try adjusting your search' 
                 : 'Start exploring and save your favorite places by clicking the heart icon'}
             </p>
-            {!searchQuery && activeFilter === 'all' && (
+            {!searchQuery && (
               <button
                 onClick={() => navigate('/')}
                 className="px-8 py-4 bg-[#01005B] text-white rounded-xl font-semibold hover:bg-[#000047] transition-all shadow-md hover:shadow-lg"
@@ -189,15 +146,16 @@ export default function FavoritesPage() {
                     {/* Image */}
                     <div className="relative h-48 overflow-hidden">
                       <img 
-                        src={favorite.image} 
+                        src={
+                          ('images' in favorite && favorite.images?.[0])
+                            ? String(favorite.images[0])
+                            : ('image' in favorite && favorite.image)
+                              ? String(favorite.image)
+                              : '/images/placeholder.jpg'
+                        } 
                         alt={favorite.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
-                      {/* Type Badge */}
-                      <div className={`absolute top-3 left-3 ${getTypeColor(favorite.type)} text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-md`}>
-                        {getTypeIcon(favorite.type)}
-                        <span>{favorite.type.replace('-', ' ')}</span>
-                      </div>
                       {/* Remove Button */}
                       <button
                         onClick={(e) => handleRemoveFavorite(favorite.id, e)}
@@ -253,9 +211,9 @@ export default function FavoritesPage() {
                         </button>
                       </div>
 
-                      <p className="text-xs text-gray-400 mt-3">
+                      {/* <p className="text-xs text-gray-400 mt-3">
                         Saved {formatDate(favorite.addedDate)}
-                      </p>
+                      </p> */}
                     </div>
                   </div>
                 ))}
@@ -278,13 +236,18 @@ export default function FavoritesPage() {
                       {/* Image */}
                       <div className="relative flex-shrink-0">
                         <img 
-                          src={favorite.image} 
+                          src={
+                            ('images' in favorite && favorite.images?.[0])
+                              ? String(favorite.images[0])
+                              : ('image' in favorite && favorite.image)
+                                ? String(favorite.image)
+                                : '/images/placeholder.jpg'
+                          } 
                           alt={favorite.name}
                           className="w-32 h-32 object-cover rounded-xl"
                         />
-                        {/* Type Badge */}
-                        <div className={`absolute bottom-2 left-2 ${getTypeColor(favorite.type)} text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-md`}>
-                          {getTypeIcon(favorite.type)}
+                        <div className="absolute bottom-2 left-2 bg-indigo-500 text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-md">
+                          <MapPin size={14} />
                         </div>
                       </div>
 
@@ -327,22 +290,22 @@ export default function FavoritesPage() {
                                 <span className="text-sm text-gray-500">/person</span>
                               </div>
                             )}
-                            <span className="text-xs text-gray-400">
+                            {/* <span className="text-xs text-gray-400">
                               Saved {formatDate(favorite.addedDate)}
-                            </span>
+                            </span> */}
                           </div>
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex md:flex-col items-center justify-center gap-3 p-5 bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100">
+                      <div className="flex flex-col items-center justify-center gap-3 p-5 bg-gray-50 border-l border-gray-100">
                         <button
                           onClick={(e) => handleRemoveFavorite(favorite.id, e)}
-                          className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all text-red rounded-xl font-semibold hover:bg-[#000047] transition-all flex items-center gap-2 text-sm whitespace-nowrap"
+                          className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-2 text-sm whitespace-nowrap"
                           title="Remove from favorites"
                         >
                           <Heart size={16} fill="#ef4444" color="#ef4444" />
-                          remove
+                          Remove
                         </button>
                         <button
                           onClick={(e) => {

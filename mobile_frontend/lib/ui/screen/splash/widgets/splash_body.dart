@@ -21,7 +21,7 @@ class _SplashBodyState extends State<SplashBody> {
   void initState() {
     super.initState();
     // short visible delay then initialize app
-    Future.delayed(const Duration(milliseconds: 700), () {
+    Future.delayed(const Duration(milliseconds: 1600), () {
       if (!mounted) return;
       setState(() => _isPreparing = true);
       _initializeApp();
@@ -34,8 +34,9 @@ class _SplashBodyState extends State<SplashBody> {
       await authProvider.getUserToken();
       final tokenAsync = authProvider.userToken;
       String? storedToken;
-      if (tokenAsync.state == AsyncValueState.success)
+      if (tokenAsync.state == AsyncValueState.success) {
         storedToken = tokenAsync.data;
+      }
 
       Widget nextScreen;
       if (storedToken != null && storedToken.isNotEmpty) {
@@ -94,10 +95,7 @@ class _SplashBodyState extends State<SplashBody> {
         children: [
           // Full screen static splash image (use assets/images/splash.png)
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/splash.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/images/splash.png', fit: BoxFit.cover),
           ),
 
           // optional small preparing indicator
