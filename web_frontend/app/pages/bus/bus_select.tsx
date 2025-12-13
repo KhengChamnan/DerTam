@@ -163,7 +163,7 @@ export default function BusSelectPage() {
                     </div> */}
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-[#FA9A47]"> ${bus.price} /Seat</div>
+                    <div className="text-2xl font-bold text-[#FA9A47]"> ${bus.price}</div>
                     <div className="text-sm text-gray-500">per seat</div>
                   </div>
                 </div>

@@ -274,9 +274,15 @@ export default function BusBookingPage() {
                           {index + 1}
                         </div>
                         <div className="px-4 py-3">
-                          <h3 className="font-semibold text-base mb-1 text-gray-900">
-                            {journey.company || journey.terminal || `Bus terminal ${index + 1}`}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-base text-gray-900">
+                              {/* {journey.company || journey.type || `Bus terminal ${index + 1}`} */}
+                              {getBusTypeLabel(journey.type)}
+                            </h3>
+                            {/* <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getBusTypeColor(journey.type)}`}>
+                              {getBusTypeLabel(journey.type)}
+                            </span> */}
+                          </div>
                           <p className="text-sm text-gray-900 mb-0">
                             <span className="text-gray-400">From :</span> {journey.from}
                           </p>

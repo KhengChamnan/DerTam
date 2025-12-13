@@ -25,7 +25,8 @@ export interface Place {
     category: string;
   }>;
   nearbyHotels?: Array<{
-    id: number;
+    id: number;         // property_id
+    place_id: number;   // <-- add this
     name: string;
     image: string;
     rating: number;
@@ -183,7 +184,8 @@ export async function getPlaceById(id: string): Promise<Place> {
     })) || [],
     nearbyHotels: hotelNearby?.map((hotel: any) => ({
       id: hotel.property_id,
-      name: hotel.property_name,
+      place_id: hotel.place_id || hotel.placeID,
+      name: hotel.property_name || hotel.name || hotel.title || '', // <-- fallback for hotel name
       image: hotel.images_url?.[0] || hotel.image_url || '',
       rating: parseFloat(hotel.ratings) || 0,
       price: parseFloat(hotel.price_per_night) || 0,

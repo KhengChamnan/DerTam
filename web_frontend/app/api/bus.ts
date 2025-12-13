@@ -17,7 +17,7 @@ export interface Bus {
 
 export interface Seat {
   id: string;
-  number: number;
+  number: string | number; // ✅ Changed to support both "A1" string and sequential numbers
   status: 'available' | 'booked' | 'selected';
   deck?: 'lower' | 'upper';
   price: number;
@@ -274,12 +274,6 @@ function parseSeatNumber(seatNo: string, busType: string): number {
   
   if (busType.includes('Van')) {
     // Mini Van (15 seats)
-    // Row 1: C1, D1 (seats 1, 2)
-    // Row 2: A2, B2, C2 (seats 3, 4, 5)
-    // Row 3: A3, B3, D3 (seats 6, 7, 8)
-    // Row 4: A4, B4, D4 (seats 9, 10, 11)
-    // Row 5: A5, B5, C5, D5 (seats 12, 13, 14, 15)
-    
     if (row === 1) {
       return column === 'C' ? 1 : 2; // C1=1, D1=2
     } else if (row === 2) {
@@ -295,32 +289,40 @@ function parseSeatNumber(seatNo: string, busType: string): number {
       const cols = ['A', 'B', 'C', 'D'];
       return 12 + cols.indexOf(column); // A5=12, B5=13, C5=14, D5=15
     }
+  } else if (busType.includes('Sleeping')) {
+    // Sleeping Bus (34 seats)
+    // Lower deck: 15 seats - Rows 1-5: A B [no C] D (3 per row)
+    // Upper deck: 19 seats - Rows 1-5: A B [no C] D (3 per row) + Row 6: A B C D (4 seats)
+    
+    // For lower deck seats (assuming they come first)
+    if (row <= 5) {
+      // Rows 1-5: A B D (no C)
+      const cols = ['A', 'B', 'D'];
+      const colIndex = cols.indexOf(column);
+      if (colIndex >= 0) {
+        return (row - 1) * 3 + colIndex + 1; // seats 1-15
+      }
+    } else if (row === 6) {
+      // Row 6: A B C D (4 seats) - seats 16-19
+      const cols = ['A', 'B', 'C', 'D'];
+      return 15 + cols.indexOf(column) + 1; // seats 16-19
+    }
   } else if (busType.includes('Regular')) {
     // Regular Bus (45 seats)
-    // Rows 1-10: A B [aisle - no C] D E (4 seats per row)
-    // Row 11: A B C D E (5 seats)
-    
     if (row <= 10) {
-      // Rows 1-10: 4 seats per row (A, B, D, E)
-      // A=0, B=1, D=2, E=3
       const colMap: {[key: string]: number} = { 'A': 0, 'B': 1, 'D': 2, 'E': 3 };
       const colIndex = colMap[column];
-      return (row - 1) * 4 + colIndex + 1; // seat number: 1-40
+      return (row - 1) * 4 + colIndex + 1;
     } else if (row === 11) {
-      // Row 11: 5 seats (A, B, C, D, E)
       const cols = ['A', 'B', 'C', 'D', 'E'];
-      return 40 + cols.indexOf(column) + 1; // seats 41-45
+      return 40 + cols.indexOf(column) + 1;
     }
-  } else if (busType.includes('Sleeping')) {
-    // Sleeping Bus logic (if needed)
-    // Lower deck: rows 1-5, 3 seats per row (A, B, C) = 15 seats
-    // Upper deck: rows 1-4: 3 per row, row 5: 4 seats = 19 seats
   }
   
-  return 1; // fallback
+  return 1;
 }
 
-// Get bus seat layout - Updated with correct parsing
+// Get bus seat layout - Updated to use seat_no directly
 export async function getBusSeats(busId: string, date: string): Promise<Seat[]> {
   try {
     console.log('Fetching seats for busId:', busId);
@@ -338,7 +340,6 @@ export async function getBusSeats(busId: string, date: string): Promise<Seat[]> 
 
     const seatLayout = result?.data?.seat_layout;
     const schedule = result?.data?.schedule;
-    const busType = schedule?.bus_type || '';
     
     if (!seatLayout) {
       console.warn('No seat_layout found in API response');
@@ -352,7 +353,7 @@ export async function getBusSeats(busId: string, date: string): Promise<Seat[]> 
       seatLayout.lower_deck.seats.forEach((seat: any) => {
         allSeats.push({
           id: seat.id.toString(),
-          number: parseSeatNumber(seat.seat_no, busType),
+          number: seat.seat_no, // ✅ Use seat_no directly (e.g., "A1", "B2", "D5")
           status: seat.status === 'booked' ? 'booked' : 'available',
           deck: 'lower',
           price: parseFloat(schedule?.price || '0'),
@@ -365,7 +366,7 @@ export async function getBusSeats(busId: string, date: string): Promise<Seat[]> 
       seatLayout.upper_deck.seats.forEach((seat: any) => {
         allSeats.push({
           id: seat.id.toString(),
-          number: parseSeatNumber(seat.seat_no, busType),
+          number: seat.seat_no, // ✅ Use seat_no directly
           status: seat.status === 'booked' ? 'booked' : 'available',
           deck: 'upper',
           price: parseFloat(schedule?.price || '0'),

@@ -6,10 +6,10 @@ import Navigation from "~/components/navigation";
 import PlaceHeader from "./components/placeheader";
 import ImageGallery from "./components/imagegallery";
 import DetailInfo from "./components/detailinfo";
-import GuideSection from "./components/guidesection";
 import NearbyPlaceCard from "./components/nearbyplacecard";
 import HotelNearbyCard from "./components/hotelnearbycard";
 import RestaurantNearbyCard from "./components/restaurantnearbycard";
+import InstallAppModal from "~/components/install_app_modal";
 
 export default function PlaceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +21,7 @@ export default function PlaceDetailPage() {
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const [showAllHotels, setShowAllHotels] = useState(false);
   const [showAllRestaurants, setShowAllRestaurants] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   
   useEffect(() => {
     if (id) {
@@ -106,9 +107,7 @@ export default function PlaceDetailPage() {
           onToggleFavorite={() => {
             console.log('Toggle favorite');
           }} 
-          onStartPlanning={() => {
-            console.log('Start planning');
-          }}        
+          onStartPlanning={() => setShowInstallModal(true)}
         />
 
         <ImageGallery 
@@ -125,8 +124,6 @@ export default function PlaceDetailPage() {
               entryFee={place.entryFee}
               highlights={place.highlights}
             />
-
-            <GuideSection tips={place.tips || []} />
           </div>
 
           <div className="space-y-6 pb-6">
@@ -158,7 +155,6 @@ export default function PlaceDetailPage() {
                   {place.nearbyPlaces.length > 2 && (
                     <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 overflow-hidden">
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <div className="w-2 h-2 bg-[#01005B] rounded-full shrink-0"></div>
                         <span className="text-xs sm:text-sm text-gray-700 break-words">Showing <span className="font-bold text-[#01005B]">{showAllPlaces ? place.nearbyPlaces.length : 2}</span> of {place.nearbyPlaces.length}</span>
                       </div>
                       <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{place.nearbyPlaces.length - 2} more items</span>
@@ -227,9 +223,19 @@ export default function PlaceDetailPage() {
                   )}
                 </div>
                 <div className="space-y-4">
-                  {(showAllHotels ? place.nearbyHotels : place.nearbyHotels.slice(0, 3)).map((hotel) => (
-                    <HotelNearbyCard key={hotel.id} hotel={hotel} />
-                  ))}
+                  {(showAllHotels ? place.nearbyHotels : place.nearbyHotels.slice(0, 3)).map((hotel) => {
+                    const hotelCardData = {
+                      ...hotel,
+                      place_id: hotel.place_id ?? place.id,
+                    };
+                    console.log('Hotel card data:', hotelCardData);
+                    return (
+                      <HotelNearbyCard
+                        key={hotel.id}
+                        hotel={hotelCardData}
+                      />
+                    );
+                  })}
                 </div>
                 {place.nearbyHotels.length > 3 && (
                   <button
@@ -391,6 +397,12 @@ export default function PlaceDetailPage() {
           )}
         </div>
       )}
+
+      <InstallAppModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        feature="planning"
+      />
     </div>
   );
 }

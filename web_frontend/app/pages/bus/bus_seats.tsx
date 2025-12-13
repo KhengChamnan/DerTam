@@ -140,7 +140,6 @@ export default function SeatSelectionPage() {
       
       console.log('Loading seats for busId:', busId, 'date:', date);
       
-      // Fetch actual seat data from API
       const apiSeats = await getBusSeats(busId, date);
       
       console.log('Fetched API seats:', apiSeats);
@@ -153,62 +152,15 @@ export default function SeatSelectionPage() {
 
       // Transform API seats to match component format
       const transformedSeats: Seat[] = apiSeats.map((apiSeat) => {
-        const seatNum = apiSeat.number;
+        const seatNo = apiSeat.number.toString(); // "A1", "B2", "D5", etc.
+        const column = seatNo.charAt(0); // "A", "B", "C", "D", "E"
+        const row = parseInt(seatNo.substring(1)); // 1, 2, 3, 4, 5, 6
         
-        // Calculate row and column based on seat number and bus type
-        let row = 1;
-        let column = 'A';
-        let type: 'LOWER' | 'UPPER' = apiSeat.deck === 'upper' ? 'UPPER' : 'LOWER';
-
-        if (currentLayout.type === 'mini-van') {
-          // Mini Van: seat number to row/column mapping
-          if (seatNum <= 2) {
-            row = 1;
-            column = seatNum === 1 ? 'C' : 'D';
-          } else if (seatNum <= 5) {
-            row = 2;
-            column = ['A', 'B', 'C'][seatNum - 3];
-          } else if (seatNum <= 8) {
-            row = 3;
-            const cols = ['A', 'B', 'D'];
-            column = cols[seatNum - 6];
-          } else if (seatNum <= 11) {
-            row = 4;
-            const cols = ['A', 'B', 'D'];
-            column = cols[seatNum - 9];
-          } else {
-            row = 5;
-            column = ['A', 'B', 'C', 'D'][seatNum - 12];
-          }
-        } else if (currentLayout.type === 'sleeping-bus') {
-          if (seatNum <= 15) {
-            type = 'LOWER';
-            row = Math.ceil(seatNum / 3);
-            column = ['A', 'B', 'C'][(seatNum - 1) % 3];
-          } else {
-            type = 'UPPER';
-            const upperSeatNum = seatNum - 15;
-            if (upperSeatNum <= 15) {
-              row = Math.ceil(upperSeatNum / 3);
-              column = ['A', 'B', 'C'][(upperSeatNum - 1) % 3];
-            } else {
-              row = 5;
-              column = ['A', 'B', 'C', 'D'][upperSeatNum - 16];
-            }
-          }
-        } else {
-          if (seatNum <= 40) {
-            row = Math.ceil(seatNum / 4);
-            column = ['A', 'B', 'C', 'D'][(seatNum - 1) % 4];
-          } else {
-            row = 11;
-            column = ['A', 'B', 'C', 'D', 'E'][seatNum - 41];
-          }
-        }
+        const type: 'LOWER' | 'UPPER' = apiSeat.deck === 'upper' ? 'UPPER' : 'LOWER';
 
         return {
           id: apiSeat.id,
-          seatNumber: seatNum.toString(),
+          seatNumber: seatNo, // ✅ Use seat_no directly: "A1", "B2", "D5"
           row,
           column,
           type,
@@ -429,143 +381,92 @@ export default function SeatSelectionPage() {
     const layout = currentLayout;
 
     if (layout.type === 'mini-van') {
-      // Mini Van: Custom irregular layout
-      return (
-        <div className="flex flex-col items-center gap-2 max-w-xs mx-auto">
-          {/* Row 1: 2 seats in columns C, D */}
-          <div className="grid grid-cols-4 gap-1.5 w-full">
-            <div></div>
-            <div></div>
-            {deckSeats
-              .filter(s => s.row === 1)
-              .sort((a, b) => a.column.localeCompare(b.column))
-              .map(seat => (
-                <button
-                  key={seat.id}
-                  onClick={() => handleSeatClick(seat.id, seat.status)}
-                  disabled={seat.status === 'BOOKED'}
-                  className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: getSeatColor(seat.status),
-                    color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
-                  }}
-                >
-                  {seat.seatNumber}
-                </button>
-              ))}
-          </div>
-
-          {/* Row 2: 3 seats in columns A, B, C */}
-          <div className="grid grid-cols-4 gap-1.5 w-full">
-            {deckSeats
-              .filter(s => s.row === 2)
-              .sort((a, b) => a.column.localeCompare(b.column))
-              .map(seat => (
-                <button
-                  key={seat.id}
-                  onClick={() => handleSeatClick(seat.id, seat.status)}
-                  disabled={seat.status === 'BOOKED'}
-                  className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: getSeatColor(seat.status),
-                    color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
-                  }}
-                >
-                  {seat.seatNumber}
-                </button>
-              ))}
-            <div></div>
-          </div>
-
-          {/* Row 3: 2 seats (A, B) [gap] 1 seat (D) */}
-          <div className="grid grid-cols-4 gap-1.5 w-full">
-            {deckSeats
-              .filter(s => s.row === 3)
-              .sort((a, b) => a.column.localeCompare(b.column))
-              .map((seat, idx) => (
-                <>
-                  {idx === 2 && <div key={`gap-3`}></div>}
-                  <button
-                    key={seat.id}
-                    onClick={() => handleSeatClick(seat.id, seat.status)}
-                    disabled={seat.status === 'BOOKED'}
-                    className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: getSeatColor(seat.status),
-                      color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
-                    }}
-                  >
-                    {seat.seatNumber}
-                  </button>
-                </>
-              ))}
-          </div>
-
-          {/* Row 4: 2 seats (A, B) [gap] 1 seat (D) */}
-          <div className="grid grid-cols-4 gap-1.5 w-full">
-            {deckSeats
-              .filter(s => s.row === 4)
-              .sort((a, b) => a.column.localeCompare(b.column))
-              .map((seat, idx) => (
-                <>
-                  {idx === 2 && <div key={`gap-4`}></div>}
-                  <button
-                    key={seat.id}
-                    onClick={() => handleSeatClick(seat.id, seat.status)}
-                    disabled={seat.status === 'BOOKED'}
-                    className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: getSeatColor(seat.status),
-                      color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
-                    }}
-                  >
-                    {seat.seatNumber}
-                  </button>
-                </>
-              ))}
-          </div>
-
-          {/* Row 5: 4 seats (A, B, C, D) */}
-          <div className="grid grid-cols-4 gap-1.5 w-full">
-            {deckSeats
-              .filter(s => s.row === 5)
-              .sort((a, b) => a.column.localeCompare(b.column))
-              .map(seat => (
-                <button
-                  key={seat.id}
-                  onClick={() => handleSeatClick(seat.id, seat.status)}
-                  disabled={seat.status === 'BOOKED'}
-                  className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: getSeatColor(seat.status),
-                    color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
-                  }}
-                >
-                  {seat.seatNumber}
-                </button>
-              ))}
-          </div>
-        </div>
-      );
-    } else if (layout.type === 'sleeping-bus') {
-      // Sleeping Bus: 2-1 layout with aisle (A B [aisle] C) for most rows
+      // Mini Van: Rows 1-5
       const rows = [...new Set(deckSeats.map(s => s.row))].sort((a, b) => a - b);
       
       return (
-        <div className="flex flex-col items-center gap-2 max-w-sm mx-auto">
+        <div className="flex flex-col items-center gap-2 max-w-xs mx-auto">
           {rows.map(row => {
             const rowSeats = deckSeats.filter(s => s.row === row).sort((a, b) => a.column.localeCompare(b.column));
             
-            // Check if this is the last row with 4 seats (31, 32, 33, 34)
-            if (rowSeats.length === 4) {
+            if (row === 1) {
+              // Row 1: Only C1, D1
               return (
-                <div key={row} className="grid grid-cols-4 gap-2 w-full">
-                  {rowSeats.map((seat) => (
+                <div key={row} className="grid grid-cols-4 gap-1.5 w-full">
+                  <div></div>
+                  <div></div>
+                  {rowSeats.map(seat => (
                     <button
                       key={seat.id}
                       onClick={() => handleSeatClick(seat.id, seat.status)}
                       disabled={seat.status === 'BOOKED'}
-                      className="w-12 h-12 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
+                      className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: getSeatColor(seat.status),
+                        color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
+                      }}
+                    >
+                      {seat.seatNumber}
+                    </button>
+                  ))}
+                </div>
+              );
+            } else if (row === 2) {
+              // Row 2: A2, B2, C2
+              return (
+                <div key={row} className="grid grid-cols-4 gap-1.5 w-full">
+                  {rowSeats.map(seat => (
+                    <button
+                      key={seat.id}
+                      onClick={() => handleSeatClick(seat.id, seat.status)}
+                      disabled={seat.status === 'BOOKED'}
+                      className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: getSeatColor(seat.status),
+                        color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
+                      }}
+                    >
+                      {seat.seatNumber}
+                    </button>
+                  ))}
+                  <div></div>
+                </div>
+              );
+            } else if (row === 3 || row === 4) {
+              // Rows 3-4: A, B, [gap], D
+              return (
+                <div key={row} className="grid grid-cols-4 gap-1.5 w-full">
+                  {['A', 'B', 'C', 'D'].map(col => {
+                    if (col === 'C') return <div key={`gap-${row}`}></div>;
+                    const seat = rowSeats.find(s => s.column === col);
+                    if (!seat) return <div key={`empty-${row}-${col}`}></div>;
+                    return (
+                      <button
+                        key={seat.id}
+                        onClick={() => handleSeatClick(seat.id, seat.status)}
+                        disabled={seat.status === 'BOOKED'}
+                        className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: getSeatColor(seat.status),
+                          color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
+                        }}
+                      >
+                        {seat.seatNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            } else {
+              // Row 5: A5, B5, C5, D5
+              return (
+                <div key={row} className="grid grid-cols-4 gap-1.5 w-full">
+                  {rowSeats.map(seat => (
+                    <button
+                      key={seat.id}
+                      onClick={() => handleSeatClick(seat.id, seat.status)}
+                      disabled={seat.status === 'BOOKED'}
+                      className="w-14 h-14 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
                       style={{
                         backgroundColor: getSeatColor(seat.status),
                         color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
@@ -577,13 +478,52 @@ export default function SeatSelectionPage() {
                 </div>
               );
             }
+          })}
+        </div>
+      );
+    } else if (layout.type === 'sleeping-bus') {
+      // Sleeping Bus: A B [aisle] D layout
+      const rows = [...new Set(deckSeats.map(s => s.row))].sort((a, b) => a - b);
+      
+      return (
+        <div className="flex flex-col items-center gap-2 max-w-md mx-auto">
+          {rows.map(row => {
+            const rowSeats = deckSeats.filter(s => s.row === row).sort((a, b) => a.column.localeCompare(b.column));
             
-            // Normal rows with 3 seats (A B [aisle] C)
+            // Row 6 has C6 (4 seats: A B C D)
+            if (row === 6) {
+              return (
+                <div key={row} className="grid grid-cols-4 gap-2 w-full">
+                  {['A', 'B', 'C', 'D'].map(col => {
+                    const seat = rowSeats.find(s => s.column === col);
+                    if (!seat) return <div key={`empty-${row}-${col}`} className="w-12"></div>;
+                    return (
+                      <button
+                        key={seat.id}
+                        onClick={() => handleSeatClick(seat.id, seat.status)}
+                        disabled={seat.status === 'BOOKED'}
+                        className="w-12 h-12 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: getSeatColor(seat.status),
+                          color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
+                        }}
+                      >
+                        {seat.seatNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            }
+            
+            // Rows 1-5: A B [aisle] D (no C)
             return (
               <div key={row} className="grid grid-cols-4 gap-2 w-full">
-                {rowSeats.map((seat, idx) => (
-                  <>
-                    {idx === 2 && <div key={`aisle-${row}`}></div>}
+                {['A', 'B', 'C', 'D'].map(col => {
+                  if (col === 'C') return <div key={`aisle-${row}`} className="w-12"></div>;
+                  const seat = rowSeats.find(s => s.column === col);
+                  if (!seat) return <div key={`empty-${row}-${col}`} className="w-12"></div>;
+                  return (
                     <button
                       key={seat.id}
                       onClick={() => handleSeatClick(seat.id, seat.status)}
@@ -596,15 +536,15 @@ export default function SeatSelectionPage() {
                     >
                       {seat.seatNumber}
                     </button>
-                  </>
-                ))}
+                  );
+                })}
               </div>
             );
           })}
         </div>
       );
     } else if (layout.type === 'regular-bus') {
-      // Regular Bus: 2-2 layout with aisle (A B [aisle] C D)
+      // Regular Bus: A B [aisle] D E layout (no C except last row)
       const rows = [...new Set(deckSeats.map(s => s.row))].sort((a, b) => a - b);
       
       return (
@@ -612,34 +552,40 @@ export default function SeatSelectionPage() {
           {rows.map(row => {
             const rowSeats = deckSeats.filter(s => s.row === row).sort((a, b) => a.column.localeCompare(b.column));
             
-            // Check if this is the last row with 5 seats (41, 42, 43, 44, 45)
-            if (rowSeats.length === 5) {
+            // Last row has all 5 seats: A B C D E
+            if (rowSeats.some(s => s.column === 'C')) {
               return (
                 <div key={row} className="grid grid-cols-5 gap-2 w-full">
-                  {rowSeats.map((seat) => (
-                    <button
-                      key={seat.id}
-                      onClick={() => handleSeatClick(seat.id, seat.status)}
-                      disabled={seat.status === 'BOOKED'}
-                      className="w-12 h-12 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
-                      style={{
-                        backgroundColor: getSeatColor(seat.status),
-                        color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
-                      }}
-                    >
-                      {seat.seatNumber}
-                    </button>
-                  ))}
+                  {['A', 'B', 'C', 'D', 'E'].map(col => {
+                    const seat = rowSeats.find(s => s.column === col);
+                    if (!seat) return <div key={`empty-${row}-${col}`} className="w-12"></div>;
+                    return (
+                      <button
+                        key={seat.id}
+                        onClick={() => handleSeatClick(seat.id, seat.status)}
+                        disabled={seat.status === 'BOOKED'}
+                        className="w-12 h-12 rounded-lg font-medium text-xs transition-all hover:shadow-md disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: getSeatColor(seat.status),
+                          color: seat.status === 'AVAILABLE' ? '#374151' : 'white',
+                        }}
+                      >
+                        {seat.seatNumber}
+                      </button>
+                    );
+                  })}
                 </div>
               );
             }
             
-            // Normal rows with 4 seats (A B [aisle] C D)
+            // Normal rows: A B [aisle] D E (no C)
             return (
               <div key={row} className="grid grid-cols-5 gap-2 w-full">
-                {rowSeats.map((seat, idx) => (
-                  <>
-                    {idx === 2 && <div key={`aisle-${row}`}></div>}
+                {['A', 'B', 'C', 'D', 'E'].map(col => {
+                  if (col === 'C') return <div key={`aisle-${row}`} className="w-12"></div>;
+                  const seat = rowSeats.find(s => s.column === col);
+                  if (!seat) return <div key={`empty-${row}-${col}`} className="w-12"></div>;
+                  return (
                     <button
                       key={seat.id}
                       onClick={() => handleSeatClick(seat.id, seat.status)}
@@ -652,8 +598,8 @@ export default function SeatSelectionPage() {
                     >
                       {seat.seatNumber}
                     </button>
-                  </>
-                ))}
+                  );
+                })}
               </div>
             );
           })}

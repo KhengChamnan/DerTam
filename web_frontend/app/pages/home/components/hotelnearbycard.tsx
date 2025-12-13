@@ -3,7 +3,8 @@ import { Link } from 'react-router';
 
 interface HotelNearbyCardProps {
   hotel: {
-    id: number;
+    id: number; // property_id
+    place_id: number; // <-- add this if available
     name: string;
     price: number;
     distance: string;
@@ -14,7 +15,7 @@ interface HotelNearbyCardProps {
 
 export default function HotelNearbyCard({ hotel }: HotelNearbyCardProps) {
   return (
-    <Link to={`/hotel/${hotel.id}`}>
+    <Link to={`/hotel/${hotel.place_id}`}>
       <div className="flex space-x-3 group cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition">
         <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
           <img
@@ -34,10 +35,6 @@ export default function HotelNearbyCard({ hotel }: HotelNearbyCardProps) {
               <MapPin className="w-3 h-3 mr-1" />
               <span>{hotel.distance}</span>
             </div>
-          </div>
-          <div className="flex items-center mt-2 text-blue-900 font-semibold">
-            <DollarSign className="w-4 h-4" />
-            <span>${hotel.price.toFixed(2)}/night</span>
           </div>
         </div>
       </div>
