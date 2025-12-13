@@ -3,9 +3,6 @@ import { Link, useNavigate } from 'react-router';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { forgotPassword } from '~/api/auth';
 
-// Mock mode for testing (set to false for production)
-const USE_MOCK_DATA = false;
-
 export default function ForgetPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -30,18 +27,11 @@ export default function ForgetPassword() {
       setLoading(true);
       setError(null);
 
-      if (USE_MOCK_DATA) {
-        // Mock API call for testing
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        
-        // Simulate success
-        setSuccess(true);
-      } else {
-        // Real API call
-        await forgotPassword({ email });
-        setSuccess(true);
-      }
+      // Step 1: Send PIN to email via API
+      await forgotPassword({ email });
+      setSuccess(true);
 
+      // Step 2: Navigate to verify PIN page with email
       setTimeout(() => {
         navigate('/verify-pin', { state: { email } });
       }, 2000);

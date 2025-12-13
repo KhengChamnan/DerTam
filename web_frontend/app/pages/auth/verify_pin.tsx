@@ -3,9 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { verifyPin, forgotPassword } from '~/api/auth';
 
-// Mock mode for testing (should match forget_password.tsx)
-const USE_MOCK_DATA = true;
-
 export default function VerifyPinPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,17 +78,18 @@ export default function VerifyPinPage() {
       setLoading(true);
       setError(null);
 
-      if (USE_MOCK_DATA) {
-        // Mock API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } else {
-        await verifyPin({ email, pin: completePin });
-      }
+      console.log('Verifying PIN:', { email, pin: completePin });
+      
+      const result = await verifyPin({ email, pin: completePin });
+      
+      console.log('PIN verification successful:', result);
 
+      // PIN verified successfully, navigate to reset password
       navigate('/reset-password', { state: { email, pin: completePin } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid PIN. Please try again.');
-      console.error('PIN verification error:', err);
+      console.error('PIN verification failed:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Invalid PIN. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -102,23 +100,23 @@ export default function VerifyPinPage() {
       setResending(true);
       setError(null);
 
-      if (USE_MOCK_DATA) {
-        // Mock API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } else {
-        await forgotPassword({ email });
-      }
+      console.log('Resending PIN to:', email);
+      
+      await forgotPassword({ email });
+
+      console.log('PIN resent successfully');
 
       // Clear PIN fields
       setPin(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
 
-      // Show success message (optional)
+      // Show success message
       setError('PIN resent successfully! Check your email.');
       setTimeout(() => setError(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend PIN. Please try again.');
-      console.error('Resend PIN error:', err);
+      console.error('Resend PIN failed:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to resend PIN. Please try again.';
+      setError(errorMessage);
     } finally {
       setResending(false);
     }
