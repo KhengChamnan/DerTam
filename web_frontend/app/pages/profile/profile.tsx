@@ -37,7 +37,9 @@ export default function ProfilePage() {
           name: user.name,
           email: user.email,
           phone: user.phone || '',
-          avatar: user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+          avatar: user.avatar
+            ? (user.avatar.startsWith('http') ? user.avatar : `https://g9-capstone-project-ll.onrender.com/storage/${user.avatar}`)
+            : user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
           memberSince: user.created_at 
             ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
             : 'Recently',
@@ -99,8 +101,16 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-full bg-[#01005B] flex items-center justify-center text-white text-2xl font-bold">
-                  {userData.avatar}
+                <div className="w-20 h-20 rounded-full bg-[#01005B] flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                  {userData.avatar && userData.avatar.startsWith('http') ? (
+                    <img
+                      src={userData.avatar}
+                      alt="Profile"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    userData.avatar
+                  )}
                 </div>
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-gray-900">{userData.name}</h1>

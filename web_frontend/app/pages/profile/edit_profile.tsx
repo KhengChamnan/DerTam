@@ -1,51 +1,55 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import Navigation from '../../components/navigation';
 import { useNavigate } from 'react-router';
+import { getCurrentUser } from '../../api/auth';
+import { updateProfile, updateProfileWithFormData } from '../../api/profile';
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    dateOfBirth: '',
-    gender: 'prefer-not-to-say',
-  });
+  firstName: '',
+  lastName: '',
+  email: '',
+  username: '',
+  phone_number: '',
+  age: '',
+  gender: '',
+  image: null as File | null,
+});
 
   const [avatar, setAvatar] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
-    const authStatus = localStorage.getItem('isAuthenticated');
-    const user = localStorage.getItem('user');
-
-    if (authStatus !== 'true' || !user) {
-      // Redirect to login if not authenticated
-      navigate('/login');
-      return;
-    }
-
-    // Load user data from localStorage
-    const userInfo = JSON.parse(user);
-    const nameParts = userInfo.name.split(' ');
-    
-    setFormData({
-      firstName: nameParts[0] || '',
-      lastName: nameParts.slice(1).join(' ') || '',
-      email: userInfo.email || '',
-      phone: userInfo.phone || '',
-      address: userInfo.address || '',
-      dateOfBirth: userInfo.dateOfBirth || '',
-      gender: userInfo.gender || 'prefer-not-to-say',
-    });
-
-    // Generate avatar from name
-    setAvatar(userInfo.name.split(' ').map((n: string) => n[0]).join('').toUpperCase());
+    const fetchUser = async () => {
+      const authStatus = localStorage.getItem('isAuthenticated');
+      const token = localStorage.getItem('token');
+      if (authStatus !== 'true' || !token) {
+        navigate('/login');
+        return;
+      }
+      try {
+        const user = await getCurrentUser();
+        const nameParts = user.name ? user.name.split(' ') : [''];
+        setFormData({
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: user.email || '',
+          username: user.username || '',
+          phone_number: user.phone_number || '',
+          age: user.age ? String(user.age) : '',
+          gender: user.gender || '',
+          image: null,
+        });
+        setAvatar(user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : '');
+      } catch (err) {
+        navigate('/login');
+      }
+    };
+    fetchUser();
   }, [navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -53,28 +57,41 @@ export default function EditProfilePage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    try {
+      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
 
-    // Simulate API call and update localStorage
-    setTimeout(() => {
-      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
-      const updatedUser = {
-        name: fullName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-      };
+      if (!fullName) {
+        alert('Please enter your name');
+        setIsSaving(false);
+        return;
+      }
+      if (!formData.email) {
+        alert('Please enter your email');
+        setIsSaving(false);
+        return;
+      }
 
-      // Update localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Use FormData for file upload
+      const payload = new FormData();
+      payload.append('name', fullName);
+      payload.append('email', formData.email);
+      payload.append('username', formData.username || '');
+      payload.append('phone_number', formData.phone_number || '');
+      if (formData.age) payload.append('age', formData.age);
+      if (formData.gender) payload.append('gender', formData.gender);
+      if (formData.image) payload.append('image', formData.image);
+
+      await updateProfileWithFormData(payload);
 
       setIsSaving(false);
       navigate('/profile');
-    }, 1500);
+    } catch (err) {
+      setIsSaving(false);
+      alert((err as Error).message || 'Failed to update profile');
+    }
   };
 
   const handleCancel = () => {
@@ -103,17 +120,48 @@ export default function EditProfilePage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center gap-6">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-[#01005B] flex items-center justify-center text-white text-3xl font-bold">
-                {avatar}
+              <div className="w-24 h-24 rounded-full bg-[#01005B] flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+                {formData.image ? (
+                  <img
+                    src={URL.createObjectURL(formData.image)}
+                    alt="Profile Preview"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  avatar
+                )}
               </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <button
+                type="button"
+                className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Camera size={16} className="text-gray-700" />
               </button>
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                name="image"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files ? e.target.files[0] : null;
+                  setFormData(prev => ({
+                    ...prev,
+                    image: file,
+                  }));
+                }}
+              />
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-1">Profile Picture</h3>
               <p className="text-sm text-gray-600 mb-3">Upload a new profile picture</p>
-              <button className="px-4 py-2 text-sm font-semibold text-[#01005B] border-2 border-[#01005B] rounded-lg hover:bg-[#01005B] hover:text-white transition-colors">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-semibold text-[#01005B] border-2 border-[#01005B] rounded-lg hover:bg-[#01005B] hover:text-white transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Change Photo
               </button>
             </div>
@@ -157,15 +205,15 @@ export default function EditProfilePage() {
                     value={formData.lastName}
                     onChange={handleInputChange}
                     className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
-                    required
+                 
                   />
                 </div>
               </div>
 
-              {/* Email */}
+               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
+                  Email
                 </label>
                 <div className="relative">
                   <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -180,6 +228,24 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Username
+                </label>
+                <div className="relative">
+                  <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
+                  
+                  />
+                </div>
+              </div>
+
               {/* Phone */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -189,42 +255,25 @@ export default function EditProfilePage() {
                   <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type="tel"
-                    name="phone"
-                    value={formData.phone}
+                    name="phone_number"
+                    value={formData.phone_number}
                     onChange={handleInputChange}
                     className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
                   />
                 </div>
               </div>
 
-              {/* Address */}
+              {/* Age */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Address
-                </label>
-                <div className="relative">
-                  <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Date of Birth */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Date of Birth
+                  Age
                 </label>
                 <div className="relative">
                   <Calendar size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
+                    type="number"
+                    name="age"
+                    value={formData.age}
                     onChange={handleInputChange}
                     className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent"
                   />
