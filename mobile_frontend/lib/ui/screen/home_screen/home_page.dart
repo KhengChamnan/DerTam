@@ -3,8 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/place/place_detail.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
+<<<<<<< HEAD
 import 'package:mobile_frontend/ui/screen/chat_bot/chat_bot.dart';
+=======
+import 'package:mobile_frontend/ui/screen/home_screen/widget/dertam_search_place_screen.dart';
+>>>>>>> e4d8a9651db702fbf4b13c931a2438aac18db19d
 import 'package:mobile_frontend/ui/screen/home_screen/widget/home_slide_show.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/places_category.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/recommendation_place_card.dart';
@@ -13,10 +18,11 @@ import 'package:mobile_frontend/ui/screen/place_datail/place_detailed.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/restaurant_detail_screen_new.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -29,383 +35,404 @@ class _HomePageState extends State<HomePage> {
     // Fetch recommended places and upcoming events when the page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final placeProvider = context.read<PlaceProvider>();
+      final authProvider = context.read<AuthProvider>();
       placeProvider.fetchRecommendedPlaces();
       placeProvider.fetchUpcomingEvents();
+      authProvider.getUserInfo();
     });
+  }
+
+  Future<void> _refreshData() async {
+    final placeProvider = context.read<PlaceProvider>();
+    final authProvider = context.read<AuthProvider>();
+
+    // Fetch all data in parallel
+    await Future.wait([
+      placeProvider.fetchRecommendedPlaces(),
+      placeProvider.fetchUpcomingEvents(),
+      authProvider.getUserInfo(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: SizedBox(
-        width: 70, // set your width
-        height: 70, // set your height
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ChatBotScreen()),
-            );
-          },
-          backgroundColor: DertamColors.white,
-          shape: const CircleBorder(),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/bot_icon.png',
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // User Profile Header
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundImage: NetworkImage(
-                            'https://i.pravatar.cc/100',
-                          ),
-                          onBackgroundImageError: (e, stackTrace) {
-                            return;
-                          },
-                          backgroundColor: Colors.grey[200],
-                          radius: 20,
-                          child: Icon(Icons.person, color: Colors.grey[400]),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Hi John,',
-                            style: TextStyle(
-                              color: DertamColors.primaryBlue,
-                              fontSize: 24,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.search),
-                          color: DertamColors.primaryBlue,
-                          iconSize: 28,
-                          onPressed: () {},
-                        ),
-                        SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(Icons.notifications_none_outlined),
-                          color: Colors.grey[600],
-                          iconSize: 28,
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              SizedBox(width: 12),
-                              Text(
-                                'Welcome to Cambodia\nWhere you wanna go?',
-                                style: TextStyle(
+    final authProvider = context.watch<AuthProvider>().userInfo;
+    print('User name ${authProvider.data?.name}');
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      child: Scaffold(
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Consumer<AuthProvider>(
+                        builder: (context, authProvider, child) {
+                          final userInfo = authProvider.userInfo;
+                          // Handle loading state
+                          if (userInfo.state == AsyncValueState.loading) {
+                            return SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: CircularProgressIndicator(
                                   color: DertamColors.primaryBlue,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.2,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-
-                    // Custom Slideshow
-                    HomeSlideShow(),
-                    SizedBox(height: 20),
-                    SizedBox(child: PlacesCategory()),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ElevatedButton.icon(
-                        icon: Icon(
-                          Icons.restaurant,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        label: const Text('Open Restaurant (Test)'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: DertamColors.primaryBlue,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: () {
-                          // Create a test NearByRestaurant instance (adjust fields if your model differs)
-                          final testRestaurant = NearByRestaurant(
-                            placeID: 1,
-                            name: 'Malis Cambodian Cuisine',
-                            description:
-                                'Experience authentic Cambodian flavors at Malis, where traditional recipes meet modern culinary techniques in a charming setting.',
-                            categoryName: 'Restaurant',
-                            reviewsCount: 250,
-                            entryFree: true,
-                            operatingHours: {
-                              'Mon-Fri': '10:00 AM - 10:00 PM',
-                              'Sat-Sun': '9:00 AM - 11:00 PM',
-                            },
-                            imagesUrl: [
-                              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800',
-                            ],
-                            ratings: 4.6,
-                            googleMapsLink: 'Phnom Penh, Cambodia',
-                            provinceCategoryName: 'Phnom Penh',
-                            latitude: 11.5564,
-                            longitude: 104.9282,
-                            distance: 2.5,
-                            distanceText: '2.5 km',
-                          );
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RestaurantDetailScreen(
-                                restaurant: testRestaurant,
+                            );
+                          }
+                          // Handle error state
+                          if (userInfo.state == AsyncValueState.error) {
+                            return SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 48,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Lost connection. Failed to load user infomation',
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                    SizedBox(height: 8),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        context
+                                            .read<AuthProvider>()
+                                            .getUserInfo();
+                                      },
+                                      child: Text('Retry'),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            );
+                          }
+
+                          // Handle empty state
+                          if (userInfo.state == AsyncValueState.empty ||
+                              userInfo.data == null) {
+                            return SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: Text(
+                                  'No user available',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ),
+                            );
+                          }
+                          // Handle success state
+                          return Row(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(9999),
+                                  image: DecorationImage(
+                                    image:
+                                        userInfo.data?.imageUrl?.isNotEmpty ==
+                                            true
+                                        ? NetworkImage(
+                                            userInfo.data?.imageUrl ?? '',
+                                          )
+                                        : AssetImage(
+                                                'assets/images/dertam_logo.png',
+                                              )
+                                              as ImageProvider,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  userInfo.data?.name ?? 'Guest User',
+                                  style: TextStyle(
+                                    color: DertamColors.primaryBlue,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.search),
+                                color: DertamColors.primaryBlue,
+                                iconSize: 28,
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    AnimationUtils.createBottomToTopRoute(
+                                      DertamSearchPlaceScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(width: 8),
+                              IconButton(
+                                icon: Icon(Icons.notifications_none_outlined),
+                                color: DertamColors.neutralLight,
+                                iconSize: 28,
+                                onPressed: () {},
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+
+                      SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                SizedBox(width: 12),
+                                Text(
+                                  'Welcome to Cambodia\nWhere you wanna go?',
+                                  style: TextStyle(
+                                    color: DertamColors.primaryBlue,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      // Custom Slideshow
+                      HomeSlideShow(),
+                      SizedBox(height: 20),
+                      SizedBox(child: PlacesCategory()),
+                      SizedBox(height: 20),
+                      // Place Recommendations
+                      Text(
+                        'Personalized Recommended',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                          color: DertamColors.primaryBlue,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Consumer<PlaceProvider>(
+                        builder: (context, placeProvider, child) {
+                          final recommendedPlaces =
+                              placeProvider.recommendedPlaces;
+
+                          // Handle loading state
+                          if (recommendedPlaces.state ==
+                              AsyncValueState.loading) {
+                            return SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: DertamColors.primaryBlue,
+                                ),
+                              ),
+                            );
+                          }
+                          // Handle error state
+                          if (recommendedPlaces.state ==
+                              AsyncValueState.error) {
+                            return SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 48,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Lost connection. Failed to load recommendations',
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                    SizedBox(height: 8),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        context
+                                            .read<PlaceProvider>()
+                                            .fetchRecommendedPlaces();
+                                      },
+                                      child: Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Handle empty state
+                          if (recommendedPlaces.state ==
+                                  AsyncValueState.empty ||
+                              recommendedPlaces.data == null ||
+                              recommendedPlaces.data!.isEmpty) {
+                            return SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: Text(
+                                  'No recommendations available',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Handle success state
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: recommendedPlaces.data!
+                                  .map(
+                                    (place) => RecommendationPlaceCard(
+                                      place: place,
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DetailEachPlace(
+                                            placeId: place.placeId,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
                           );
                         },
                       ),
-                    ),
-                    // Place Recommendations
-                    Text(
-                      'Personalized Recommended',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        color: DertamColors.primaryBlue,
+                      SizedBox(height: 20),
+
+                      // Upcoming Events
+                      Text(
+                        'Upcoming Event',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                          color: DertamColors.primaryBlue,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 10),
-                    Consumer<PlaceProvider>(
-                      builder: (context, placeProvider, child) {
-                        final recommendedPlaces =
-                            placeProvider.recommendedPlaces;
+                      SizedBox(height: 10),
 
-                        // Handle loading state
-                        if (recommendedPlaces.state ==
-                            AsyncValueState.loading) {
-                          return SizedBox(
-                            height: 280,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: DertamColors.primaryBlue,
-                              ),
-                            ),
-                          );
-                        }
-                        // Handle error state
-                        if (recommendedPlaces.state == AsyncValueState.error) {
-                          return SizedBox(
-                            height: 280,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    size: 48,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'Failed to load recommendations',
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                  SizedBox(height: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      context
-                                          .read<PlaceProvider>()
-                                          .fetchRecommendedPlaces();
-                                    },
-                                    child: Text('Retry'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
+                      Consumer<PlaceProvider>(
+                        builder: (context, placeProvider, child) {
+                          final upcomingEvents = placeProvider.upcomingEvents;
 
-                        // Handle empty state
-                        if (recommendedPlaces.state == AsyncValueState.empty ||
-                            recommendedPlaces.data == null ||
-                            recommendedPlaces.data!.isEmpty) {
-                          return SizedBox(
-                            height: 280,
-                            child: Center(
-                              child: Text(
-                                'No recommendations available',
-                                style: TextStyle(color: Colors.grey[600]),
+                          // Handle loading state
+                          if (upcomingEvents.state == AsyncValueState.loading) {
+                            return SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: DertamColors.primaryBlue,
+                                ),
                               ),
-                            ),
-                          );
-                        }
+                            );
+                          }
 
-                        // Handle success state
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: recommendedPlaces.data!
-                                .map(
-                                  (place) => RecommendationPlaceCard(
-                                    place: place,
+                          // Handle error state
+                          if (upcomingEvents.state == AsyncValueState.error) {
+                            return SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 48,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Lost connection. Failed to load upcoming events',
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                    SizedBox(height: 8),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        context
+                                            .read<PlaceProvider>()
+                                            .fetchUpcomingEvents();
+                                      },
+                                      child: Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Handle empty state
+                          if (upcomingEvents.state == AsyncValueState.empty ||
+                              upcomingEvents.data == null ||
+                              upcomingEvents.data!.isEmpty) {
+                            return SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text(
+                                  'No upcoming events available',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Handle success state
+                          return SizedBox(
+                            height: 260,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: upcomingEvents.data!.length,
+                              itemBuilder: (context, index) {
+                                final event = upcomingEvents.data![index];
+                                return Container(
+                                  width: 320,
+                                  margin: const EdgeInsets.only(right: 16),
+                                  child: EventCard(
+                                    place: event,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => DetailEachPlace(
-                                          placeId: place.placeId,
+                                          placeId: event.id.toString(),
                                         ),
                                       ),
                                     ),
                                   ),
-                                )
-                                .toList(),
-                          ),
-                        );
-                      },
-                    ),
-                    SizedBox(height: 20),
-
-                    // Upcoming Events
-                    Text(
-                      'Upcoming Event',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        color: DertamColors.primaryBlue,
+                                );
+                              },
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                    SizedBox(height: 10),
-
-                    Consumer<PlaceProvider>(
-                      builder: (context, placeProvider, child) {
-                        final upcomingEvents = placeProvider.upcomingEvents;
-
-                        // Handle loading state
-                        if (upcomingEvents.state == AsyncValueState.loading) {
-                          return SizedBox(
-                            height: 260,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: DertamColors.primaryBlue,
-                              ),
-                            ),
-                          );
-                        }
-
-                        // Handle error state
-                        if (upcomingEvents.state == AsyncValueState.error) {
-                          return SizedBox(
-                            height: 260,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    size: 48,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'Failed to load upcoming events',
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                  SizedBox(height: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      context
-                                          .read<PlaceProvider>()
-                                          .fetchUpcomingEvents();
-                                    },
-                                    child: Text('Retry'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        // Handle empty state
-                        if (upcomingEvents.state == AsyncValueState.empty ||
-                            upcomingEvents.data == null ||
-                            upcomingEvents.data!.isEmpty) {
-                          return SizedBox(
-                            height: 260,
-                            child: Center(
-                              child: Text(
-                                'No upcoming events available',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ),
-                          );
-                        }
-
-                        // Handle success state
-                        return SizedBox(
-                          height: 260,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: upcomingEvents.data!.length,
-                            itemBuilder: (context, index) {
-                              final event = upcomingEvents.data![index];
-                              return Container(
-                                width: 320,
-                                margin: const EdgeInsets.only(right: 16),
-                                child: EventCard(
-                                  place: event,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DetailEachPlace(
-                                        placeId: event.placeId,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+        bottomNavigationBar: Navigationbar(currentIndex: 0),
       ),
-      bottomNavigationBar: Navigationbar(currentIndex: 0),
     );
   }
 }
