@@ -174,86 +174,90 @@ export default function HotelListPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-6">
           
-          {/* Hotel Grid - same as before */}
-          <div className="lg:col-span-3">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+          {/* Hotel Grid */}
+          <div className="w-full">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 {selectedCategory === "All" ? "All Hotels" : `${selectedCategory} Hotels`}
               </h2>
-              <p className="text-gray-600 mt-1">Browse our selection of quality accommodations</p>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Browse our selection of quality accommodations</p>
             </div>
 
             {loading ? (
-              <div className="text-center py-16">
-                <div className="inline-block w-12 h-12 border-4 border-gray-200 border-t-[#01005B] rounded-full animate-spin mb-4"></div>
-                <p className="text-gray-500">Loading hotels...</p>
+              <div className="text-center py-12 sm:py-16">
+                <div className="inline-block w-10 h-10 sm:w-12 sm:h-12 border-4 border-gray-200 border-t-[#01005B] rounded-full animate-spin mb-4"></div>
+                <p className="text-sm sm:text-base text-gray-500">Loading hotels...</p>
               </div>
             ) : filteredHotels.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
                 {filteredHotels.map((hotel) => (
-                  <Link key={hotel.property_id} to={`/hotel/${hotel.place.placeID}`}>
-                    <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group">
-                      <div className="relative">
-                        <img
-                          src={hotel.place.images_url[0] || "https://via.placeholder.com/400x250?text=No+Image"}
-                          alt={hotel.place.name}
-                          className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
+                  <Link key={hotel.property_id} to={`/hotel/${hotel.place.placeID}`} className="block">
+                    <div className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group h-full flex flex-col">
+                      <div className="relative flex-shrink-0">
+                        <div className="aspect-[4/3] w-full overflow-hidden">
+                          <img
+                            src={hotel.place.images_url[0] || "https://via.placeholder.com/400x250?text=No+Image"}
+                            alt={hotel.place.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             toggleFavorite(hotel.property_id);
                           }}
-                          className="absolute top-4 right-4 bg-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-50 transition-all shadow-lg"
+                          className="absolute top-3 right-3 bg-white rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center hover:bg-red-50 transition-all shadow-lg"
+                          aria-label="Add to favorites"
                         >
                           <Heart
-                            size={20}
+                            size={18}
+                            className="sm:w-5 sm:h-5"
                             color="#ef4444"
                             fill={favorites.includes(hotel.property_id) ? "#ef4444" : "none"}
                           />
                         </button>
-                        <div className="absolute top-4 left-4 text-white px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#01005B' }}>
+                        <div className="absolute top-3 left-3 text-white px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold" style={{ backgroundColor: '#01005B' }}>
                           {hotel.place.province_category.province_categoryName}
                         </div>
                       </div>
 
-                      <div className="p-5">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1">
+                      <div className="p-3 sm:p-4 lg:p-5 flex-1 flex flex-col">
+                        <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-1.5 sm:mb-2 line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">
                           {hotel.place.name}
                         </h3>
 
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                          <MapPin className="w-4 h-4" style={{ color: '#01005B' }} />
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
+                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: '#01005B' }} />
                           <span className="line-clamp-1">{hotel.place.province_category.category_description}</span>
                         </div>
 
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="font-semibold text-sm">{hotel.place.ratings || 0}</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                          <div className="flex items-center gap-1 bg-yellow-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg">
+                            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 fill-yellow-500" />
+                            <span className="font-semibold text-xs sm:text-sm">{hotel.place.ratings || 0}</span>
                           </div>
-                          <span className="text-sm text-gray-600">({hotel.place.reviews_count || 0} reviews)</span>
+                          <span className="text-xs sm:text-sm text-gray-600">({hotel.place.reviews_count || 0})</span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
                           {hotel.facilities.slice(0, 3).map((facility, idx) => (
                             <span
                               key={idx}
-                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                              className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 text-gray-700 text-[10px] sm:text-xs rounded-full whitespace-nowrap"
                             >
                               {facility.facility_name}
                             </span>
                           ))}
                         </div>
 
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div>
-                            <span className="text-2xl font-bold" style={{ color: '#01005B' }}>
+                        <div className="mt-auto pt-3 sm:pt-4 border-t border-gray-100">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: '#01005B' }}>
                               ${hotel.room_properties[0]?.price_per_night || 0}
                             </span>
-                            <span className="text-sm text-gray-600"> /night</span>
+                            <span className="text-xs sm:text-sm text-gray-600">/night</span>
                           </div>
                         </div>
                       </div>
@@ -262,13 +266,13 @@ export default function HotelListPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 bg-white rounded-2xl">
-                <p className="text-gray-500 text-lg mb-4">
+              <div className="text-center py-12 sm:py-16 bg-white rounded-xl sm:rounded-2xl">
+                <p className="text-gray-500 text-base sm:text-lg mb-4 px-4">
                   No hotels found matching your criteria.
                 </p>
                 <button
                   onClick={loadAllHotels}
-                  className="px-6 py-2 rounded-lg font-semibold text-white"
+                  className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-lg font-semibold text-white text-sm sm:text-base"
                   style={{ backgroundColor: '#01005B' }}
                 >
                   View All Hotels
