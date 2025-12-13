@@ -279,7 +279,7 @@ export async function verifyPin(data: VerifyPinData): Promise<{ success: boolean
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ email: data.email, token: data.pin }),
   });
 
   const result = await response.json();
@@ -299,7 +299,7 @@ export async function resetPassword(data: ResetPasswordData): Promise<{ message:
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, token: data.pin }),
   });
 
   const result = await response.json();
