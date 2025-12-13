@@ -94,14 +94,24 @@ export default function BusBookingPage() {
       if (isNaN(date.getTime())) {
         return 'Date unavailable';
       }
-      return date.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}.${month}.${day}`;
     } catch (error) {
       return 'Date unavailable';
+    }
+  };
+
+  const getDayAbbreviation = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } catch (error) {
+      return '';
     }
   };
 
@@ -234,7 +244,7 @@ export default function BusBookingPage() {
                   No upcoming journeys available
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {upcomingJourneys.map((journey, index) => (
                     <button
                       key={journey.id}
@@ -244,51 +254,44 @@ export default function BusBookingPage() {
                         // Map bus type correctly
                         const mappedType = journey.type === 'mini-van' ? 'mini-van' : 
                                          journey.type === 'sleeping-bus' ? 'sleeping-bus' : 'regular-bus';
-                        // Use actual price from journey data (you need to add price field to UpcomingJourney interface)
+                        // Use actual price from journey data
                         const price = journey.price;
                         navigate(`/bus/seats?busId=${journey.id}&date=${formattedDate}&busType=${mappedType}&from=${journey.from}&to=${journey.to}&company=${journey.company || journey.terminal}&departureTime=${journey.departureTime}&price=${price}`);
                       }}
-                      className="w-full bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-all text-left"
+                      className="w-full bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between overflow-hidden h-20"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-                            style={{ backgroundColor: '#FA9A47' }}
-                          >
-                            {index + 1}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm text-gray-600">
-                                {journey.company || journey.terminal}
-                              </p>
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getBusTypeColor(journey.type)}`}>
-                                {getBusTypeLabel(journey.type)}
-                              </span>
-                            </div>
-                            {journey.busNumber && (
-                              <p className="text-xs text-gray-500 mb-2">{journey.busNumber}</p>
-                            )}
-                            <p className="font-bold text-lg">
-                              From: <span className="text-[#01005B]">{journey.from}</span>
-                            </p>
-                            <p className="font-bold text-lg">
-                              to: <span className="text-[#01005B]">{journey.to}</span>
-                            </p>
-                          </div>
+                      <div className="flex items-center h-full">
+                        <div
+                          className="w-12 h-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+                          style={{ 
+                            backgroundColor: '#FA9A47',
+                            borderTopLeftRadius: '1rem',
+                            borderBottomLeftRadius: '1rem',
+                            borderTopRightRadius: '0',
+                            borderBottomRightRadius: '0'
+                          }}
+                        >
+                          {index + 1}
                         </div>
-                        <div className="text-right">
-                          <div
-                            className="inline-block px-4 py-2 rounded-lg text-white text-sm font-medium mb-2"
-                            style={{ backgroundColor: '#01005B' }}
-                          >
-                            departure time
-                          </div>
-                          <p className="text-2xl font-bold">{journey.departureTime}</p>
-                          <p className="text-sm text-gray-600">{formatDate(journey.date)}</p>
-                          <p className="text-xs text-[#01005B] font-medium mt-2">Click to book seats →</p>
+                        <div className="px-4 py-3">
+                          <h3 className="font-semibold text-base mb-1 text-gray-900">
+                            {journey.company || journey.terminal || `Bus terminal ${index + 1}`}
+                          </h3>
+                          <p className="text-sm text-gray-900 mb-0">
+                            <span className="text-gray-400">From :</span> {journey.from}
+                          </p>
+                          <p className="text-sm text-gray-900">
+                            <span className="text-gray-400">to :</span> {journey.to}
+                          </p>
                         </div>
+                      </div>
+                      <div
+                        className="px-4 py-2.5 rounded-xl text-white text-center min-w-[125px] mr-3 self-center"
+                        style={{ backgroundColor: '#01005B' }}
+                      >
+                        <p className="text-[10px] font-normal mb-0">departure time</p>
+                        <p className="text-xl font-bold leading-tight my-0.5">{journey.departureTime} ,{getDayAbbreviation(journey.date)}</p>
+                        <p className="text-[10px]">{formatDate(journey.date)}</p>
                       </div>
                     </button>
                   ))}

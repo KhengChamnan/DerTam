@@ -103,173 +103,139 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen max-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 sm:px-6 py-3 sm:py-4 overflow-hidden w-full">
-      <div className="w-full max-w-[95vw] sm:max-w-md overflow-hidden max-h-[98vh] flex flex-col">
-        {/* Logo */}
-        <div className="text-center mb-3 sm:mb-4 shrink-0">
-          <Link to="/">
-            <img 
-              src="/images/logo.png" 
-              alt="DerTam Logo" 
-              className="h-10 sm:h-12 mx-auto mb-2 cursor-pointer"
-            />
-          </Link>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Start your adventure with us</p>
-        </div>
+    <div className="min-h-screen max-h-screen flex flex-col lg:flex-row overflow-hidden">
+      {/* Left Side - Register Form */}
+      <div className="w-full lg:w-1/2 bg-gray-100 flex items-center justify-center px-6 sm:px-8 lg:px-12 py-4 sm:py-6 lg:py-8 overflow-y-auto">
+        <div className="w-full max-w-md">
+          {/* Title */}
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">Create Account</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-5 lg:mb-6">Start your adventure with us</p>
 
-        {/* Register Form */}
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-5 overflow-hidden flex-1">
           {error && (
-            <div className="mb-2.5 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 overflow-hidden">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-xs text-red-800 break-words overflow-wrap-anywhere">{error}</p>
-              </div>
+            <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-xs sm:text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="mb-2.5 p-2.5 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2 overflow-hidden">
-              <CheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-xs text-green-800 break-words overflow-wrap-anywhere">Account created successfully!</p>
-              </div>
+            <div className="mb-3 p-2.5 bg-green-50 border border-green-200 rounded-xl">
+              <p className="text-xs sm:text-sm text-green-600">Account created successfully!</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-2 overflow-hidden">
+          <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
             {/* Full Name */}
-            <div className="overflow-hidden">
-              <label htmlFor="name" className="block text-xs font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <div className="relative overflow-hidden">
-                <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                  required
-                />
-              </div>
+            <div>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Full Name"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+                required
+              />
             </div>
 
             {/* Email */}
-            <div className="overflow-hidden">
-              <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1">
-                Email Address *
-              </label>
-              <div className="relative overflow-hidden">
-                <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                  required
-                />
-              </div>
+            <div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email Address"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+                required
+              />
             </div>
 
             {/* Phone (Optional) */}
-            <div className="overflow-hidden">
-              <label htmlFor="phone" className="block text-xs font-medium text-gray-700 mb-1">
-                Phone Number <span className="text-gray-400 text-xs">(Optional)</span>
-              </label>
-              <div className="relative overflow-hidden">
-                <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Enter your phone number"
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                />
-              </div>
+            <div>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Phone Number (Optional)"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+              />
             </div>
 
             {/* Password */}
-            <div className="overflow-hidden">
-              <label htmlFor="password" className="block text-xs font-medium text-gray-700 mb-1">
-                Password *
-              </label>
-              <div className="relative overflow-hidden">
-                <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a password (min. 8 characters)"
-                  className="w-full pl-8 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                  required
-                  minLength={8}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Password (min. 8 characters)"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 text-[#01005B]"
+              >
+                {showPassword ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
+              </button>
             </div>
 
             {/* Confirm Password */}
-            <div className="overflow-hidden">
-              <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-700 mb-1">
-                Confirm Password *
-              </label>
-              <div className="relative overflow-hidden">
-                <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  className="w-full pl-8 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#01005B] focus:border-transparent transition-all truncate"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
-                >
-                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm Password"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-[#01005B] text-sm sm:text-base text-gray-900 placeholder-gray-400"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 text-[#01005B]"
+              >
+                {showConfirmPassword ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
+              </button>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={loading || success}
-              className="w-full bg-[#01005B] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#000047] transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 sm:py-4 bg-[#01005B] text-white text-sm sm:text-base font-bold rounded-full hover:bg-[#000047] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating Account...' : success ? 'Account Created!' : 'Create Account'}
             </button>
           </form>
 
+          {/* Sign In Link */}
+          <p className="text-center mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="font-semibold text-[#01005B] hover:underline"
+            >
+              Sign In
+            </Link>
+          </p>
+
           {/* Divider */}
-          <div className="relative my-2.5">
+          <div className="relative my-3 sm:my-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-white text-gray-500">Or continue with</span>
+            <div className="relative flex justify-center text-xs sm:text-sm">
+              <span className="px-3 sm:px-4 bg-gray-100 text-gray-500">OR</span>
             </div>
           </div>
 
@@ -278,36 +244,27 @@ export default function Register() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loading || success}
-            className="w-full flex items-center justify-center gap-2 py-1.5 text-sm border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+            className="w-full py-2.5 sm:py-3 px-4 sm:px-6 bg-white border-0 rounded-full text-sm sm:text-base font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <img 
-              src="https://www.google.com/favicon.ico" 
-              alt="Google" 
-              className="w-4 h-4 shrink-0"
-            />
-            <span className="truncate">Sign up with Google</span>
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign up with Google
           </button>
-
-          {/* Sign In Link */}
-          <p className="text-center mt-2.5 text-xs text-gray-600 break-words">
-            Already have an account?{' '}
-            <Link 
-              to="/login" 
-              className="text-[#01005B] hover:underline font-semibold"
-            >
-              Sign In
-            </Link>
-          </p>
         </div>
+      </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-2 shrink-0">
-          <Link 
-            to="/" 
-            className="text-xs text-gray-600 hover:text-[#01005B] transition-colors"
-          >
-            ← Back to Home
-          </Link>
+      {/* Right Side - Branding/Image */}
+      <div className="hidden lg:flex w-full lg:w-1/2 bg-white items-center justify-center">
+        <div className="w-full h-full flex items-center justify-center">
+          <img 
+            src="/images/dertam.png" 
+            alt="Travel destinations" 
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </div>
