@@ -52,7 +52,7 @@ export default function EventCard({
         />
         
         {/* Favorite Button */}
-        <button 
+        {/* <button 
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite(event.id);
@@ -64,7 +64,7 @@ export default function EventCard({
             color="#ef4444"
             fill={isFavorite ? "#ef4444" : "none"}
           />
-        </button>
+        </button> */}
         
         {/* Date Badge */}
         <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md">

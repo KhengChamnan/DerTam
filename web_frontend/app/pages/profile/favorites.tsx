@@ -281,7 +281,7 @@ export default function FavoritesPage() {
                           <p className="text-sm text-gray-600 mb-3 line-clamp-2">{favorite.description}</p>
                         )}
 
-                        <div className="flex items-center justify-between">
+                        {/* <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             {favorite.price && (
                               <div className="flex items-center gap-1">
@@ -290,11 +290,11 @@ export default function FavoritesPage() {
                                 <span className="text-sm text-gray-500">/person</span>
                               </div>
                             )}
-                            {/* <span className="text-xs text-gray-400">
+                            <span className="text-xs text-gray-400">
                               Saved {formatDate(favorite.addedDate)}
-                            </span> */}
+                            </span>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
 
                       {/* Actions */}
