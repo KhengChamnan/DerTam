@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, ArrowLeftRight } from 'lucide-react';
-import Navigation from '../../components/navigation';
+import { ArrowLeft, MapPin, Clock, Users, Star, ArrowLeftRight } from 'lucide-react';
+
 import { searchBuses, type Bus } from '../../api/bus';
 
 export default function BusSelectPage() {
@@ -76,7 +76,7 @@ export default function BusSelectPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Bus Booking" />
+       
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B] mx-auto"></div>
@@ -90,7 +90,7 @@ export default function BusSelectPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Bus Booking" />
+      
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="text-center py-12">
             <p className="text-red-600">{error}</p>
@@ -108,7 +108,16 @@ export default function BusSelectPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeNav="Bus Booking" />
+      {/* Back Button */}
+      <div className="max-w-6xl mx-auto px-6 pt-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-600 hover:text-[#01005B] mb-6 transition-colors"
+        >
+          <ArrowLeft size={22} />
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
          {/* Route Info */}

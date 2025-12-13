@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles , MapPinHouse, LucideHotel, Utensils} from "lucide-react";
+import { X, ArrowLeft,ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles , MapPinHouse, LucideHotel, Utensils} from "lucide-react";
 import { getPlaceById, type Place } from "~/api/place";
-import Navigation from "~/components/navigation";
 import PlaceHeader from "./components/placeheader";
 import ImageGallery from "./components/imagegallery";
 import DetailInfo from "./components/detailinfo";
@@ -10,6 +9,7 @@ import NearbyPlaceCard from "./components/nearbyplacecard";
 import HotelNearbyCard from "./components/hotelnearbycard";
 import RestaurantNearbyCard from "./components/restaurantnearbycard";
 import InstallAppModal from "~/components/install_app_modal";
+import { useFavorites } from "../profile/hooks/usefavorites";
 
 export default function PlaceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +23,8 @@ export default function PlaceDetailPage() {
   const [showAllRestaurants, setShowAllRestaurants] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+
   useEffect(() => {
     if (id) {
       loadPlaceDetails(id);
@@ -95,17 +97,28 @@ export default function PlaceDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
-      <Navigation activeNav="Destinations" />
-      
+      {/* Back Button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-2 text-gray-600 hover:text-[#01005B] mb-6 transition-colors"
+        >
+          <ArrowLeft size={22} />
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
+    
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
         <PlaceHeader 
           name={place.name}
           location={place.location}
           rating={place.rating}
           reviews={place.reviews} 
-          isFavorite={false} 
+          isFavorite={isFavorite(place.id)} 
           onToggleFavorite={() => {
-            console.log('Toggle favorite');
+            isFavorite(place.id)
+              ? removeFavorite(place.id)
+              : addFavorite(place);
           }} 
           onStartPlanning={() => setShowInstallModal(true)}
         />

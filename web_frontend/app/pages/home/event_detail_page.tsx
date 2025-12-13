@@ -2,7 +2,6 @@ import { useParams, Link } from "react-router";
 import { useState, useEffect } from "react";
 import { Calendar, MapPin, Clock, Heart, ArrowLeft } from "lucide-react";
 import { getEventById, type Event } from "~/api/event";
-import Navigation from "~/components/navigation";
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -101,7 +100,7 @@ export default function EventDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Events" />
+     
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#01005B] mx-auto mb-4"></div>
@@ -115,7 +114,7 @@ export default function EventDetailPage() {
   if (error || !event) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Events" />
+     
         <div className="max-w-[1400px] mx-auto px-4 py-20">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
@@ -135,7 +134,7 @@ export default function EventDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeNav="Events" />
+     
       
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 py-8">
         {/* Back Button */}
@@ -144,7 +143,7 @@ export default function EventDetailPage() {
           className="inline-flex items-center gap-2 text-[#01005B] hover:underline mb-6"
         >
           <ArrowLeft size={20} />
-          Back to Events
+          Back to Home
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

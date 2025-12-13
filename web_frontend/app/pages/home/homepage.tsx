@@ -5,6 +5,7 @@ import { getPlacesByCategory, type Place } from "~/api/place";
 import Navigation from "~/components/navigation";
 import { Link, useNavigate } from "react-router";
 import EventCard from "./components/eventcard";
+import { useFavorites } from "../profile/hooks/usefavorites";
 
 // Hero carousel images
 const heroImages = [
@@ -25,6 +26,8 @@ export default function HomePage() {
     error,
     search 
   } = usePlaceData();
+
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentImage, setCurrentImage] = useState(0);
@@ -295,18 +298,20 @@ export default function HomePage() {
                           alt={destination.name || 'Destination'} 
                           className="w-full h-48 sm:h-56 lg:h-64 object-cover" 
                         />
-                        <button 
-                          onClick={(e) => {
+                        <button
+                          onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
-                            toggleDestinationFavorite(destination.id);
+                            isFavorite(destination.id)
+                              ? removeFavorite(destination.id)
+                              : addFavorite(destination);
                           }}
                           className="absolute top-4 right-4 bg-white border-none rounded-full w-10 h-10 cursor-pointer flex items-center justify-center hover:bg-red-50 transition-all"
                         >
                           <Heart
                             size={20}
                             color="#ef4444"
-                            fill={destinationFavorites.includes(destination.id) ? "#ef4444" : "none"}
+                            fill={isFavorite(destination.id) ? "#ef4444" : "none"}
                           />
                         </button>
                       </div>

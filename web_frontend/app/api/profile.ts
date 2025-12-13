@@ -95,3 +95,35 @@ export async function updateProfileWithFormData(formData: FormData): Promise<Use
   localStorage.setItem('user', JSON.stringify(updatedUser));
   return updatedUser;
 }
+
+export interface UpdatePasswordData {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export async function updatePassword(data: UpdatePasswordData): Promise<void> {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('No authentication token found');
+
+  const response = await fetch('https://g9-capstone-project-ll.onrender.com/api/profile', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+    },
+    body: (() => {
+      const formData = new FormData();
+      formData.append('current_password', data.current_password);
+      formData.append('password', data.password);
+      formData.append('password_confirmation', data.password_confirmation);
+      return formData;
+    })(),
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    const msg = result.message || (result.errors && Object.values(result.errors).join(', ')) || 'Failed to update password';
+    throw new Error(msg);
+  }
+}

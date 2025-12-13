@@ -8,6 +8,8 @@ export interface User {
   age?: number;
   gender?: string;
   avatar?: string;
+  profile_image_url?: string; // ⬅️ ADD THIS
+  cloudinary_public_id?: string; // ⬅️ ADD THIS (optional, for future use)
   created_at?: string;
   updated_at?: string;
 }
@@ -103,6 +105,8 @@ export async function login(data: LoginData): Promise<{ user: User; token: strin
           name: result.data.name || '',
           phone: result.data.phone,
           avatar: result.data.avatar,
+          profile_image_url: result.data.profile_image_url, // ⬅️ ADD THIS
+          cloudinary_public_id: result.data.cloudinary_public_id, // ⬅️ ADD THIS (optional, for future use)
           created_at: result.data.created_at,
           updated_at: result.data.updated_at,
         };
@@ -198,6 +202,8 @@ export async function register(data: RegisterData): Promise<{ user: User; token:
           name: result.data.name || data.name,
           phone: result.data.phone || data.phone,
           avatar: result.data.avatar,
+          profile_image_url: result.data.profile_image_url, // ⬅️ ADD THIS
+          cloudinary_public_id: result.data.cloudinary_public_id, // ⬅️ ADD THIS (optional, for future use)
           created_at: result.data.created_at,
           updated_at: result.data.updated_at,
         };
@@ -371,5 +377,6 @@ export async function getCurrentUser(): Promise<User> {
     username: user.username || '',
     age: user.age ?? '',
     gender: user.gender || 'prefer-not-to-say',
+    profile_image_url: user.profile_image_url || '', // ⬅️ ADD THIS
   };
 }

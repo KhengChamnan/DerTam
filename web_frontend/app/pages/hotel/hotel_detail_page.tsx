@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft, Star, MapPin, Users, Maximize } from "lucide-react";
-import Navigation from "~/components/navigation";
 import { getHotelPropertyById, type HotelPropertyDetail } from "~/api/hotel";
 
 export default function HotelDetailPage() {
@@ -36,7 +35,7 @@ export default function HotelDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Hotel" />
+   
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: '#e5e7eb', borderTopColor: '#01005B' }}></div>
@@ -50,7 +49,7 @@ export default function HotelDetailPage() {
   if (!hotel) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation activeNav="Hotel" />
+       
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Hotel not found</h2>
@@ -71,7 +70,7 @@ export default function HotelDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeNav="Hotel" />
+    
 
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">

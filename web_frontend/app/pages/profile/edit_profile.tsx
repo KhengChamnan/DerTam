@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
-import Navigation from '../../components/navigation';
 import { useNavigate } from 'react-router';
 import { getCurrentUser } from '../../api/auth';
 import { updateProfile, updateProfileWithFormData } from '../../api/profile';
@@ -22,6 +21,7 @@ export default function EditProfilePage() {
 
   const [avatar, setAvatar] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -45,6 +45,7 @@ export default function EditProfilePage() {
           image: null,
         });
         setAvatar(user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : '');
+        setCurrentImageUrl(user.profile_image_url || null);
       } catch (err) {
         navigate('/login');
       }
@@ -68,21 +69,15 @@ export default function EditProfilePage() {
         setIsSaving(false);
         return;
       }
-      if (!formData.email) {
-        alert('Please enter your email');
-        setIsSaving(false);
-        return;
-      }
 
-      // Use FormData for file upload
       const payload = new FormData();
       payload.append('name', fullName);
-      payload.append('email', formData.email);
-      payload.append('username', formData.username || '');
-      payload.append('phone_number', formData.phone_number || '');
+      if (formData.email) payload.append('email', formData.email);
+      if (formData.username) payload.append('username', formData.username);
+      if (formData.phone_number) payload.append('phone_number', formData.phone_number);
       if (formData.age) payload.append('age', formData.age);
       if (formData.gender) payload.append('gender', formData.gender);
-      if (formData.image) payload.append('image', formData.image);
+      if (formData.image) payload.append('profile_image', formData.image); 
 
       await updateProfileWithFormData(payload);
 
@@ -100,7 +95,7 @@ export default function EditProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation activeNav="Profile" />
+      {/* <Navigation activeNav="Profile" /> */}
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
@@ -125,6 +120,12 @@ export default function EditProfilePage() {
                   <img
                     src={URL.createObjectURL(formData.image)}
                     alt="Profile Preview"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : currentImageUrl ? (
+                  <img
+                    src={currentImageUrl}
+                    alt="Current Profile"
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (

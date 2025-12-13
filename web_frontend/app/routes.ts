@@ -30,4 +30,5 @@ export default [
   route("profile/settings", "routes/profile/settings.tsx"),
   route("profile/edit", "routes/profile/edit.tsx"),
   route("install_app", "components/install_app.tsx"),
+  route("profile/change-password", "pages/profile/change_password.tsx"),
 ] satisfies RouteConfig;
