@@ -2,7 +2,11 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  username?: string;
   phone?: string;
+  phone_number?: string;
+  age?: number;
+  gender?: string;
   avatar?: string;
   created_at?: string;
   updated_at?: string;
@@ -341,7 +345,6 @@ export async function googleSignIn(token: string): Promise<{ user: User; token: 
 // Get current user
 export async function getCurrentUser(): Promise<User> {
   const token = localStorage.getItem('token');
-  
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -360,5 +363,13 @@ export async function getCurrentUser(): Promise<User> {
     throw new Error('Failed to fetch user');
   }
 
-  return result.data?.user || result.user || result;
+  // Normalize user fields for frontend
+  const user = result.data?.user || result.user || result;
+  return {
+    ...user,
+    phone_number: user.phone_number || user.phone || '',
+    username: user.username || '',
+    age: user.age ?? '',
+    gender: user.gender || 'prefer-not-to-say',
+  };
 }
