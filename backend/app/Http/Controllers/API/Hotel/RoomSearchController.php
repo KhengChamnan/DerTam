@@ -25,7 +25,7 @@ class RoomSearchController extends Controller
         $validator = Validator::make($request->all(), [
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
-            'guests' => 'nullable|integer|min:1|max:20',
+            'guests' => 'required|integer|min:1|max:20',
             'property_id' => 'nullable|exists:properties,property_id',
             'place_id' => 'nullable|exists:places,placeID',
             'province_category_id' => 'nullable|exists:province_categories,province_categoryID',
@@ -59,12 +59,8 @@ class RoomSearchController extends Controller
                 'rooms' => function($query) {
                     $query->where('is_available', true);
                 }
-            ]);
-
-            // Filter by guests if specified
-            if ($guests) {
-                $query->where('max_guests', '=', $guests);
-            }
+            ])
+            ->where('max_guests', '=', $guests);
 
             // Filter by property if specified
             if ($propertyId) {
@@ -95,27 +91,63 @@ class RoomSearchController extends Controller
 
             // Transform the results
             $results = $availableRooms->map(function($roomProperty) use ($nights, $checkIn, $checkOut) {
+                $availableCount = $this->getAvailableRoomCount($roomProperty->room_properties_id, $checkIn, $checkOut);
+                $totalPrice = $roomProperty->price_per_night * $nights;
+
                 return [
                     'room_properties_id' => $roomProperty->room_properties_id,
+                    'property_id' => $roomProperty->property_id,
                     'room_type' => $roomProperty->room_type,
+                    'room_description' => $roomProperty->room_description,
                     'max_guests' => $roomProperty->max_guests,
+                    'room_size' => $roomProperty->room_size,
+                    'price_per_night' => $roomProperty->price_per_night,
+                    'total_price' => $totalPrice,
+                    'number_of_bed' => $roomProperty->number_of_bed,
+                    'images_url' => $roomProperty->images_url,
+                    'available_rooms_count' => $availableCount,
+                    'nights' => $nights,
                     'amenities' => $roomProperty->amenities->map(function($amenity) {
                         return [
+                            'amenity_id' => $amenity->amenity_id,
                             'amenity_name' => $amenity->amenity_name,
+                            'image_url' => $amenity->image_url,
                         ];
                     }),
-                    'hotel_name' => $roomProperty->property->place->name,
-                    'price_per_night' => $roomProperty->price_per_night,
-                    'image_url' => is_array($roomProperty->images_url) && !empty($roomProperty->images_url) 
-                        ? $roomProperty->images_url[0] 
-                        : null,
+                    'property' => [
+                        'property_id' => $roomProperty->property->property_id,
+                        'place' => [
+                            'placeID' => $roomProperty->property->place->placeID,
+                            'name' => $roomProperty->property->place->name,
+                            'description' => $roomProperty->property->place->description,
+                            'ratings' => $roomProperty->property->place->ratings,
+                            'province' => $roomProperty->property->place->provinceCategory->province_categoryName ?? null,
+                            'images_url' => $roomProperty->property->place->images_url,
+                        ],
+                        'facilities' => $roomProperty->property->facilities->map(function($facility) {
+                            return [
+                                'facility_id' => $facility->facility_id,
+                                'facility_name' => $facility->facility_name,
+                                'image_url' => $facility->image_url,
+                            ];
+                        }),
+                    ],
                 ];
             })->values();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Available rooms retrieved successfully',
-                'data' => $results,
+                'data' => [
+                    'search_params' => [
+                        'check_in' => $checkIn->toDateString(),
+                        'check_out' => $checkOut->toDateString(),
+                        'guests' => $guests,
+                        'nights' => $nights,
+                    ],
+                    'total_results' => $results->count(),
+                    'rooms' => $results,
+                ]
             ], 200);
 
         } catch (\Exception $e) {
