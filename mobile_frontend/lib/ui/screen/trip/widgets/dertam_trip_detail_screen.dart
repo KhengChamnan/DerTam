@@ -676,7 +676,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   final dayDate =
                       dayData.date ?? startDate.add(Duration(days: index));
                   final placesForDay = dayData.places ?? [];
-
                   return TripDayCard(
                     dayNumber: dayNumber,
                     date: dayDate,
@@ -714,7 +713,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       ),
                     ),
                     SizedBox(height: 10),
-
                     // Add more places button
                     FloatingActionButton(
                       heroTag: "add",
