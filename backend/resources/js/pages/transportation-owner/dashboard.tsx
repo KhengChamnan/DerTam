@@ -83,56 +83,54 @@ interface RecentBooking {
     };
 }
 
+interface RevenueTrendData {
+    month: string;
+    revenue: number;
+    bookings: number;
+}
+
+interface RoutePerformanceData {
+    route: string;
+    bookings: number;
+}
+
+interface BusUtilizationData {
+    status: string;
+    count: number;
+}
+
+interface WeeklyOccupancyData {
+    day: string;
+    rate: number;
+}
+
 interface Props {
     companies: Company[];
     stats: Stats;
     recent_bookings: RecentBooking[];
+    revenue_trend_data: RevenueTrendData[];
+    route_performance_data: RoutePerformanceData[];
+    bus_utilization_data: BusUtilizationData[];
+    weekly_occupancy_data: WeeklyOccupancyData[];
 }
-
-// Mock data for revenue trend chart
-const revenueTrendData = [
-    { month: "Jan", revenue: 12000, bookings: 340 },
-    { month: "Feb", revenue: 15800, bookings: 425 },
-    { month: "Mar", revenue: 18200, bookings: 498 },
-    { month: "Apr", revenue: 22000, bookings: 578 },
-    { month: "May", revenue: 25400, bookings: 645 },
-    { month: "Jun", revenue: 28900, bookings: 720 },
-];
 
 const revenueTrendConfig = {
     revenue: {
         label: "Revenue",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
     bookings: {
         label: "Bookings",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
 } satisfies ChartConfig;
-
-// Mock data for route performance
-const routePerformanceData = [
-    { route: "Phnom Penh - Siem Reap", bookings: 450 },
-    { route: "Phnom Penh - Sihanoukville", bookings: 380 },
-    { route: "Siem Reap - Battambang", bookings: 290 },
-    { route: "Phnom Penh - Kampot", bookings: 240 },
-    { route: "Siem Reap - Poipet", bookings: 185 },
-];
 
 const routePerformanceConfig = {
     bookings: {
         label: "Bookings",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
 } satisfies ChartConfig;
-
-// Mock data for bus utilization
-const busUtilizationData = [
-    { status: "Active", count: 28, fill: "hsl(var(--primary))" },
-    { status: "Scheduled", count: 15, fill: "hsl(var(--chart-2))" },
-    { status: "Maintenance", count: 5, fill: "hsl(var(--chart-3))" },
-    { status: "Idle", count: 8, fill: "hsl(var(--chart-4))" },
-];
 
 const busUtilizationConfig = {
     count: {
@@ -140,37 +138,26 @@ const busUtilizationConfig = {
     },
     Active: {
         label: "Active",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
     Scheduled: {
         label: "Scheduled",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
     Maintenance: {
         label: "Maintenance",
-        color: "hsl(var(--chart-3))",
+        color: "var(--chart-3)",
     },
     Idle: {
         label: "Idle",
-        color: "hsl(var(--chart-4))",
+        color: "var(--chart-4)",
     },
 } satisfies ChartConfig;
-
-// Mock data for weekly occupancy
-const weeklyOccupancyData = [
-    { day: "Mon", rate: 68 },
-    { day: "Tue", rate: 72 },
-    { day: "Wed", rate: 75 },
-    { day: "Thu", rate: 82 },
-    { day: "Fri", rate: 88 },
-    { day: "Sat", rate: 92 },
-    { day: "Sun", rate: 85 },
-];
 
 const weeklyOccupancyConfig = {
     rate: {
         label: "Occupancy Rate %",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
 } satisfies ChartConfig;
 
@@ -195,7 +182,24 @@ export default function TransportationOwnerDashboard({
         recent_revenue: 0,
     },
     recent_bookings = [],
+    revenue_trend_data = [],
+    route_performance_data = [],
+    bus_utilization_data = [],
+    weekly_occupancy_data = [],
 }: Props) {
+    // Map bus utilization data to include fill colors
+    const busUtilizationDataWithColors = bus_utilization_data.map((item) => {
+        const config =
+            busUtilizationConfig[
+                item.status as keyof typeof busUtilizationConfig
+            ];
+        const color =
+            config && "color" in config ? config.color : "var(--chart-1)";
+        return {
+            ...item,
+            fill: color,
+        };
+    });
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Transportation Owner Dashboard" />
@@ -331,7 +335,7 @@ export default function TransportationOwnerDashboard({
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={revenueTrendConfig}>
-                                <AreaChart data={revenueTrendData}>
+                                <AreaChart data={revenue_trend_data}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="month"
@@ -377,7 +381,7 @@ export default function TransportationOwnerDashboard({
                                         content={<ChartTooltipContent />}
                                     />
                                     <Pie
-                                        data={busUtilizationData}
+                                        data={busUtilizationDataWithColors}
                                         dataKey="count"
                                         nameKey="status"
                                         cx="50%"
@@ -403,7 +407,7 @@ export default function TransportationOwnerDashboard({
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={routePerformanceConfig}>
-                                <BarChart data={routePerformanceData}>
+                                <BarChart data={route_performance_data}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="route"
@@ -438,7 +442,7 @@ export default function TransportationOwnerDashboard({
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={weeklyOccupancyConfig}>
-                                <LineChart data={weeklyOccupancyData}>
+                                <LineChart data={weekly_occupancy_data}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="day"

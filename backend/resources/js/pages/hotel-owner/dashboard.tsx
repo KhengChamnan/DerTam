@@ -106,56 +106,54 @@ interface RecentBooking {
     updated_at: string;
 }
 
+interface RevenueTrendData {
+    month: string;
+    revenue: number;
+    bookings: number;
+}
+
+interface RoomTypeData {
+    type: string;
+    occupancy: number;
+}
+
+interface BookingSourceData {
+    source: string;
+    bookings: number;
+}
+
+interface DailyOccupancyData {
+    day: string;
+    rate: number;
+}
+
 interface Props {
     properties: Property[];
     stats: Stats;
     recent_bookings: RecentBooking[];
+    revenue_trend_data: RevenueTrendData[];
+    room_type_data: RoomTypeData[];
+    booking_source_data: BookingSourceData[];
+    daily_occupancy_data: DailyOccupancyData[];
 }
-
-// Mock data for revenue trend chart
-const revenueTrendData = [
-    { month: "Jan", revenue: 8500, bookings: 45 },
-    { month: "Feb", revenue: 12000, bookings: 58 },
-    { month: "Mar", revenue: 15800, bookings: 72 },
-    { month: "Apr", revenue: 18200, bookings: 85 },
-    { month: "May", revenue: 22000, bookings: 98 },
-    { month: "Jun", revenue: 25400, bookings: 112 },
-];
 
 const revenueTrendConfig = {
     revenue: {
         label: "Revenue",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
     bookings: {
         label: "Bookings",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
 } satisfies ChartConfig;
-
-// Mock data for room occupancy by type
-const roomTypeData = [
-    { type: "Standard", occupancy: 85 },
-    { type: "Deluxe", occupancy: 72 },
-    { type: "Suite", occupancy: 65 },
-    { type: "Family", occupancy: 78 },
-    { type: "Executive", occupancy: 58 },
-];
 
 const roomTypeConfig = {
     occupancy: {
         label: "Occupancy %",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
 } satisfies ChartConfig;
-
-// Mock data for booking sources
-const bookingSourceData = [
-    { source: "Direct", bookings: 180, fill: "hsl(var(--primary))" },
-    { source: "Online", bookings: 320, fill: "hsl(var(--chart-2))" },
-    { source: "Agency", bookings: 150, fill: "hsl(var(--chart-3))" },
-    { source: "Corporate", bookings: 90, fill: "hsl(var(--chart-4))" },
-];
 
 const bookingSourceConfig = {
     bookings: {
@@ -163,37 +161,26 @@ const bookingSourceConfig = {
     },
     Direct: {
         label: "Direct Booking",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
     Online: {
         label: "Online Travel Agency",
-        color: "hsl(var(--chart-2))",
+        color: "var(--chart-2)",
     },
     Agency: {
         label: "Travel Agency",
-        color: "hsl(var(--chart-3))",
+        color: "var(--chart-3)",
     },
     Corporate: {
         label: "Corporate Booking",
-        color: "hsl(var(--chart-4))",
+        color: "var(--chart-4)",
     },
 } satisfies ChartConfig;
-
-// Mock data for daily occupancy rate
-const dailyOccupancyData = [
-    { day: "Mon", rate: 72 },
-    { day: "Tue", rate: 68 },
-    { day: "Wed", rate: 75 },
-    { day: "Thu", rate: 82 },
-    { day: "Fri", rate: 88 },
-    { day: "Sat", rate: 95 },
-    { day: "Sun", rate: 90 },
-];
 
 const dailyOccupancyConfig = {
     rate: {
         label: "Occupancy Rate %",
-        color: "hsl(var(--primary))",
+        color: "var(--chart-1)",
     },
 } satisfies ChartConfig;
 
@@ -214,7 +201,24 @@ export default function HotelOwnerDashboard({
         avg_daily_rate: 0,
     },
     recent_bookings = [],
+    revenue_trend_data = [],
+    room_type_data = [],
+    booking_source_data = [],
+    daily_occupancy_data = [],
 }: Props) {
+    // Map booking source data to include fill colors
+    const bookingSourceDataWithColors = booking_source_data.map((item) => {
+        const config =
+            bookingSourceConfig[
+                item.source as keyof typeof bookingSourceConfig
+            ];
+        const color =
+            config && "color" in config ? config.color : "var(--chart-1)";
+        return {
+            ...item,
+            fill: color,
+        };
+    });
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Hotel Owner Dashboard" />
@@ -349,7 +353,7 @@ export default function HotelOwnerDashboard({
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={revenueTrendConfig}>
-                                <AreaChart data={revenueTrendData}>
+                                <AreaChart data={revenue_trend_data}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="month"
@@ -395,7 +399,7 @@ export default function HotelOwnerDashboard({
                                         content={<ChartTooltipContent />}
                                     />
                                     <Pie
-                                        data={bookingSourceData}
+                                        data={bookingSourceDataWithColors}
                                         dataKey="bookings"
                                         nameKey="source"
                                         cx="50%"
@@ -421,7 +425,7 @@ export default function HotelOwnerDashboard({
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={roomTypeConfig}>
-                                <BarChart data={roomTypeData}>
+                                <BarChart data={room_type_data}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="type"
@@ -453,7 +457,7 @@ export default function HotelOwnerDashboard({
                         </CardHeader>
                         <CardContent>
                             <ChartContainer config={dailyOccupancyConfig}>
-                                <LineChart data={dailyOccupancyData}>
+                                <LineChart data={daily_occupancy_data}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="day"
