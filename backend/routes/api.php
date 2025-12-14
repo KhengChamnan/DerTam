@@ -159,7 +159,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('trips', 'store');           // Create a new trip
         Route::get('trips', 'index');            // Get all user trips
         Route::get('trips/{tripId}', 'show');    // Get specific trip with days
+        Route::get('trips/{tripId}/days/{dayNumber}', 'getDayPlaces'); // Get places for a specific day
         Route::post('/add-places/{trip_id}', 'addPlaces');
+        Route::delete('trips/{tripId}', 'destroy'); // Delete a trip
     });
 
     // Trip place selection routes (for adding places to trips)
