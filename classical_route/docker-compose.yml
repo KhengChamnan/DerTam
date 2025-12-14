@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  route-optimizer:
+    build: .
+    container_name: classical_route_api
+    ports:
+      - "8001:8001"
+    environment:
+      - EXTERNAL_API_BASE_URL=http://host.docker.internal:8000
+      - EXTERNAL_API_TIMEOUT=30
+      - HOST=0.0.0.0
+      - PORT=8001
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
