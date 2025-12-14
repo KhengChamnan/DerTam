@@ -206,16 +206,32 @@ class TripController extends Controller
                 ], 401);
             }
 
-            // Get trip
+            // Check if user owns the trip
             $trip = DB::table('trips')
                 ->where('trip_id', $tripId)
                 ->where('user_id', $userId)
                 ->first();
 
+            $isOwner = (bool)$trip;
+
+            // If not owner, check if they're a viewer
+            if (!$trip) {
+                $isViewer = DB::table('trip_viewers')
+                    ->where('trip_id', $tripId)
+                    ->where('user_id', $userId)
+                    ->exists();
+                
+                if ($isViewer) {
+                    $trip = DB::table('trips')
+                        ->where('trip_id', $tripId)
+                        ->first();
+                }
+            }
+
             if (!$trip) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Trip not found'
+                    'message' => 'Trip not found or you do not have permission to view it'
                 ], 404);
             }
 
@@ -266,6 +282,7 @@ class TripController extends Controller
                     'trip_name' => $trip->trip_name,
                     'start_date' => $trip->start_date,
                     'end_date' => $trip->end_date,
+                    'trip_access_type' => $isOwner ? 'owned' : 'shared',
                     'days' => $days,
                     'total_places' => $totalPlaces
                 ]
@@ -452,6 +469,84 @@ class TripController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add places to trip',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a trip and all its associated data
+     *
+     * @param int $tripId
+     * @return JsonResponse
+     */
+    public function destroy(int $tripId): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Verify trip ownership
+            $trip = DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->where('user_id', $userId)
+                ->first();
+
+            if (!$trip) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trip not found or you do not have permission to delete it'
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            // Get all trip day IDs for this trip
+            $tripDayIds = DB::table('trip_days')
+                ->where('trip_id', $tripId)
+                ->pluck('trip_day_id');
+
+            // Delete trip places (cascade delete)
+            if ($tripDayIds->isNotEmpty()) {
+                DB::table('trip_places')
+                    ->whereIn('trip_day_id', $tripDayIds)
+                    ->delete();
+            }
+
+            // Delete trip days
+            DB::table('trip_days')
+                ->where('trip_id', $tripId)
+                ->delete();
+
+            // Delete trip viewers
+            DB::table('trip_viewers')
+                ->where('trip_id', $tripId)
+                ->delete();
+
+            // Delete the trip itself
+            DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trip deleted successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete trip',
                 'error' => $e->getMessage()
             ], 500);
         }

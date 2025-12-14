@@ -31,6 +31,7 @@ class BookingItem extends Model
         'booking_id',
         'item_type',
         'item_id',
+        'room_id',
         'quantity',
         'unit_price',
         'total_price',
@@ -77,17 +78,19 @@ class BookingItem extends Model
     }
 
     /**
-     * Get the room for hotel bookings.
+     * Get the assigned room for hotel bookings (specific room like Room 101).
+     * This is the actual room assigned to the guest after confirmation.
      *
      * @return BelongsTo
      */
-    public function room(): BelongsTo
+    public function assignedRoom(): BelongsTo
     {
-        return $this->belongsTo(Room::class, 'item_id', 'id');
+        return $this->belongsTo(Room::class, 'room_id', 'room_id');
     }
 
     /**
      * Get the room property (room type) for hotel bookings.
+     * This is the type of room booked (e.g., Deluxe Room, Family Room).
      *
      * @return BelongsTo
      */

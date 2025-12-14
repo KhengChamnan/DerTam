@@ -27,16 +27,24 @@ class TransportationController extends Controller
             'buses.schedules:id,bus_id,status'
         ]);
 
-        // Apply search filter
+        // Apply search filter (prefix filtering with word boundaries)
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('place', function ($placeQuery) use ($search) {
-                    $placeQuery->where('name', 'like', "%{$search}%")
-                               ->orWhere('description', 'like', "%{$search}%");
-                })->orWhereHas('owner', function ($ownerQuery) use ($search) {
-                    $ownerQuery->where('name', 'like', "%{$search}%")
-                               ->orWhere('email', 'like', "%{$search}%");
+            $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], trim($request->search));
+            $query->where(function ($q) use ($escapedTerm) {
+                $q->whereHas('place', function ($placeQuery) use ($escapedTerm) {
+                    $placeQuery->where(function ($pq) use ($escapedTerm) {
+                        $pq->where('name', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+                           ->orWhere('description', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('description', 'LIKE', '% ' . $escapedTerm . '%');
+                    });
+                })->orWhereHas('owner', function ($ownerQuery) use ($escapedTerm) {
+                    $ownerQuery->where(function ($oq) use ($escapedTerm) {
+                        $oq->where('name', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+                           ->orWhere('email', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('email', 'LIKE', '% ' . $escapedTerm . '%');
+                    });
                 });
             });
         }

@@ -105,8 +105,7 @@ class BusSeat extends Model
 
     /**
      * Check if seat is booked for a specific schedule.
-     * Only considers bookings with status 'confirmed' as blocking.
-     * Pending bookings do NOT block seats.
+     * Only considers bookings with status 'pending' or 'confirmed' as blocking.
      */
     public function isBookedForSchedule(int $scheduleId): bool
     {

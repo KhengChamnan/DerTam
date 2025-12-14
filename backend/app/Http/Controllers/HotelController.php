@@ -33,15 +33,25 @@ class HotelController extends Controller
             'facilities:facility_id,facility_name'
         ]);
 
-        // Search functionality
+        // Search functionality (prefix filtering with word boundaries)
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('place', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            })->orWhereHas('ownerUser', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+            $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], trim($request->search));
+            $query->where(function ($mainQuery) use ($escapedTerm) {
+                $mainQuery->whereHas('place', function ($q) use ($escapedTerm) {
+                    $q->where(function ($pq) use ($escapedTerm) {
+                        $pq->where('name', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+                           ->orWhere('description', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('description', 'LIKE', '% ' . $escapedTerm . '%');
+                    });
+                })->orWhereHas('ownerUser', function ($q) use ($escapedTerm) {
+                    $q->where(function ($oq) use ($escapedTerm) {
+                        $oq->where('name', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
+                           ->orWhere('email', 'LIKE', $escapedTerm . '%')
+                           ->orWhere('email', 'LIKE', '% ' . $escapedTerm . '%');
+                    });
+                });
             });
         }
 
