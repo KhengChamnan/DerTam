@@ -11,6 +11,7 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_place_card.dart';
+import 'package:mobile_frontend/ui/screen/map/dertam_map.dart';
 import 'package:provider/provider.dart';
 
 class TripDetailScreen extends StatefulWidget {
@@ -100,6 +101,52 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         );
       }
     }
+  }
+
+  void _navigateToMap(int totalDays, String tripId) {
+    // Show day selection dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select Day to View Route'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: totalDays,
+            itemBuilder: (context, index) {
+              final dayNumber = index + 1;
+              return ListTile(
+                leading: Icon(
+                  Icons.calendar_today,
+                  color: DertamColors.primaryDark,
+                ),
+                title: Text('Day $dayNumber'),
+                onTap: () {
+                  Navigator.pop(context); // Close dialog
+                  // Navigate to map with selected day
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RouteMapPage(
+                        tripId: int.parse(tripId),
+                        dayNumber: dayNumber,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _shareTrip() async {
@@ -711,6 +758,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           color: Colors.white,
                           size: 16,
                         ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    FloatingActionButton(
+                      heroTag: "map",
+                      onPressed: () =>
+                          _navigateToMap(sortedDays.length, tripId.toString()),
+                      backgroundColor: DertamColors.white,
+                      child: Icon(
+                        Icons.map,
+                        color: DertamColors.primaryDark,
+                        size: 24,
                       ),
                     ),
                     SizedBox(height: 10),
