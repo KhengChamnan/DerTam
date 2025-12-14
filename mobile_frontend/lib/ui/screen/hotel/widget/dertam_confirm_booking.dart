@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
-import 'package:mobile_frontend/ui/widgets/display/dertam_qr_code_screen.dart';
+import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_hotel_qr_code_screen.dart';
+import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -69,38 +70,30 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
       print('🔍 [Booking Debug] Room Type: ${widget.room.roomType}');
       print('🔍 [Booking Debug] Price: ${widget.room.pricePerNight}');
       print('🔍 [Booking Debug] Payment Method: $_selectedPaymentMethod');
-
       // Create booking with the selected payment option
       final bookingResponse = await hotelProvider.createBooking(
         checkIn,
         checkOut,
-        [widget.room],
+        [widget.room], // Pass room as list
         _selectedPaymentMethod,
       );
       print('Booking created successfully: ${bookingResponse.message}');
       print(
         'Transaction ID: ${bookingResponse.data?.abaResponse.status.tranId}',
       );
-
       // Debug: Print the entire response
       print('Payment method selected: $_selectedPaymentMethod');
       print('Payment display mode: $_selectedPaymentDisplay');
       print(
         'ABA Deeplink: ${bookingResponse.data?.abaResponse.abapayDeeplink}',
       );
-
-      // Store booking ID for payment verification
-      final bookingId = bookingResponse.data?.booking.id;
-
-      // Handle payment based on selected display mode
+        // Handle payment based on selected display mode
       if (_selectedPaymentDisplay == 'deeplink') {
         // ABA PayWay - Open ABA app via deeplink
         final deeplink = bookingResponse.data?.abaResponse.abapayDeeplink;
         print('Attempting to open ABA PayWay with deeplink: $deeplink');
-
         if (deeplink != null && deeplink.isNotEmpty) {
           print('ABA PayWay Deeplink: $deeplink');
-
           // Launch the deeplink to open ABA PayWay app
           final uri = Uri.parse(deeplink);
           if (await canLaunchUrl(uri)) {
@@ -110,185 +103,17 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
               mode: LaunchMode.externalApplication,
             );
             print('launchUrl result: $launched');
-
-            if (!launched) {
-              throw Exception('Failed to launch ABA PayWay app');
-            }
-
-            // Show loading dialog while verifying payment
+            // Show success message
             if (mounted) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (BuildContext context) {
-                  return WillPopScope(
-                    onWillPop: () async => false,
-                    child: Center(
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(
-                                color: DertamColors.primaryBlue,
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Verifying Payment...',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Please wait',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
-            }
-
-            // Poll for payment status with retries
-            String? finalStatus;
-            const maxAttempts = 6; // Check 6 times
-            const delayBetweenChecks = Duration(seconds: 3);
-
-            for (int attempt = 0; attempt < maxAttempts; attempt++) {
-              await Future.delayed(delayBetweenChecks);
-
-              print(
-                '🔄 Checking payment status (attempt ${attempt + 1}/$maxAttempts)...',
-              );
-
-              finalStatus = await _checkPaymentStatus(
-                hotelProvider,
-                bookingId.toString(),
-              );
-
-              // If payment is confirmed, break early
-              if (finalStatus == 'success') {
-                print('✅ Payment confirmed on attempt ${attempt + 1}');
-                break;
-              }
-
-              // If payment failed, break early
-              if (finalStatus == 'failed') {
-                print('❌ Payment failed on attempt ${attempt + 1}');
-                break;
-              }
-
-              // If still pending, continue polling
-              print('⏳ Payment still pending, will retry...');
-            }
-
-            // Close loading dialog
-            if (mounted) {
-              Navigator.of(context).pop();
-            }
-
-            // Handle final payment status
-            if (finalStatus == 'success' && mounted) {
-              // Payment successful, show success dialog
-              await showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.check,
-                            color: Colors.white,
-                            size: 60,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Payment Successful!',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: DertamColors.primaryBlue,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Your booking has been confirmed.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // Close dialog
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => HomePage()),
-                            (route) => false,
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: DertamColors.primaryBlue,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'OK',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                    actionsAlignment: MainAxisAlignment.center,
-                  );
-                },
-              );
-            } else if (finalStatus == 'failed' && mounted) {
-              return;
-            } else if (mounted) {
-              // Payment still pending after all retries
-              print('⏳ Payment still pending after all retries');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Payment is still processing. Please check your bookings later.',
-                  ),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 2),
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DertamBookingSuccessDialog(),
                 ),
+                (route) => false,
               );
             }
+            // Don't navigate away - let the deep link handle the return
           } else {
             print('canLaunchUrl returned false');
             throw Exception(
@@ -303,15 +128,13 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
         // ABA QR - Show QR code on screen
         final qrString = bookingResponse.data?.abaResponse.qrString;
         final qrImage = bookingResponse.data?.abaResponse.qrImage;
-
-        // Validate QR data is available
+        final bookingId = bookingResponse.data?.booking.id;
         if (qrString == null || qrString.isEmpty) {
           throw Exception('No QR code received from server');
         }
         print('QR String: $qrString');
         print('QR Image available: ${qrImage != null && qrImage.isNotEmpty}');
 
-        // Navigate to QR code screen and wait for user to complete payment
         if (mounted) {
           final result = await Navigator.push<bool>(
             context,
@@ -323,102 +146,13 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
               ),
             ),
           );
-
-          // Only navigate to success if user confirmed payment
-          if (result == true && mounted) {
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.check, color: Colors.white, size: 60),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Payment Successful!',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: DertamColors.primaryBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Your booking has been confirmed.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close dialog
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => HomePage()),
-                          (route) => false,
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: DertamColors.primaryBlue,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        'OK',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                  actionsAlignment: MainAxisAlignment.center,
-                );
-              },
-            );
-          }
-          // If result is false or null, stay on current screen
-        }
-      } else {
-        // Cash or other payment methods
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Booking created! Payment method: $_selectedPaymentMethod',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-        // Navigate back to home after delay for cash
-        if (mounted) {
-          await Future.delayed(const Duration(seconds: 2));
-          if (mounted) {
+          if (result == true) {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-              (route) => false,
+              MaterialPageRoute(
+                builder: (context) => DertamBookingSuccessDialog(),
+              ),
+              (Route<dynamic> route) => false,
             );
           }
         }
@@ -432,7 +166,7 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
       }
       if (mounted) {
         // Show error in a dialog for better visibility
-        await showDialog(
+        showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
@@ -470,7 +204,6 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
             );
           },
         );
-        // Stay on current screen after error
       }
     } finally {
       if (mounted) {
@@ -478,43 +211,6 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
           _isProcessing = false;
         });
       }
-    }
-  }
-
-  // New method to check payment status once
-  Future<String> _checkPaymentStatus(
-    HotelProvider hotelProvider,
-    String bookingId,
-  ) async {
-    try {
-      print('🔍 Checking payment status...');
-
-      // Fetch booking details to check payment status
-      final bookingDetail = await hotelProvider.fetchHotelBookingDetail(
-        bookingId,
-      );
-      // Extract payment status from booking detail
-      final paymentStatus = bookingDetail.data.status.toLowerCase();
-      print('💳 Payment status: $paymentStatus');
-
-      // Check if payment is successful - use contains for flexibility
-      if (paymentStatus.contains('confirmed')) {
-        print('✅ Payment successful!');
-        return 'success';
-      }
-
-      // Check if payment failed
-      if (paymentStatus.contains('fail') || paymentStatus.contains('cancel')) {
-        print('❌ Payment failed or cancelled');
-        return 'failed';
-      }
-
-      // Payment is still pending
-      print('⏳ Payment is pending - Status: $paymentStatus');
-      return 'pending';
-    } catch (e) {
-      print('⚠️ Error checking payment status: $e');
-      return 'pending'; // Treat errors as pending
     }
   }
 
@@ -760,8 +456,6 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
                           });
                         },
                       ),
-
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

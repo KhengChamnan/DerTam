@@ -21,8 +21,7 @@ class _SplashBodyState extends State<SplashBody> {
   @override
   void initState() {
     super.initState();
-    // short visible delay then initialize app
-    Future.delayed(const Duration(seconds: 8), () {
+    Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       setState(() => _isPreparing = true);
       _initializeApp();
@@ -42,23 +41,17 @@ class _SplashBodyState extends State<SplashBody> {
       Widget nextScreen;
       if (storedToken != null && storedToken.isNotEmpty) {
         await authProvider.initializeAuth();
-
-        // Check if user has completed preferences
         await authProvider.checkPreferencesCompleted();
         final preferencesCompleted = authProvider.hasCompletedPreferences;
-
         if (preferencesCompleted.state == AsyncValueState.success &&
             preferencesCompleted.data == false) {
-          // First time user - show preference screen
           nextScreen = const DertamUserPreferrence();
         } else {
-          // Existing user - go to home
           nextScreen = HomePage();
         }
       } else {
         nextScreen = const DertamLoginScreen();
       }
-
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

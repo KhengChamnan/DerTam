@@ -273,7 +273,7 @@ class LaravelHotelApiRepository extends HotelRepository {
     DateTime checkIn,
     DateTime checkOut,
     int guests,
-    int nights,
+    String placeID,
   ) async {
     try {
       final token = await authRepository.getToken();
@@ -292,7 +292,7 @@ class LaravelHotelApiRepository extends HotelRepository {
         'check_in': formattedCheckIn,
         'check_out': formattedCheckOut,
         'guests': guests,
-        'nights': nights,
+        'place_id': placeID,
       };
 
       final response = await FetchingData.postHeader(
@@ -300,13 +300,10 @@ class LaravelHotelApiRepository extends HotelRepository {
         header,
         body,
       );
-
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        // Check if the API response has the expected structure
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
           final data = jsonResponse['data'];
-          // Parse the entire data object as SearchRoomResponse
           final searchResponse = SearchRoomResponse.fromJson(data);
           return searchResponse;
         } else {

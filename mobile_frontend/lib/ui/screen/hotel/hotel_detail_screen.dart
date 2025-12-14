@@ -256,12 +256,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     child: GestureDetector(
                       onTap: () {
                         final placeDetail = hotel.place;
-                        print(
-                          'Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatt: ${placeDetail.latitude}',
-                        );
-                        print(
-                          'Looooooooooooooooooooooooooooooong: ${placeDetail.longitude}',
-                        );
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -280,14 +274,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              DertamColors.primaryBlue,
-                              DertamColors.primaryBlue,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: DertamColors.white,
                           borderRadius: BorderRadius.circular(25),
                           boxShadow: [
                             BoxShadow(
@@ -312,10 +299,10 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Iconsax.routing,
                                 size: 16,
-                                color: Colors.white,
+                                color: DertamColors.primaryDark,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -324,7 +311,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                               style: DertamTextStyles.bodyMedium.copyWith(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
-                                color: Colors.white,
+                                color: DertamColors.primaryDark,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -475,23 +462,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                         ),
                       ),
                     ),
-                    onAddToCart: () {
-                      // TODO: Implement cart functionality with provider
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${room.roomType} added to cart!',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          backgroundColor: DertamColors.primaryBlue,
-                          duration: const Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      );
-                    },
                   );
                 }, childCount: hotel.roomProperties.length),
               ),
@@ -530,7 +500,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
               final DateTime checkOutDate = result['checkOutDate'] as DateTime;
               final int guestCount = result['guestCount'] as int;
               final int numberOfNights = result['numberOfNights'] as int;
-
               print(
                 'Searching for $guestCount guests\n'
                 'Check-in: $checkInDate\n'
@@ -543,11 +512,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                   checkInDate,
                   checkOutDate,
                   guestCount,
-                  numberOfNights,
+                  widget.hotelId,
                 );
-
                 if (mounted && searchResults.rooms.isNotEmpty) {
-                  // Navigate to search results screen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -555,7 +522,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     ),
                   );
                 } else if (mounted) {
-                  // Show no results message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text(

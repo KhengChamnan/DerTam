@@ -61,7 +61,6 @@ class _PlaceMapScreenState extends State<PlaceMapScreen> {
   }
 
   Future<void> _openInGoogleMaps() async {
-    // Try the provided Google Maps link first
     if (widget.googleMapsLink != null && widget.googleMapsLink!.isNotEmpty) {
       final Uri googleMapsUri = Uri.parse(widget.googleMapsLink!);
       if (await canLaunchUrl(googleMapsUri)) {
@@ -69,7 +68,6 @@ class _PlaceMapScreenState extends State<PlaceMapScreen> {
         return;
       }
     }
-
     // Fallback to coordinates-based URL
     final Uri fallbackUri = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}',
@@ -273,11 +271,6 @@ class _PlaceMapScreenState extends State<PlaceMapScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Lat: ${widget.latitude.toStringAsFixed(6)}, Lng: ${widget.longitude.toStringAsFixed(6)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(

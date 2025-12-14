@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/ui/screen/hotel/dertam_hotel_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
+import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -42,15 +42,13 @@ class _DertamQrCodeScreenState extends State<DertamQrCodeScreen> {
   }
 
   void _startPolling() {
-    // Check immediately
     _checkPaymentStatus();
-    // Then check every 5 seconds
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _checkCount++;
       if (_checkCount >= _maxChecks || _paymentStatus == 'confirmed') {
         timer.cancel();
         if (_paymentStatus == 'confirmed') {
-          _showSuccessAndClose();
+          DertamBookingSuccessDialog.show(context);
         }
       } else {
         _checkPaymentStatus();
@@ -63,7 +61,6 @@ class _DertamQrCodeScreenState extends State<DertamQrCodeScreen> {
     setState(() => _isChecking = true);
     try {
       final provider = Provider.of<HotelProvider>(context, listen: false);
-      // Fetch the latest booking details from the server
       final bookingDetail = await provider.fetchHotelBookingDetail(
         widget.bookingId,
       );
@@ -76,7 +73,7 @@ class _DertamQrCodeScreenState extends State<DertamQrCodeScreen> {
 
       if (_paymentStatus == 'confirmed') {
         _pollingTimer?.cancel();
-        _showSuccessAndClose();
+        DertamBookingSuccessDialog.show(context);
       }
     } catch (e) {
       setState(() => _isChecking = false);
@@ -84,49 +81,10 @@ class _DertamQrCodeScreenState extends State<DertamQrCodeScreen> {
     }
   }
 
-  void _showSuccessAndClose() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            const SizedBox(width: 12),
-            const Text('Payment Successful!'),
-          ],
-        ),
-        content: const Text(
-          'Your payment has been confirmed. Thank you for your booking!',
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              // Navigate to home page and remove all previous routes
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (context) => const DertamHotelScreen(),
-                ),
-                (route) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: DertamColors.primaryBlue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
   Future<void> _onRefresh() async {
     await _checkPaymentStatus();
   }
+
   @override
   Widget build(BuildContext context) {
     final hotelProvider = context.watch<HotelProvider>();
@@ -173,7 +131,6 @@ class _DertamQrCodeScreenState extends State<DertamQrCodeScreen> {
         ),
       );
     }
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

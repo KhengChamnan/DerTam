@@ -139,4 +139,17 @@ class PlaceProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  /// Clear all cached place data - call this on logout
+  void clearAll() {
+    _placeCategory = AsyncValue.empty();
+    _places = AsyncValue.empty();
+    _recommendedPlaces = AsyncValue.empty();
+    _upcomingEvents = AsyncValue.empty();
+    _placeDetail = AsyncValue.empty();
+    _searchPlaceResult = AsyncValue.empty();
+    _upcomingEventDetail = AsyncValue.empty();
+    _slideShow = AsyncValue.empty();
+    notifyListeners();
+  }
 }

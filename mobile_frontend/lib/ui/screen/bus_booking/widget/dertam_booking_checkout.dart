@@ -114,7 +114,7 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DertamBookingSuccessScreen(),
+                  builder: (context) => const DertamBookingSuccessDialog(),
                 ),
                 (route) => false,
               );
@@ -159,7 +159,7 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
-                builder: (context) => DertamBookingSuccessScreen(),
+                builder: (context) => const DertamBookingSuccessDialog(),
               ),
               (route) => false,
             );

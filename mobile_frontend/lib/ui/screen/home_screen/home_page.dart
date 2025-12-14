@@ -115,6 +115,9 @@ class _HomePageState extends State<HomePage> {
                           // Handle empty state
                           if (userInfo.state == AsyncValueState.empty ||
                               userInfo.data == null) {
+                            print(
+                              'User PHOTO ${userInfo.data?.userPicture ?? ''}',
+                            );
                             return SizedBox(
                               height: 280,
                               child: Center(
@@ -135,10 +138,13 @@ class _HomePageState extends State<HomePage> {
                                   borderRadius: BorderRadius.circular(9999),
                                   image: DecorationImage(
                                     image:
-                                        userInfo.data?.imageUrl?.isNotEmpty ==
+                                        userInfo
+                                                .data
+                                                ?.userPicture
+                                                ?.isNotEmpty ==
                                             true
                                         ? NetworkImage(
-                                            userInfo.data?.imageUrl ?? '',
+                                            userInfo.data?.userPicture ?? '',
                                           )
                                         : AssetImage(
                                                 'assets/images/dertam_logo.png',
@@ -169,13 +175,6 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   );
                                 },
-                              ),
-                              SizedBox(width: 8),
-                              IconButton(
-                                icon: Icon(Icons.notifications_none_outlined),
-                                color: DertamColors.neutralLight,
-                                iconSize: 28,
-                                onPressed: () {},
                               ),
                             ],
                           );
@@ -407,9 +406,10 @@ class _HomePageState extends State<HomePage> {
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => DertamUpcomingDetailScreen(
-                                          eventId: event.id.toString(),
-                                        ),
+                                        builder: (context) =>
+                                            DertamUpcomingDetailScreen(
+                                              eventId: event.id.toString(),
+                                            ),
                                       ),
                                     ),
                                   ),

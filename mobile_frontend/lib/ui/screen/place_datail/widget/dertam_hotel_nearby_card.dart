@@ -196,7 +196,6 @@ class DertamHotelNearby extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     // Description (if provided)
                     if (reviewCount != null && reviewCount!.isNotEmpty) ...[
                       const SizedBox(height: 8),

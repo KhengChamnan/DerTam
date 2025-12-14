@@ -3,12 +3,14 @@ class ApiEndpoint {
   // Auth Endpoints
   static const String login = '/api/login';
   static const String register = '/api/register';
-  static const String logout = '/api/logout';
+  static const String logout = '/api/auth/logout';
   static const String forgotPassword = '/api/forgot-password';
   static const String resetPassword = '/api/reset-password';
   static const String verifyPin = '/api/verify/pin';
   static const String googleSignIn = '/api/auth/google';
   static const String userInfo = '/api/profile';
+  static const String updateProfile = '/api/profile';
+  static const String changePassword = '/api/profile';
 
   // Place Endpoints
   static const String categories = '/api/place-categories';
@@ -29,6 +31,11 @@ class ApiEndpoint {
   static const String getBookingDetail = '/api/booking/hotel';
   static const String cancelBooking = '/api/booking/{{booking_id}}/cancel';
   static const String searchHotels = '/api/hotels/search';
+
+  /// Restaurant Endpoints
+  static const String getMenuCategories = '/api/menu-categories';
+  static const String getMenuItems = '/api/restaurants';
+
   //Trip Endpoints
   static const String createTrip = '/api/trips';
   static const String addPlaceToTripDay =
@@ -39,8 +46,8 @@ class ApiEndpoint {
   // Social sharing Endpoints
   static const String generateShareableLink =
       '/api/trip/8/share'; // Input trip ID
-  static const String clickLink =
-      '/api/trip/share/T5FgpgG3LSN1eM6MJtnNz2GQbt1YYKBj';
+
+  static const String joinTripViaShareLink = '/api/trip/share';
 
   // Budget Endpoints
   static const String createBudget = '/api/budgets';

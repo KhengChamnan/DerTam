@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
+import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
+import 'package:mobile_frontend/ui/providers/place_provider.dart';
+import 'package:mobile_frontend/ui/providers/restaurant_provider.dart';
+import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
 import 'package:mobile_frontend/ui/screen/favorite/favorite_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_profile.dart';
@@ -75,9 +81,9 @@ class _UserProfileState extends State<UserProfile> {
                   borderRadius: BorderRadius.circular(9999),
                   image: DecorationImage(
                     image:
-                        (userData.data?.imageUrl != null &&
-                            userData.data!.imageUrl!.isNotEmpty)
-                        ? NetworkImage(userData.data!.imageUrl!)
+                        (userData.data?.userPicture != null &&
+                            userData.data!.userPicture!.isNotEmpty)
+                        ? NetworkImage(userData.data!.userPicture!)
                         : const AssetImage('assets/images/dertam_logo.png')
                               as ImageProvider,
                     fit: BoxFit.cover,
@@ -134,6 +140,20 @@ class _UserProfileState extends State<UserProfile> {
                     child: Column(
                       children: [
                         _ProfileMenuItem(
+                          icon: Icons.change_circle,
+                          iconColor: DertamColors.primaryBlue,
+                          title: 'Update Profile',
+                          subtitle: 'You can update your info',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DertamEditProfile(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 11),
+
+                        _ProfileMenuItem(
                           icon: Icons.history,
                           iconColor: DertamColors.primaryBlue,
                           title: 'My Booking',
@@ -147,20 +167,6 @@ class _UserProfileState extends State<UserProfile> {
                               ),
                             );
                           },
-                        ),
-
-                        const SizedBox(height: 11),
-                        _ProfileMenuItem(
-                          icon: Icons.change_circle,
-                          iconColor: DertamColors.primaryBlue,
-                          title: 'Change Profile',
-                          subtitle: 'You can update your info',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DertamEditProfile(),
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 11),
                         _ProfileMenuItem(
@@ -210,13 +216,26 @@ class _UserProfileState extends State<UserProfile> {
                                   ),
                                   TextButton(
                                     onPressed: () {
+                                      // Clear all provider data on logout
                                       authProvider.logout();
-                                      Navigator.pushReplacement(
+                                      context.read<TripProvider>().clearAll();
+                                      context.read<PlaceProvider>().clearAll();
+                                      context.read<HotelProvider>().clearAll();
+                                      context.read<BudgetProvider>().clearAll();
+                                      context
+                                          .read<BusBookingProvider>()
+                                          .clearAll();
+                                      context
+                                          .read<RestaurantProvider>()
+                                          .clearAll();
+
+                                      Navigator.pushAndRemoveUntil(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               DertamLoginScreen(),
                                         ),
+                                        (route) => false,
                                       );
                                     },
                                     child: const Text(

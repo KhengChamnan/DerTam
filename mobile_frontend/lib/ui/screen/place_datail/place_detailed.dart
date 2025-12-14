@@ -13,13 +13,13 @@ import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_image_slids
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_nearby_place_card.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_retauanrant_nearby_card.dart';
 import 'package:mobile_frontend/ui/screen/dertam_map/place_map_screen.dart';
+import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_weather_widget.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/trip_day_selection_modal.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/trip_selection_modal.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/restaurant_detail_screen_new.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
-import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -509,6 +509,20 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
 
     return Scaffold(
       backgroundColor: DertamColors.white,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showTripSelectionModal,
+        backgroundColor: DertamColors.primaryBlue,
+        icon: const Icon(Iconsax.add, color: Colors.white, size: 20),
+        label: const Text(
+          'Add to Trip',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -523,9 +537,6 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                 images: placeDetailData.data?.listOfImageUrl ?? [],
                 onRoutePressed: () {
                   final placeDetail = placeDetailData.data?.placeDetail;
-                  print(
-                    'Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatt${placeDetail?.latitude}',
-                  );
                   if (placeDetail != null) {
                     Navigator.push(
                       context,
@@ -550,69 +561,64 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
               ),
             ),
           ),
-          // Place Information - Sticky Header
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _PlaceInfoHeaderDelegate(
-              minHeight: 80,
-              maxHeight: 80,
-              child: Container(
-                color: DertamColors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          // Place Information Section (non-sticky)
+          SliverToBoxAdapter(
+            child: Container(
+              color: DertamColors.white,
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    placeDetailData.data?.placeDetail.name ?? 'Not Available',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      // Title and Rating
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              placeDetailData.data?.placeDetail.name ??
-                                  'Not Available',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.star,
-                                  color: Colors.amber,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  placeDetailData.data?.placeDetail.ratings
-                                          .toString() ??
-                                      '0.0',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.normal,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      // Star icons
+                      ...List.generate(5, (index) {
+                        final rating =
+                            placeDetailData.data?.placeDetail.ratings ?? 0.0;
+                        return Icon(
+                          index < rating.floor()
+                              ? Icons.star
+                              : (index < rating
+                                    ? Icons.star_half
+                                    : Icons.star_border),
+                          color: Colors.amber,
+                          size: 20,
+                        );
+                      }),
+                      const SizedBox(width: 8),
+                      // Rating number
+                      Text(
+                        placeDetailData.data?.placeDetail.ratings.toString() ??
+                            '0.0',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.amber,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // Reviews count
+                      Text(
+                        '(${placeDetailData.data?.placeDetail.reviewsCount ?? 0} reviews)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.normal,
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -623,18 +629,6 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: DertamButton(
-                      height: 50,
-                      text: 'Start Planning',
-                      onPressed: () {
-                        _showTripSelectionModal();
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Location
                   Row(
                     children: [
                       Icon(Iconsax.location, size: 18, color: Colors.grey[600]),
@@ -645,17 +639,37 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                                 ?.placeDetail
                                 .provinceCategoryName ??
                             'Not Available',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: DertamColors.primaryBlue,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
-                  ), // Quick Info Cards
+                  ),
                   const SizedBox(height: 16),
-                  const Text(
+
+                  if (placeDetailData.data?.placeDetail != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: WeatherCard(
+                        latitude: placeDetailData.data!.placeDetail.latitude,
+                        longitude: placeDetailData.data!.placeDetail.longitude,
+                      ),
+                    ),
+                  // Location
+                  // Quick Info Cards
+                  const SizedBox(height: 4),
+                  Text(
                     'Description',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: DertamColors.primaryBlue,
+                    ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Text(
                     placeDetailData.data?.placeDetail.description ??
                         'No description available.',
@@ -671,7 +685,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     'Nearby Places',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 24,
+                      fontSize: 20,
                       color: DertamColors.primaryBlue,
                     ),
                   ),
@@ -682,7 +696,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     'Nearby Hotels',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 24,
+                      fontSize: 20,
                       color: DertamColors.primaryBlue,
                     ),
                   ),
@@ -696,7 +710,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     'Nearby Restaurants',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 24,
+                      fontSize: 20,
                       color: DertamColors.primaryBlue,
                     ),
                   ),
@@ -710,40 +724,5 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
         ],
       ),
     );
-  }
-}
-
-// Custom SliverPersistentHeaderDelegate for sticky place info
-class _PlaceInfoHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final double minHeight;
-  final double maxHeight;
-  final Widget child;
-
-  _PlaceInfoHeaderDelegate({
-    required this.minHeight,
-    required this.maxHeight,
-    required this.child,
-  });
-
-  @override
-  double get minExtent => minHeight;
-
-  @override
-  double get maxExtent => maxHeight;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return SizedBox.expand(child: child);
-  }
-
-  @override
-  bool shouldRebuild(_PlaceInfoHeaderDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        child != oldDelegate.child;
   }
 }

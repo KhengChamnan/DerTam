@@ -102,38 +102,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
-  void _openMap() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.map, color: DertamColors.primaryDark),
-            SizedBox(width: 8),
-            Text('Trip Map'),
-          ],
-        ),
-        content: Text('View all trip locations on the map.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Navigate to map screen
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: DertamColors.primaryDark,
-            ),
-            child: Text('Open Map', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _shareTrip() async {
     final tripProvider = context.read<TripProvider>();
     final tripDetailState = tripProvider.getTripDetail;
@@ -167,10 +135,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       if (mounted) Navigator.pop(context);
       if (shareResponse.success && shareResponse.data != null) {
         final shareLink = shareResponse.data!.shareLink;
+        final token = shareResponse.data!.token;
         final expiresAt = shareResponse.data!.expiresAt;
         // Show share dialog with link
         if (mounted) {
-          _showShareDialog(shareLink, expiresAt);
+          _showShareDialog(shareLink, token, expiresAt);
         }
       } else {
         if (mounted) {
@@ -196,7 +165,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
-  void _showShareDialog(String shareLink, DateTime expiresAt) {
+  void _showShareDialog(String shareLink, String token, DateTime expiresAt) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -211,46 +180,80 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Invitation Code Section
+            Text(
+              'Invitation Code:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            SizedBox(height: 8),
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: DertamColors.primaryDark.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(
+                  color: DertamColors.primaryDark.withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      shareLink,
+                    child: SelectableText(
+                      token,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                         color: DertamColors.primaryDark,
+                        letterSpacing: 1,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.copy, size: 20),
+                    icon: Icon(
+                      Icons.copy,
+                      size: 20,
+                      color: DertamColors.primaryDark,
+                    ),
                     onPressed: () {
-                      Clipboard.setData(ClipboardData(text: shareLink));
+                      Clipboard.setData(ClipboardData(text: token));
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Link copied to clipboard'),
+                          content: Text('Invitation code copied!'),
                           backgroundColor: DertamColors.primaryDark,
                           duration: Duration(seconds: 2),
                         ),
                       );
                     },
-                    tooltip: 'Copy link',
+                    tooltip: 'Copy code',
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 16),
+            // Instructions
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Share this code with friends. They can join by tapping the "Join Trip" button in the My Trips screen.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
             Text(
-              'Link expires: ${_formatExpiryDate(expiresAt)}',
+              'Expires: ${_formatExpiryDate(expiresAt)}',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -268,7 +271,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await Share.share(
-                'Check out my trip on Dertam! $shareLink',
+                'Join my trip on Dertam! 🌍✈️\n\nInvitation Code: $token\n\nOpen the Dertam app → My Trips → Tap "Join Trip" button → Enter the code above',
                 subject: 'Dertam Trip Invitation',
               );
             },
@@ -302,50 +305,50 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  List<Map<String, dynamic>> _getMockUsers() {
-    return [
-      {
-        'id': 'current_user',
-        'name': 'You',
-        'initial': 'Y',
-        'color': DertamColors.primaryDark,
-        'isCurrentUser': true,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_2',
-        'name': 'Alice',
-        'initial': 'A',
-        'color': Colors.purple[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_3',
-        'name': 'Bob',
-        'initial': 'B',
-        'color': Colors.pink[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_4',
-        'name': 'Charlie',
-        'initial': 'C',
-        'color': Colors.orange[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_5',
-        'name': 'Diana',
-        'initial': 'D',
-        'color': Colors.green[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-    ];
-  }
+  // List<Map<String, dynamic>> _getMockUsers() {
+  //   return [
+  //     {
+  //       'id': 'current_user',
+  //       'name': 'You',
+  //       'initial': 'Y',
+  //       'color': DertamColors.primaryDark,
+  //       'isCurrentUser': true,
+  //       'imageUrl': null,
+  //     },
+  //     {
+  //       'id': 'user_2',
+  //       'name': 'Alice',
+  //       'initial': 'A',
+  //       'color': Colors.purple[300],
+  //       'isCurrentUser': false,
+  //       'imageUrl': null,
+  //     },
+  //     {
+  //       'id': 'user_3',
+  //       'name': 'Bob',
+  //       'initial': 'B',
+  //       'color': Colors.pink[300],
+  //       'isCurrentUser': false,
+  //       'imageUrl': null,
+  //     },
+  //     {
+  //       'id': 'user_4',
+  //       'name': 'Charlie',
+  //       'initial': 'C',
+  //       'color': Colors.orange[300],
+  //       'isCurrentUser': false,
+  //       'imageUrl': null,
+  //     },
+  //     {
+  //       'id': 'user_5',
+  //       'name': 'Diana',
+  //       'initial': 'D',
+  //       'color': Colors.green[300],
+  //       'isCurrentUser': false,
+  //       'imageUrl': null,
+  //     },
+  //   ];
+  // }
 
   String _formatDateRange(DateTime startDate, DateTime endDate) {
     const months = [
@@ -588,47 +591,41 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             ],
                           ),
                         ),
-                        Row(
-                          children: [
-                            // Original Avatar stack
-                            AvatarStack(users: _getMockUsers()),
-                            SizedBox(width: 8), // Original spacing
-                            // Slightly smaller Share button
-                            GestureDetector(
-                              onTap: _shareTrip,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 14, // Slightly reduced
-                                  vertical: 6, // Reduced padding
-                                ),
-                                decoration: BoxDecoration(
-                                  color: DertamColors.primaryDark,
-                                  borderRadius: BorderRadius.circular(
-                                    18,
-                                  ), // Slightly smaller
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.share,
-                                      color: DertamColors.white,
-                                      size: 15,
-                                    ), // Slightly smaller
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Share',
-                                      style: TextStyle(
-                                        color: DertamColors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+
+                        GestureDetector(
+                          onTap: _shareTrip,
+                          child: Container(
+                            height: 40,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14, // Slightly reduced
+                              vertical: 6, // Reduced padding
                             ),
-                          ],
+                            decoration: BoxDecoration(
+                              color: DertamColors.primaryDark,
+                              borderRadius: BorderRadius.circular(
+                                18,
+                              ), // Slightly smaller
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.share,
+                                  color: DertamColors.white,
+                                  size: 15,
+                                ), // Slightly smaller
+                                SizedBox(width: 4),
+                                Text(
+                                  'Share',
+                                  style: TextStyle(
+                                    color: DertamColors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -710,8 +707,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       });
                     }
                   }
-
-                  // Navigate to ReviewTripScreen with existing places
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -724,28 +719,30 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       ),
                     ),
                   ).then((result) {
-                    // Refresh trip details after adding places
                     if (result != null) {
                       tripProvider.fetchTripDetail(widget.tripId);
                     }
                   });
                 },
                 backgroundColor: DertamColors.white,
-                child: Icon(
-                  Icons.add,
-                  color: DertamColors.primaryDark,
-                  size: 30,
+                child: Text(
+                  'Edit',
+                  style: TextStyle(
+                    color: DertamColors.primaryDark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               SizedBox(height: 10),
 
-              // Map button
-              FloatingActionButton(
-                heroTag: "map",
-                onPressed: _openMap,
-                backgroundColor: DertamColors.primaryDark,
-                child: Icon(Icons.map, color: Colors.white, size: 24),
-              ),
+              // // Map button
+              // FloatingActionButton(
+              //   heroTag: "map",
+              //   onPressed: _openMap,
+              //   backgroundColor: DertamColors.primaryDark,
+              //   child: Icon(Icons.map, color: Colors.white, size: 24),
+              // ),
             ],
           ),
         );

@@ -246,11 +246,7 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [DertamColors.primaryBlue, DertamColors.primaryBlue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: DertamColors.white,
                 borderRadius: BorderRadius.circular(25),
                 boxShadow: [
                   BoxShadow(
@@ -275,19 +271,19 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child:  Icon(
                       Iconsax.routing,
                       size: 16,
-                      color: Colors.white,
+                      color: DertamColors.primaryBlue,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Text(
                     'Route',
                     style: DertamTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
-                      color: Colors.white,
+                      color: DertamColors.primaryBlue,
                       letterSpacing: 0.5,
                     ),
                   ),

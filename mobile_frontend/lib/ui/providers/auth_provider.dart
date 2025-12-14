@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/abstract/auth_repository.dart';
 import 'package:mobile_frontend/models/user/user_model.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -138,12 +139,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> resetPassword(String email, String newPassword) async {
+  Future<void> resetPassword(
+    String email,
+    String password,
+    String newPassword,
+  ) async {
     resetPasswordValue = AsyncValue.loading();
     notifyListeners();
 
     try {
-      final user = await authRepository.resetPassword(email, newPassword);
+      final user = await authRepository.resetPassword(
+        email,
+        password,
+        newPassword,
+      );
       resetPasswordValue = AsyncValue.success(user);
       debugPrint('✅ Password reset successfully in provider');
     } catch (error) {
@@ -205,6 +214,9 @@ class AuthProvider extends ChangeNotifier {
       verifyPinValue = null;
       resetPasswordValue = null;
       googleSignInValue = null;
+      _userToken = AsyncValue.empty();
+      _userInfo = AsyncValue.empty();
+      _hasCompletedPreferences = AsyncValue.loading();
       notifyListeners();
     }
   }
@@ -263,6 +275,49 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _hasCompletedPreferences = AsyncValue.error(e);
       notifyListeners();
+    }
+  }
+
+  Future<void> updateProfile(
+    String? name,
+    String? email,
+    String? phone,
+    String? age,
+    String? gender,
+    XFile? profileImage,
+  ) async {
+    try {
+      await authRepository.updateProfile(
+        name,
+        email,
+        phone,
+        age,
+        gender,
+        profileImage,
+      );
+      // Refresh user info after successful update
+      await getUserInfo();
+      debugPrint('✅ Profile updated successfully in provider');
+    } catch (e) {
+      debugPrint('❌ Update profile error in provider: $e');
+    }
+  }
+
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+    String confirmPassword,
+  ) async {
+    try {
+      await authRepository.changePassword(
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      );
+      debugPrint('✅ Password changed successfully in provider');
+      await getUserInfo();
+    } catch (e) {
+      debugPrint('❌ Change password error in provider: $e');
     }
   }
 }
