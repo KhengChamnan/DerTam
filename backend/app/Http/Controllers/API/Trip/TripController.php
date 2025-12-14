@@ -274,6 +274,30 @@ class TripController extends Controller
                 $totalPlaces += $places->count();
             }
 
+            // Get trip owner details
+            $owner = DB::table('users')
+                ->where('id', $trip->user_id)
+                ->select('id', 'name', 'profile_image_url')
+                ->first();
+
+            // Get trip viewers details
+            $viewers = DB::table('trip_viewers')
+                ->join('users', 'trip_viewers.user_id', '=', 'users.id')
+                ->where('trip_viewers.trip_id', $tripId)
+                ->select('users.id', 'users.name', 'users.profile_image_url')
+                ->get();
+
+            // Combine owner and viewers into users with access list
+            $usersWithAccess = collect([$owner])
+                ->concat($viewers)
+                ->map(function($user) {
+                    return [
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                    ];
+                })
+                ->values();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Trip details retrieved successfully',
@@ -284,7 +308,11 @@ class TripController extends Controller
                     'end_date' => $trip->end_date,
                     'trip_access_type' => $isOwner ? 'owned' : 'shared',
                     'days' => $days,
-                    'total_places' => $totalPlaces
+                    'total_places' => $totalPlaces,
+                    'users_with_access' => [
+                        'users' => $usersWithAccess,
+                        'total_count' => $usersWithAccess->count()
+                    ]
                 ]
             ], 200);
 
