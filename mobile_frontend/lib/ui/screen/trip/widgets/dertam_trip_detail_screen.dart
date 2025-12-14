@@ -454,6 +454,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         final tripId = tripData.tripId ?? '';
         final startDate = tripData.startDate ?? DateTime.now();
         final endDate = tripData.endDate ?? DateTime.now();
+        final accessType = tripData.accessType;
+        final isOwner = accessType == 'owned';
 
         // Get days from API response and sort them
         final daysData = tripData.days ?? {};
@@ -592,33 +594,66 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           ),
                         ),
 
-                        GestureDetector(
-                          onTap: _shareTrip,
-                          child: Container(
+                        if (isOwner)
+                          GestureDetector(
+                            onTap: _shareTrip,
+                            child: Container(
+                              height: 40,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 14, // Slightly reduced
+                                vertical: 6, // Reduced padding
+                              ),
+                              decoration: BoxDecoration(
+                                color: DertamColors.primaryDark,
+                                borderRadius: BorderRadius.circular(
+                                  18,
+                                ), // Slightly smaller
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.share,
+                                    color: DertamColors.white,
+                                    size: 15,
+                                  ), // Slightly smaller
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Share',
+                                    style: TextStyle(
+                                      color: DertamColors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (!isOwner)
+                          Container(
                             height: 40,
                             padding: EdgeInsets.symmetric(
-                              horizontal: 14, // Slightly reduced
-                              vertical: 6, // Reduced padding
+                              horizontal: 14,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: DertamColors.primaryDark,
-                              borderRadius: BorderRadius.circular(
-                                18,
-                              ), // Slightly smaller
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(18),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.share,
-                                  color: DertamColors.white,
+                                  Icons.visibility,
+                                  color: Colors.grey[600],
                                   size: 15,
-                                ), // Slightly smaller
+                                ),
                                 SizedBox(width: 4),
                                 Text(
-                                  'Share',
+                                  'View Only',
                                   style: TextStyle(
-                                    color: DertamColors.white,
+                                    color: Colors.grey[600],
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
                                   ),
@@ -626,7 +661,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               ],
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -655,96 +689,100 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
-          // Floating Action Buttons
-          floatingActionButton: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Budget button
-              FloatingActionButton(
-                heroTag: "budget",
-                onPressed: () => _openBudget(context),
-                backgroundColor: Colors.white,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: DertamColors.primaryDark,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-
-              // Add more places button
-              FloatingActionButton(
-                heroTag: "add",
-                onPressed: () {
-                  // Collect existing places from all days
-                  final existingPlaces = <Map<String, dynamic>>[];
-                  for (var dayEntry in sortedDays) {
-                    final dayData = dayEntry.value;
-                    final dayDate =
-                        dayData.date ??
-                        startDate.add(
-                          Duration(
-                            days:
-                                int.parse(dayEntry.key.replaceAll('day_', '')) -
-                                1,
-                          ),
-                        );
-                    final placesForDay = dayData.places ?? [];
-
-                    for (var place in placesForDay) {
-                      existingPlaces.add({
-                        'place': place,
-                        'selectedDate': dayDate,
-                        'addedAt': DateTime.now(),
-                      });
-                    }
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReviewTripScreen(
-                        tripId: tripId.toString(),
-                        tripName: tripName,
-                        startDate: startDate,
-                        endDate: endDate,
-                        addedPlaces: existingPlaces,
+          // Floating Action Buttons - Only show for owners
+          floatingActionButton: isOwner
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Budget button
+                    FloatingActionButton(
+                      heroTag: "budget",
+                      onPressed: () => _openBudget(context),
+                      backgroundColor: Colors.white,
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: DertamColors.primaryDark,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
-                  ).then((result) {
-                    if (result != null) {
-                      tripProvider.fetchTripDetail(widget.tripId);
-                    }
-                  });
-                },
-                backgroundColor: DertamColors.white,
-                child: Text(
-                  'Edit',
-                  style: TextStyle(
-                    color: DertamColors.primaryDark,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-              // // Map button
-              // FloatingActionButton(
-              //   heroTag: "map",
-              //   onPressed: _openMap,
-              //   backgroundColor: DertamColors.primaryDark,
-              //   child: Icon(Icons.map, color: Colors.white, size: 24),
-              // ),
-            ],
-          ),
+                    // Add more places button
+                    FloatingActionButton(
+                      heroTag: "add",
+                      onPressed: () {
+                        // Collect existing places from all days
+                        final existingPlaces = <Map<String, dynamic>>[];
+                        for (var dayEntry in sortedDays) {
+                          final dayData = dayEntry.value;
+                          final dayDate =
+                              dayData.date ??
+                              startDate.add(
+                                Duration(
+                                  days:
+                                      int.parse(
+                                        dayEntry.key.replaceAll('day_', ''),
+                                      ) -
+                                      1,
+                                ),
+                              );
+                          final placesForDay = dayData.places ?? [];
+
+                          for (var place in placesForDay) {
+                            existingPlaces.add({
+                              'place': place,
+                              'selectedDate': dayDate,
+                              'addedAt': DateTime.now(),
+                            });
+                          }
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReviewTripScreen(
+                              tripId: tripId.toString(),
+                              tripName: tripName,
+                              startDate: startDate,
+                              endDate: endDate,
+                              addedPlaces: existingPlaces,
+                            ),
+                          ),
+                        ).then((result) {
+                          if (result != null) {
+                            tripProvider.fetchTripDetail(widget.tripId);
+                          }
+                        });
+                      },
+                      backgroundColor: DertamColors.white,
+                      child: Text(
+                        'Edit',
+                        style: TextStyle(
+                          color: DertamColors.primaryDark,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    // // Map button
+                    // FloatingActionButton(
+                    //   heroTag: "map",
+                    //   onPressed: _openMap,
+                    //   backgroundColor: DertamColors.primaryDark,
+                    //   child: Icon(Icons.map, color: Colors.white, size: 24),
+                    // ),
+                  ],
+                )
+              : null, // No floating buttons for shared users
         );
       },
     );

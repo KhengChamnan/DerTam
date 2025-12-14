@@ -156,7 +156,7 @@ class _DertamImageSlideshowState extends State<DertamImageSlideshow> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: DertamColors.white.withOpacity(0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
