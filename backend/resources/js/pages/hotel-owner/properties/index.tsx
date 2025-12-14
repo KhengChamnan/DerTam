@@ -297,7 +297,7 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
                             href={`/hotel-owner/properties/${property.property_id}/room-properties/create`}
                         >
                             <Bed className="h-4 w-4 mr-2" />
-                            Add New Room Type
+                            Add Room Type
                         </Link>
                     </Button>
                 </div>

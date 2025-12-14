@@ -186,7 +186,7 @@ class TransportationController extends Controller
         $transportation = Transportation::with([
             'place.provinceCategory:province_categoryID,province_categoryName',
             'owner:id,name,email,phone_number',
-            'buses:id,bus_name,bus_plate,bus_property_id,transportation_id,created_at',
+            'buses:buses.id,buses.bus_name,buses.bus_plate,buses.bus_property_id,buses.transportation_id,buses.created_at',
             'buses.busProperty:id,seat_capacity',
             'buses.schedules:id,bus_id,route_id,departure_time,arrival_time,price,status'
         ])->findOrFail($id);

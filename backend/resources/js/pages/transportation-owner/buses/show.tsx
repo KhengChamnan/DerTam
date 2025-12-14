@@ -38,6 +38,14 @@ interface BusSchedule {
         to_location: string;
         distance_km: number;
         duration_hours: number;
+        fromProvince?: {
+            province_categoryID: number;
+            province_categoryName: string;
+        };
+        toProvince?: {
+            province_categoryID: number;
+            province_categoryName: string;
+        };
     };
     bookings?: Array<{
         id: number;
@@ -308,12 +316,25 @@ export default function TransportationOwnerBusShow({ bus }: Props) {
                                                     <div className="flex items-center gap-2">
                                                         <Navigation className="h-4 w-4 text-muted-foreground" />
                                                         <span className="font-semibold">
-                                                            {schedule.route
-                                                                ?.from_location ||
+                                                            {(
+                                                                schedule.route as any
+                                                            )
+                                                                ?.fromProvinceName ||
+                                                                schedule.route
+                                                                    ?.fromProvince
+                                                                    ?.province_categoryName ||
+                                                                schedule.route
+                                                                    ?.from_location ||
                                                                 "N/A"}{" "}
                                                             →{" "}
-                                                            {schedule.route
-                                                                ?.to_location ||
+                                                            {(
+                                                                schedule.route as any
+                                                            )?.toProvinceName ||
+                                                                schedule.route
+                                                                    ?.toProvince
+                                                                    ?.province_categoryName ||
+                                                                schedule.route
+                                                                    ?.to_location ||
                                                                 "N/A"}
                                                         </span>
                                                     </div>

@@ -18,7 +18,6 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -50,12 +49,9 @@ import {
     Shield,
     Users,
     UserPlus,
-    Upload,
     Settings2,
     UserCog,
     MoreHorizontal,
-    ArrowUp,
-    ArrowDown,
 } from "lucide-react";
 
 interface UserWithRole {
@@ -108,6 +104,55 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function UsersIndex({ users, filters }: UsersPageProps) {
+    // Role mappings
+    const roleToDisplay: Record<string, string> = {
+        superadmin: "Super Admin",
+        admin: "Admin",
+        "hotel owner": "Hotel Owner",
+        "transportation owner": "Transportation Owner",
+        user: "User",
+    };
+
+    const displayToRole: Record<string, string> = {
+        "Super Admin": "superadmin",
+        Admin: "admin",
+        "Hotel Owner": "hotel owner",
+        "Transportation Owner": "transportation owner",
+        User: "user",
+    };
+
+    // Role icon and color configuration
+    const getRoleConfig = (role: string) => {
+        const configs: Record<
+            string,
+            { icon: any; color: string; label: string }
+        > = {
+            all: {
+                icon: Users,
+                color: "text-muted-foreground",
+                label: "All Roles",
+            },
+            "Super Admin": {
+                icon: Shield,
+                color: "text-purple-600",
+                label: "Super Admin",
+            },
+            Admin: { icon: UserCog, color: "text-blue-600", label: "Admin" },
+            "Hotel Owner": {
+                icon: Users,
+                color: "text-orange-600",
+                label: "Hotel Owner",
+            },
+            "Transportation Owner": {
+                icon: Users,
+                color: "text-green-600",
+                label: "Transport Owner",
+            },
+            User: { icon: UserCog, color: "text-gray-600", label: "User" },
+        };
+        return configs[role] || configs["all"];
+    };
+
     // Client-side filter states
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -156,18 +201,24 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
     // Client-side filtering - instant results
     const filteredUsers = useMemo(() => {
         return users.data.filter((user) => {
-            // Search filter - only match user name with prefix
+            // Search filter - search in name, email, username, and phone
             const matchesSearch =
                 searchQuery === "" ||
-                user.name.toLowerCase().startsWith(searchQuery.toLowerCase());
+                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (user.username &&
+                    user.username
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())) ||
+                (user.phone_number && user.phone_number.includes(searchQuery));
 
             // Status filter
             const matchesStatus =
                 statusFilter === "all" || user.status === statusFilter;
 
-            // Role filter
+            // Role filter - match against the display role
             const matchesRole =
-                roleFilter === "all" || user.role_display === roleFilter;
+                roleFilter === "all" || user.role === roleFilter;
 
             return matchesSearch && matchesStatus && matchesRole;
         });
@@ -175,7 +226,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
     // Client-side pagination calculations
     const totalFiltered = filteredUsers.length;
-    const lastPage = Math.ceil(totalFiltered / perPage);
+    const lastPage = Math.ceil(totalFiltered / perPage) || 1;
     const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
     const to = Math.min(currentPage * perPage, totalFiltered);
 
@@ -299,7 +350,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             onClick={() => router.visit("/users/create")}
                         >
                             <UserPlus className="size-4" />
-                            Add New User
+                            Create User
                         </Button>
                     </div>
                 </div>
@@ -344,20 +395,41 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     </Select>
 
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-[150px]">
-                            <Users className="h-4 w-4 mr-2" />
-                            <SelectValue placeholder="Role" />
+                        <SelectTrigger className="w-[180px]">
+                            <div className="flex items-center gap-2">
+                                {(() => {
+                                    const config = getRoleConfig(roleFilter);
+                                    const Icon = config.icon;
+                                    return (
+                                        <>
+                                            <Icon
+                                                className={`h-4 w-4 ${config.color}`}
+                                            />
+                                            <span>{config.label}</span>
+                                        </>
+                                    );
+                                })()}
+                            </div>
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Roles</SelectItem>
-                            <SelectItem value="superadmin">
-                                Super Admin
+                            <SelectItem value="all">
+                                <span>All Roles</span>
                             </SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="hotel owner">
-                                Hotel Owner
+                            <SelectItem value="Super Admin">
+                                <span>Super Admin</span>
                             </SelectItem>
-                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="Admin">
+                                <span>Admin</span>
+                            </SelectItem>
+                            <SelectItem value="Hotel Owner">
+                                <span>Hotel Owner</span>
+                            </SelectItem>
+                            <SelectItem value="Transportation Owner">
+                                <span>Transport Owner</span>
+                            </SelectItem>
+                            <SelectItem value="User">
+                                <span>User</span>
+                            </SelectItem>
                         </SelectContent>
                     </Select>
 

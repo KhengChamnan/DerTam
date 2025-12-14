@@ -282,7 +282,7 @@ export default function HotelOwnerBookingsIndex({
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by guest, property, or room type..."
+                            placeholder="Search hotel bookings..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="pl-8"
@@ -304,21 +304,6 @@ export default function HotelOwnerBookingsIndex({
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                     </Select>
-
-                    {/* Refresh Button */}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.reload({ only: ["bookings"] })}
-                        disabled={isLoading}
-                    >
-                        <RefreshCw
-                            className={`h-4 w-4 ${
-                                isLoading ? "animate-spin" : ""
-                            }`}
-                        />
-                        Refresh
-                    </Button>
 
                     {/* Column Toggle */}
                     <DropdownMenu>

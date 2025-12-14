@@ -152,6 +152,8 @@ export default function AllRooms({ rooms }: Props) {
     // Client-side pagination calculations
     const totalFiltered = filteredData.length;
     const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
 
     // Paginated data for current page
     const paginatedData = useMemo(() => {
@@ -165,15 +167,13 @@ export default function AllRooms({ rooms }: Props) {
         setCurrentPage(1);
     }, [searchQuery, statusFilter, roomTypeFilter, availabilityFilter]);
 
-    // Calculate totals from filtered data
+    // Calculate totals from all data (not filtered)
     const totalRooms = rooms.total || 0;
-    const availableCount = filteredData.filter(
-        (room) => room.is_available
-    ).length;
-    const occupiedCount = filteredData.filter(
+    const availableCount = data.filter((room) => room.is_available).length;
+    const occupiedCount = data.filter(
         (room) => room.status === "occupied"
     ).length;
-    const maintenanceCount = filteredData.filter(
+    const maintenanceCount = data.filter(
         (room) => room.status === "maintenance"
     ).length;
     const occupancyRate =
@@ -223,7 +223,7 @@ export default function AllRooms({ rooms }: Props) {
                     <Button asChild>
                         <Link href="/hotel-owner/rooms/create">
                             <DoorOpen className="h-4 w-4 mr-2" />
-                            Create New Room
+                            Create Room
                         </Link>
                     </Button>
                 </div>
@@ -608,12 +608,13 @@ export default function AllRooms({ rooms }: Props) {
                     )}
 
                 {/* Pagination */}
-                {lastPage > 1 && (
-                    <div className="flex justify-center items-center gap-4">
-                        <div className="text-sm text-muted-foreground">
-                            Page {currentPage} of {lastPage}
-                        </div>
-                        <div className="flex gap-2">
+                <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                        Showing {from} to {to} of {totalFiltered} row(s).
+                    </div>
+
+                    <div className="flex items-center space-x-6 lg:space-x-8">
+                        <div className="flex items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -630,6 +631,9 @@ export default function AllRooms({ rooms }: Props) {
                             >
                                 Previous
                             </Button>
+                            <div className="text-sm text-muted-foreground">
+                                Page {currentPage} of {lastPage}
+                            </div>
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -648,7 +652,7 @@ export default function AllRooms({ rooms }: Props) {
                             </Button>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </AppLayout>
     );

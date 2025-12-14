@@ -11,6 +11,7 @@ use App\Http\Controllers\Hotel\RoomController;
 use App\Http\Controllers\Hotel\RoomPropertyController;
 use App\Http\Controllers\TransportationController;
 use App\Http\Controllers\TransportationOwnerController;
+use App\Http\Controllers\RestaurantController;
 
 Route::get('/', function () {
     //return response()->view('layouts.api-info');
@@ -132,6 +133,37 @@ Route::middleware([
         });
 
         // ============================================
+        //  RESTAURANT MANAGEMENT
+        // ============================================
+        Route::prefix('restaurants')->name('restaurants.')->group(function () {
+            Route::get('/', [RestaurantController::class, 'index'])
+                ->middleware('permission:view restaurants')
+                ->name('index');
+            Route::get('/create', [RestaurantController::class, 'create'])
+                ->middleware('permission:create restaurants')
+                ->name('create');
+            Route::post('/', [RestaurantController::class, 'store'])
+                ->middleware('permission:create restaurants')
+                ->name('store');
+            Route::get('/{id}', [RestaurantController::class, 'show'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:view restaurants')
+                ->name('show');
+            Route::get('/{id}/edit', [RestaurantController::class, 'edit'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:edit restaurants')
+                ->name('edit');
+            Route::put('/{id}', [RestaurantController::class, 'update'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:edit restaurants')
+                ->name('update');
+            Route::delete('/{id}', [RestaurantController::class, 'destroy'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:delete restaurants')
+                ->name('destroy');
+        });
+
+        // ============================================
         //  USER MANAGEMENT
         // ============================================
         Route::prefix('users')->name('users.')->group(function () {
@@ -160,6 +192,9 @@ Route::middleware([
         Route::post('/users/{user}/assign-hotel', [UserController::class, 'assignHotelOwnership'])
             ->middleware('permission:assign hotel ownership')
             ->name('users.assign-hotel');
+        Route::post('/users/{user}/assign-restaurant', [UserController::class, 'assignRestaurantOwnership'])
+            ->middleware('permission:view restaurants')
+            ->name('users.assign-restaurant');
             
         // ============================================
         //  HOTEL OWNER MANAGEMENT

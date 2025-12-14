@@ -348,7 +348,7 @@ export default function PlacesIndex({
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Filter places..."
+                            placeholder="Search places..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
@@ -359,8 +359,8 @@ export default function PlacesIndex({
                         value={categoryFilter}
                         onValueChange={setCategoryFilter}
                     >
-                        <SelectTrigger className="w-[150px]">
-                            <Filter className="h-4 w-4 mr-2" />
+                        <SelectTrigger className="w-[240px]">
+                            <Filter className="h-4 w-4" />
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -380,8 +380,8 @@ export default function PlacesIndex({
                         value={provinceFilter}
                         onValueChange={setProvinceFilter}
                     >
-                        <SelectTrigger className="w-[150px]">
-                            <MapPin className="h-4 w-4 mr-2" />
+                        <SelectTrigger className="w-[200px]">
+                            <MapPin className="h-4 w-4" />
                             <SelectValue placeholder="Province" />
                         </SelectTrigger>
                         <SelectContent>

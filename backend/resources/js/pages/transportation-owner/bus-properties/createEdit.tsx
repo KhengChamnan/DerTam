@@ -132,7 +132,9 @@ export default function TransportationOwnerBusPropertiesCreateEdit({
 
     const [seatLayout, setSeatLayout] = useState<SeatLayout>(
         busProperty?.seat_layout
-            ? JSON.parse(busProperty.seat_layout)
+            ? typeof busProperty.seat_layout === "string"
+                ? JSON.parse(busProperty.seat_layout)
+                : busProperty.seat_layout
             : defaultLayout
     );
 

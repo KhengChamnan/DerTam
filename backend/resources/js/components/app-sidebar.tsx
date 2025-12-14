@@ -28,6 +28,7 @@ import {
     NotebookPen,
     MapPinned,
     MapPin,
+    UtensilsCrossed,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 
@@ -55,6 +56,12 @@ const mainNavItems: NavItem[] = [
         href: "/transportations",
         icon: Bus,
         permissions: ["view transportations"],
+    },
+    {
+        title: "Restaurants",
+        href: "/restaurants",
+        icon: UtensilsCrossed,
+        permissions: ["view restaurants"],
     },
     {
         title: "Users",

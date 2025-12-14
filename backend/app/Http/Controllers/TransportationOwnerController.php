@@ -608,6 +608,8 @@ class TransportationOwnerController extends Controller
                 $q->orderBy('departure_time', 'desc')->limit(10);
             },
             'schedules.route',
+            'schedules.route.fromProvince:province_categoryID,province_categoryName',
+            'schedules.route.toProvince:province_categoryID,province_categoryName',
             'schedules.bookings'
         ])
         ->findOrFail($id);
@@ -618,6 +620,18 @@ class TransportationOwnerController extends Controller
             'busProperty.transportation',
             'busProperty.transportation.place'
         ]);
+        
+        // Transform schedules to explicitly map province names
+        if ($bus->schedules) {
+            $bus->schedules->transform(function($schedule) {
+                if ($schedule->route) {
+                    // Explicitly set province names as attributes
+                    $schedule->route->fromProvinceName = $schedule->route->fromProvince?->province_categoryName ?? $schedule->route->from_location;
+                    $schedule->route->toProvinceName = $schedule->route->toProvince?->province_categoryName ?? $schedule->route->to_location;
+                }
+                return $schedule;
+            });
+        }
         
         return Inertia::render('transportation-owner/buses/show', [
             'bus' => $bus
