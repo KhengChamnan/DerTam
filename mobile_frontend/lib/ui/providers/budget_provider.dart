@@ -107,4 +107,11 @@ class BudgetProvider extends ChangeNotifier {
     _budgetDetail = AsyncValue.success(updatedBudget);
     notifyListeners();
   }
+
+  /// Clear all cached budget data - call this on logout
+  void clearAll() {
+    _budgetDetail = AsyncValue.empty();
+    _expenseCategory = AsyncValue.empty();
+    notifyListeners();
+  }
 }

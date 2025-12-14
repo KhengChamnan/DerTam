@@ -134,7 +134,7 @@ class HotelProvider extends ChangeNotifier {
     DateTime checkIn,
     DateTime checkOut,
     int guests,
-    int nights,
+    String placeID,
   ) async {
     _searchAvailableRooms = AsyncValue.loading();
     notifyListeners();
@@ -143,7 +143,7 @@ class HotelProvider extends ChangeNotifier {
         checkIn,
         checkOut,
         guests,
-        nights,
+        placeID,
       );
       _searchAvailableRooms = AsyncValue.success(searchResults);
       notifyListeners();
@@ -185,5 +185,18 @@ class HotelProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Clear all cached hotel data - call this on logout
+  void clearAll() {
+    _hotelDetail = AsyncValue.empty();
+    _hotelList = AsyncValue.empty();
+    _roomDetail = AsyncValue.empty();
+    _createBooking = AsyncValue.empty();
+    _searchAvailableRooms = AsyncValue.empty();
+    _hoteBookingList = AsyncValue.empty();
+    _hotelBookingDetail = AsyncValue.empty();
+    _searchHotel = AsyncValue.empty();
+    notifyListeners();
   }
 }

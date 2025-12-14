@@ -179,16 +179,22 @@ class LaravelTripApiRepository implements TripRepository {
 
   @override
   Future<List<Trip>> getAllTrips() async {
+    print('\n🚀 [DEBUG] getAllTrips called');
     try {
       final token = await repository.getToken();
+      print(
+        '🔑 [DEBUG] Token for getAllTrips: ${token != null ? "Yes (${token.substring(0, 20)}...)" : "No"}',
+      );
       if (token == null) {
         throw Exception('Token have not found!');
       }
       final header = _getAuthHeaders(token);
+      print('🌐 [DEBUG] Endpoint: ${ApiEndpoint.getAllTrips}');
       final allTripResponses = await FetchingData.getData(
         ApiEndpoint.getAllTrips,
         header,
       );
+      print('📡 [DEBUG] Response status code: ${allTripResponses.statusCode}');
       if (allTripResponses.statusCode == 200) {
         final jsonResponse = allTripResponses.body;
         print('📄 [DEBUG] Response body of trip: ${allTripResponses.body}');
@@ -196,6 +202,13 @@ class LaravelTripApiRepository implements TripRepository {
             (json.decode(jsonResponse) as Map<String, dynamic>)['data']
                 .map<Trip>((tripJson) => Trip.fromJson(tripJson))
                 .toList();
+        print('📊 [DEBUG] Number of trips received: ${allTrip.length}');
+        // Log each trip's userId to help debug ownership issues
+        for (var trip in allTrip) {
+          print(
+            '   📍 Trip: ${trip.tripName}, userId: ${trip.userId}, tripId: ${trip.tripId}',
+          );
+        }
         return allTrip;
       } else {
         print('❌ [DEBUG] Failed with status: ${allTripResponses.statusCode}');
@@ -244,34 +257,26 @@ class LaravelTripApiRepository implements TripRepository {
     }
   }
 
-  Future<TripShareResponse> clickShareableLink(String shareToken) async {
+  @override
+  Future<ConfirmTripResponse> joinTripViaShareLink(String shareToken) async {
     try {
       final token = await repository.getToken();
       if (token == null) {
-        throw Exception('Token have not found!');
+        throw Exception('User is not authenticated');
       }
       final header = _getAuthHeaders(token);
-      final shareableLinkResponses = await FetchingData.getData(
-        '/api/trip/share/$shareToken',
+      final response = await FetchingData.getData(
+        '${ApiEndpoint.joinTripViaShareLink}/$shareToken',
         header,
       );
-      if (shareableLinkResponses.statusCode == 200) {
-        final jsonResponse = shareableLinkResponses.body;
-        print(
-          '📄 [DEBUG] Response body of trip share link: ${shareableLinkResponses.body}',
-        );
-        final shareableLink = TripShareResponse.fromJson(
-          json.decode(jsonResponse),
-        );
-        return shareableLink;
+      print('📡 [DEBUG] Response status code: ${response.body}');
+      if (response.statusCode == 200) {
+        final jsonResponse = response.body;
+        print('📄 [DEBUG] Joined trip successfully: $jsonResponse');
+        return ConfirmTripResponse.fromJson(json.decode(jsonResponse));
       } else {
-        print(
-          '❌ [DEBUG] Failed with status: ${shareableLinkResponses.statusCode}',
-        );
-        print('❌ [DEBUG] Error response body: ${shareableLinkResponses.body}');
-        throw Exception(
-          'Failed to get shareable link: ${shareableLinkResponses.statusCode}',
-        );
+        print('❌ [DEBUG] Failed with status: ${response.statusCode}');
+        throw Exception('Failed to join trip: ${response.statusCode}');
       }
     } catch (e) {
       rethrow;

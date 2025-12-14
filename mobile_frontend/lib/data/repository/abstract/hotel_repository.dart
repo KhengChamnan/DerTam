@@ -22,7 +22,8 @@ abstract class HotelRepository {
     DateTime checkIn,
     DateTime checkOut,
     int guests,
-    int nights,
+    String placeID,
+  
   );
   Future<HotelListResponseData> searchAvailableHotel(
     int provinceId,

@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
-///
-/// Food Category Tab widget for restaurant menu categories.
-/// Displays a selectable category chip with icon and label.
-/// Used in the restaurant detail screen for filtering menu items.
-///
+
 class FoodCategoryTab extends StatelessWidget {
   final String label;
   final IconData icon;

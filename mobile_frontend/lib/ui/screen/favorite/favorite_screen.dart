@@ -257,41 +257,10 @@ class _FavoriteScreenState extends State<FavoriteScreen>
         centerTitle: true,
 
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
+          preferredSize: const Size.fromHeight(60),
           child: Column(
             children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) => _filterPlaces(),
-                  decoration: InputDecoration(
-                    hintText: 'Search your favorite places...',
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey[600]),
-                            onPressed: () {
-                              _searchController.clear();
-                              _filterPlaces();
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide: BorderSide(color: DertamColors.primaryDark),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              
               _buildCategoryFilter(),
             ],
           ),

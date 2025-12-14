@@ -2,7 +2,10 @@ class User {
   final int id;
   final String name;
   final String email;
+  final String? phone;
   final int? age;
+  final String? gender;
+  final String? userPicture;
   final String? googleId;
   final String? avatar;
   final String? password;
@@ -16,6 +19,9 @@ class User {
     required this.id,
     required this.name,
     required this.email,
+    this.userPicture,
+    this.phone,
+    this.gender,
     this.imageUrl,
     this.googleId,
     this.avatar,
@@ -43,6 +49,9 @@ class User {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       email: json['email'] ?? '',
+      phone: json['phone_number'] ?? '',
+      userPicture: json['profile_image_url'] ?? '',
+      gender: json['gender'] ?? '',
       age: json['age'] ?? 0,
       imageUrl: profileUrl ?? '',
       googleId: json['google_id'] ?? json['googole_id'] ?? '',

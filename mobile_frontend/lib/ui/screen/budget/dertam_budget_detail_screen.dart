@@ -54,7 +54,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   List<Expense> get _expenses {
-    final budgetProvider = Provider.of<BudgetProvider>(context);
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
     return budgetProvider.getBudgetDetails.when(
       empty: () => [],
       loading: () => [],
@@ -64,7 +64,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Budget? get _budget {
-    final budgetProvider = Provider.of<BudgetProvider>(context);
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
     return budgetProvider.getBudgetDetails.when(
       empty: () => null,
       loading: () => null,

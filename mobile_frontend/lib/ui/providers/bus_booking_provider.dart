@@ -171,7 +171,9 @@ class BusBookingProvider extends ChangeNotifier {
     }
   }
 
-  Future<BusBookingDataResponse> fetchBusBookingDetails(String bookingId) async {
+  Future<BusBookingDataResponse> fetchBusBookingDetails(
+    String bookingId,
+  ) async {
     _busBookingDetail = AsyncValue.loading();
     notifyListeners();
     try {
@@ -186,5 +188,18 @@ class BusBookingProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Clear all cached bus booking data - call this on logout
+  void clearAll() {
+    _location = AsyncValue.empty();
+    _busSchedule = AsyncValue.empty();
+    _busScheduleDetail = AsyncValue.empty();
+    _upcomingJourneys = AsyncValue.empty();
+    _busBookingResponse = AsyncValue.empty();
+    _getAllBusBookingResponse = AsyncValue.empty();
+    _busBookingDetail = AsyncValue.empty();
+    _selectedSeatIds = {};
+    notifyListeners();
   }
 }

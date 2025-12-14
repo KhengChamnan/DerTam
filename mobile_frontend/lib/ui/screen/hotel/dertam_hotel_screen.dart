@@ -4,7 +4,7 @@ import 'package:mobile_frontend/models/province/province_category_detail.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
-import 'package:mobile_frontend/ui/screen/hotel/hotel_detail_screen.dart';
+import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_search_room_result.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/widget/dertam_hotel_nearby_card.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
@@ -153,9 +153,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
     final hotelProvider = context.watch<HotelProvider>();
     final hotelListData = hotelProvider.searchHotel;
     // Safely access first element - use firstOrNull or check if list is not empty
-    print(
-      'Hotel Name :::::::::${hotelListData.data?.hotels.isNotEmpty == true ? hotelListData.data?.hotels.first.name : 'No hotels'}',
-    );
+
     Widget hotelList;
     switch (hotelListData.state) {
       case AsyncValueState.empty:
@@ -199,41 +197,98 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
           ),
         );
         break;
-
       case AsyncValueState.success:
-        hotelList = SizedBox(
-          height: 150,
-          child: ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: hotelListData.data?.hotels.length ?? 0,
-            itemBuilder: (context, index) {
-              final hotel = hotelListData.data?.hotels[index];
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: DertamHotelNearby(
-                  name: hotel?.name ?? 'No Hotel',
-                  location:
-                      hotel?.provinceCategory.provinceCategoryName ??
-                      'No Province',
-                  rating: hotel?.rating.toString() ?? '',
-                  imageUrl: hotel?.imagesUrl.first ?? '',
-                  reviewCount: hotel?.reviewCount.toString(),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HotelDetailScreen(
-                        hotelId: hotel?.placeId.toString() ?? '',
-                      ),
-                    ),
+        if (hotelListData.data?.hotels.isEmpty ?? true) {
+          hotelList = SizedBox(
+            height: 150,
+            child: Center(
+              child: Text(
+                'No hotels found for the selected criteria',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ),
+          );
+        } else {
+          hotelList = SizedBox(
+            height: 150,
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: hotelListData.data?.hotels.length ?? 0,
+              itemBuilder: (context, index) {
+                final hotel = hotelListData.data?.hotels[index];
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: DertamHotelNearby(
+                    name: hotel?.name ?? 'No Hotel',
+                    location:
+                        hotel?.provinceCategory.provinceCategoryName ??
+                        'No Province',
+                    rating: hotel?.rating.toString() ?? '',
+                    imageUrl: (hotel?.imagesUrl.isNotEmpty ?? false)
+                        ? hotel!.imagesUrl.first
+                        : '',
+                    reviewCount: hotel?.reviewCount.toString(),
+                    onTap: () async {
+                      try {
+                        final searchResults = await hotelProvider
+                            .searchAvailableRoom(
+                              checkInDate,
+                              checkOutDate,
+                              1,
+                              hotel?.placeId.toString() ?? '',
+                            );
+                        if (mounted && searchResults.rooms.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const DertamSearchRoomResult(),
+                            ),
+                          );
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'No available rooms found for the selected dates',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.orange,
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Failed to search rooms: ${e.toString()}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
                   ),
-                ),
-              );
-            },
-          ),
-        );
+                );
+              },
+            ),
+          );
 
-        break;
+          break;
+        }
     }
     return Scaffold(
       backgroundColor: Colors.white,
@@ -248,7 +303,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
               children: [
                 // Hero image with travel collage
                 Container(
-                  height: 230,
+                  height: 200,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     image: DecorationImage(
@@ -274,7 +329,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                         // Main text
                         Positioned(
                           left: 39,
-                          top: 80,
+                          top: 40,
                           right: 120,
                           child: RichText(
                             text: TextSpan(
@@ -308,7 +363,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
 
                         // Image collage on the right
                         Positioned(
-                          right: 12,
+                          right: 4,
                           top: 51,
                           child: Column(
                             children: [
@@ -359,14 +414,11 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                   ),
                 ),
 
-                ///
-                /// Search form for filter the specific date
-                ///
                 Transform.translate(
-                  offset: const Offset(0, -40),
+                  offset: const Offset(0, -50),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
@@ -389,7 +441,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                             color: Colors.grey[600],
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         InkWell(
                           onTap: _showLocationPicker,
                           child: Row(
@@ -412,7 +464,7 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 8),
                         // Check In and Check Out
                         Row(
                           children: [
@@ -518,25 +570,26 @@ class _DertamHotelScreenState extends State<DertamHotelScreen> {
                   ),
                 ),
 
-                /// Hotel Nearby section
-                /// Hotel List
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Hotel Nearby',
-                        style: DertamTextStyles.body.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: DertamColors.black,
-                          fontSize: 20,
+                Transform.translate(
+                  offset: const Offset(0, -30),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'List of hotel',
+                          style: DertamTextStyles.body.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: DertamColors.primaryBlue,
+                            fontSize: 20,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    hotelList,
-                  ],
+                      const SizedBox(height: 8),
+                      hotelList,
+                    ],
+                  ),
                 ),
               ],
             ),

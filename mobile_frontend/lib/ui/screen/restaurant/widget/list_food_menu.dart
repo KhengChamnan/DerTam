@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/restaurant/food_menu.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
-
 class ListFoodMenu extends StatelessWidget {
   final MenuItem menuItem;
   const ListFoodMenu({super.key, required this.menuItem});
@@ -34,7 +33,7 @@ class ListFoodMenu extends StatelessWidget {
                 child: Stack(
                   children: [
                     Image.network(
-                      menuItem.imageUrl,
+                      menuItem.imageUrl!,
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,

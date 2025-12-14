@@ -23,14 +23,6 @@ class SearchRoomResponse {
       ),
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'search_params': searchParams.toJson(),
-      'total_results': totalResults,
-      'rooms': rooms.map((room) => room.toJson()).toList(),
-    };
-  }
 }
 
 class SearchParams {
@@ -119,25 +111,6 @@ class SearchRoomResult {
       ),
       property: RoomProperty.fromJson(json['property'] ?? {}),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'room_properties_id': roomPropertiesId,
-      'property_id': propertyId,
-      'room_type': roomType,
-      'room_description': roomDescription,
-      'max_guests': maxGuests,
-      'room_size': roomSize,
-      'price_per_night': pricePerNight,
-      'total_price': totalPrice,
-      'number_of_bed': numberOfBed,
-      'images_url': imagesUrl,
-      'available_rooms_count': availableRoomsCount,
-      'nights': nights,
-      'amenities': amenities.map((a) => a.toJson()).toList(),
-      'property': property.toJson(),
-    };
   }
 
   // Convert SearchRoomResult to Room for booking

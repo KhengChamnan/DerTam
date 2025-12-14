@@ -138,8 +138,8 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9999),
                   image: DecorationImage(
-                    image: userData.data?.imageUrl?.isNotEmpty == true
-                        ? NetworkImage(userData.data?.imageUrl ?? '')
+                    image: userData.data?.userPicture?.isNotEmpty == true
+                        ? NetworkImage(userData.data?.userPicture ?? '')
                         : AssetImage('assets/images/dertam_logo.png')
                               as ImageProvider,
                     fit: BoxFit.cover,
@@ -182,30 +182,7 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                   ),
                 ],
               ),
-
               const Spacer(),
-
-              // Notification icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: DertamColors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: DertamColors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.notifications_outlined,
-                  color: DertamColors.primaryDark,
-                  size: 24,
-                ),
-              ),
             ],
           ),
         ),

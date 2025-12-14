@@ -1,16 +1,197 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/screen/profile/widget/dertam_change_password_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_user_info.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:provider/provider.dart';
 
-class DertamEditProfile extends StatelessWidget {
+class DertamEditProfile extends StatefulWidget {
   const DertamEditProfile({super.key});
 
   @override
+  State<DertamEditProfile> createState() => _DertamEditProfileState();
+}
+
+class _DertamEditProfileState extends State<DertamEditProfile> {
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch user info when the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().getUserInfo();
+    });
+  }
+
+  /// Show bottom sheet to choose image source (camera or gallery)
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: DertamColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Update Profile Picture',
+                  style: DertamTextStyles.subtitle.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: DertamColors.primaryBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt,
+                      color: DertamColors.primaryBlue,
+                    ),
+                  ),
+                  title: const Text(
+                    'Take a Photo',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: DertamColors.primaryBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.photo_library,
+                      color: DertamColors.primaryBlue,
+                    ),
+                  ),
+                  title: const Text(
+                    'Choose from Gallery',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Pick image from camera or gallery
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        // Show loading indicator
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: DertamColors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: DertamColors.primaryBlue),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Uploading image...',
+                      style: TextStyle(fontFamily: 'Poppins', fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Upload the image to backend
+        final authProvider = context.read<AuthProvider>();
+        await authProvider.updateProfile(
+          null, // name
+          null, // email
+          null, // phone
+          null, // age
+          null, // gender
+          pickedFile, // profile image
+        );
+
+        // Close loading dialog
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profile picture updated successfully!'),
+              backgroundColor: DertamColors.primaryBlue,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking/uploading image: $e');
+      // Close loading dialog if open
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Failed to update profile picture. Please try again.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final authProvider = context.read<AuthProvider>();
+    final authProvider = context.watch<AuthProvider>();
     final userData = authProvider.userInfo;
     Widget userInfo;
     switch (userData.state) {
@@ -42,7 +223,7 @@ class DertamEditProfile extends StatelessWidget {
                         color: Colors.grey[300],
                         image: DecorationImage(
                           image: NetworkImage(
-                            userData.data?.imageUrl ??
+                            userData.data?.userPicture ??
                                 'https://res.cloudinary.com/dd4hzavnw/image/upload/v1761235874/room_properties/emssdtl4jfv65qavecze.png',
                           ),
                           fit: BoxFit.cover,
@@ -53,21 +234,24 @@ class DertamEditProfile extends StatelessWidget {
                     Positioned(
                       right: 0,
                       bottom: 8,
-                      child: Container(
-                        width: 31,
-                        height: 31,
-                        decoration: BoxDecoration(
-                          color: DertamColors.primaryBlue,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: DertamColors.white,
-                            width: 2,
+                      child: GestureDetector(
+                        onTap: _showImagePickerOptions,
+                        child: Container(
+                          width: 31,
+                          height: 31,
+                          decoration: BoxDecoration(
+                            color: DertamColors.primaryBlue,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: DertamColors.white,
+                              width: 2,
+                            ),
                           ),
-                        ),
-                        child: Icon(
-                          Icons.edit,
-                          color: DertamColors.white,
-                          size: 16,
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: DertamColors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -96,13 +280,34 @@ class DertamEditProfile extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: DertamColors.primaryBlue.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
         ),
         centerTitle: true,
         title: Text(
-          'Setting',
+          'Update Profile',
           style: DertamTextStyles.subtitle.copyWith(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
@@ -154,9 +359,12 @@ class DertamEditProfile extends StatelessWidget {
                       icon: Icons.lock_outline,
                       iconBackgroundColor: const Color(0xFFF5F5F5),
                       title: 'Change Password',
-                      onTap: () {
-                        // Navigate to change password
-                      },
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DertamChangePasswordScreen(),
+                        ),
+                      ),
                     ),
                     // Divider
                     Padding(

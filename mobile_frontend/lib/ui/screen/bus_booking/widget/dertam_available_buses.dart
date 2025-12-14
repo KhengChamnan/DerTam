@@ -125,22 +125,6 @@ class _DertamAvailableBusesScreenState
                     ),
                   ),
 
-                  const SizedBox(width: 24),
-                  // User avatar
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(9999),
-                      image: DecorationImage(
-                        image: userData.data?.imageUrl?.isNotEmpty == true
-                            ? NetworkImage(userData.data?.imageUrl ?? '')
-                            : AssetImage('assets/images/dertam_logo.png')
-                                  as ImageProvider,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
                   const SizedBox(width: 12),
                   // User greeting
                   Column(

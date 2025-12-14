@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_hotel_qr_code_screen.dart';
 import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
-import 'package:mobile_frontend/ui/widgets/display/dertam_qr_code_screen.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -87,7 +87,7 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
       print(
         'ABA Deeplink: ${bookingResponse.data?.abaResponse.abapayDeeplink}',
       );
-      // Handle payment based on selected display mode
+        // Handle payment based on selected display mode
       if (_selectedPaymentDisplay == 'deeplink') {
         // ABA PayWay - Open ABA app via deeplink
         final deeplink = bookingResponse.data?.abaResponse.abapayDeeplink;
@@ -108,7 +108,7 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DertamBookingSuccessScreen(),
+                  builder: (context) => DertamBookingSuccessDialog(),
                 ),
                 (route) => false,
               );
@@ -129,15 +129,12 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
         final qrString = bookingResponse.data?.abaResponse.qrString;
         final qrImage = bookingResponse.data?.abaResponse.qrImage;
         final bookingId = bookingResponse.data?.booking.id;
-
-        // Validate QR data is available
         if (qrString == null || qrString.isEmpty) {
           throw Exception('No QR code received from server');
         }
         print('QR String: $qrString');
         print('QR Image available: ${qrImage != null && qrImage.isNotEmpty}');
 
-        // Navigate to QR code screen and wait for user to complete payment
         if (mounted) {
           final result = await Navigator.push<bool>(
             context,
@@ -149,38 +146,13 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
               ),
             ),
           );
-
-          // Only navigate to success if user confirmed payment
-          if (result == true && mounted) {
+          if (result == true) {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
-                builder: (context) => DertamBookingSuccessScreen(),
+                builder: (context) => DertamBookingSuccessDialog(),
               ),
-              (route) => false,
-            );
-          }
-        }
-      } else {
-        // Cash or other payment methods
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Booking created! Payment method: $_selectedPaymentMethod',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-        // Navigate back to home after delay for cash
-        if (mounted) {
-          await Future.delayed(const Duration(seconds: 2));
-          if (mounted) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-              (route) => false,
+              (Route<dynamic> route) => false,
             );
           }
         }
@@ -484,8 +456,6 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
                           });
                         },
                       ),
-
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

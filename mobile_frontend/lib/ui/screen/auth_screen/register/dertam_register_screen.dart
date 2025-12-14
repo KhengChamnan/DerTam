@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
@@ -13,14 +12,8 @@ import '../../../theme/dertam_apptheme.dart';
 import '../../../widgets/inputs/dertam_text_field.dart';
 import '../../../widgets/actions/dertam_button.dart';
 
-///
-/// Register screen that allows users to:
-/// - Create a new account with name, email, and password
-/// - Navigate back to login screen if already have an account
-///
 class DertamRegisterScreen extends StatefulWidget {
   const DertamRegisterScreen({super.key});
-
   @override
   State<DertamRegisterScreen> createState() => _DertamRegisterScreenState();
 }
@@ -105,7 +98,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
         // Navigate to home screen
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(builder: (context) => DertamLoginScreen()),
           (route) => false,
         );
       } else if (registerValue?.state == AsyncValueState.error) {
@@ -139,6 +132,7 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
       MaterialPageRoute(builder: (context) => DertamLoginScreen()),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -94,12 +94,12 @@ class TripProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
   Future<TripShareResponse> generateShareableLink(String tripId) async {
     _tripShareResponse = AsyncValue.loading();
     notifyListeners();
     try {
-      final shareResponse =
-          await tripRepository.generateShareableLink(tripId);
+      final shareResponse = await tripRepository.generateShareableLink(tripId);
       _tripShareResponse = AsyncValue.success(shareResponse);
       notifyListeners();
       return shareResponse;
@@ -109,7 +109,23 @@ class TripProvider extends ChangeNotifier {
       rethrow;
     }
   }
-  
+
+  Future<ConfirmTripResponse> joinTripViaShareLink(String shareToken) async {
+    _confirmTrip = AsyncValue.loading();
+    notifyListeners();
+    try {
+      final tripResponse = await tripRepository.joinTripViaShareLink(
+        shareToken,
+      );
+      _confirmTrip = AsyncValue.success(tripResponse);
+      notifyListeners();
+      return tripResponse;
+    } catch (e) {
+      _confirmTrip = AsyncValue.error(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
 
   // Methods to manage added places
   void addPlaceToTrip(Map<String, dynamic> placeData) {
@@ -136,6 +152,17 @@ class TripProvider extends ChangeNotifier {
 
   void setAddedPlaces(List<Map<String, dynamic>> places) {
     _addedPlaces = places;
+    notifyListeners();
+  }
+
+  /// Clear all cached trip data - call this on logout
+  void clearAll() {
+    _createTrip = AsyncValue.empty();
+    _confirmTrip = AsyncValue.empty();
+    _getTripDetail = AsyncValue.empty();
+    _getTripList = AsyncValue.empty();
+    _addedPlaces = [];
+    _tripShareResponse = AsyncValue.empty();
     notifyListeners();
   }
 }

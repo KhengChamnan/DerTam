@@ -13,7 +13,6 @@ class BusSeatGridBuilder extends StatelessWidget {
   final double seatSpacing;
   final double aisleWidth;
 
-  /// Vertical spacing between rows
   final double rowSpacing;
 
   const BusSeatGridBuilder({
