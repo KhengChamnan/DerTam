@@ -81,11 +81,11 @@ interface DashboardProps {
 const revenueChartConfig = {
     revenue: {
         label: "Revenue",
-        color: "hsl(142, 76%, 36%)", // Green for revenue
+        color: "var(--chart-1)",
     },
     bookings: {
         label: "Bookings",
-        color: "hsl(221, 83%, 53%)", // Blue for bookings
+        color: "var(--chart-2)",
     },
 } satisfies ChartConfig;
 
@@ -95,33 +95,33 @@ const bookingStatusConfig = {
     },
     Confirmed: {
         label: "Confirmed",
-        color: "hsl(142, 76%, 36%)", // Green
+        color: "var(--chart-4)",
     },
     Pending: {
         label: "Pending",
-        color: "hsl(48, 96%, 53%)", // Yellow
+        color: "var(--chart-5)",
     },
     Cancelled: {
         label: "Cancelled",
-        color: "hsl(0, 84%, 60%)", // Red
+        color: "var(--destructive)",
     },
     Completed: {
         label: "Completed",
-        color: "hsl(221, 83%, 53%)", // Blue
+        color: "var(--chart-3)",
     },
 } satisfies ChartConfig;
 
 const destinationChartConfig = {
     bookings: {
         label: "Bookings",
-        color: "hsl(262, 83%, 58%)", // Purple
+        color: "var(--chart-1)",
     },
 } satisfies ChartConfig;
 
 const userGrowthConfig = {
     users: {
         label: "Users",
-        color: "hsl(173, 58%, 39%)", // Teal
+        color: "var(--chart-2)",
     },
 } satisfies ChartConfig;
 
@@ -271,7 +271,20 @@ export default function Dashboard({
                                         content={<ChartTooltipContent />}
                                     />
                                     <Pie
-                                        data={bookingStatusData}
+                                        data={bookingStatusData.map((item) => {
+                                            const config =
+                                                bookingStatusConfig[
+                                                    item.status as keyof typeof bookingStatusConfig
+                                                ];
+                                            const color =
+                                                config && "color" in config
+                                                    ? config.color
+                                                    : "var(--chart-1)";
+                                            return {
+                                                ...item,
+                                                fill: color,
+                                            };
+                                        })}
                                         dataKey="value"
                                         nameKey="status"
                                         cx="50%"

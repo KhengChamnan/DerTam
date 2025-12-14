@@ -11,6 +11,7 @@ use App\Models\Bus\BusSchedule;
 use App\Models\Bus\SeatBooking;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\DB;
 
 class TransportationOwnerController extends Controller
 {
@@ -102,6 +103,111 @@ class TransportationOwnerController extends Controller
         ->where('created_at', '>=', now()->subDays(7))
         ->sum('price');
         
+        // Revenue Trend Data (last 6 months)
+        $revenueTrendData = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthRevenue = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereYear('created_at', $date->year)
+            ->whereMonth('created_at', $date->month)
+            ->sum('price');
+            
+            $monthBookings = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereYear('created_at', $date->year)
+            ->whereMonth('created_at', $date->month)
+            ->count();
+            
+            $revenueTrendData[] = [
+                'month' => $date->format('M'),
+                'revenue' => round($monthRevenue, 2),
+                'bookings' => $monthBookings
+            ];
+        }
+        
+        // Route Performance Data (Top 5 routes by bookings)
+        $routePerformanceData = SeatBooking::select(
+            'routes.from_location',
+            'routes.to_location',
+            DB::raw('COUNT(booking_bus_seats.id) as booking_count')
+        )
+        ->join('bus_schedules', 'booking_bus_seats.schedule_id', '=', 'bus_schedules.id')
+        ->join('routes', 'bus_schedules.route_id', '=', 'routes.id')
+        ->join('buses', 'bus_schedules.bus_id', '=', 'buses.id')
+        ->join('transportations', 'buses.transportation_id', '=', 'transportations.id')
+        ->where('transportations.owner_user_id', $user->id)
+        ->groupBy('routes.from_location', 'routes.to_location')
+        ->orderByDesc('booking_count')
+        ->limit(5)
+        ->get()
+        ->map(function($item) {
+            $fromProvince = \App\Models\ProvinceCategory::find($item->from_location);
+            $toProvince = \App\Models\ProvinceCategory::find($item->to_location);
+            
+            return [
+                'route' => ($fromProvince ? $fromProvince->province_categoryName : 'N/A') . ' - ' . 
+                          ($toProvince ? $toProvince->province_categoryName : 'N/A'),
+                'bookings' => $item->booking_count
+            ];
+        })
+        ->values()
+        ->toArray();
+        
+        // Bus Utilization Data (Bus status distribution)
+        $allBuses = Bus::whereHas('transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })->get();
+        
+        $busUtilizationData = [
+            ['status' => 'Active', 'count' => $allBuses->filter(function($bus) {
+                return $bus->activeSchedules()->count() > 0;
+            })->count()],
+            ['status' => 'Scheduled', 'count' => $allBuses->filter(function($bus) {
+                return $bus->schedules()->where('status', 'scheduled')->count() > 0 && 
+                       $bus->activeSchedules()->count() == 0;
+            })->count()],
+            ['status' => 'Maintenance', 'count' => 0], // Can be implemented based on bus maintenance tracking
+            ['status' => 'Idle', 'count' => $allBuses->filter(function($bus) {
+                return $bus->schedules()->where('status', 'scheduled')->count() == 0;
+            })->count()],
+        ];
+        
+        // Weekly Occupancy Data (last 7 days)
+        $weeklyOccupancyData = [];
+        $daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $dayOfWeek = $daysOfWeek[$date->dayOfWeek];
+            
+            // Get schedules for this day
+            $daySchedules = BusSchedule::whereHas('bus.transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereDate('departure_time', $date->toDateString())
+            ->with('bus.busProperty')
+            ->get();
+            
+            $totalSeatsForDay = $daySchedules->sum(function($schedule) {
+                return $schedule->bus && $schedule->bus->busProperty ? $schedule->bus->busProperty->seat_capacity : 0;
+            });
+            
+            $bookedSeatsForDay = SeatBooking::whereIn(
+                'schedule_id',
+                $daySchedules->pluck('id')
+            )->count();
+            
+            $rate = $totalSeatsForDay > 0 ? round(($bookedSeatsForDay / $totalSeatsForDay) * 100, 1) : 0;
+            
+            $weeklyOccupancyData[] = [
+                'day' => $dayOfWeek,
+                'rate' => $rate
+            ];
+        }
+        
         return Inertia::render('transportation-owner/dashboard', [
             'companies' => $companies,
             'stats' => [
@@ -116,6 +222,10 @@ class TransportationOwnerController extends Controller
                 'recent_revenue' => $recentRevenue,
             ],
             'recent_bookings' => $recentBookings,
+            'revenue_trend_data' => $revenueTrendData,
+            'route_performance_data' => $routePerformanceData,
+            'bus_utilization_data' => $busUtilizationData,
+            'weekly_occupancy_data' => $weeklyOccupancyData,
         ]);
     }
     
