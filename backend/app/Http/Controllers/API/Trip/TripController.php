@@ -493,10 +493,102 @@ class TripController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add places to trip',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get places for a specific day of a trip
+     * GET /api/trips/{tripId}/days/{dayNumber}
+     *
+     * @param int $tripId
+     * @param int $dayNumber
+     * @return JsonResponse
+     */
+    public function getDayPlaces(int $tripId, int $dayNumber): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Check if user owns the trip
+            $trip = DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->where('user_id', $userId)
+                ->first();
+
+            $isOwner = (bool)$trip;
+
+            // If not owner, check if they're a viewer
+            if (!$trip) {
+                $isViewer = DB::table('trip_viewers')
+                    ->where('trip_id', $tripId)
+                    ->where('user_id', $userId)
+                    ->exists();
+                
+                if ($isViewer) {
+                    $trip = DB::table('trips')
+                        ->where('trip_id', $tripId)
+                        ->first();
+                }
+            }
+
+            if (!$trip) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trip not found or you do not have permission to view it'
+                ], 404);
+            }
+
+            // Find the trip day by day_number
+            $tripDay = DB::table('trip_days')
+                ->where('trip_id', $tripId)
+                ->where('day_number', $dayNumber)
+                ->first();
+
+            if (!$tripDay) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Day {$dayNumber} does not exist for this trip"
+                ], 404);
+            }
+
+            // Get places for this day
+            $places = DB::table('trip_places')
+                ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                ->where('trip_places.trip_day_id', $tripDay->trip_day_id)
+                ->select(
+                    'places.placeID as place_id',
+                    'places.name',
+                    'places.latitude',
+                    'places.longitude'
+                )
+                ->orderBy('trip_places.created_at', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Places retrieved successfully',
+                'data' => [
+                    'places' => $places,
+                    'places_count' => $places->count()
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch places for the day',
                 'error' => $e->getMessage()
             ], 500);
         }
