@@ -277,21 +277,6 @@ export default function TransportationOwnerBookingsIndex({
                         </SelectContent>
                     </Select>
 
-                    {/* Refresh Button */}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.reload({ only: ["bookings"] })}
-                        disabled={isLoading}
-                    >
-                        <RefreshCw
-                            className={`h-4 w-4 ${
-                                isLoading ? "animate-spin" : ""
-                            }`}
-                        />
-                        Refresh
-                    </Button>
-
                     {/* Column Toggle */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

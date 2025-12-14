@@ -16,6 +16,7 @@ import {
     Phone,
     Calendar,
     TrendingUp,
+    Hotel,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -153,171 +154,195 @@ export default function HotelShow({ property, bookingStats }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                        {property.place.images_url &&
+                        property.place.images_url.length > 0 ? (
+                            <img
+                                src={property.place.images_url[0]}
+                                alt={property.place.name}
+                                className="h-16 w-16 rounded-xl object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
+                                <Hotel className="h-8 w-8 text-primary" />
+                            </div>
+                        )}
                         <div>
                             <h1 className="text-3xl font-bold">
                                 {property.place.name}
                             </h1>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                {property.place.provinceCategory && (
+                                    <>
+                                        <MapPin className="h-4 w-4" />
+                                        <span>
+                                            {
+                                                property.place.provinceCategory
+                                                    .province_categoryName
+                                            }
+                                        </span>
+                                        <span>•</span>
+                                    </>
+                                )}
+                                {property.place.ratings && (
+                                    <>
+                                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                        <span>
+                                            {property.place.ratings} (
+                                            {property.place.reviews_count})
+                                        </span>
+                                        <span>•</span>
+                                    </>
+                                )}
+                                <span>
+                                    {totalRooms}{" "}
+                                    {totalRooms === 1 ? "room" : "rooms"}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <Link href="/hotels">
-                        <Button variant="outline">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Hotels
-                        </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link href="/hotels">
+                            <Button variant="outline">
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Back to Hotels
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Hotel Information */}
+                    {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Basic Info */}
+                        {/* Hotel Information */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Hotel Information</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div>
-                                    <h4 className="text-xs text-muted-foreground">
-                                        Description
+                            <CardContent className="space-y-4">
+                                {property.place.description && (
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Description
+                                        </h4>
+                                        <p className="text-sm font-medium leading-relaxed">
+                                            {property.place.description}
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Province
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                                            <span className="font-medium">
+                                                {property.place.provinceCategory
+                                                    ?.province_categoryName ||
+                                                    "N/A"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Rating
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                            <span className="font-medium">
+                                                {property.place.ratings} (
+                                                {property.place.reviews_count})
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Total Rooms
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <Bed className="h-4 w-4 text-muted-foreground" />
+                                            <span className="font-medium">
+                                                {totalRooms} ({availableRooms}{" "}
+                                                available)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Price Range
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <DollarSign className="h-4 w-4 text-green-600" />
+                                            <span className="font-medium">
+                                                {priceRange}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="pt-4 border-t">
+                                    <h4 className="text-xs text-muted-foreground mb-1">
+                                        Category
                                     </h4>
-                                    <p className="text-sm font-medium leading-relaxed">
-                                        {property.place.description}
+                                    <p className="font-medium">
+                                        {property.place.category
+                                            ?.category_name || "N/A"}
                                     </p>
                                 </div>
-
-                                {/* Location & Details Section */}
-                                <div className="border-t pt-4">
-                                    <h4 className="font-medium mb-4">
-                                        Location & Details
-                                    </h4>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="space-y-1">
-                                            <span className="text-xs text-muted-foreground">
-                                                Province
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="h-4 w-4 text-primary" />
-                                                <span className="text-sm font-medium">
-                                                    {property.place
-                                                        .provinceCategory
-                                                        ?.province_categoryName ||
-                                                        "N/A"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-xs text-muted-foreground">
-                                                Rating
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                                <span className="text-sm font-medium">
-                                                    {property.place.ratings} (
-                                                    {
-                                                        property.place
-                                                            .reviews_count
-                                                    }
-                                                    )
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-xs text-muted-foreground">
-                                                Total Rooms
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <Bed className="h-4 w-4 text-primary" />
-                                                <span className="text-sm font-medium">
-                                                    {totalRooms} (
-                                                    {availableRooms} available)
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-xs text-muted-foreground">
-                                                Price Range
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <DollarSign className="h-4 w-4 text-primary" />
-                                                <span className="text-sm font-medium">
-                                                    {priceRange}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-6">
+                                {property.place?.operating_hours && (
                                     <div>
-                                        <h4 className="text-xs text-muted-foreground">
-                                            Category
-                                        </h4>
-                                        <span className="text-sm font-medium">
-                                            {property.place.category
-                                                ?.category_name || "N/A"}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-xs text-muted-foreground">
+                                        <h4 className="text-xs text-muted-foreground mb-1">
                                             Operating Hours
                                         </h4>
-                                        {property.place?.operating_hours && (
-                                            <div className="text-sm space-y-1">
-                                                {typeof property.place
-                                                    .operating_hours ===
-                                                "string" ? (
-                                                    <p className="text-muted-foreground">
-                                                        {
-                                                            property.place
-                                                                .operating_hours
-                                                        }
-                                                    </p>
-                                                ) : typeof property.place
-                                                      .operating_hours ===
-                                                  "object" ? (
-                                                    Object.entries(
+                                        <div className="text-sm space-y-1">
+                                            {typeof property.place
+                                                .operating_hours ===
+                                            "string" ? (
+                                                <p className="font-medium">
+                                                    {
                                                         property.place
                                                             .operating_hours
-                                                    ).map(([day, hours]) => (
-                                                        <div key={day}>
-                                                            <span className="font-medium capitalize">
-                                                                {day}:
-                                                            </span>{" "}
-                                                            {hours}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-muted-foreground">
-                                                        Operating hours
-                                                        available
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        {property.place.google_maps_link && (
-                                            <div>
-                                                <h4 className="text-xs text-muted-foreground">
-                                                    Location
-                                                </h4>
-                                                <a
-                                                    href={
-                                                        property.place
-                                                            .google_maps_link
                                                     }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className=" hover:underline text-sm inline-flex items-center gap-1"
-                                                >
-                                                    <MapPin className="h-3 w-3" />
-                                                    View on Google Maps
-                                                </a>
-                                            </div>
-                                        )}
+                                                </p>
+                                            ) : typeof property.place
+                                                  .operating_hours ===
+                                              "object" ? (
+                                                Object.entries(
+                                                    property.place
+                                                        .operating_hours
+                                                ).map(([day, hours]) => (
+                                                    <div key={day}>
+                                                        <span className="font-medium capitalize">
+                                                            {day}:
+                                                        </span>{" "}
+                                                        {hours}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-muted-foreground">
+                                                    Operating hours available
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
+                                {property.place.google_maps_link && (
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Location
+                                        </h4>
+                                        <a
+                                            href={
+                                                property.place.google_maps_link
+                                            }
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:underline text-sm inline-flex items-center gap-2"
+                                        >
+                                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                                            View on Google Maps
+                                        </a>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -451,90 +476,44 @@ export default function HotelShow({ property, bookingStats }: Props) {
                         </Card>
                     </div>
 
-                    {/* Owner Information */}
+                    {/* Sidebar */}
                     <div className="space-y-6">
+                        {/* Owner Information */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Property Owner</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-4">
                                 <div>
-                                    <h4 className="font-medium">
-                                        {property.owner.name}
+                                    <h4 className="text-xs text-muted-foreground mb-1">
+                                        Name
                                     </h4>
+                                    <p className="font-medium">
+                                        {property.owner.name}
+                                    </p>
                                 </div>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                    <Mail className="h-3 w-3 mr-2" />
-                                    {property.owner.email}
+                                <div>
+                                    <h4 className="text-xs text-muted-foreground mb-1">
+                                        Email
+                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                        <Mail className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">
+                                            {property.owner.email}
+                                        </span>
+                                    </div>
                                 </div>
                                 {property.owner.phone_number && (
-                                    <div className="flex items-center text-sm text-muted-foreground">
-                                        <Phone className="h-3 w-3 mr-2" />
-                                        {property.owner.phone_number}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Hotel Pictures</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {property.place.images_url &&
-                                property.place.images_url.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {/* Main Image */}
-                                        <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-                                            <img
-                                                src={
-                                                    property.place.images_url[0]
-                                                }
-                                                alt={property.place.name}
-                                                className="w-full h-full object-cover"
-                                            />
+                                    <div>
+                                        <h4 className="text-xs text-muted-foreground mb-1">
+                                            Phone
+                                        </h4>
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="h-4 w-4 text-muted-foreground" />
+                                            <span className="text-sm">
+                                                {property.owner.phone_number}
+                                            </span>
                                         </div>
-
-                                        {/* Thumbnail Grid */}
-                                        {property.place.images_url.length >
-                                            1 && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {property.place.images_url
-                                                    .slice(1, 4)
-                                                    .map((image, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className="relative aspect-square overflow-hidden rounded-md"
-                                                        >
-                                                            <img
-                                                                src={image}
-                                                                alt={`${
-                                                                    property
-                                                                        .place
-                                                                        .name
-                                                                } ${index + 2}`}
-                                                                className="w-full h-full object-cover hover:scale-105 transition-transform"
-                                                            />
-                                                        </div>
-                                                    ))}
-                                            </div>
-                                        )}
-
-                                        {property.place.images_url.length >
-                                            4 && (
-                                            <p className="text-xs text-muted-foreground text-center">
-                                                +
-                                                {property.place.images_url
-                                                    .length - 4}{" "}
-                                                more photos
-                                            </p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-center aspect-video bg-muted rounded-lg">
-                                        <p className="text-sm text-muted-foreground">
-                                            No photos available
-                                        </p>
                                     </div>
                                 )}
                             </CardContent>

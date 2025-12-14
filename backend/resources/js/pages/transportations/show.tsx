@@ -12,7 +12,6 @@ import {
     Mail,
     Phone,
     Building2,
-    Package,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -138,18 +137,10 @@ export default function TransportationShow({ transportation, stats }: Props) {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Link
-                            href={`/transportations/${transportation.id}/edit`}
-                        >
-                            <Button>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Company
-                            </Button>
-                        </Link>
                         <Link href="/transportations">
                             <Button variant="outline">
                                 <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to List
+                                Back to Transportations
                             </Button>
                         </Link>
                     </div>
@@ -381,31 +372,6 @@ export default function TransportationShow({ transportation, stats }: Props) {
                                     </h4>
                                     <p className="text-2xl font-bold text-green-600">
                                         {stats.active_schedules}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Timestamps */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Record Information</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                <div>
-                                    <h4 className="text-xs text-muted-foreground mb-1">
-                                        Created
-                                    </h4>
-                                    <p>
-                                        {formatDate(transportation.created_at)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="text-xs text-muted-foreground mb-1">
-                                        Last Updated
-                                    </h4>
-                                    <p>
-                                        {formatDate(transportation.updated_at)}
                                     </p>
                                 </div>
                             </CardContent>

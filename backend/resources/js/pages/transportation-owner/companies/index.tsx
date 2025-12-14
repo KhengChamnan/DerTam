@@ -419,18 +419,6 @@ export default function TransportationOwnerCompaniesIndex({ company }: Props) {
                                                     Edit Type
                                                 </Link>
                                             </Button>
-                                            <Button
-                                                asChild
-                                                size="sm"
-                                                className="flex-1"
-                                            >
-                                                <Link
-                                                    href={`/transportation-owner/buses/create?type=${busProperty.id}`}
-                                                >
-                                                    <Bus className="h-4 w-4 mr-2" />
-                                                    Add Bus
-                                                </Link>
-                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>

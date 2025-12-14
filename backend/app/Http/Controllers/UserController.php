@@ -18,43 +18,20 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query();
+        // Get all users with roles, ordered by name
+        // Client-side filtering will handle search, status, and role filters
+        $allUsers = User::with('roles')
+                      ->orderBy('name', 'asc')
+                      ->get();
 
-        // Search functionality (prefix filtering with word boundaries)
-        if ($request->filled('search')) {
-            $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], trim($request->search));
-            
-            $query->where(function ($q) use ($escapedTerm) {
-                $q->where('name', 'LIKE', $escapedTerm . '%')
-                  ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%')
-                  ->orWhere('email', 'LIKE', $escapedTerm . '%')
-                  ->orWhere('email', 'LIKE', '% ' . $escapedTerm . '%')
-                  ->orWhere('username', 'LIKE', $escapedTerm . '%')
-                  ->orWhere('username', 'LIKE', '% ' . $escapedTerm . '%')
-                  ->orWhere('phone_number', 'LIKE', $escapedTerm . '%')
-                  ->orWhere('phone_number', 'LIKE', '% ' . $escapedTerm . '%');
-            });
-        }
-
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter by role (using Spatie roles)
-        if ($request->filled('role')) {
-            $query->whereHas('roles', function ($q) use ($request) {
-                $q->where('name', $request->role);
-            });
-        }
-
-        $users = $query->with('roles')
-                      ->when(!$request->filled('search'), function ($q) {
-                          // Only order by name alphabetically if no search term
-                          return $q->orderBy('name', 'asc');
-                      })
-                      ->paginate(10)
-                      ->withQueryString();
+        // Create a paginated-like structure for frontend compatibility
+        $users = new \Illuminate\Pagination\LengthAwarePaginator(
+            $allUsers,
+            $allUsers->count(),
+            $allUsers->count(), // Show all items per page
+            1, // Current page
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         // Transform users to include role information
         $users->getCollection()->transform(function ($user) {
@@ -286,5 +263,31 @@ class UserController extends Controller
             ->update(['owner_user_id' => $user->id]);
         
         return back()->with('success', 'Hotel ownership assigned successfully.');
+    }
+
+    /**
+     * Assign restaurant ownership to a user.
+     */
+    public function assignRestaurantOwnership(Request $request, User $user)
+    {
+        $request->validate([
+            'property_ids' => 'required|array',
+            'property_ids.*' => 'exists:restaurant_properties,restaurant_property_id',
+            'menu_category_ids' => 'sometimes|array',
+            'menu_category_ids.*' => 'exists:menu_categories,menu_category_id',
+            'menu_item_ids' => 'sometimes|array',
+            'menu_item_ids.*' => 'exists:menu_items,menu_item_id'
+        ]);
+        
+        // Assign restaurant owner role if not already assigned
+        if (!$user->hasRole('restaurant owner')) {
+            $user->assignRole('restaurant owner');
+        }
+        
+        // Update restaurant property ownership
+        \App\Models\Restaurant\RestaurantProperty::whereIn('restaurant_property_id', $request->property_ids)
+            ->update(['owner_user_id' => $user->id]);
+        
+        return back()->with('success', 'Restaurant ownership assigned successfully.');
     }
 }

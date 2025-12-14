@@ -127,12 +127,42 @@ export default function TransportationIndex({
     transportations,
     filters,
 }: Props) {
-    // Client-side filter state
+    // Client-side filter states
     const [searchQuery, setSearchQuery] = useState("");
+    const [provinceFilter, setProvinceFilter] = useState<string>("all");
+    const [ownerFilter, setOwnerFilter] = useState<string>("all");
+    const [busFilter, setBusFilter] = useState<string>("all");
 
     // Client-side pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
+
+    // Extract unique provinces and owners for filter options
+    const provinces = useMemo(() => {
+        const uniqueProvinces = new Map<string, string>();
+        transportations.data.forEach((transport) => {
+            if (transport.place.provinceCategory?.province_categoryName) {
+                uniqueProvinces.set(
+                    transport.place.provinceCategory.province_categoryName,
+                    transport.place.provinceCategory.province_categoryName
+                );
+            }
+        });
+        return Array.from(uniqueProvinces.values()).sort();
+    }, [transportations.data]);
+
+    const owners = useMemo(() => {
+        const uniqueOwners = new Map<number, { id: number; name: string }>();
+        transportations.data.forEach((transport) => {
+            uniqueOwners.set(transport.owner.id, {
+                id: transport.owner.id,
+                name: transport.owner.name,
+            });
+        });
+        return Array.from(uniqueOwners.values()).sort((a, b) =>
+            a.name.localeCompare(b.name)
+        );
+    }, [transportations.data]);
 
     // Client-side filtering - instant results
     const filteredTransportations = useMemo(() => {
@@ -144,9 +174,34 @@ export default function TransportationIndex({
                     .toLowerCase()
                     .startsWith(searchQuery.toLowerCase());
 
-            return matchesSearch;
+            // Province filter
+            const matchesProvince =
+                provinceFilter === "all" ||
+                transport.place.provinceCategory?.province_categoryName ===
+                    provinceFilter;
+
+            // Owner filter
+            const matchesOwner =
+                ownerFilter === "all" ||
+                transport.owner.id.toString() === ownerFilter;
+
+            // Bus availability filter
+            const matchesBus =
+                busFilter === "all" ||
+                (busFilter === "yes" && transport.buses_count > 0) ||
+                (busFilter === "no" && transport.buses_count === 0);
+
+            return (
+                matchesSearch && matchesProvince && matchesOwner && matchesBus
+            );
         });
-    }, [transportations.data, searchQuery]);
+    }, [
+        transportations.data,
+        searchQuery,
+        provinceFilter,
+        ownerFilter,
+        busFilter,
+    ]);
 
     // Client-side pagination calculations
     const totalFiltered = filteredTransportations.length;
@@ -164,7 +219,7 @@ export default function TransportationIndex({
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery]);
+    }, [searchQuery, provinceFilter, ownerFilter, busFilter]);
     const [deleteDialog, setDeleteDialog] = useState<{
         open: boolean;
         id: number | null;
@@ -252,7 +307,7 @@ export default function TransportationIndex({
                     <Link href="/transportations/create">
                         <Button className="gap-2">
                             <Plus className="h-4 w-4" />
-                            Add New Transportation
+                            Add Transportation
                         </Button>
                     </Link>
                 </div>
@@ -278,6 +333,38 @@ export default function TransportationIndex({
                             </Button>
                         )}
                     </div>
+
+                    {/* Province Filter */}
+                    <Select
+                        value={provinceFilter}
+                        onValueChange={setProvinceFilter}
+                    >
+                        <SelectTrigger className="w-[200px]">
+                            <MapPin className="h-4 w-4" />
+                            <SelectValue placeholder="Province" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Provinces</SelectItem>
+                            {provinces.map((province) => (
+                                <SelectItem key={province} value={province}>
+                                    {province}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Bus Availability Filter */}
+                    <Select value={busFilter} onValueChange={setBusFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <Bus className="h-4 w-4" />
+                            <SelectValue placeholder="Buses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="yes">With Buses</SelectItem>
+                            <SelectItem value="no">Without Buses</SelectItem>
+                        </SelectContent>
+                    </Select>
 
                     {/* Column Toggle */}
                     <div className="ml-auto">
@@ -406,22 +493,40 @@ export default function TransportationIndex({
                                                         No transportations found
                                                     </EmptyTitle>
                                                     <EmptyDescription className="text-base">
-                                                        {searchQuery
-                                                            ? "No transportations match your search. Try adjusting your search criteria."
+                                                        {searchQuery ||
+                                                        provinceFilter !==
+                                                            "all" ||
+                                                        ownerFilter !== "all" ||
+                                                        busFilter !== "all"
+                                                            ? "No transportations match your current filters. Try adjusting your search criteria."
                                                             : "Get started by adding your first transportation company."}
                                                     </EmptyDescription>
                                                 </EmptyHeader>
                                                 <EmptyContent className="flex gap-2 justify-center">
-                                                    {searchQuery && (
+                                                    {(searchQuery ||
+                                                        provinceFilter !==
+                                                            "all" ||
+                                                        ownerFilter !== "all" ||
+                                                        busFilter !==
+                                                            "all") && (
                                                         <Button
                                                             variant="outline"
-                                                            onClick={() =>
+                                                            onClick={() => {
                                                                 setSearchQuery(
                                                                     ""
-                                                                )
-                                                            }
+                                                                );
+                                                                setProvinceFilter(
+                                                                    "all"
+                                                                );
+                                                                setOwnerFilter(
+                                                                    "all"
+                                                                );
+                                                                setBusFilter(
+                                                                    "all"
+                                                                );
+                                                            }}
                                                         >
-                                                            Clear Search
+                                                            Clear Filters
                                                         </Button>
                                                     )}
                                                 </EmptyContent>
