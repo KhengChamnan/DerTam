@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:location/location.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/budget_provider.dart';
@@ -103,50 +104,106 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
-  void _navigateToMap(int totalDays, String tripId) {
+  void _navigateToMap(int totalDays, String tripId) async {
+    // Get user's current location
+    Location location = Location();
+    double? userLat;
+    double? userLng;
+
+    try {
+      // Check if location service is enabled
+      bool serviceEnabled = await location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location service is disabled'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          // Continue without location
+        }
+      }
+
+      // Check if permission is granted
+      PermissionStatus permissionGranted = await location.hasPermission();
+      if (permissionGranted == PermissionStatus.denied) {
+        permissionGranted = await location.requestPermission();
+        if (permissionGranted != PermissionStatus.granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location permission denied'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          // Continue without location
+        }
+      }
+
+      // Get current location if service enabled and permission granted
+      if (serviceEnabled && permissionGranted == PermissionStatus.granted) {
+        LocationData locationData = await location.getLocation();
+        userLat = locationData.latitude;
+        userLng = locationData.longitude;
+        print('User location: $userLat, $userLng');
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+      // Continue without location
+    }
+
     // Show day selection dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Select Day to View Route'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: totalDays,
-            itemBuilder: (context, index) {
-              final dayNumber = index + 1;
-              return ListTile(
-                leading: Icon(
-                  Icons.calendar_today,
-                  color: DertamColors.primaryDark,
-                ),
-                title: Text('Day $dayNumber'),
-                onTap: () {
-                  Navigator.pop(context); // Close dialog
-                  // Navigate to map with selected day
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RouteMapPage(
-                        tripId: int.parse(tripId),
-                        dayNumber: dayNumber,
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Select Day to View Route'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: totalDays,
+              itemBuilder: (context, index) {
+                final dayNumber = index + 1;
+                return ListTile(
+                  leading: Icon(
+                    Icons.calendar_today,
+                    color: DertamColors.primaryDark,
+                  ),
+                  title: Text('Day $dayNumber'),
+                  onTap: () {
+                    Navigator.pop(context); // Close dialog
+                    // Navigate to map with selected day and user location
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RouteMapPage(
+                          tripId: int.parse(tripId),
+                          dayNumber: dayNumber,
+                          startLatitude: userLat,
+                          startLongitude: userLng,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
+                    );
+                  },
+                );
+              },
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
   void _shareTrip() async {
