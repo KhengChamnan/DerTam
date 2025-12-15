@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mobile_frontend/data/service/dertam_route_service.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
+import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -26,7 +27,6 @@ class RouteMapPage extends StatefulWidget {
 
 class _RouteMapPageState extends State<RouteMapPage> {
   List<RoutePoint> _routePoints = [];
-  RoutePoint? _selectedPoint;
   late final RouteService routeService;
 
   @override
@@ -72,9 +72,7 @@ class _RouteMapPageState extends State<RouteMapPage> {
   }
 
   void _onMarkerTap(RoutePoint point) {
-    setState(() {
-      _selectedPoint = point;
-    });
+    setState(() {});
 
     // Show bottom sheet with directions button
     showModalBottomSheet(
@@ -133,7 +131,41 @@ class _RouteMapPageState extends State<RouteMapPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Optimized Route')),
+      appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ),
+        title: Text(
+          'Optimized Route',
+          style: TextStyle(
+            color: DertamColors.primaryDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+      ),
       body: _routePoints.isEmpty
           ? Center(child: CircularProgressIndicator())
           : FlutterMap(
@@ -141,9 +173,9 @@ class _RouteMapPageState extends State<RouteMapPage> {
                 initialCenter: _routePoints.isNotEmpty
                     ? _routePoints[0].latLng
                     : LatLng(0, 0), // fallback center
-                initialZoom: 9.0,
+                initialZoom: 12.0,
                 minZoom: 2.0,
-                maxZoom: 19.0,
+                maxZoom: 30.0,
               ),
               children: [
                 TileLayer(

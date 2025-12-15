@@ -114,7 +114,6 @@ class RouteService {
           '  Order ${point.order}: ${point.name} at (${point.latLng.latitude}, ${point.latLng.longitude})',
         );
       }
-
       return routePoints;
     } else {
       print('Error: Status Code ${response.statusCode}');

@@ -12,7 +12,7 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_place_card.dart';
-import 'package:mobile_frontend/ui/screen/map/dertam_map.dart';
+import 'package:mobile_frontend/ui/screen/dertam_map/dertam_map.dart';
 import 'package:provider/provider.dart';
 
 class TripDetailScreen extends StatefulWidget {
@@ -408,51 +408,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
-
-  // List<Map<String, dynamic>> _getMockUsers() {
-  //   return [
-  //     {
-  //       'id': 'current_user',
-  //       'name': 'You',
-  //       'initial': 'Y',
-  //       'color': DertamColors.primaryDark,
-  //       'isCurrentUser': true,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_2',
-  //       'name': 'Alice',
-  //       'initial': 'A',
-  //       'color': Colors.purple[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_3',
-  //       'name': 'Bob',
-  //       'initial': 'B',
-  //       'color': Colors.pink[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_4',
-  //       'name': 'Charlie',
-  //       'initial': 'C',
-  //       'color': Colors.orange[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_5',
-  //       'name': 'Diana',
-  //       'initial': 'D',
-  //       'color': Colors.green[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //   ];
-  // }
 
   String _formatDateRange(DateTime startDate, DateTime endDate) {
     const months = [
@@ -888,17 +843,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       ),
                     ),
                     SizedBox(height: 10),
-
-                    // // Map button
-                    // FloatingActionButton(
-                    //   heroTag: "map",
-                    //   onPressed: _openMap,
-                    //   backgroundColor: DertamColors.primaryDark,
-                    //   child: Icon(Icons.map, color: Colors.white, size: 24),
-                    // ),
                   ],
                 )
-              : null, // No floating buttons for shared users
+              : null, 
         );
       },
     );
