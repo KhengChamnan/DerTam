@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Path, Header
 from typing import Annotated
 import httpx
 
-from app.models.schemas import PlacesResponse, OptimizedRouteResponse, ErrorResponse
+from app.models.schemas import PlacesResponse, OptimizedRouteResponse, ErrorResponse, OptimizeRouteRequest
 from app.services.external_api import external_api_client
 from app.services.optimizer import route_optimizer
 
@@ -68,21 +68,24 @@ async def get_trip_day_places(
 async def optimize_trip_day_route(
     trip_id: Annotated[int, Path(description="Trip ID", ge=1)],
     day: Annotated[int, Path(description="Day number of the trip", ge=1)],
-    authorization: Annotated[str, Header(description="Bearer token")]
+    authorization: Annotated[str, Header(description="Bearer token")],
+    request_body: OptimizeRouteRequest
 ) -> OptimizedRouteResponse:
     """
     Optimize the route for all places in a specific trip day.
     
     This endpoint:
-    1. Fetches places for the specified trip day from external API with bearer token
-    2. Calculates distances between all places using Haversine formula
-    3. Applies Simulated Annealing TSP algorithm to find optimal route
-    4. Returns ordered list of places with distances
+    1. Accepts user's current location as starting point
+    2. Fetches places for the specified trip day from external API with bearer token
+    3. Calculates distances from starting point and between all places using Haversine formula
+    4. Applies Simulated Annealing TSP algorithm to find optimal route
+    5. Returns ordered list of places with distances starting from user's location
     
     Args:
         trip_id: Trip ID
         day: Day number (must be >= 1)
         authorization: Bearer token from header
+        request_body: Starting location (user's current lat/long)
     
     Returns:
         OptimizedRouteResponse with optimized route and total distance
@@ -103,10 +106,12 @@ async def optimize_trip_day_route(
                 detail=f"No places found for trip {trip_id}, day {day}"
             )
         
-        # Step 2: Optimize route using ML-based TSP
+        # Step 2: Optimize route using ML-based TSP with starting location
         optimized_route = route_optimizer.optimize_route(
             places=places_response.places,
-            day=day
+            day=day,
+            start_lat=request_body.starting_location.latitude,
+            start_lon=request_body.starting_location.longitude
         )
         
         return optimized_route

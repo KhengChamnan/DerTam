@@ -24,6 +24,7 @@ class OptimizedRouteResponse(BaseModel):
     day: int = Field(..., description="Day number of the trip")
     total_places: int = Field(..., description="Total number of places in the route")
     total_distance: float = Field(..., description="Total distance of the route in kilometers")
+    starting_location: Optional[dict] = Field(None, description="User's starting location")
     route: List[RouteSegment] = Field(..., description="Ordered list of places in optimized route")
     algorithm: str = Field(default="Simulated Annealing TSP", description="Algorithm used for optimization")
 
@@ -39,3 +40,14 @@ class ErrorResponse(BaseModel):
     """Error response model"""
     error: str = Field(..., description="Error message")
     detail: Optional[str] = Field(None, description="Detailed error information")
+
+
+class StartingLocation(BaseModel):
+    """Request model for starting location"""
+    latitude: float = Field(..., description="Starting latitude coordinate", ge=-90, le=90)
+    longitude: float = Field(..., description="Starting longitude coordinate", ge=-180, le=180)
+
+
+class OptimizeRouteRequest(BaseModel):
+    """Request model for route optimization with starting location"""
+    starting_location: StartingLocation = Field(..., description="User's current location as starting point")

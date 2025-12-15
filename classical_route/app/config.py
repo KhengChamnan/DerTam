@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     port: int = int(os.getenv("PORT", "8001"))
     
     class Config:
-        env_file = ".env"
+        env_file = ".env" 
         case_sensitive = False
 
 
