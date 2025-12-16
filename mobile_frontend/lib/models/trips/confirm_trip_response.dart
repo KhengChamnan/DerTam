@@ -97,7 +97,7 @@ class ConfirmTripData {
       endDate: endDate,
       days: days,
       totalPlacesAdded: json['total_places_added'] ?? 0,
-      accessType: json['access_type'],
+      accessType: json['trip_access_type'],
     );
   }
 

@@ -21,7 +21,7 @@ class DertamRetauanrantNearby extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 160, // Fixed width for consistent sizing
+        width: 160, 
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,

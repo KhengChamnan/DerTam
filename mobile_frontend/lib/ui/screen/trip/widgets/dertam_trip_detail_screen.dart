@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:location/location.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/budget_provider.dart';
@@ -11,6 +12,7 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_place_card.dart';
+import 'package:mobile_frontend/ui/screen/dertam_map/dertam_map.dart';
 import 'package:provider/provider.dart';
 
 class TripDetailScreen extends StatefulWidget {
@@ -99,6 +101,108 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           ),
         );
       }
+    }
+  }
+
+  void _navigateToMap(int totalDays, String tripId) async {
+    // Get user's current location
+    Location location = Location();
+    double? userLat;
+    double? userLng;
+
+    try {
+      // Check if location service is enabled
+      bool serviceEnabled = await location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location service is disabled'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          // Continue without location
+        }
+      }
+
+      // Check if permission is granted
+      PermissionStatus permissionGranted = await location.hasPermission();
+      if (permissionGranted == PermissionStatus.denied) {
+        permissionGranted = await location.requestPermission();
+        if (permissionGranted != PermissionStatus.granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location permission denied'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          // Continue without location
+        }
+      }
+
+      // Get current location if service enabled and permission granted
+      if (serviceEnabled && permissionGranted == PermissionStatus.granted) {
+        LocationData locationData = await location.getLocation();
+        userLat = locationData.latitude;
+        userLng = locationData.longitude;
+        print('User location: $userLat, $userLng');
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+      // Continue without location
+    }
+
+    // Show day selection dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Select Day to View Route'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: totalDays,
+              itemBuilder: (context, index) {
+                final dayNumber = index + 1;
+                return ListTile(
+                  leading: Icon(
+                    Icons.calendar_today,
+                    color: DertamColors.primaryDark,
+                  ),
+                  title: Text('Day $dayNumber'),
+                  onTap: () {
+                    Navigator.pop(context); // Close dialog
+                    // Navigate to map with selected day and user location
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RouteMapPage(
+                          tripId: int.parse(tripId),
+                          dayNumber: dayNumber,
+                          startLatitude: userLat,
+                          startLongitude: userLng,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -304,51 +408,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
-
-  // List<Map<String, dynamic>> _getMockUsers() {
-  //   return [
-  //     {
-  //       'id': 'current_user',
-  //       'name': 'You',
-  //       'initial': 'Y',
-  //       'color': DertamColors.primaryDark,
-  //       'isCurrentUser': true,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_2',
-  //       'name': 'Alice',
-  //       'initial': 'A',
-  //       'color': Colors.purple[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_3',
-  //       'name': 'Bob',
-  //       'initial': 'B',
-  //       'color': Colors.pink[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_4',
-  //       'name': 'Charlie',
-  //       'initial': 'C',
-  //       'color': Colors.orange[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //     {
-  //       'id': 'user_5',
-  //       'name': 'Diana',
-  //       'initial': 'D',
-  //       'color': Colors.green[300],
-  //       'isCurrentUser': false,
-  //       'imageUrl': null,
-  //     },
-  //   ];
-  // }
 
   String _formatDateRange(DateTime startDate, DateTime endDate) {
     const months = [
@@ -676,7 +735,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   final dayDate =
                       dayData.date ?? startDate.add(Duration(days: index));
                   final placesForDay = dayData.places ?? [];
-
                   return TripDayCard(
                     dayNumber: dayNumber,
                     date: dayDate,
@@ -711,6 +769,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           color: Colors.white,
                           size: 16,
                         ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    FloatingActionButton(
+                      heroTag: "map",
+                      onPressed: () =>
+                          _navigateToMap(sortedDays.length, tripId.toString()),
+                      backgroundColor: DertamColors.white,
+                      child: Icon(
+                        Icons.map,
+                        color: DertamColors.primaryDark,
+                        size: 24,
                       ),
                     ),
                     SizedBox(height: 10),
@@ -772,17 +843,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       ),
                     ),
                     SizedBox(height: 10),
-
-                    // // Map button
-                    // FloatingActionButton(
-                    //   heroTag: "map",
-                    //   onPressed: _openMap,
-                    //   backgroundColor: DertamColors.primaryDark,
-                    //   child: Icon(Icons.map, color: Colors.white, size: 24),
-                    // ),
                   ],
                 )
-              : null, // No floating buttons for shared users
+              : null, 
         );
       },
     );
