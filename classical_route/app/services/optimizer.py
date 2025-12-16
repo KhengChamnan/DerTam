@@ -1,19 +1,20 @@
 import numpy as np
-from typing import List, Tuple
-from python_tsp.heuristics import solve_tsp_simulated_annealing
+import logging
+from typing import List
 from app.models.schemas import Place, RouteSegment, OptimizedRouteResponse
 from app.utils.distance import build_distance_matrix, calculate_total_distance
 
+logger = logging.getLogger(__name__)
 
 class RouteOptimizer:
-    """Service for optimizing routes using ML-based TSP algorithms"""
+    """Service for optimizing routes using nearest-neighbor heuristic"""
     
     def __init__(self):
-        self.algorithm_name = "Simulated Annealing TSP"
+        self.algorithm_name = "Nearest Neighbor TSP"
     
     def optimize_route(self, places: List[Place], day: int, start_lat: float = None, start_lon: float = None) -> OptimizedRouteResponse:
         """
-        Optimize the route for a list of places using Simulated Annealing TSP algorithm.
+        Optimize the route for a list of places using a nearest-neighbor heuristic.
         
         Args:
             places: List of Place objects with coordinates
@@ -37,44 +38,40 @@ class RouteOptimizer:
                 distance_to_place = haversine_distance(start_lat, start_lon, places[0].latitude, places[0].longitude)
                 return self._create_single_place_response(places[0], day, distance_to_place)
             return self._create_single_place_response(places[0], day)
-        
-        # Build distance matrix
-        distance_matrix = build_distance_matrix(places)
-        
-        # If starting location provided, find closest place to start from
-        start_index = 0
+
+        if len(places) == 2:
+            distance_matrix = build_distance_matrix(places)
+            if not np.isfinite(distance_matrix).all():
+                raise ValueError("Cannot optimize route: invalid coordinates produced a non-finite distance matrix")
+
+            optimized_indices = self._nearest_neighbor_route(
+                places=places,
+                distance_matrix=distance_matrix,
+                start_lat=start_lat,
+                start_lon=start_lon,
+            )
+        else:
+            # Build distance matrix
+            distance_matrix = build_distance_matrix(places)
+            distance_matrix = np.asarray(distance_matrix, dtype=float)
+            if not np.isfinite(distance_matrix).all():
+                raise ValueError("Cannot optimize route: invalid coordinates produced a non-finite distance matrix")
+            
+            optimized_indices = self._nearest_neighbor_route(
+                places=places,
+                distance_matrix=distance_matrix,
+                start_lat=start_lat,
+                start_lon=start_lon,
+            )
+
+        # Calculate total distance based on the optimized indices
+        total_distance = calculate_total_distance(optimized_indices, distance_matrix)
+
+        # Include distance from starting location to the first place if provided
         if start_lat is not None and start_lon is not None:
             from app.utils.distance import haversine_distance
-            # Find the closest place to starting location
-            min_distance = float('inf')
-            for i, place in enumerate(places):
-                dist = haversine_distance(start_lat, start_lon, place.latitude, place.longitude)
-                if dist < min_distance:
-                    min_distance = dist
-                    start_index = i
-        
-        # Solve TSP using simulated annealing
-        optimized_indices, total_distance = solve_tsp_simulated_annealing(distance_matrix)
-        
-        # Convert to list if numpy array
-        if isinstance(optimized_indices, np.ndarray):
-            optimized_indices = optimized_indices.tolist()
-        
-        # Reorder to start from the closest place to user's location
-        if start_lat is not None and start_lon is not None and start_index in optimized_indices:
-            # Find position of start_index in optimized route
-            start_position = optimized_indices.index(start_index)
-            # Rotate the list to start from that position
-            optimized_indices = optimized_indices[start_position:] + optimized_indices[:start_position]
-            
-            # Recalculate total distance with new order
-            total_distance = calculate_total_distance(optimized_indices, distance_matrix)
-            
-            # Add distance from starting location to first place
-            from app.utils.distance import haversine_distance
             first_place = places[optimized_indices[0]]
-            distance_from_start = haversine_distance(start_lat, start_lon, first_place.latitude, first_place.longitude)
-            total_distance += distance_from_start
+            total_distance += haversine_distance(start_lat, start_lon, first_place.latitude, first_place.longitude)
         
         # Build route segments with distances
         route_segments = self._build_route_segments(
@@ -89,7 +86,7 @@ class RouteOptimizer:
             day=day,
             total_places=len(places),
             total_distance=round(total_distance, 2),
-            starting_location={"latitude": start_lat, "longitude": start_lon} if start_lat and start_lon else None,
+            starting_location={"latitude": start_lat, "longitude": start_lon} if start_lat is not None and start_lon is not None else None,
             route=route_segments,
             algorithm=self.algorithm_name
         )
@@ -167,6 +164,50 @@ class RouteOptimizer:
                 route_segments.append(segment)
         
         return route_segments
+    
+    def _nearest_neighbor_route(
+        self,
+        places: List[Place],
+        distance_matrix: np.ndarray,
+        start_lat: float = None,
+        start_lon: float = None,
+    ) -> List[int]:
+        """
+        Generate a route using the nearest-neighbor heuristic.
+        
+        Starts from the closest place to the user's starting location (if provided),
+        then repeatedly visits the nearest unvisited place.
+        """
+        if distance_matrix.shape[0] == 0:
+            return []
+
+        unvisited = set(range(len(places)))
+        route = []
+
+        # Choose starting node: closest to user if provided, otherwise first place
+        if start_lat is not None and start_lon is not None:
+            from app.utils.distance import haversine_distance
+            start_idx = min(
+                unvisited,
+                key=lambda idx: haversine_distance(
+                    start_lat, start_lon, places[idx].latitude, places[idx].longitude
+                ),
+            )
+        else:
+            start_idx = 0
+
+        current = start_idx
+        route.append(current)
+        unvisited.remove(current)
+
+        # Greedily pick the nearest unvisited place
+        while unvisited:
+            next_idx = min(unvisited, key=lambda idx: distance_matrix[current][idx])
+            route.append(next_idx)
+            unvisited.remove(next_idx)
+            current = next_idx
+
+        return route
     
     def _create_single_place_response(
         self, 

@@ -26,7 +26,7 @@ class OptimizedRouteResponse(BaseModel):
     total_distance: float = Field(..., description="Total distance of the route in kilometers")
     starting_location: Optional[dict] = Field(None, description="User's starting location")
     route: List[RouteSegment] = Field(..., description="Ordered list of places in optimized route")
-    algorithm: str = Field(default="Simulated Annealing TSP", description="Algorithm used for optimization")
+    algorithm: str = Field(default="Nearest Neighbor TSP", description="Algorithm used for optimization")
 
 
 class PlacesResponse(BaseModel):

@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException, Path, Header
 from typing import Annotated
 import httpx
+import logging
 
 from app.models.schemas import PlacesResponse, OptimizedRouteResponse, ErrorResponse, OptimizeRouteRequest
 from app.services.external_api import external_api_client
 from app.services.optimizer import route_optimizer
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
 
@@ -131,9 +133,11 @@ async def optimize_trip_day_route(
             detail=f"Optimization error: {str(e)}"
         )
     except Exception as e:
+        logger.exception("Unhandled error during route optimization")
+        message = str(e) or repr(e)
         raise HTTPException(
             status_code=500,
-            detail=f"Internal server error during optimization: {str(e)}"
+            detail=f"Internal server error during optimization: {type(e).__name__}: {message}"
         )
 
 
@@ -147,5 +151,5 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "Route Optimization API",
-        "algorithm": "Simulated Annealing TSP"
+        "algorithm": route_optimizer.algorithm_name
     }
