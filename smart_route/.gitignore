@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Outputs
+outputs/
+logs/
+*.log
+
+# Qiskit cache
+.qiskit/
+
+# Test files
+test_*.py
+*_test.py
+
+# Temporary
+*.tmp
+*.bak
+~*
+
+# OS
+Thumbs.db
