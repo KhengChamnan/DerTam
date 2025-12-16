@@ -30,6 +30,9 @@ use App\Http\Controllers\API\Booking\HotelBookingController;
 use App\Http\Controllers\API\Booking\BusBookingController;
 use App\Http\Controllers\API\Payment\PaymentCallbackController;
 use App\Http\Controllers\API\Bus\BusScheduleController;
+use App\Http\Controllers\API\Restaurant\MenuItemController;
+use App\Http\Controllers\API\Restaurant\RestaurantPropertyController;
+use App\Http\Controllers\API\Restaurant\MenuCategoryController;
 
 
 
@@ -57,6 +60,11 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::controller(SocialAuthController::class)->group(function(){
         Route::post('auth/logout', 'logout');
     });
+
+    // Events CRUD (create, update, delete - protected)
+    Route::post('events', [ApiEventController::class, 'store']);
+    Route::put('events/{id}', [ApiEventController::class, 'update']);
+    Route::delete('events/{id}', [ApiEventController::class, 'destroy']);
 });
 
 Route::post(
@@ -80,6 +88,11 @@ Route::controller(PlaceBrowseController::class)->group(function(){
 Route::get('place-categories', [PlaceCategoryController::class, 'index']);
 Route::get('places/recommended', [RecommendationController::class, 'index']);
 Route::get('events/upcoming', [ApiEventController::class, 'upcoming']);
+Route::get('slideshow', [ApiEventController::class, 'slideshow']);
+
+// Events CRUD routes (public read, auth required for write)
+Route::get('events', [ApiEventController::class, 'index']);
+Route::get('events/{id}', [ApiEventController::class, 'show']);
 
 // Place detail routes (public)
 Route::get('places/{placeId}/details', [PlaceDetailController::class, 'show']);  // Get place details with nearby hotels & restaurants
@@ -92,11 +105,31 @@ Route::get('hotel-details/{place_id}', [HotelPropertyController::class, 'show'])
 Route::get('/rooms/{room_properties_id}', [RoomController::class, 'show']);
 Route::post('/rooms/search', [App\Http\Controllers\API\Hotel\RoomSearchController::class, 'searchAvailableRooms']);
 
+// Hotel search by province
+Route::get('/hotels/search', [App\Http\Controllers\API\Hotel\HotelSearchController::class, 'searchHotels']);
+
 // Public bus schedule search route
 Route::get('bus/search', [BusScheduleController::class, 'searchBusSchedules']);
 Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJourneys']);
 
 Route::get('expense-categories', [ExpenseController::class, 'getExpenseCategories']); // Get all expense categories
+
+// Restaurant Menu Categories routes (public)
+Route::get('menu-categories', [MenuCategoryController::class, 'index']);           // Get all menu categories
+Route::get('menu-categories/{id}', [MenuCategoryController::class, 'show']);       // Get single menu category
+
+// Restaurant Menu Items routes (public read)
+Route::get('menu-items', [MenuItemController::class, 'index']);                    // Get all menu items with filters
+Route::get('menu-items/{id}', [MenuItemController::class, 'show']);                // Get single menu item
+Route::post('menu-items', [MenuItemController::class, 'store']);                   // Create menu item
+Route::post('menu-items/{id}', [MenuItemController::class, 'update']);             // Update menu item (POST for file uploads)
+Route::delete('menu-items/{id}', [MenuItemController::class, 'destroy']);          // Delete menu item
+Route::patch('menu-items/{id}/toggle-availability', [MenuItemController::class, 'toggleAvailability']); // Toggle availability
+
+// Restaurant Property routes (public)
+Route::get('restaurants', [RestaurantPropertyController::class, 'index']);         // Get all restaurant properties
+Route::get('restaurants/{placeId}', [RestaurantPropertyController::class, 'show']); // Get restaurant details with menu by place_id
+Route::get('restaurants/place/{placeId}', [RestaurantPropertyController::class, 'getByPlace']); // Get restaurants by place
 
 // ABA PayWay payment return/callback routes (must be public - no auth)
 Route::prefix('payments/aba')->group(function () {
@@ -126,7 +159,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('trips', 'store');           // Create a new trip
         Route::get('trips', 'index');            // Get all user trips
         Route::get('trips/{tripId}', 'show');    // Get specific trip with days
+        Route::get('trips/{tripId}/days/{dayNumber}', 'getDayPlaces'); // Get places for a specific day
         Route::post('/add-places/{trip_id}', 'addPlaces');
+        Route::delete('trips/{tripId}', 'destroy'); // Delete a trip
     });
 
     // Trip place selection routes (for adding places to trips)
@@ -165,8 +200,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/cancel', [HotelBookingController::class, 'cancelHotelBooking']);
         });
         
+
         // Bus booking routes
-        Route::post('/bus/create', [BusBookingController::class, 'createBusBooking']);
+        Route::prefix('bus')->group(function () {
+            Route::post('/create', [BusBookingController::class, 'createBusBooking']);
+            Route::get('/my-bookings', [BusBookingController::class, 'getMyBusBookings']);
+            Route::get('/{id}', [BusBookingController::class, 'getBusBookingDetails']);
+        });
         
         // Payment operations
         Route::get('/payment/status/{transactionId}', [PaymentCallbackController::class, 'checkPaymentStatus']);

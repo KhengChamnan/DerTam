@@ -1,5 +1,5 @@
-import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_request.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_request.dart';
 import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
@@ -18,11 +18,16 @@ abstract class HotelRepository {
   Future<List<BookingListResponse>> getAllHotelBooking();
   Future<BookingDetailResponse> getBookingDetails(String bookingId);
   Future<void> cancelHotelBooking(String bookingId);
-  Future<void> deleteBooking(String bookingId);
   Future<SearchRoomResponse> searchAvailableRooms(
     DateTime checkIn,
     DateTime checkOut,
     int guests,
-    int nights,
+    String placeID,
+  
+  );
+  Future<HotelListResponseData> searchAvailableHotel(
+    int provinceId,
+    DateTime checkIn,
+    DateTime checkOut,
   );
 }

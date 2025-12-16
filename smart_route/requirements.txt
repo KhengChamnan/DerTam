@@ -1,0 +1,43 @@
+# ============================================
+# Smart Route Optimization - FREE Libraries
+# All packages are 100% FREE and open-source
+# ============================================
+
+# Web Framework 
+fastapi                    # Modern Python web framework
+uvicorn[standard]          # ASGI server for FastAPI
+pydantic                   # Data validation
+
+# Classical Optimization 
+networkx                   # Graph algorithms for routing
+scikit-learn               # Machine learning for POI recommendations (will use latest compatible)
+scipy                      # Scientific computing
+
+# Quantum Computing
+qiskit                     # IBM's quantum computing framework
+qiskit-aer>=0.17.0         # Quantum circuit simulator (no hardware needed)
+qiskit-algorithms          # QAOA and optimization algorithms
+
+# Data Processing 
+numpy                      # Numerical computations
+pandas                     # Data manipulation
+matplotlib                 # Plotting and visualization
+seaborn                    # Statistical visualizations
+
+# Interactive UI 
+streamlit                  # Interactive web apps for ML/data science
+plotly                     # Interactive plotting library
+
+# Routing & Maps 
+geopy                      # Geocoding and distance calculations
+haversine                  # Great-circle distance (lat/lon)
+requests                   # HTTP client for OSRM API calls
+
+
+# Development Tools 
+python-dotenv              # Environment variable management
+pytest                     # Testing framework
+black                      # Code formatter
+flake8                     # Code linter
+
+

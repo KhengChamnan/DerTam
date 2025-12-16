@@ -1,0 +1,19 @@
+{
+  "province": "Phnom Penh",
+  "start_lat": 11.5625,
+  "start_lon": 104.931,
+  "start_time": "08:00:00",
+  "trip_duration": 8,
+  "max_distance": 10.0,
+  "num_pois": 4,
+  "interests": {
+    "historical": 8,
+    "temple": 9,
+    "museum": 6,
+    "market": 5,
+    "park": 7,
+    "mall": 3,
+    "entertainment": 5,
+    "beach": 6
+  }
+}

@@ -44,6 +44,7 @@ class FetchingData {
       rethrow;
     }
   }
+
   static Future<http.Response> updateData(
     String provideUrl,
     Map<String, String> param,
@@ -101,8 +102,6 @@ class FetchingData {
     String provideUrl,
     Map<String, String> param,
   ) async {
-    // Normalize the provided URL path and avoid accidental double slashes or
-    // passing a full URL into Uri.https (which would produce invalid URIs).
     final host = baseUrl.replaceAll('https://', '').replaceAll('http://', '');
     String path = provideUrl;
     if (path.startsWith('/')) path = path.substring(1);
@@ -111,7 +110,6 @@ class FetchingData {
     print('🌐 [FetchingData] Base URL: $host');
     print('🌐 [FetchingData] Provided URL: $provideUrl');
     try {
-      // Add a reasonable timeout so requests don't hang indefinitely.
       final response = await http
           .get(url, headers: param)
           .timeout(const Duration(seconds: 15));
@@ -154,5 +152,40 @@ class FetchingData {
     }
     final response = await http.post(url, headers: param, body: requestBody);
     return response;
+  }
+
+  /// Send a multipart POST request with file uploads
+  static Future<http.StreamedResponse> postMultipart(
+    String provideUrl,
+    Map<String, String> headers,
+    Map<String, String> fields,
+    Map<String, http.MultipartFile> files,
+  ) async {
+    var url = Uri.https(baseUrl.replaceAll('https://', ''), provideUrl);
+    var request = http.MultipartRequest('POST', url);
+
+    // Add headers (exclude Content-Type as it's set automatically for multipart)
+    headers.forEach((key, value) {
+      if (key.toLowerCase() != 'content-type') {
+        request.headers[key] = value;
+      }
+    });
+
+    // Add text fields
+    request.fields.addAll(fields);
+
+    // Add files
+    files.forEach((key, file) {
+      request.files.add(file);
+    });
+
+    try {
+      final response = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
   }
 }

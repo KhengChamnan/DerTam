@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:mobile_frontend/models/place/upcoming_event_place.dart';
+import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:provider/provider.dart';
 
 class HomeSlideShow extends StatefulWidget {
   const HomeSlideShow({super.key});
@@ -12,14 +15,76 @@ class HomeSlideShow extends StatefulWidget {
 
 class _HomeSlideShowState extends State<HomeSlideShow> {
   int _currentIndex = 0;
-  final List<String> _slides = [
-    'https://picsum.photos/800/600?random=1',
-    'https://picsum.photos/800/600?random=2',
-    'https://picsum.photos/800/600?random=3',
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PlaceProvider>().fetchSlideShow();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final placeProvider = context.watch<PlaceProvider>();
+    final slideShowState = placeProvider.slideShow;
+
+    return slideShowState.when(
+      empty: () => _buildPlaceholder(),
+      loading: () => _buildLoading(),
+      error: (error) => _buildError(error),
+      success: (slides) => _buildSlideShow(slides),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return SizedBox(
+      height: 220,
+      child: Center(
+        child: Text(
+          'No slides available',
+          style: TextStyle(color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return SizedBox(
+      height: 220,
+      child: Center(
+        child: CircularProgressIndicator(color: DertamColors.primaryBlue),
+      ),
+    );
+  }
+
+  Widget _buildError(Object error) {
+    return SizedBox(
+      height: 220,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.red),
+            SizedBox(height: 8),
+            Text('Failed to load slides', style: TextStyle(color: Colors.red)),
+            TextButton(
+              onPressed: () {
+                context.read<PlaceProvider>().fetchSlideShow();
+              },
+              child: Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlideShow(List<UpcomingEventPlace> slides) {
+    if (slides.isEmpty) {
+      return _buildPlaceholder();
+    }
+
     return Column(
       children: [
         CarouselSlider(
@@ -38,7 +103,7 @@ class _HomeSlideShowState extends State<HomeSlideShow> {
               });
             },
           ),
-          items: _slides.map((imagePath) {
+          items: slides.map((slide) {
             return Builder(
               builder: (BuildContext context) {
                 return Container(
@@ -50,7 +115,7 @@ class _HomeSlideShowState extends State<HomeSlideShow> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20.0),
                     child: Image.network(
-                      imagePath,
+                      slide.imageUrl ?? '',
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
@@ -64,7 +129,14 @@ class _HomeSlideShowState extends State<HomeSlideShow> {
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.image, size: 120, color: Colors.grey);
+                        return Container(
+                          color: Colors.grey[200],
+                          child: Icon(
+                            Icons.image,
+                            size: 120,
+                            color: Colors.grey,
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -75,7 +147,7 @@ class _HomeSlideShowState extends State<HomeSlideShow> {
         ),
         SizedBox(height: 16),
         DotsIndicator(
-          dotsCount: _slides.length,
+          dotsCount: slides.length,
           position: _currentIndex,
           decorator: DotsDecorator(
             size: const Size.square(8.0),

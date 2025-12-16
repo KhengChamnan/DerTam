@@ -22,7 +22,7 @@ import {
     Bed,
     DollarSign,
     DoorOpen,
-    Edit,
+    Pencil,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -33,6 +33,7 @@ interface RoomProperty {
     max_guests: number;
     room_size?: string;
     price_per_night: number;
+    images_url?: string;
     rooms?: Array<{
         room_id: number;
         room_number: string;
@@ -296,7 +297,7 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
                             href={`/hotel-owner/properties/${property.property_id}/room-properties/create`}
                         >
                             <Bed className="h-4 w-4 mr-2" />
-                            Add New Room Type
+                            Add Room Type
                         </Link>
                     </Button>
                 </div>
@@ -314,6 +315,40 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
                                     key={roomType.room_properties_id}
                                     className="hover:shadow-lg transition-shadow"
                                 >
+                                    {/* Image Display */}
+                                    {roomType.images_url &&
+                                        (() => {
+                                            try {
+                                                // Handle both array and string formats
+                                                const images =
+                                                    typeof roomType.images_url ===
+                                                    "string"
+                                                        ? JSON.parse(
+                                                              roomType.images_url
+                                                          )
+                                                        : roomType.images_url;
+
+                                                return Array.isArray(images) &&
+                                                    images.length > 0 ? (
+                                                    <div className="h-48 overflow-hidden bg-muted">
+                                                        <img
+                                                            src={images[0]}
+                                                            alt={
+                                                                roomType.room_type
+                                                            }
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    </div>
+                                                ) : null;
+                                            } catch (e) {
+                                                console.error(
+                                                    "Error parsing room images:",
+                                                    e
+                                                );
+                                                return null;
+                                            }
+                                        })()}
+
                                     <CardHeader>
                                         <div className="flex items-start justify-between">
                                             <div className="space-y-1 flex-1">
@@ -427,7 +462,7 @@ export default function HotelOwnerPropertiesIndex({ property }: Props) {
                                                 <Link
                                                     href={`/hotel-owner/properties/${property.property_id}/room-properties/${roomType.room_properties_id}/edit`}
                                                 >
-                                                    <Edit className="h-4 w-4 mr-2" />
+                                                    <Pencil className="h-4 w-4 mr-2" />
                                                     Edit Room Type
                                                 </Link>
                                             </Button>

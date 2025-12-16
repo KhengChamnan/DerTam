@@ -3,6 +3,7 @@ import 'package:mobile_frontend/models/trips/trips.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_detail_screen.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_join_trip_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:provider/provider.dart';
@@ -22,17 +23,15 @@ class _DertamTripScreenState extends State<DertamTripScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TripProvider>().fetchAllTrip();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<TripProvider>().fetchAllTrip();
     });
   }
-
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-
   List<Trip> _filterUpcomingTrips(List<Trip> trips) {
     final now = DateTime.now();
     return trips
@@ -87,11 +86,88 @@ class _DertamTripScreenState extends State<DertamTripScreen>
     return now.difference(trip.endDate).inDays;
   }
 
+  void _showJoinTripDialog() {
+    final TextEditingController codeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.group_add, color: DertamColors.primaryBlue),
+            SizedBox(width: 8),
+            Text('Join a Trip'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter the invitation code shared with you:',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: codeController,
+              decoration: InputDecoration(
+                hintText: 'e.g., RcQ29ALUpJXNC...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: Icon(Icons.vpn_key),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'The code is the last part of the shared link',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final code = codeController.text.trim();
+              if (code.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter an invitation code'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => JoinTripScreen(shareToken: code),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DertamColors.primaryBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Join Trip'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DertamColors.white,
-
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         automaticallyImplyLeading: false,
@@ -210,21 +286,30 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                 children: [
                   // Upcoming Trips Tab
                   upcomingTrips.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.card_travel,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'No upcoming trips',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                      ? RefreshIndicator(
+                          onRefresh: () => tripProvider.fetchAllTrip(),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 200),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.card_travel,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'No upcoming trips',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -259,17 +344,30 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                         ),
                   // Past Trips Tab
                   pastTrips.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.history, size: 64, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text(
-                                'No past trips',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                      ? RefreshIndicator(
+                          onRefresh: () => tripProvider.fetchAllTrip(),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 200),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.history,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'No past trips',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -306,18 +404,39 @@ class _DertamTripScreenState extends State<DertamTripScreen>
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Navigate to create trip screen
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => TripPlanning()),
-          );
-        },
-        backgroundColor: DertamColors.white,
-        shape: const CircleBorder(),
-        elevation: 4,
-        child: Icon(Icons.add, color: DertamColors.primaryBlue, size: 32),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Join Trip Button
+          FloatingActionButton(
+            heroTag: 'join_trip',
+            onPressed: _showJoinTripDialog,
+            backgroundColor: DertamColors.white,
+            shape: const CircleBorder(),
+            elevation: 4,
+            child: Icon(
+              Icons.group_add,
+              color: DertamColors.primaryBlue,
+              size: 28,
+            ),
+          ),
+          SizedBox(height: 12),
+          // Create Trip Button
+          FloatingActionButton(
+            heroTag: 'create_trip',
+            onPressed: () {
+              // Navigate to create trip screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TripPlanning()),
+              );
+            },
+            backgroundColor: DertamColors.white,
+            shape: const CircleBorder(),
+            elevation: 4,
+            child: Icon(Icons.add, color: DertamColors.primaryBlue, size: 32),
+          ),
+        ],
       ),
       bottomNavigationBar: const Navigationbar(currentIndex: 2),
     );

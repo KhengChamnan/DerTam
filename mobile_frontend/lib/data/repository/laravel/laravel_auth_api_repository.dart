@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:logging/logging.dart';
 import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/auth_repository.dart';
 import 'package:mobile_frontend/data/dto/auth_dto.dart';
 import 'package:mobile_frontend/data/network/api_constant.dart';
 import 'package:mobile_frontend/models/user/user_model.dart';
+import 'package:share_plus/share_plus.dart';
 
 ///
 /// Laravel Auth API Repository
@@ -283,23 +286,28 @@ class LaravelAuthApiRepository extends AuthRepository {
   }
 
   @override
-  Future<User> resetPassword(String email, String newPassword) async {
+  Future<User> resetPassword(
+    String email,
+    String password,
+    String passwordConfirmation,
+  ) async {
     try {
-      final body = {'email': email, 'newPassword': newPassword};
+      final body = {
+        'email': email,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      };
       final response = await FetchingData.postHeader(
         ApiEndpoint.resetPassword,
         await _getHeaders(),
         body,
       );
-
       if (response.statusCode == 200) {
         final responseBody = json.decode(response.body);
         final data = responseBody['data'];
-
         if (data != null && data is Map) {
           return User.fromJson(Map<String, dynamic>.from(data));
         }
-
         return User(id: 0, name: '', email: email);
       }
 
@@ -313,10 +321,9 @@ class LaravelAuthApiRepository extends AuthRepository {
   /// Logout user and clear stored token
   Future<void> logout() async {
     try {
-      await FetchingData.postWithHeaderOnly(
-        ApiEndpoint.logout,
-        await _getHeaders(includeToken: true),
-      );
+      final token = await getToken();
+      final header = _getAuthHeaders(token ?? '');
+      await FetchingData.postWithHeaderOnly(ApiEndpoint.logout, header);
 
       await deleteToken();
       await _googleSignIn.signOut();
@@ -358,6 +365,7 @@ class LaravelAuthApiRepository extends AuthRepository {
         await _getHeaders(),
         {'access_token': googleAuth.accessToken},
       );
+      print('User Login with google response : ${response.body}');
 
       if (response.statusCode == 200) {
         final responseBody = json.decode(response.body);
@@ -374,7 +382,7 @@ class LaravelAuthApiRepository extends AuthRepository {
 
         await saveToken(accessToken);
         _cachedToken = accessToken;
-        return User.fromJson(data ?? responseBody['user']);
+        return User.fromGoodgleLogin(data ?? responseBody['user']);
       }
 
       final responseBody = json.decode(response.body);
@@ -419,6 +427,12 @@ class LaravelAuthApiRepository extends AuthRepository {
           throw Exception('Response does not contain "data" field');
         }
 
+        // Debug: Print the profile_photo_url from API
+        print(
+          '🔍 API Response - profile_photo_url: ${jsonData['profile_photo_url']}',
+        );
+        print('🔍 Full user data from API: $jsonData');
+
         return User.fromJson(jsonData);
       }
 
@@ -433,6 +447,152 @@ class LaravelAuthApiRepository extends AuthRepository {
       throw Exception('Failed to load user info: ${response.statusCode}');
     } catch (e) {
       _logger.severe('getUserInfo error: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateProfile(
+    String? name,
+    String? email,
+    String? phone,
+    String? age,
+    String? gender,
+    XFile? profileImage,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('No authentication token found');
+      }
+
+      // If there's an image, use multipart form data
+      if (profileImage != null) {
+        final headers = {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        };
+
+        final fields = <String, String>{};
+        if (name != null && name.isNotEmpty) fields['name'] = name;
+        if (email != null && email.isNotEmpty) fields['email'] = email;
+        if (phone != null && phone.isNotEmpty) fields['phone_number'] = phone;
+        if (age != null && age.isNotEmpty) fields['age'] = age;
+        if (gender != null && gender.isNotEmpty) {
+          fields['gender'] = gender.toLowerCase();
+        }
+        final bytes = await profileImage.readAsBytes();
+        final fileName = profileImage.name;
+        final mimeType = _getMimeType(fileName);
+
+        final multipartFile = http.MultipartFile.fromBytes(
+          'profile_image',
+          bytes,
+          filename: fileName,
+          contentType: MediaType.parse(mimeType),
+        );
+        final files = <String, http.MultipartFile>{
+          'profile_image': multipartFile,
+        };
+
+        _logger.info('Updating profile with multipart data, fields: $fields');
+
+        final response = await FetchingData.postMultipart(
+          ApiEndpoint.updateProfile,
+          headers,
+          fields,
+          files,
+        );
+
+        final responseBody = await response.stream.bytesToString();
+        _logger.info(
+          'Update profile response: ${response.statusCode} - $responseBody',
+        );
+
+        if (response.statusCode != 200) {
+          throw Exception(
+            'Failed to update profile: ${response.statusCode} - $responseBody',
+          );
+        }
+      } else {
+        // No image, use regular JSON request
+        final headers = _getAuthHeaders(token);
+        final body = <String, dynamic>{};
+        if (name != null && name.isNotEmpty) body['name'] = name;
+        if (email != null && email.isNotEmpty) body['email'] = email;
+        if (phone != null && phone.isNotEmpty) body['phone_number'] = phone;
+        if (age != null && age.isNotEmpty) {
+          body['age'] = int.tryParse(age) ?? age;
+        }
+        if (gender != null && gender.isNotEmpty) {
+          body['gender'] = gender.toLowerCase();
+        }
+        _logger.info('Updating profile with body: $body');
+        final response = await FetchingData.postHeader(
+          ApiEndpoint.updateProfile,
+          headers,
+          body,
+        );
+        _logger.info(
+          'Update profile response: ${response.statusCode} - ${response.body}',
+        );
+
+        if (response.statusCode != 200) {
+          throw Exception(
+            'Failed to update profile: ${response.statusCode} - ${response.body}',
+          );
+        }
+      }
+    } catch (e) {
+      _logger.severe('updateProfile error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get MIME type from file extension
+  String _getMimeType(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  @override
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+    String confirmPassword,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('No authentication token found');
+      }
+      final headers = _getAuthHeaders(token);
+      final body = {
+        'current_password': currentPassword,
+        'password': newPassword,
+        'password_confirmation': confirmPassword,
+      };
+      final response = await FetchingData.postHeader(
+        ApiEndpoint.changePassword,
+        headers,
+        body,
+      );
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to change password: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
       rethrow;
     }
   }

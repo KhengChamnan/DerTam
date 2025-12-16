@@ -2,11 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_frontend/models/restaurant/food_menu.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
-///
-/// Menu Item Card widget for displaying food menu items.
-/// Shows menu item image, name, and price in a card layout.
-/// Used in restaurant detail screen and other food menu displays.
-///
 class ListFoodMenu extends StatelessWidget {
   final MenuItem menuItem;
   const ListFoodMenu({super.key, required this.menuItem});
@@ -38,7 +33,7 @@ class ListFoodMenu extends StatelessWidget {
                 child: Stack(
                   children: [
                     Image.network(
-                      menuItem.imageUrl,
+                      menuItem.imageUrl!,
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,

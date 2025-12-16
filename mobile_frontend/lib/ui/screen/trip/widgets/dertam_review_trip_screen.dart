@@ -143,10 +143,14 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
       final dayKey = _normalizeDate(day);
       final placesForDay = _organizedPlaces[dayKey] ?? [];
 
-      final placeIds = placesForDay.map((item) {
-        final place = item['place'] as Place;
-        return int.parse(place.placeId);
-      }).toList();
+      final placeIds = placesForDay
+          .map((item) {
+            final place = item['place'] as Place;
+            return int.tryParse(place.placeId);
+          })
+          .where((id) => id != null)
+          .cast<int>()
+          .toList();
       dayPlaceIds['day${i + 1}'] = placeIds;
     }
     return dayPlaceIds;
@@ -183,7 +187,9 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
   void _navigateToEditPlaces() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => DertamAddPlaceToTrip(tripId: widget.tripId)),
+      MaterialPageRoute(
+        builder: (context) => DertamAddPlaceToTrip(tripId: widget.tripId),
+      ),
     ).then(_handleEditPlacesResult);
   }
 
@@ -243,9 +249,30 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: DertamColors.primaryBlue),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
         ),
         title: Text(
           'Review Your Trip',

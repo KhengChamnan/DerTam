@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:mobile_frontend/models/place/place_detail.dart';
 import 'package:mobile_frontend/models/restaurant/food_menu.dart';
+import 'package:mobile_frontend/ui/providers/restaurant_provider.dart';
+import 'package:mobile_frontend/ui/screen/dertam_map/place_map_screen.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/widget/food_category_tab.dart';
 import 'package:mobile_frontend/ui/screen/restaurant/widget/list_food_menu.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:provider/provider.dart';
 
-///
-/// Restaurant Detail Screen displays detailed information about a restaurant.
-/// Users can:
-/// - View restaurant images
-/// - See location, ratings, and description
-/// - Browse menu items by category (Food, Drink, Snack, Others)
-/// - See menu item prices
-///
 class RestaurantDetailScreen extends StatefulWidget {
   final NearByRestaurant restaurant;
 
@@ -25,7 +20,22 @@ class RestaurantDetailScreen extends StatefulWidget {
 
 class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   bool _isFavorite = false;
-  String _selectedCategory = 'Food';
+  String _selectedCategory = 'All';
+  int? _selectedCategoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
+  }
+
+  Future<void> _fetchData() async {
+    final provider = Provider.of<RestaurantProvider>(context, listen: false);
+    await provider.fetchMenuCategories();
+    await provider.fetchMenuItems(widget.restaurant.placeID.toString());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +46,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
           // App Bar with image
           SliverAppBar(
             expandedHeight: 250,
-            pinned: true,
+            pinned: false,
             backgroundColor: DertamColors.white,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -128,6 +138,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                     bottom: 16,
                     right: 16,
                     child: Container(
+                      height: 48,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
@@ -153,11 +164,27 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                             color: DertamColors.primaryDark,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            'Route',
-                            style: DertamTextStyles.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: DertamColors.primaryDark,
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PlaceMapScreen(
+                                    latitude: widget.restaurant.latitude,
+                                    longitude: widget.restaurant.longitude,
+                                    placeName: widget.restaurant.name,
+                                    googleMapsLink:
+                                        widget.restaurant.googleMapsLink,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Route',
+                              style: DertamTextStyles.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: DertamColors.primaryDark,
+                              ),
                             ),
                           ),
                         ],
@@ -215,7 +242,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   const SizedBox(height: DertamSpacings.s),
                   // Description
                   Text(
-                    'Malis Cambodian Cuisine draws inspiration from the ancient Angkor period, offering a unique flavor profile created through a masterful blend of spices. Each dish reflects Cambodia\'s rich botanical heritage.',
+                    widget.restaurant.description,
                     style: DertamTextStyles.bodyMedium.copyWith(
                       color: Colors.grey[700],
                       height: 1.5,
@@ -239,27 +266,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: DertamSpacings.xs),
-                  // Location
-                  Row(
-                    children: [
-                      Icon(
-                        Iconsax.location,
-                        size: 16,
-                        color: DertamColors.primaryDark,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'TK ${widget.restaurant.googleMapsLink}',
-                          style: DertamTextStyles.bodyMedium.copyWith(
-                            color: DertamColors.primaryDark,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: DertamSpacings.l),
+                  const SizedBox(height: DertamSpacings.s),
                   // Menu section title
                   Text(
                     'Menu',
@@ -269,8 +276,6 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       fontSize: 20,
                     ),
                   ),
-
-                  const SizedBox(height: DertamSpacings.s),
                 ],
               ),
             ),
@@ -278,65 +283,138 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
 
           // Menu category tabs
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.m),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    FoodCategoryTab(
-                      icon: Iconsax.cake,
-                      label: 'Food',
-                      isSelected: _selectedCategory == 'Food',
-                      onTap: () {
-                        setState(() {
-                          _selectedCategory = 'Food';
-                        });
-                      },
-                    ),
-                    const SizedBox(width: DertamSpacings.xs),
-
-                    FoodCategoryTab(
-                      label: 'Drink',
-                      icon: Iconsax.cup,
-                      isSelected: _selectedCategory == 'Drink',
-                      onTap: () {
-                        setState(() {
-                          _selectedCategory = 'Drink';
-                        });
-                      },
-                    ),
-                    const SizedBox(width: DertamSpacings.xs),
-                    FoodCategoryTab(
-                      icon: Iconsax.coffee,
-                      label: 'Snack',
-                      isSelected: _selectedCategory == 'Snack',
-                      onTap: () {
-                        setState(() {
-                          _selectedCategory = 'Snack';
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
+            child: Consumer<RestaurantProvider>(
+              builder: (context, provider, child) {
+                return provider.menuCategoriesSnapshot.when(
+                  empty: () => const SizedBox.shrink(),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: DertamSpacings.m),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error) => const SizedBox.shrink(),
+                  success: (categories) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DertamSpacings.m,
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            FoodCategoryTab(
+                              icon: Iconsax.menu_board,
+                              label: 'All',
+                              isSelected: _selectedCategory == 'All',
+                              onTap: () {
+                                setState(() {
+                                  _selectedCategory = 'All';
+                                  _selectedCategoryId = null;
+                                });
+                              },
+                            ),
+                            const SizedBox(width: DertamSpacings.xs),
+                            ...categories.map((category) {
+                              final categoryName =
+                                  category.categoryName ?? 'Unknown';
+                              IconData icon = _getCategoryIcon(categoryName);
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  right: DertamSpacings.xs,
+                                ),
+                                child: FoodCategoryTab(
+                                  icon: icon,
+                                  label: categoryName,
+                                  isSelected: _selectedCategory == categoryName,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedCategory = categoryName;
+                                      _selectedCategoryId = category.menuId;
+                                    });
+                                  },
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: DertamSpacings.m)),
           // Menu items grid
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.m),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: DertamSpacings.s,
-                mainAxisSpacing: DertamSpacings.s,
-                childAspectRatio: 0.85,
-              ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return ListFoodMenu(menuItem: _getMenuItems()[index]);
-              }, childCount: _getMenuItems().length),
-            ),
+          Consumer<RestaurantProvider>(
+            builder: (context, provider, child) {
+              return provider.menuItems.when(
+                empty: () => const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(DertamSpacings.l),
+                    child: Center(
+                      child: Text(
+                        'No menu items available',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
+                loading: () => const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(DertamSpacings.l),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+                error: (error) => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(DertamSpacings.l),
+                    child: Center(
+                      child: Text(
+                        'Error: ${error.toString()}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ),
+                success: (menuData) {
+                  final filteredItems = _filterMenuItems(
+                    menuData.data.menuItems,
+                  );
+
+                  if (filteredItems.isEmpty) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(DertamSpacings.l),
+                        child: Center(
+                          child: Text(
+                            'No items in this category',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DertamSpacings.m,
+                    ),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: DertamSpacings.s,
+                            mainAxisSpacing: DertamSpacings.s,
+                            childAspectRatio: 0.85,
+                          ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        return ListFoodMenu(menuItem: filteredItems[index]);
+                      }, childCount: filteredItems.length),
+                    ),
+                  );
+                },
+              );
+            },
           ),
           const SliverToBoxAdapter(child: SizedBox(height: DertamSpacings.l)),
         ],
@@ -344,35 +422,26 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     );
   }
 
-  /// Get menu items based on selected category
-  List<MenuItem> _getMenuItems() {
-    // Dummy menu data
-    final allItems = [
-      MenuItem(
-        name: 'Nom banh chok',
-        imageUrl:
-            'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400',
-        price: '5',
-      ),
-      MenuItem(
-        name: 'Nom banh chok',
-        imageUrl:
-            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
-        price: '5',
-      ),
-      MenuItem(
-        name: 'Nom banh chok',
-        imageUrl:
-            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-        price: '5',
-      ),
-      MenuItem(
-        name: 'Chez Teritori',
-        imageUrl:
-            'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
-        price: '5',
-      ),
-    ];
-    return allItems;
+  List<MenuItem> _filterMenuItems(List<MenuItem> items) {
+    if (_selectedCategoryId == null) {
+      return items;
+    }
+    return items
+        .where((item) => item.menuCategoryId == _selectedCategoryId)
+        .toList();
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    final lowerName = categoryName.toLowerCase();
+    if (lowerName.contains('food') || lowerName.contains('main')) {
+      return Iconsax.cake;
+    } else if (lowerName.contains('drink') || lowerName.contains('beverage')) {
+      return Iconsax.cup;
+    } else if (lowerName.contains('snack') || lowerName.contains('appetizer')) {
+      return Iconsax.coffee;
+    } else if (lowerName.contains('dessert')) {
+      return Iconsax.cake;
+    }
+    return Iconsax.menu_board;
   }
 }

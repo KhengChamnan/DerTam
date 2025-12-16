@@ -5,6 +5,7 @@ import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/screen/user_preference/dertam_user_preferrence.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 
 class SplashBody extends StatefulWidget {
@@ -20,8 +21,7 @@ class _SplashBodyState extends State<SplashBody> {
   @override
   void initState() {
     super.initState();
-    // short visible delay then initialize app
-    Future.delayed(const Duration(milliseconds: 1600), () {
+    Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       setState(() => _isPreparing = true);
       _initializeApp();
@@ -41,11 +41,17 @@ class _SplashBodyState extends State<SplashBody> {
       Widget nextScreen;
       if (storedToken != null && storedToken.isNotEmpty) {
         await authProvider.initializeAuth();
-        nextScreen = HomePage();
+        await authProvider.checkPreferencesCompleted();
+        final preferencesCompleted = authProvider.hasCompletedPreferences;
+        if (preferencesCompleted.state == AsyncValueState.success &&
+            preferencesCompleted.data == false) {
+          nextScreen = const DertamUserPreferrence();
+        } else {
+          nextScreen = HomePage();
+        }
       } else {
         nextScreen = const DertamLoginScreen();
       }
-
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

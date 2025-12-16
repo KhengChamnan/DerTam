@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:location/location.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/budget_provider.dart';
@@ -9,13 +12,12 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/place/place.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_place_card.dart';
+import 'package:mobile_frontend/ui/screen/dertam_map/dertam_map.dart';
 import 'package:provider/provider.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final String tripId;
-
   const TripDetailScreen({super.key, required this.tripId});
-
   @override
   State<TripDetailScreen> createState() => _TripDetailScreenState();
 }
@@ -44,12 +46,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       );
       return;
     }
-
     try {
       // Try to fetch budget for this trip
       await budgetProvider.getBudgetDetail(tripId);
       final budgetState = budgetProvider.getBudgetDetails;
-
       // Check if budget exists - check state is success and has valid budget data
       if (budgetState.state == AsyncValueState.success &&
           budgetState.data != null &&
@@ -104,97 +104,309 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
-  void _openMap() {
+  void _navigateToMap(int totalDays, String tripId) async {
+    // Get user's current location
+    Location location = Location();
+    double? userLat;
+    double? userLng;
+
+    try {
+      // Check if location service is enabled
+      bool serviceEnabled = await location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location service is disabled'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          // Continue without location
+        }
+      }
+
+      // Check if permission is granted
+      PermissionStatus permissionGranted = await location.hasPermission();
+      if (permissionGranted == PermissionStatus.denied) {
+        permissionGranted = await location.requestPermission();
+        if (permissionGranted != PermissionStatus.granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Location permission denied'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          // Continue without location
+        }
+      }
+
+      // Get current location if service enabled and permission granted
+      if (serviceEnabled && permissionGranted == PermissionStatus.granted) {
+        LocationData locationData = await location.getLocation();
+        userLat = locationData.latitude;
+        userLng = locationData.longitude;
+        print('User location: $userLat, $userLng');
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+      // Continue without location
+    }
+
+    // Show day selection dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Select Day to View Route'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: totalDays,
+              itemBuilder: (context, index) {
+                final dayNumber = index + 1;
+                return ListTile(
+                  leading: Icon(
+                    Icons.calendar_today,
+                    color: DertamColors.primaryDark,
+                  ),
+                  title: Text('Day $dayNumber'),
+                  onTap: () {
+                    Navigator.pop(context); // Close dialog
+                    // Navigate to map with selected day and user location
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RouteMapPage(
+                          tripId: int.parse(tripId),
+                          dayNumber: dayNumber,
+                          startLatitude: userLat,
+                          startLongitude: userLng,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _shareTrip() async {
+    final tripProvider = context.read<TripProvider>();
+    final tripDetailState = tripProvider.getTripDetail;
+    final tripId = tripDetailState.data?.data.tripId?.toString() ?? '';
+    if (tripId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Trip ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(color: DertamColors.primaryDark),
+            SizedBox(width: 16),
+            Text('Generating share link...'),
+          ],
+        ),
+      ),
+    );
+    try {
+      final shareResponse = await tripProvider.generateShareableLink(tripId);
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      if (shareResponse.success && shareResponse.data != null) {
+        final shareLink = shareResponse.data!.shareLink;
+        final token = shareResponse.data!.token;
+        final expiresAt = shareResponse.data!.expiresAt;
+        // Show share dialog with link
+        if (mounted) {
+          _showShareDialog(shareLink, token, expiresAt);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(shareResponse.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate share link: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showShareDialog(String shareLink, String token, DateTime expiresAt) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.map, color: DertamColors.primaryDark),
+            Icon(Icons.share, color: DertamColors.primaryDark),
             SizedBox(width: 8),
-            Text('Trip Map'),
+            Text('Share Trip'),
           ],
         ),
-        content: Text('View all trip locations on the map.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Invitation Code Section
+            Text(
+              'Invitation Code:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            SizedBox(height: 8),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: DertamColors.primaryDark.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: DertamColors.primaryDark.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SelectableText(
+                      token,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: DertamColors.primaryDark,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.copy,
+                      size: 20,
+                      color: DertamColors.primaryDark,
+                    ),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: token));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Invitation code copied!'),
+                          backgroundColor: DertamColors.primaryDark,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    tooltip: 'Copy code',
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+            // Instructions
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Share this code with friends. They can join by tapping the "Join Trip" button in the My Trips screen.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Expires: ${_formatExpiryDate(expiresAt)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Close'),
           ),
-          ElevatedButton(
-            onPressed: () {
+          ElevatedButton.icon(
+            onPressed: () async {
               Navigator.pop(context);
-              // Navigate to map screen
+              await Share.share(
+                'Join my trip on Dertam! 🌍✈️\n\nInvitation Code: $token\n\nOpen the Dertam app → My Trips → Tap "Join Trip" button → Enter the code above',
+                subject: 'Dertam Trip Invitation',
+              );
             },
+            icon: Icon(Icons.share, size: 18),
+            label: Text('Share'),
             style: ElevatedButton.styleFrom(
               backgroundColor: DertamColors.primaryDark,
+              foregroundColor: Colors.white,
             ),
-            child: Text('Open Map', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  void _shareTrip() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Share Trip'),
-        content: Text('Share functionality will be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Map<String, dynamic>> _getMockUsers() {
-    return [
-      {
-        'id': 'current_user',
-        'name': 'You',
-        'initial': 'Y',
-        'color': DertamColors.primaryDark,
-        'isCurrentUser': true,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_2',
-        'name': 'Alice',
-        'initial': 'A',
-        'color': Colors.purple[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_3',
-        'name': 'Bob',
-        'initial': 'B',
-        'color': Colors.pink[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_4',
-        'name': 'Charlie',
-        'initial': 'C',
-        'color': Colors.orange[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
-      {
-        'id': 'user_5',
-        'name': 'Diana',
-        'initial': 'D',
-        'color': Colors.green[300],
-        'isCurrentUser': false,
-        'imageUrl': null,
-      },
+  String _formatExpiryDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   String _formatDateRange(DateTime startDate, DateTime endDate) {
@@ -301,6 +513,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         final tripId = tripData.tripId ?? '';
         final startDate = tripData.startDate ?? DateTime.now();
         final endDate = tripData.endDate ?? DateTime.now();
+        final accessType = tripData.accessType;
+        final isOwner = accessType == 'owned';
 
         // Get days from API response and sort them
         final daysData = tripData.days ?? {};
@@ -438,48 +652,74 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             ],
                           ),
                         ),
-                        Row(
-                          children: [
-                            // Original Avatar stack
-                            AvatarStack(users: _getMockUsers()),
-                            SizedBox(width: 8), // Original spacing
-                            // Slightly smaller Share button
-                            GestureDetector(
-                              onTap: _shareTrip,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 14, // Slightly reduced
-                                  vertical: 6, // Reduced padding
-                                ),
-                                decoration: BoxDecoration(
-                                  color: DertamColors.primaryDark,
-                                  borderRadius: BorderRadius.circular(
-                                    18,
+
+                        if (isOwner)
+                          GestureDetector(
+                            onTap: _shareTrip,
+                            child: Container(
+                              height: 40,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 14, // Slightly reduced
+                                vertical: 6, // Reduced padding
+                              ),
+                              decoration: BoxDecoration(
+                                color: DertamColors.primaryDark,
+                                borderRadius: BorderRadius.circular(
+                                  18,
+                                ), // Slightly smaller
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.share,
+                                    color: DertamColors.white,
+                                    size: 15,
                                   ), // Slightly smaller
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.share,
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Share',
+                                    style: TextStyle(
                                       color: DertamColors.white,
-                                      size: 15,
-                                    ), // Slightly smaller
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Share',
-                                      style: TextStyle(
-                                        color: DertamColors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        if (!isOwner)
+                          Container(
+                            height: 40,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.visibility,
+                                  color: Colors.grey[600],
+                                  size: 15,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'View Only',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -495,7 +735,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   final dayDate =
                       dayData.date ?? startDate.add(Duration(days: index));
                   final placesForDay = dayData.places ?? [];
-
                   return TripDayCard(
                     dayNumber: dayNumber,
                     date: dayDate,
@@ -508,96 +747,105 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
-          // Floating Action Buttons
-          floatingActionButton: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Budget button
-              FloatingActionButton(
-                heroTag: "budget",
-                onPressed: () => _openBudget(context),
-                backgroundColor: Colors.white,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: DertamColors.primaryDark,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-
-              // Add more places button
-              FloatingActionButton(
-                heroTag: "add",
-                onPressed: () {
-                  // Collect existing places from all days
-                  final existingPlaces = <Map<String, dynamic>>[];
-                  for (var dayEntry in sortedDays) {
-                    final dayData = dayEntry.value;
-                    final dayDate =
-                        dayData.date ??
-                        startDate.add(
-                          Duration(
-                            days:
-                                int.parse(dayEntry.key.replaceAll('day_', '')) -
-                                1,
-                          ),
-                        );
-                    final placesForDay = dayData.places ?? [];
-
-                    for (var place in placesForDay) {
-                      existingPlaces.add({
-                        'place': place,
-                        'selectedDate': dayDate,
-                        'addedAt': DateTime.now(),
-                      });
-                    }
-                  }
-
-                  // Navigate to ReviewTripScreen with existing places
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReviewTripScreen(
-                        tripId: tripId.toString(),
-                        tripName: tripName,
-                        startDate: startDate,
-                        endDate: endDate,
-                        addedPlaces: existingPlaces,
+          // Floating Action Buttons - Only show for owners
+          floatingActionButton: isOwner
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Budget button
+                    FloatingActionButton(
+                      heroTag: "budget",
+                      onPressed: () => _openBudget(context),
+                      backgroundColor: Colors.white,
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: DertamColors.primaryDark,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
-                  ).then((result) {
-                    // Refresh trip details after adding places
-                    if (result != null) {
-                      tripProvider.fetchTripDetail(widget.tripId);
-                    }
-                  });
-                },
-                backgroundColor: DertamColors.white,
-                child: Icon(
-                  Icons.add,
-                  color: DertamColors.primaryDark,
-                  size: 30,
-                ),
-              ),
-              SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-              // Map button
-              FloatingActionButton(
-                heroTag: "map",
-                onPressed: _openMap,
-                backgroundColor: DertamColors.primaryDark,
-                child: Icon(Icons.map, color: Colors.white, size: 24),
-              ),
-            ],
-          ),
+                    FloatingActionButton(
+                      heroTag: "map",
+                      onPressed: () =>
+                          _navigateToMap(sortedDays.length, tripId.toString()),
+                      backgroundColor: DertamColors.white,
+                      child: Icon(
+                        Icons.map,
+                        color: DertamColors.primaryDark,
+                        size: 24,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    // Add more places button
+                    FloatingActionButton(
+                      heroTag: "add",
+                      onPressed: () {
+                        // Collect existing places from all days
+                        final existingPlaces = <Map<String, dynamic>>[];
+                        for (var dayEntry in sortedDays) {
+                          final dayData = dayEntry.value;
+                          final dayDate =
+                              dayData.date ??
+                              startDate.add(
+                                Duration(
+                                  days:
+                                      int.parse(
+                                        dayEntry.key.replaceAll('day_', ''),
+                                      ) -
+                                      1,
+                                ),
+                              );
+                          final placesForDay = dayData.places ?? [];
+
+                          for (var place in placesForDay) {
+                            existingPlaces.add({
+                              'place': place,
+                              'selectedDate': dayDate,
+                              'addedAt': DateTime.now(),
+                            });
+                          }
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReviewTripScreen(
+                              tripId: tripId.toString(),
+                              tripName: tripName,
+                              startDate: startDate,
+                              endDate: endDate,
+                              addedPlaces: existingPlaces,
+                            ),
+                          ),
+                        ).then((result) {
+                          if (result != null) {
+                            tripProvider.fetchTripDetail(widget.tripId);
+                          }
+                        });
+                      },
+                      backgroundColor: DertamColors.white,
+                      child: Text(
+                        'Edit',
+                        style: TextStyle(
+                          color: DertamColors.primaryDark,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                  ],
+                )
+              : null, 
         );
       },
     );

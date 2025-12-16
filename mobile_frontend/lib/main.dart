@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_budget_api_repository.dart';
+import 'package:mobile_frontend/data/repository/laravel/laravel_bus_booking_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_hotel_api_repository.dart';
+import 'package:mobile_frontend/data/repository/laravel/laravel_restaurant_api_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_trip_api_repository.dart';
 import 'package:mobile_frontend/ui/providers/budget_provider.dart';
+import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
+import 'package:mobile_frontend/ui/providers/restaurant_provider.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
 import 'package:mobile_frontend/ui/screen/splash/spalsh_screen.dart';
+import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_join_trip_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
@@ -15,21 +20,23 @@ import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
 
 void main() {
+  // Create a single shared auth repository instance for all providers
   final authRepository = LaravelAuthApiRepository();
   final hotelRepository = LaravelHotelApiRepository(authRepository);
   final tripRepository = LaravelTripApiRepository(authRepository);
-  final budgetRepository = LaravelBudgetApiRepository(
-    repository: authRepository,
-  );
+  final budgetRepository = LaravelBudgetApiRepository(authRepository);
+  final busBookingRepository = LaravelBusBookingApiRepository(authRepository);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) =>
-              AuthProvider(authRepository: LaravelAuthApiRepository()),
+          create: (_) => AuthProvider(
+            authRepository: authRepository,
+          ), // Use shared instance
         ),
         ChangeNotifierProvider(
           create: (_) => PlaceProvider(repository: LaravelPlaceApiRepository()),
@@ -42,6 +49,15 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => BudgetProvider(repository: budgetRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              BusBookingProvider(busBookingRepository: busBookingRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RestaurantProvider(
+            restaurantRepository: LaravelRestaurantApiRepository(),
+          ),
         ),
       ],
       child: MyApp(),
@@ -102,28 +118,26 @@ class _MyAppState extends State<MyApp> {
       final status = uri.queryParameters['status'];
       final tranId = uri.queryParameters['tran_id'];
       print('Payment status: $status, Transaction ID: $tranId');
-      // Navigate to home or payment success screen
       if (status == 'success') {
-        // Show success and navigate to home
+        // Show success dialog
+        final context = navigatorKey.currentContext;
+        if (context != null) {
+          Future.delayed(const Duration(seconds: 5), () {
+            final ctx = navigatorKey.currentContext;
+            if (ctx != null) {
+              DertamBookingSuccessDialog.show(ctx);
+            }
+          });
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomePage()),
+            (route) => false,
+          );
+        }
+      } else {
         navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(builder: (context) => const HomePage()),
           (route) => false,
         );
-        // Show success message
-        Future.delayed(const Duration(milliseconds: 500), () {
-          final context = navigatorKey.currentContext;
-          if (context != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Payment successful! Transaction ID: $tranId'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-        });
-      } else {
-        // Handle payment failure or cancellation
         Future.delayed(const Duration(milliseconds: 500), () {
           final context = navigatorKey.currentContext;
           if (context != null) {
@@ -139,6 +153,15 @@ class _MyAppState extends State<MyApp> {
           }
         });
       }
+    } else if (uri.pathSegments.contains('share') &&
+        uri.pathSegments.length >= 3) {
+      final shareToken = uri.pathSegments.last;
+      // Navigate to JoinTripScreen with the token
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => JoinTripScreen(shareToken: shareToken),
+        ),
+      );
     }
   }
 

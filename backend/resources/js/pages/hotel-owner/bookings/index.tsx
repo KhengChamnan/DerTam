@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,8 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -31,6 +33,7 @@ import {
     Users,
     DollarSign,
     Eye,
+    Pencil,
     Hotel,
     Phone,
     Settings2,
@@ -39,6 +42,8 @@ import {
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
+    MoreHorizontal,
+    RefreshCw,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -82,6 +87,10 @@ interface Booking {
         check_out: string;
         nights: number;
     };
+    assigned_room?: {
+        room_id: number;
+        room_number: string;
+    };
     quantity: number;
     unit_price: number;
     total_price: number;
@@ -104,6 +113,7 @@ interface PaginatedBookings {
 
 interface ColumnVisibility {
     property: boolean;
+    assignedRoom: boolean;
     checkIn: boolean;
     checkOut: boolean;
     bookedOn: boolean;
@@ -135,9 +145,52 @@ export default function HotelOwnerBookingsIndex({
         links: [],
     },
 }: Props) {
+    const data = bookings.data || [];
+
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(15);
+
+    // Client-side filtering using useMemo (like in all rooms)
+    const filteredData = useMemo(() => {
+        return data.filter((booking) => {
+            // Search filter - only match guest name with prefix
+            const matchesSearch =
+                search === "" ||
+                booking.booking?.user?.name
+                    ?.toLowerCase()
+                    .startsWith(search.toLowerCase());
+
+            // Status filter
+            const matchesStatus =
+                statusFilter === "all" ||
+                booking.booking?.status === statusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [data, search, statusFilter]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredData.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredData.slice(start, end);
+    }, [filteredData, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -147,7 +200,9 @@ export default function HotelOwnerBookingsIndex({
             );
             if (savedPreferences) {
                 try {
-                    return JSON.parse(savedPreferences);
+                    const parsed = JSON.parse(savedPreferences);
+                    // Save back to localStorage on any change
+                    return parsed;
                 } catch (e) {
                     console.error(
                         "Failed to parse column visibility preferences:",
@@ -157,6 +212,7 @@ export default function HotelOwnerBookingsIndex({
             }
             return {
                 property: true,
+                assignedRoom: true,
                 checkIn: true,
                 checkOut: true,
                 bookedOn: true,
@@ -165,13 +221,15 @@ export default function HotelOwnerBookingsIndex({
         }
     );
 
-    // Save column visibility preferences
-    useEffect(() => {
+    // Save column visibility preferences on change
+    const updateColumnVisibility = (updates: Partial<ColumnVisibility>) => {
+        const newVisibility = { ...columnVisibility, ...updates };
+        setColumnVisibility(newVisibility);
         localStorage.setItem(
             "bookingsTableColumnVisibility",
-            JSON.stringify(columnVisibility)
+            JSON.stringify(newVisibility)
         );
-    }, [columnVisibility]);
+    };
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "confirmed":
@@ -224,7 +282,7 @@ export default function HotelOwnerBookingsIndex({
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search bookings..."
+                            placeholder="Search hotel bookings..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="pl-8"
@@ -264,22 +322,29 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.property}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         property: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Property
                             </DropdownMenuCheckboxItem>
                             <DropdownMenuCheckboxItem
                                 className="capitalize"
+                                checked={columnVisibility.assignedRoom}
+                                onCheckedChange={(value) =>
+                                    updateColumnVisibility({
+                                        assignedRoom: !!value,
+                                    })
+                                }
+                            >
+                                Assigned Room
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                className="capitalize"
                                 checked={columnVisibility.checkIn}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        checkIn: !!value,
-                                    }))
+                                    updateColumnVisibility({ checkIn: !!value })
                                 }
                             >
                                 Check-in
@@ -288,10 +353,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.checkOut}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         checkOut: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Check-out
@@ -300,10 +364,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.bookedOn}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         bookedOn: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Booked On
@@ -312,10 +375,9 @@ export default function HotelOwnerBookingsIndex({
                                 className="capitalize"
                                 checked={columnVisibility.paymentStatus}
                                 onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
+                                    updateColumnVisibility({
                                         paymentStatus: !!value,
-                                    }))
+                                    })
                                 }
                             >
                                 Payment Status
@@ -335,6 +397,10 @@ export default function HotelOwnerBookingsIndex({
                                     gridTemplateColumns: `2fr ${
                                         columnVisibility.property ? "2fr" : ""
                                     } ${
+                                        columnVisibility.assignedRoom
+                                            ? "1.2fr"
+                                            : ""
+                                    } ${
                                         columnVisibility.checkIn ? "1.5fr" : ""
                                     } ${
                                         columnVisibility.checkOut ? "1.5fr" : ""
@@ -351,6 +417,11 @@ export default function HotelOwnerBookingsIndex({
                                 {columnVisibility.property && (
                                     <div className="text-sm font-medium">
                                         Property
+                                    </div>
+                                )}
+                                {columnVisibility.assignedRoom && (
+                                    <div className="text-sm font-medium">
+                                        Assigned Room
                                     </div>
                                 )}
                                 {columnVisibility.checkIn && (
@@ -399,6 +470,10 @@ export default function HotelOwnerBookingsIndex({
                                                           ? "2fr"
                                                           : ""
                                                   } ${
+                                                      columnVisibility.assignedRoom
+                                                          ? "1.2fr"
+                                                          : ""
+                                                  } ${
                                                       columnVisibility.checkIn
                                                           ? "1.5fr"
                                                           : ""
@@ -424,6 +499,9 @@ export default function HotelOwnerBookingsIndex({
                                               {columnVisibility.property && (
                                                   <Skeleton className="h-4 w-24" />
                                               )}
+                                              {columnVisibility.assignedRoom && (
+                                                  <Skeleton className="h-4 w-16" />
+                                              )}
                                               {columnVisibility.checkIn && (
                                                   <Skeleton className="h-4 w-20" />
                                               )}
@@ -442,7 +520,7 @@ export default function HotelOwnerBookingsIndex({
                                           </div>
                                       </div>
                                   ))
-                                : bookings.data.map((booking) => (
+                                : filteredData.map((booking) => (
                                       <div
                                           key={booking.id}
                                           className="p-4 hover:bg-muted/50"
@@ -489,6 +567,24 @@ export default function HotelOwnerBookingsIndex({
                                                       {booking.room_property
                                                           ?.property?.place
                                                           ?.name || "Unknown"}
+                                                  </div>
+                                              )}
+                                              {columnVisibility.assignedRoom && (
+                                                  <div className="text-sm">
+                                                      {booking.assigned_room ? (
+                                                          <Badge variant="secondary">
+                                                              Room{" "}
+                                                              {
+                                                                  booking
+                                                                      .assigned_room
+                                                                      .room_number
+                                                              }
+                                                          </Badge>
+                                                      ) : (
+                                                          <span className="text-muted-foreground text-xs">
+                                                              Not assigned
+                                                          </span>
+                                                      )}
                                                   </div>
                                               )}
                                               {columnVisibility.checkIn && (
@@ -541,32 +637,68 @@ export default function HotelOwnerBookingsIndex({
                                                       )}
                                                   </div>
                                               )}
-                                              <div className="flex gap-2">
-                                                  <Button
-                                                      asChild
-                                                      size="sm"
-                                                      variant="outline"
+                                              <div className="flex items-center gap-2">
+                                                  <Link
+                                                      href={`/hotel-owner/bookings/${booking.id}/edit`}
                                                   >
-                                                      <Link
-                                                          href={`/hotel-owner/bookings/${booking.booking_id}`}
-                                                      >
-                                                          <Eye className="h-4 w-4" />
-                                                      </Link>
-                                                  </Button>
-                                                  {booking.booking.user
-                                                      ?.phone_number && (
                                                       <Button
-                                                          asChild
+                                                          variant="ghost"
                                                           size="sm"
-                                                          variant="outline"
                                                       >
-                                                          <a
-                                                              href={`tel:${booking.booking.user.phone_number}`}
-                                                          >
-                                                              <Phone className="h-4 w-4" />
-                                                          </a>
+                                                          <Pencil className="h-4 w-4" />
                                                       </Button>
-                                                  )}
+                                                  </Link>
+                                                  <DropdownMenu>
+                                                      <DropdownMenuTrigger
+                                                          asChild
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                          >
+                                                              <MoreHorizontal className="h-4 w-4" />
+                                                          </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/hotel-owner/bookings/${booking.id}`}
+                                                              >
+                                                                  <Eye className="mr-2 h-4 w-4" />
+                                                                  View details
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/hotel-owner/bookings/${booking.id}/edit`}
+                                                              >
+                                                                  <Pencil className="mr-2 h-4 w-4" />
+                                                                  Edit booking
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          {booking.booking.user
+                                                              ?.phone_number && (
+                                                              <>
+                                                                  <DropdownMenuSeparator />
+                                                                  <DropdownMenuItem
+                                                                      asChild
+                                                                  >
+                                                                      <a
+                                                                          href={`tel:${booking.booking.user.phone_number}`}
+                                                                      >
+                                                                          Call
+                                                                          guest
+                                                                          <Phone className="ml-2 h-4 w-4" />
+                                                                      </a>
+                                                                  </DropdownMenuItem>
+                                                              </>
+                                                          )}
+                                                      </DropdownMenuContent>
+                                                  </DropdownMenu>
                                               </div>
                                           </div>
                                       </div>
@@ -576,7 +708,7 @@ export default function HotelOwnerBookingsIndex({
                 </div>
 
                 {/* Empty State */}
-                {!isLoading && bookings.data.length === 0 && (
+                {!isLoading && filteredData.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

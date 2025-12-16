@@ -33,7 +33,7 @@ class _SetBudgetScreenState extends State<SetBudgetScreen> {
   // List of available currencies
   final List<Map<String, String>> _currencies = [
     {'code': 'USD', 'name': 'US Dollar', 'symbol': '\$'},
-    {'code': 'KHR', 'name': 'Cambodian Riel', 'symbol': '៛'},
+    {'code': 'KMR', 'name': 'Cambodian Riel', 'symbol': '៛'},
   ];
 
   @override
@@ -113,9 +113,30 @@ class _SetBudgetScreenState extends State<SetBudgetScreen> {
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
         ),
         actions: [
           TextButton(

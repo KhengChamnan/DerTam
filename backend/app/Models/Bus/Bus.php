@@ -70,7 +70,7 @@ class Bus extends Model
     public function transportation(): HasOneThrough
     {
         return $this->hasOneThrough(
-            Transportation::class,
+            \App\Models\Transportation::class,
             BusProperty::class,
             'id', // Foreign key on bus_properties table
             'id', // Foreign key on transportations table

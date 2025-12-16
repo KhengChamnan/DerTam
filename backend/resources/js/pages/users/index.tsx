@@ -1,17 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
 import { toast } from "sonner";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -37,13 +43,12 @@ import { type BreadcrumbItem, type User } from "@/types";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
     SearchIcon,
-    EditIcon,
-    TrashIcon,
+    Pencil,
+    Trash,
     Filter,
     Shield,
     Users,
     UserPlus,
-    Upload,
     Settings2,
     UserCog,
     MoreHorizontal,
@@ -99,10 +104,63 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function UsersIndex({ users, filters }: UsersPageProps) {
-    const [searchTerm, setSearchTerm] = useState(filters.search || "");
-    const [statusFilter, setStatusFilter] = useState(filters.status || "all");
-    const [roleFilter, setRoleFilter] = useState(filters.role || "all");
-    const [isLoading, setIsLoading] = useState(false);
+    // Role mappings
+    const roleToDisplay: Record<string, string> = {
+        superadmin: "Super Admin",
+        admin: "Admin",
+        "hotel owner": "Hotel Owner",
+        "transportation owner": "Transportation Owner",
+        user: "User",
+    };
+
+    const displayToRole: Record<string, string> = {
+        "Super Admin": "superadmin",
+        Admin: "admin",
+        "Hotel Owner": "hotel owner",
+        "Transportation Owner": "transportation owner",
+        User: "user",
+    };
+
+    // Role icon and color configuration
+    const getRoleConfig = (role: string) => {
+        const configs: Record<
+            string,
+            { icon: any; color: string; label: string }
+        > = {
+            all: {
+                icon: Users,
+                color: "text-muted-foreground",
+                label: "All Roles",
+            },
+            "Super Admin": {
+                icon: Shield,
+                color: "text-purple-600",
+                label: "Super Admin",
+            },
+            Admin: { icon: UserCog, color: "text-blue-600", label: "Admin" },
+            "Hotel Owner": {
+                icon: Users,
+                color: "text-orange-600",
+                label: "Hotel Owner",
+            },
+            "Transportation Owner": {
+                icon: Users,
+                color: "text-green-600",
+                label: "Transport Owner",
+            },
+            User: { icon: UserCog, color: "text-gray-600", label: "User" },
+        };
+        return configs[role] || configs["all"];
+    };
+
+    // Client-side filter states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [roleFilter, setRoleFilter] = useState<string>("all");
+
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -140,73 +198,49 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         );
     }, [columnVisibility]);
 
-    const isInitialMount = useRef(true);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Client-side filtering - instant results
+    const filteredUsers = useMemo(() => {
+        return users.data.filter((user) => {
+            // Search filter - search in name, email, username, and phone
+            const matchesSearch =
+                searchQuery === "" ||
+                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (user.username &&
+                    user.username
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())) ||
+                (user.phone_number && user.phone_number.includes(searchQuery));
 
+            // Status filter
+            const matchesStatus =
+                statusFilter === "all" || user.status === statusFilter;
+
+            // Role filter - match against the display role
+            const matchesRole =
+                roleFilter === "all" || user.role === roleFilter;
+
+            return matchesSearch && matchesStatus && matchesRole;
+        });
+    }, [users.data, searchQuery, statusFilter, roleFilter]);
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredUsers.length;
+    const lastPage = Math.ceil(totalFiltered / perPage) || 1;
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedUsers = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredUsers.slice(start, end);
+    }, [filteredUsers, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
     useEffect(() => {
-        if (isInitialMount.current) {
-            return;
-        }
-
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => {
-            setIsLoading(true);
-            router.get(
-                "/users",
-                {
-                    search: searchTerm || undefined,
-                    status: statusFilter === "all" ? undefined : statusFilter,
-                    role: roleFilter === "all" ? undefined : roleFilter,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                    only: ["users"],
-                    onFinish: () => setIsLoading(false),
-                }
-            );
-        }, 500);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [searchTerm]);
-
-    useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-            return;
-        }
-
-        setIsLoading(true);
-        router.get(
-            "/users",
-            {
-                search: searchTerm || undefined,
-                status: statusFilter === "all" ? undefined : statusFilter,
-                role: roleFilter === "all" ? undefined : roleFilter,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-                only: ["users"],
-                onFinish: () => setIsLoading(false),
-            }
-        );
-    }, [statusFilter, roleFilter]);
-
-    useEffect(() => {
-        setSearchTerm(filters.search || "");
-        setStatusFilter(filters.status || "all");
-        setRoleFilter(filters.role || "all");
-    }, [filters.search, filters.status, filters.role]);
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, roleFilter]);
 
     const handleDeleteUser = (userId: number) => {
         router.delete(`/users/${userId}`, {
@@ -316,21 +350,31 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             onClick={() => router.visit("/users/create")}
                         >
                             <UserPlus className="size-4" />
-                            Add New User
+                            Create User
                         </Button>
                     </div>
                 </div>
-
-                {/* Filters */}
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
+                {/* Unified Filters */}
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Single unified search */}
+                    <div className="relative w-full sm:w-[320px]">
                         <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Filter users..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search users..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
                         />
+                        {searchQuery && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-1 top-1 h-7 w-7 p-0"
+                                onClick={() => setSearchQuery("")}
+                            >
+                                ×
+                            </Button>
+                        )}
                     </div>
 
                     <Select
@@ -351,112 +395,133 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     </Select>
 
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-[150px]">
-                            <Users className="h-4 w-4 mr-2" />
-                            <SelectValue placeholder="Role" />
+                        <SelectTrigger className="w-[180px]">
+                            <div className="flex items-center gap-2">
+                                {(() => {
+                                    const config = getRoleConfig(roleFilter);
+                                    const Icon = config.icon;
+                                    return (
+                                        <>
+                                            <Icon
+                                                className={`h-4 w-4 ${config.color}`}
+                                            />
+                                            <span>{config.label}</span>
+                                        </>
+                                    );
+                                })()}
+                            </div>
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Roles</SelectItem>
-                            <SelectItem value="superadmin">
-                                Super Admin
+                            <SelectItem value="all">
+                                <span>All Roles</span>
                             </SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="hotel owner">
-                                Hotel Owner
+                            <SelectItem value="Super Admin">
+                                <span>Super Admin</span>
                             </SelectItem>
-                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="Admin">
+                                <span>Admin</span>
+                            </SelectItem>
+                            <SelectItem value="Hotel Owner">
+                                <span>Hotel Owner</span>
+                            </SelectItem>
+                            <SelectItem value="Transportation Owner">
+                                <span>Transport Owner</span>
+                            </SelectItem>
+                            <SelectItem value="User">
+                                <span>User</span>
+                            </SelectItem>
                         </SelectContent>
                     </Select>
 
                     {/* Column Toggle */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="ml-auto"
+                    <div className="ml-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <Settings2 className="h-4 w-4" />
+                                    View
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                className="w-[150px]"
                             >
-                                <Settings2 className="h-4 w-4" />
-                                View
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[150px]">
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.email}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        email: !!value,
-                                    }))
-                                }
-                            >
-                                Email
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.phone}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        phone: !!value,
-                                    }))
-                                }
-                            >
-                                Phone
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.registered}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        registered: !!value,
-                                    }))
-                                }
-                            >
-                                Registered
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.lastLogin}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        lastLogin: !!value,
-                                    }))
-                                }
-                            >
-                                Last Login
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.status}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        status: !!value,
-                                    }))
-                                }
-                            >
-                                Status
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                className="capitalize"
-                                checked={columnVisibility.role}
-                                onCheckedChange={(value) =>
-                                    setColumnVisibility((prev) => ({
-                                        ...prev,
-                                        role: !!value,
-                                    }))
-                                }
-                            >
-                                Role
-                            </DropdownMenuCheckboxItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.email}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            email: !!value,
+                                        }))
+                                    }
+                                >
+                                    Email
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.phone}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            phone: !!value,
+                                        }))
+                                    }
+                                >
+                                    Phone
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.registered}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            registered: !!value,
+                                        }))
+                                    }
+                                >
+                                    Registered
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.lastLogin}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            lastLogin: !!value,
+                                        }))
+                                    }
+                                >
+                                    Last Login
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.status}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            status: !!value,
+                                        }))
+                                    }
+                                >
+                                    Status
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize"
+                                    checked={columnVisibility.role}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility((prev) => ({
+                                            ...prev,
+                                            role: !!value,
+                                        }))
+                                    }
+                                >
+                                    Role
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>{" "}
                 {/* Users Table */}
                 <div className="rounded-md border overflow-x-auto">
                     <div className="min-w-[1600px]">
@@ -515,150 +580,96 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
                         {/* Table Body */}
                         <div className="divide-y">
-                            {isLoading
-                                ? // Skeleton loading state
-                                  Array.from({ length: 5 }).map((_, index) => (
-                                      <div key={index} className="p-4">
-                                          <div
-                                              className="grid gap-4 items-center"
-                                              style={{
-                                                  gridTemplateColumns: `2fr ${
-                                                      columnVisibility.email
-                                                          ? "2fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.phone
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.registered
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.lastLogin
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.status
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.role
-                                                          ? "2fr"
-                                                          : ""
-                                                  } 1fr`.trim(),
-                                              }}
-                                          >
-                                              <div className="flex items-center gap-3">
-                                                  <Skeleton className="size-8 rounded-full" />
-                                                  <div className="space-y-2">
-                                                      <Skeleton className="h-4 w-32" />
-                                                      <Skeleton className="h-3 w-24" />
-                                                  </div>
-                                              </div>
-                                              {columnVisibility.email && (
-                                                  <Skeleton className="h-4 w-40" />
-                                              )}
-                                              {columnVisibility.phone && (
-                                                  <Skeleton className="h-4 w-24" />
-                                              )}
-                                              {columnVisibility.registered && (
-                                                  <Skeleton className="h-4 w-20" />
-                                              )}
-                                              {columnVisibility.lastLogin && (
-                                                  <Skeleton className="h-4 w-20" />
-                                              )}
-                                              {columnVisibility.status && (
-                                                  <Skeleton className="h-5 w-16 rounded-full" />
-                                              )}
-                                              {columnVisibility.role && (
-                                                  <div className="flex items-center gap-2">
-                                                      <Skeleton className="h-4 w-4" />
-                                                      <Skeleton className="h-4 w-20" />
-                                                  </div>
-                                              )}
-                                              <div className="flex items-center gap-2">
-                                                  <Skeleton className="h-8 w-8 rounded-md" />
-                                                  <Skeleton className="h-8 w-8 rounded-md" />
-                                              </div>
-                                          </div>
-                                      </div>
-                                  ))
-                                : users.data.map((user: UserWithRole) => (
-                                      <div
-                                          key={user.id}
-                                          className="p-4 hover:bg-muted/50"
-                                      >
-                                          <div
-                                              className="grid gap-4 items-center"
-                                              style={{
-                                                  gridTemplateColumns: `2fr ${
-                                                      columnVisibility.email
-                                                          ? "2fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.phone
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.registered
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.lastLogin
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.status
-                                                          ? "1fr"
-                                                          : ""
-                                                  } ${
-                                                      columnVisibility.role
-                                                          ? "2fr"
-                                                          : ""
-                                                  } 1fr`.trim(),
-                                              }}
-                                          >
-                                              <div>
-                                                  <div className="flex items-center gap-3">
-                                                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                          <span className="text-sm font-medium text-primary">
-                                                              {user.name
-                                                                  .split(" ")
-                                                                  .map(
-                                                                      (
-                                                                          n: string
-                                                                      ) => n[0]
-                                                                  )
-                                                                  .join("")
-                                                                  .toUpperCase()}
-                                                          </span>
-                                                      </div>
-                                                      <span className="font-medium truncate">
-                                                          {user.name}
-                                                      </span>
-                                                  </div>
-                                              </div>
-                                              {columnVisibility.email && (
-                                                  <div>
-                                                      <div className="text-sm text-muted-foreground truncate">
-                                                          {user.email}
-                                                      </div>
-                                                  </div>
-                                              )}
-                                              {columnVisibility.phone && (
-                                                  <div>
-                                                      <div className="text-xs text-muted-foreground truncate">
-                                                          {user.phone_number ||
-                                                              "-"}
-                                                      </div>
-                                                  </div>
-                                              )}
-                                              {columnVisibility.registered && (
-                                                  <div>
-                                                      <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                                          {new Date(
-                                                              user.created_at
+                            {paginatedUsers.map((user: UserWithRole) => (
+                                <div
+                                    key={user.id}
+                                    className="p-4 hover:bg-muted/50"
+                                >
+                                    <div
+                                        className="grid gap-4 items-center"
+                                        style={{
+                                            gridTemplateColumns: `2fr ${
+                                                columnVisibility.email
+                                                    ? "2fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.phone
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.registered
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.lastLogin
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.status
+                                                    ? "1fr"
+                                                    : ""
+                                            } ${
+                                                columnVisibility.role
+                                                    ? "2fr"
+                                                    : ""
+                                            } 1fr`.trim(),
+                                        }}
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span className="text-sm font-medium text-primary">
+                                                        {user.name
+                                                            .split(" ")
+                                                            .map(
+                                                                (n: string) =>
+                                                                    n[0]
+                                                            )
+                                                            .join("")
+                                                            .toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <span className="font-medium truncate">
+                                                    {user.name}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {columnVisibility.email && (
+                                            <div>
+                                                <div className="text-sm text-muted-foreground truncate">
+                                                    {user.email}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {columnVisibility.phone && (
+                                            <div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    {user.phone_number || "-"}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {columnVisibility.registered && (
+                                            <div>
+                                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {new Date(
+                                                        user.created_at
+                                                    ).toLocaleDateString(
+                                                        "en-US",
+                                                        {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "2-digit",
+                                                        }
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {columnVisibility.lastLogin && (
+                                            <div>
+                                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {user.last_login_at
+                                                        ? new Date(
+                                                              user.last_login_at
                                                           ).toLocaleDateString(
                                                               "en-US",
                                                               {
@@ -666,191 +677,205 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                                   day: "numeric",
                                                                   year: "2-digit",
                                                               }
-                                                          )}
-                                                      </div>
-                                                  </div>
-                                              )}
-                                              {columnVisibility.lastLogin && (
-                                                  <div>
-                                                      <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                                          {user.last_login_at
-                                                              ? new Date(
-                                                                    user.last_login_at
-                                                                ).toLocaleDateString(
-                                                                    "en-US",
-                                                                    {
-                                                                        month: "short",
-                                                                        day: "numeric",
-                                                                        year: "2-digit",
+                                                          )
+                                                        : "-"}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {columnVisibility.status && (
+                                            <div>
+                                                {getStatusBadge(
+                                                    user.status || "Inactive"
+                                                )}
+                                            </div>
+                                        )}
+                                        {columnVisibility.role && (
+                                            <div>
+                                                {getRoleBadge(
+                                                    user.role || "User"
+                                                )}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <Link
+                                                    href={`/users/${user.id}/edit`}
+                                                >
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start">
+                                                        <DropdownMenuItem
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/users/${user.id}/edit`}
+                                                            >
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                Edit user
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger
+                                                                asChild
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onSelect={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.preventDefault()
                                                                     }
-                                                                )
-                                                              : "-"}
-                                                      </div>
-                                                  </div>
-                                              )}
-                                              {columnVisibility.status && (
-                                                  <div>
-                                                      {getStatusBadge(
-                                                          user.status ||
-                                                              "Inactive"
-                                                      )}
-                                                  </div>
-                                              )}
-                                              {columnVisibility.role && (
-                                                  <div>
-                                                      {getRoleBadge(
-                                                          user.role || "User"
-                                                      )}
-                                                  </div>
-                                              )}
-                                              <div>
-                                                  <div className="flex items-center gap-2">
-                                                      <Link
-                                                          href={`/users/${user.id}/edit`}
-                                                      >
-                                                          <Button
-                                                              variant="ghost"
-                                                              size="sm"
-                                                          >
-                                                              <EditIcon className="h-4 w-4" />
-                                                          </Button>
-                                                      </Link>
-                                                      <DropdownMenu>
-                                                          <DropdownMenuTrigger
-                                                              asChild
-                                                          >
-                                                              <Button
-                                                                  variant="ghost"
-                                                                  size="sm"
-                                                              >
-                                                                  <MoreHorizontal className="h-4 w-4" />
-                                                              </Button>
-                                                          </DropdownMenuTrigger>
-                                                          <DropdownMenuContent align="start">
-                                                              <DropdownMenuItem
-                                                                  asChild
-                                                              >
-                                                                  <Link
-                                                                      href={`/users/${user.id}/edit`}
-                                                                  >
-                                                                      Edit user
-                                                                      <EditIcon className="ml-8 h-4 w-4" />
-                                                                  </Link>
-                                                              </DropdownMenuItem>
-                                                              <DropdownMenuSeparator />
-                                                              <AlertDialog>
-                                                                  <AlertDialogTrigger
-                                                                      asChild
-                                                                  >
-                                                                      <DropdownMenuItem
-                                                                          onSelect={(
-                                                                              e
-                                                                          ) =>
-                                                                              e.preventDefault()
-                                                                          }
-                                                                          className="text-red-600 focus:text-red-600"
-                                                                      >
-                                                                          Delete
-                                                                          user
-                                                                      </DropdownMenuItem>
-                                                                  </AlertDialogTrigger>
-                                                                  <AlertDialogContent>
-                                                                      <AlertDialogHeader>
-                                                                          <AlertDialogTitle>
-                                                                              Are
-                                                                              you
-                                                                              absolutely
-                                                                              sure?
-                                                                          </AlertDialogTitle>
-                                                                          <AlertDialogDescription>
-                                                                              This
-                                                                              action
-                                                                              cannot
-                                                                              be
-                                                                              undone.
-                                                                              This
-                                                                              will
-                                                                              permanently
-                                                                              delete
-                                                                              the
-                                                                              user
-                                                                              "
-                                                                              {
-                                                                                  user.name
-                                                                              }
-                                                                              "
-                                                                              and
-                                                                              remove
-                                                                              all
-                                                                              their
-                                                                              data
-                                                                              from
-                                                                              our
-                                                                              servers.
-                                                                          </AlertDialogDescription>
-                                                                      </AlertDialogHeader>
-                                                                      <AlertDialogFooter>
-                                                                          <AlertDialogCancel>
-                                                                              Cancel
-                                                                          </AlertDialogCancel>
-                                                                          <AlertDialogAction
-                                                                              onClick={() =>
-                                                                                  handleDeleteUser(
-                                                                                      user.id
-                                                                                  )
-                                                                              }
-                                                                              className="bg-red-600 hover:bg-red-700"
-                                                                          >
-                                                                              Delete
-                                                                          </AlertDialogAction>
-                                                                      </AlertDialogFooter>
-                                                                  </AlertDialogContent>
-                                                              </AlertDialog>
-                                                          </DropdownMenuContent>
-                                                      </DropdownMenu>
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  ))}
+                                                                    className="text-red-600 focus:text-red-600"
+                                                                >
+                                                                    <Trash className="mr-2 h-4 w-4" />
+                                                                    Delete user
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>
+                                                                        Are you
+                                                                        absolutely
+                                                                        sure?
+                                                                    </AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This
+                                                                        action
+                                                                        cannot
+                                                                        be
+                                                                        undone.
+                                                                        This
+                                                                        will
+                                                                        permanently
+                                                                        delete
+                                                                        the user
+                                                                        "
+                                                                        {
+                                                                            user.name
+                                                                        }
+                                                                        " and
+                                                                        remove
+                                                                        all
+                                                                        their
+                                                                        data
+                                                                        from our
+                                                                        servers.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>
+                                                                        Cancel
+                                                                    </AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        onClick={() =>
+                                                                            handleDeleteUser(
+                                                                                user.id
+                                                                            )
+                                                                        }
+                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                    >
+                                                                        Delete
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
 
-                            {!isLoading && users.data.length === 0 && (
-                                <div className="p-8 text-center text-muted-foreground">
-                                    No users found.
+                            {paginatedUsers.length === 0 && (
+                                <div className="p-12 flex justify-center">
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Users className="h-8 w-8" />
+                                            </EmptyMedia>
+                                            <EmptyTitle className="text-xl">
+                                                No users found
+                                            </EmptyTitle>
+                                            <EmptyDescription className="text-base">
+                                                {searchQuery ||
+                                                statusFilter !== "all" ||
+                                                roleFilter !== "all"
+                                                    ? "No users match your current filters. Try adjusting your search criteria."
+                                                    : "Get started by adding your first user to the system."}
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent className="flex gap-2">
+                                            {(searchQuery ||
+                                                statusFilter !== "all" ||
+                                                roleFilter !== "all") && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setSearchQuery("");
+                                                        setStatusFilter("all");
+                                                        setRoleFilter("all");
+                                                    }}
+                                                >
+                                                    Clear Filters
+                                                </Button>
+                                            )}
+                                            {!searchQuery &&
+                                                statusFilter === "all" &&
+                                                roleFilter === "all" && (
+                                                    <Button
+                                                        onClick={() =>
+                                                            router.visit(
+                                                                "/users/create"
+                                                            )
+                                                        }
+                                                    >
+                                                        <UserPlus className="h-4 w-4 mr-2" />
+                                                        Add New User
+                                                    </Button>
+                                                )}
+                                        </EmptyContent>
+                                    </Empty>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
-
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {(users.current_page - 1) * users.per_page + 1}{" "}
-                        to{" "}
-                        {Math.min(
-                            users.current_page * users.per_page,
-                            users.total
-                        )}{" "}
-                        of {users.total} row(s).
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
 
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
                             <Select
-                                value={String(users.per_page)}
+                                value={String(perPage)}
                                 onValueChange={(value) => {
-                                    router.get("/users", {
-                                        ...filters,
-                                        per_page: value,
-                                        page: 1,
-                                    });
+                                    setPerPage(Number(value));
+                                    setCurrentPage(1);
                                 }}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
                                     <SelectValue
-                                        placeholder={String(users.per_page)}
+                                        placeholder={String(perPage)}
                                     />
                                 </SelectTrigger>
                                 <SelectContent side="top">
@@ -863,19 +888,14 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             </Select>
                         </div>
                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                            Page {users.current_page} of {users.last_page}
+                            Page {currentPage} of {lastPage || 1}
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/users", {
-                                        ...filters,
-                                        page: 1,
-                                    })
-                                }
-                                disabled={users.current_page === 1}
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to first page
@@ -899,13 +919,8 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/users", {
-                                        ...filters,
-                                        page: users.current_page - 1,
-                                    })
-                                }
-                                disabled={users.current_page === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
                                 <span className="sr-only">
                                     Go to previous page
@@ -928,15 +943,8 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             <Button
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                onClick={() =>
-                                    router.get("/users", {
-                                        ...filters,
-                                        page: users.current_page + 1,
-                                    })
-                                }
-                                disabled={
-                                    users.current_page === users.last_page
-                                }
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to next page</span>
                                 <svg
@@ -957,15 +965,8 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                             <Button
                                 variant="outline"
                                 className="hidden h-8 w-8 p-0 lg:flex"
-                                onClick={() =>
-                                    router.get("/users", {
-                                        ...filters,
-                                        page: users.last_page,
-                                    })
-                                }
-                                disabled={
-                                    users.current_page === users.last_page
-                                }
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
                             >
                                 <span className="sr-only">Go to last page</span>
                                 <svg

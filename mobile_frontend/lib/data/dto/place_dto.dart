@@ -6,8 +6,37 @@ class PlaceDto {
   static Place fromJson(Map<String, dynamic> json) {
     try {
       return Place(
-        placeId: json['placeID']?.toString() ?? '',
+        placeId: (json['placeID'] ?? json['place_id'])?.toString() ?? '',
         name: json['name']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
+        googleMapsLink: json['google_maps_link']?.toString() ?? '',
+        ratings: double.tryParse(json['ratings']?.toString() ?? '0.0') ?? 0.0,
+        reviewsCount:
+            int.tryParse(json['reviews_count']?.toString() ?? '0') ?? 0,
+        imagesUrl: json['image_url']?.toString() ?? '',
+        imagePublicIds: json['image_public_ids']?.toString() ?? '',
+        entryFree: json['entry_free'] == 1 || json['entry_free'] == true,
+        operatingHours: _parseJsonMap(json['operating_hours']),
+        bestSeasonToVisit: json['best_season_to_visit']?.toString() ?? 'Summer',
+        provinceId: int.tryParse(json['province_id']?.toString() ?? '0') ?? 0,
+        latitude: double.tryParse(json['latitude']?.toString() ?? '0.0') ?? 0.0,
+        longitude:
+            double.tryParse(json['longitude']?.toString() ?? '0.0') ?? 0.0,
+        createdAt: _parseDateTime(json['created_at']),
+        updatedAt: _parseDateTime(json['updated_at']),
+        locationName: json['location']?.toString() ?? '',
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Place fromUpcomingEvent(Map<String, dynamic> json) {
+    try {
+      return Place(
+        placeId: json['id']?.toString() ?? '',
+        name: json['title']?.toString() ?? '',
         description: json['description']?.toString() ?? '',
         categoryId: int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
         googleMapsLink: json['google_maps_link']?.toString() ?? '',

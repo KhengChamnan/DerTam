@@ -206,16 +206,32 @@ class TripController extends Controller
                 ], 401);
             }
 
-            // Get trip
+            // Check if user owns the trip
             $trip = DB::table('trips')
                 ->where('trip_id', $tripId)
                 ->where('user_id', $userId)
                 ->first();
 
+            $isOwner = (bool)$trip;
+
+            // If not owner, check if they're a viewer
+            if (!$trip) {
+                $isViewer = DB::table('trip_viewers')
+                    ->where('trip_id', $tripId)
+                    ->where('user_id', $userId)
+                    ->exists();
+                
+                if ($isViewer) {
+                    $trip = DB::table('trips')
+                        ->where('trip_id', $tripId)
+                        ->first();
+                }
+            }
+
             if (!$trip) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Trip not found'
+                    'message' => 'Trip not found or you do not have permission to view it'
                 ], 404);
             }
 
@@ -258,6 +274,30 @@ class TripController extends Controller
                 $totalPlaces += $places->count();
             }
 
+            // Get trip owner details
+            $owner = DB::table('users')
+                ->where('id', $trip->user_id)
+                ->select('id', 'name', 'profile_image_url')
+                ->first();
+
+            // Get trip viewers details
+            $viewers = DB::table('trip_viewers')
+                ->join('users', 'trip_viewers.user_id', '=', 'users.id')
+                ->where('trip_viewers.trip_id', $tripId)
+                ->select('users.id', 'users.name', 'users.profile_image_url')
+                ->get();
+
+            // Combine owner and viewers into users with access list
+            $usersWithAccess = collect([$owner])
+                ->concat($viewers)
+                ->map(function($user) {
+                    return [
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                    ];
+                })
+                ->values();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Trip details retrieved successfully',
@@ -266,8 +306,13 @@ class TripController extends Controller
                     'trip_name' => $trip->trip_name,
                     'start_date' => $trip->start_date,
                     'end_date' => $trip->end_date,
+                    'trip_access_type' => $isOwner ? 'owned' : 'shared',
                     'days' => $days,
-                    'total_places' => $totalPlaces
+                    'total_places' => $totalPlaces,
+                    'users_with_access' => [
+                        'users' => $usersWithAccess,
+                        'total_count' => $usersWithAccess->count()
+                    ]
                 ]
             ], 200);
 
@@ -448,10 +493,180 @@ class TripController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add places to trip',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get places for a specific day of a trip
+     * GET /api/trips/{tripId}/days/{dayNumber}
+     *
+     * @param int $tripId
+     * @param int $dayNumber
+     * @return JsonResponse
+     */
+    public function getDayPlaces(int $tripId, int $dayNumber): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Check if user owns the trip
+            $trip = DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->where('user_id', $userId)
+                ->first();
+
+            $isOwner = (bool)$trip;
+
+            // If not owner, check if they're a viewer
+            if (!$trip) {
+                $isViewer = DB::table('trip_viewers')
+                    ->where('trip_id', $tripId)
+                    ->where('user_id', $userId)
+                    ->exists();
+                
+                if ($isViewer) {
+                    $trip = DB::table('trips')
+                        ->where('trip_id', $tripId)
+                        ->first();
+                }
+            }
+
+            if (!$trip) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trip not found or you do not have permission to view it'
+                ], 404);
+            }
+
+            // Find the trip day by day_number
+            $tripDay = DB::table('trip_days')
+                ->where('trip_id', $tripId)
+                ->where('day_number', $dayNumber)
+                ->first();
+
+            if (!$tripDay) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Day {$dayNumber} does not exist for this trip"
+                ], 404);
+            }
+
+            // Get places for this day
+            $places = DB::table('trip_places')
+                ->join('places', 'trip_places.place_id', '=', 'places.placeID')
+                ->where('trip_places.trip_day_id', $tripDay->trip_day_id)
+                ->select(
+                    'places.placeID as place_id',
+                    'places.name',
+                    'places.latitude',
+                    'places.longitude'
+                )
+                ->orderBy('trip_places.created_at', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Places retrieved successfully',
+                'data' => [
+                    'places' => $places,
+                    'places_count' => $places->count()
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch places for the day',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a trip and all its associated data
+     *
+     * @param int $tripId
+     * @return JsonResponse
+     */
+    public function destroy(int $tripId): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Verify trip ownership
+            $trip = DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->where('user_id', $userId)
+                ->first();
+
+            if (!$trip) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trip not found or you do not have permission to delete it'
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            // Get all trip day IDs for this trip
+            $tripDayIds = DB::table('trip_days')
+                ->where('trip_id', $tripId)
+                ->pluck('trip_day_id');
+
+            // Delete trip places (cascade delete)
+            if ($tripDayIds->isNotEmpty()) {
+                DB::table('trip_places')
+                    ->whereIn('trip_day_id', $tripDayIds)
+                    ->delete();
+            }
+
+            // Delete trip days
+            DB::table('trip_days')
+                ->where('trip_id', $tripId)
+                ->delete();
+
+            // Delete trip viewers
+            DB::table('trip_viewers')
+                ->where('trip_id', $tripId)
+                ->delete();
+
+            // Delete the trip itself
+            DB::table('trips')
+                ->where('trip_id', $tripId)
+                ->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trip deleted successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete trip',
                 'error' => $e->getMessage()
             ], 500);
         }

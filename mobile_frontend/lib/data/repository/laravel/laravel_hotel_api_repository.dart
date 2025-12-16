@@ -3,16 +3,16 @@ import 'package:mobile_frontend/data/network/api_constant.dart';
 import 'package:mobile_frontend/data/network/fetching_data.dart';
 import 'package:mobile_frontend/data/repository/abstract/hotel_repository.dart';
 import 'package:mobile_frontend/data/repository/laravel/laravel_auth_api_repository.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_list_response.dart';
-import 'package:mobile_frontend/models/booking/hotel_booking_request.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_list_response.dart';
+import 'package:mobile_frontend/models/hotel/booking/hotel_booking_request.dart';
 import 'package:mobile_frontend/models/hotel/hotel_detail.dart';
 import 'package:mobile_frontend/models/hotel/hotel_list.dart';
 import 'package:mobile_frontend/models/hotel/room.dart';
 import 'package:mobile_frontend/models/hotel/search_room.dart';
 
 class LaravelHotelApiRepository extends HotelRepository {
-  final LaravelAuthApiRepository repository;
-  LaravelHotelApiRepository(this.repository);
+  final LaravelAuthApiRepository authRepository;
+  LaravelHotelApiRepository(this.authRepository);
 
   final _baseHeaders = {
     'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ class LaravelHotelApiRepository extends HotelRepository {
         if (jsonData == null) {
           throw Exception('Response does not contain "data" field');
         }
- 
+
         if (jsonData.containsKey('place')) {
           print('📦 [DEBUG] Place name: ${jsonData['place']['name']}');
         }
@@ -106,7 +106,7 @@ class LaravelHotelApiRepository extends HotelRepository {
     String paymentOption,
   ) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -190,7 +190,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<List<BookingListResponse>> getAllHotelBooking() async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -202,8 +202,6 @@ class LaravelHotelApiRepository extends HotelRepository {
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
-        // The API returns: {success: true, data: {current_page, data: [...]}}
-        // We need to extract the BookingListResponse which wraps the paginated data
         return [BookingListResponse.fromJson(jsonResponse)];
       } else {
         throw Exception('Failed to load bookings: ${response.statusCode}');
@@ -216,7 +214,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<BookingDetailResponse> getBookingDetails(String bookingId) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -250,7 +248,7 @@ class LaravelHotelApiRepository extends HotelRepository {
   @override
   Future<void> cancelHotelBooking(String bookingId) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('User is not authenticated');
       }
@@ -271,37 +269,14 @@ class LaravelHotelApiRepository extends HotelRepository {
   }
 
   @override
-  Future<void> deleteBooking(String bookingId) async {
-    try {
-      final token = await repository.getToken();
-      if (token == null) {
-        throw Exception('User is not authenticated');
-      }
-      final headers = _getAuthHeaders(token);
-      final response = await FetchingData.deleteData(
-        '${ApiEndpoint.cancelBooking}/$bookingId',
-        headers,
-      );
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        print('Hotel has been Deleted $responseBody');
-      } else {
-        throw Exception('Failed to delete booking: ${response.statusCode}');
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
   Future<SearchRoomResponse> searchAvailableRooms(
     DateTime checkIn,
     DateTime checkOut,
     int guests,
-    int nights,
+    String placeID,
   ) async {
     try {
-      final token = await repository.getToken();
+      final token = await authRepository.getToken();
       if (token == null) {
         throw Exception('Token have no found!');
       }
@@ -317,7 +292,7 @@ class LaravelHotelApiRepository extends HotelRepository {
         'check_in': formattedCheckIn,
         'check_out': formattedCheckOut,
         'guests': guests,
-        'nights': nights,
+        'place_id': placeID,
       };
 
       final response = await FetchingData.postHeader(
@@ -325,13 +300,10 @@ class LaravelHotelApiRepository extends HotelRepository {
         header,
         body,
       );
-
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        // Check if the API response has the expected structure
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
           final data = jsonResponse['data'];
-          // Parse the entire data object as SearchRoomResponse
           final searchResponse = SearchRoomResponse.fromJson(data);
           return searchResponse;
         } else {
@@ -342,6 +314,44 @@ class LaravelHotelApiRepository extends HotelRepository {
       } else {
         throw Exception(
           'Failed to fetching room available ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<HotelListResponseData> searchAvailableHotel(
+    int provinceId,
+    DateTime checkIn,
+    DateTime checkOut,
+  ) async {
+    try {
+      // Format dates as YYYY-MM-DD strings
+      final String formattedCheckIn =
+          '${checkIn.year}-${checkIn.month.toString().padLeft(2, '0')}-${checkIn.day.toString().padLeft(2, '0')}';
+      final String formattedCheckOut =
+          '${checkOut.year}-${checkOut.month.toString().padLeft(2, '0')}-${checkOut.day.toString().padLeft(2, '0')}';
+
+      final body = {
+        'province_id': provinceId.toString(),
+        'check_in': formattedCheckIn,
+        'check_out': formattedCheckOut,
+      };
+      final searchHotelResponse = await FetchingData.getDataPar(
+        ApiEndpoint.searchHotels,
+        body,
+        _baseHeaders,
+      );
+      print('Search Hotel Data : ${searchHotelResponse.body}');
+      if (searchHotelResponse.statusCode == 200) {
+        final jsonData = json.decode(searchHotelResponse.body);
+        final searchHotel = HotelListResponseData.fromJson(jsonData);
+        return searchHotel;
+      } else {
+        throw Exception(
+          'Failed to fetching hotel available ${searchHotelResponse.statusCode}',
         );
       }
     } catch (e) {

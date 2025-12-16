@@ -22,9 +22,13 @@ class RoleController extends Controller
         try {
             $query = SpatieRole::with('permissions')->withCount('permissions');
 
-            // Search by name if provided
+            // Search by name if provided (prefix filtering with word boundaries)
             if ($request->has('search')) {
-                $query->where('name', 'like', '%' . $request->search . '%');
+                $escapedTerm = str_replace(['%', '_'], ['\\%', '\\_'], trim($request->search));
+                $query->where(function ($q) use ($escapedTerm) {
+                    $q->where('name', 'LIKE', $escapedTerm . '%')
+                      ->orWhere('name', 'LIKE', '% ' . $escapedTerm . '%');
+                });
             }
 
             $roles = $query->paginate($request->get('per_page', 15));

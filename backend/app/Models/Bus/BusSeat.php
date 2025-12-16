@@ -64,7 +64,8 @@ class BusSeat extends Model
     /**
      * Get seat availability status for a schedule.
      * Returns an array mapping seat IDs to their availability (true = available, false = booked).
-     * Only considers bookings with status 'pending' or 'confirmed' as blocking.
+     * Only considers bookings with status 'confirmed' as blocking.
+     * Pending bookings do NOT block seats - they are still available.
      *
      * @param int $scheduleId The schedule ID to check
      * @param array|null $seatIds Optional array of specific seat IDs to check. If null, checks all seats for the schedule's bus.
@@ -83,11 +84,12 @@ class BusSeat extends Model
         
         $seats = $seatsQuery->pluck('id')->toArray();
         
-        // Get booked seat IDs for this schedule with active bookings
+        // Get booked seat IDs for this schedule with CONFIRMED bookings only
+        // Pending bookings do NOT block seats
         $bookedSeatIds = SeatBooking::where('schedule_id', $scheduleId)
             ->whereIn('seat_id', $seats)
             ->whereHas('booking', function($query) {
-                $query->whereIn('status', ['pending', 'confirmed']);
+                $query->where('status', 'confirmed');
             })
             ->pluck('seat_id')
             ->toArray();
@@ -110,7 +112,7 @@ class BusSeat extends Model
         return $this->bookings()
             ->where('schedule_id', $scheduleId)
             ->whereHas('booking', function($query) {
-                $query->whereIn('status', ['pending', 'confirmed']);
+                $query->where('status', 'confirmed');
             })
             ->exists();
     }
@@ -128,7 +130,8 @@ class BusSeat extends Model
 
     /**
      * Get available seats for a schedule.
-     * Only excludes seats with active bookings (pending or confirmed status).
+     * Only excludes seats with confirmed bookings.
+     * Pending bookings do NOT block seats.
      */
     public static function availableForSchedule(int $busId, int $scheduleId)
     {
@@ -136,7 +139,7 @@ class BusSeat extends Model
             ->whereDoesntHave('bookings', function ($query) use ($scheduleId) {
                 $query->where('schedule_id', $scheduleId)
                     ->whereHas('booking', function($q) {
-                        $q->whereIn('status', ['pending', 'confirmed']);
+                        $q->where('status', 'confirmed');
                     });
             })
             ->orderBy('seat_number')

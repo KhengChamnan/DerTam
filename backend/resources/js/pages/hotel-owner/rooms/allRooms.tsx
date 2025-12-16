@@ -29,7 +29,7 @@ import {
     CheckCircle,
     AlertCircle,
     Sparkles,
-    Edit,
+    Pencil,
     Maximize,
     Home,
     Search,
@@ -103,6 +103,10 @@ export default function AllRooms({ rooms }: Props) {
     const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
     const [isLoading, setIsLoading] = useState(false);
 
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+
     // Get unique room types for filter
     const roomTypes = useMemo(() => {
         const types = new Set(
@@ -114,15 +118,12 @@ export default function AllRooms({ rooms }: Props) {
     // Filter rooms based on all criteria
     const filteredData = useMemo(() => {
         return data.filter((room) => {
-            // Search filter
+            // Search filter - only match room number with prefix
             const matchesSearch =
                 searchQuery === "" ||
                 room.room_number
                     .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                room.room_property?.room_type
-                    ?.toLowerCase()
-                    .includes(searchQuery.toLowerCase());
+                    .startsWith(searchQuery.toLowerCase());
 
             // Status filter
             const matchesStatus =
@@ -148,15 +149,31 @@ export default function AllRooms({ rooms }: Props) {
         });
     }, [data, searchQuery, statusFilter, roomTypeFilter, availabilityFilter]);
 
-    // Calculate totals from filtered data
+    // Client-side pagination calculations
+    const totalFiltered = filteredData.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+    const from = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const to = Math.min(currentPage * perPage, totalFiltered);
+
+    // Paginated data for current page
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        return filteredData.slice(start, end);
+    }, [filteredData, currentPage, perPage]);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, roomTypeFilter, availabilityFilter]);
+
+    // Calculate totals from all data (not filtered)
     const totalRooms = rooms.total || 0;
-    const availableCount = filteredData.filter(
-        (room) => room.is_available
-    ).length;
-    const occupiedCount = filteredData.filter(
+    const availableCount = data.filter((room) => room.is_available).length;
+    const occupiedCount = data.filter(
         (room) => room.status === "occupied"
     ).length;
-    const maintenanceCount = filteredData.filter(
+    const maintenanceCount = data.filter(
         (room) => room.status === "maintenance"
     ).length;
     const occupancyRate =
@@ -206,7 +223,7 @@ export default function AllRooms({ rooms }: Props) {
                     <Button asChild>
                         <Link href="/hotel-owner/rooms/create">
                             <DoorOpen className="h-4 w-4 mr-2" />
-                            Create New Room
+                            Create Room
                         </Link>
                     </Button>
                 </div>
@@ -358,30 +375,6 @@ export default function AllRooms({ rooms }: Props) {
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Clear Filters & Results Count */}
-                    <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground whitespace-nowrap">
-                            {filteredData.length} of {data.length} rooms
-                        </p>
-                        {(searchQuery ||
-                            statusFilter !== "all" ||
-                            roomTypeFilter !== "all" ||
-                            availabilityFilter !== "all") && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setSearchQuery("");
-                                    setStatusFilter("all");
-                                    setRoomTypeFilter("all");
-                                    setAvailabilityFilter("all");
-                                }}
-                            >
-                                Clear
-                            </Button>
-                        )}
-                    </div>
                 </div>
 
                 {/* Rooms Grid */}
@@ -411,7 +404,7 @@ export default function AllRooms({ rooms }: Props) {
                                   </CardContent>
                               </Card>
                           ))
-                        : filteredData.map((room) => {
+                        : paginatedData.map((room) => {
                               const roomProperty = room.room_property;
                               const images = roomProperty?.images_url || [];
 
@@ -549,7 +542,7 @@ export default function AllRooms({ rooms }: Props) {
                                                   <Link
                                                       href={`/hotel-owner/rooms/${room.room_id}/edit`}
                                                   >
-                                                      <Edit className="h-4 w-4 mr-2" />
+                                                      <Pencil className="h-4 w-4 mr-2" />
                                                       Edit
                                                   </Link>
                                               </Button>
@@ -584,64 +577,82 @@ export default function AllRooms({ rooms }: Props) {
                 )}
 
                 {/* Empty State - No filtered results */}
-                {!isLoading && data.length > 0 && filteredData.length === 0 && (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Search className="size-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>No Matching Rooms</EmptyTitle>
-                            <EmptyDescription>
-                                No rooms match your current filters. Try
-                                adjusting your search criteria.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setSearchQuery("");
-                                    setStatusFilter("all");
-                                    setRoomTypeFilter("all");
-                                    setAvailabilityFilter("all");
-                                }}
-                            >
-                                Clear All Filters
-                            </Button>
-                        </EmptyContent>
-                    </Empty>
-                )}
+                {!isLoading &&
+                    data.length > 0 &&
+                    paginatedData.length === 0 && (
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Search className="size-6" />
+                                </EmptyMedia>
+                                <EmptyTitle>No Matching Rooms</EmptyTitle>
+                                <EmptyDescription>
+                                    No rooms match your current filters. Try
+                                    adjusting your search criteria.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                            <EmptyContent>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setSearchQuery("");
+                                        setStatusFilter("all");
+                                        setRoomTypeFilter("all");
+                                        setAvailabilityFilter("all");
+                                    }}
+                                >
+                                    Clear All Filters
+                                </Button>
+                            </EmptyContent>
+                        </Empty>
+                    )}
 
                 {/* Pagination */}
-                {rooms.last_page > 1 && (
-                    <div className="flex justify-center gap-2">
-                        {rooms.links.map((link, index) => (
-                            <Button
-                                key={index}
-                                variant={link.active ? "default" : "outline"}
-                                size="sm"
-                                asChild={!!link.url}
-                                disabled={!link.url}
-                            >
-                                {link.url ? (
-                                    <Link href={link.url}>
-                                        <span
-                                            dangerouslySetInnerHTML={{
-                                                __html: link.label,
-                                            }}
-                                        />
-                                    </Link>
-                                ) : (
-                                    <span
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                )}
-                            </Button>
-                        ))}
+                <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                        Showing {from} to {to} of {totalFiltered} row(s).
                     </div>
-                )}
+
+                    <div className="flex items-center space-x-6 lg:space-x-8">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                            >
+                                First
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <div className="text-sm text-muted-foreground">
+                                Page {currentPage} of {lastPage}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                                disabled={currentPage === lastPage}
+                            >
+                                Next
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(lastPage)}
+                                disabled={currentPage === lastPage}
+                            >
+                                Last
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

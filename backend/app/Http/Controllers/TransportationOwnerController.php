@@ -11,6 +11,7 @@ use App\Models\Bus\BusSchedule;
 use App\Models\Bus\SeatBooking;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\DB;
 
 class TransportationOwnerController extends Controller
 {
@@ -102,6 +103,111 @@ class TransportationOwnerController extends Controller
         ->where('created_at', '>=', now()->subDays(7))
         ->sum('price');
         
+        // Revenue Trend Data (last 6 months)
+        $revenueTrendData = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthRevenue = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereYear('created_at', $date->year)
+            ->whereMonth('created_at', $date->month)
+            ->sum('price');
+            
+            $monthBookings = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereYear('created_at', $date->year)
+            ->whereMonth('created_at', $date->month)
+            ->count();
+            
+            $revenueTrendData[] = [
+                'month' => $date->format('M'),
+                'revenue' => round($monthRevenue, 2),
+                'bookings' => $monthBookings
+            ];
+        }
+        
+        // Route Performance Data (Top 5 routes by bookings)
+        $routePerformanceData = SeatBooking::select(
+            'routes.from_location',
+            'routes.to_location',
+            DB::raw('COUNT(booking_bus_seats.id) as booking_count')
+        )
+        ->join('bus_schedules', 'booking_bus_seats.schedule_id', '=', 'bus_schedules.id')
+        ->join('routes', 'bus_schedules.route_id', '=', 'routes.id')
+        ->join('buses', 'bus_schedules.bus_id', '=', 'buses.id')
+        ->join('transportations', 'buses.transportation_id', '=', 'transportations.id')
+        ->where('transportations.owner_user_id', $user->id)
+        ->groupBy('routes.from_location', 'routes.to_location')
+        ->orderByDesc('booking_count')
+        ->limit(5)
+        ->get()
+        ->map(function($item) {
+            $fromProvince = \App\Models\ProvinceCategory::find($item->from_location);
+            $toProvince = \App\Models\ProvinceCategory::find($item->to_location);
+            
+            return [
+                'route' => ($fromProvince ? $fromProvince->province_categoryName : 'N/A') . ' - ' . 
+                          ($toProvince ? $toProvince->province_categoryName : 'N/A'),
+                'bookings' => $item->booking_count
+            ];
+        })
+        ->values()
+        ->toArray();
+        
+        // Bus Utilization Data (Bus status distribution)
+        $allBuses = Bus::whereHas('transportation', function($q) use ($user) {
+            $q->where('owner_user_id', $user->id);
+        })->get();
+        
+        $busUtilizationData = [
+            ['status' => 'Active', 'count' => $allBuses->filter(function($bus) {
+                return $bus->activeSchedules()->count() > 0;
+            })->count()],
+            ['status' => 'Scheduled', 'count' => $allBuses->filter(function($bus) {
+                return $bus->schedules()->where('status', 'scheduled')->count() > 0 && 
+                       $bus->activeSchedules()->count() == 0;
+            })->count()],
+            ['status' => 'Maintenance', 'count' => 0], // Can be implemented based on bus maintenance tracking
+            ['status' => 'Idle', 'count' => $allBuses->filter(function($bus) {
+                return $bus->schedules()->where('status', 'scheduled')->count() == 0;
+            })->count()],
+        ];
+        
+        // Weekly Occupancy Data (last 7 days)
+        $weeklyOccupancyData = [];
+        $daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $dayOfWeek = $daysOfWeek[$date->dayOfWeek];
+            
+            // Get schedules for this day
+            $daySchedules = BusSchedule::whereHas('bus.transportation', function($q) use ($user) {
+                $q->where('owner_user_id', $user->id);
+            })
+            ->whereDate('departure_time', $date->toDateString())
+            ->with('bus.busProperty')
+            ->get();
+            
+            $totalSeatsForDay = $daySchedules->sum(function($schedule) {
+                return $schedule->bus && $schedule->bus->busProperty ? $schedule->bus->busProperty->seat_capacity : 0;
+            });
+            
+            $bookedSeatsForDay = SeatBooking::whereIn(
+                'schedule_id',
+                $daySchedules->pluck('id')
+            )->count();
+            
+            $rate = $totalSeatsForDay > 0 ? round(($bookedSeatsForDay / $totalSeatsForDay) * 100, 1) : 0;
+            
+            $weeklyOccupancyData[] = [
+                'day' => $dayOfWeek,
+                'rate' => $rate
+            ];
+        }
+        
         return Inertia::render('transportation-owner/dashboard', [
             'companies' => $companies,
             'stats' => [
@@ -116,6 +222,10 @@ class TransportationOwnerController extends Controller
                 'recent_revenue' => $recentRevenue,
             ],
             'recent_bookings' => $recentBookings,
+            'revenue_trend_data' => $revenueTrendData,
+            'route_performance_data' => $routePerformanceData,
+            'bus_utilization_data' => $busUtilizationData,
+            'weekly_occupancy_data' => $weeklyOccupancyData,
         ]);
     }
     
@@ -388,15 +498,16 @@ class TransportationOwnerController extends Controller
     {
         $user = Auth::user();
         
-        $bookings = SeatBooking::whereHas('schedule.bus.transportation', function($q) use ($user) {
+        $bookings = SeatBooking::whereHas('schedule.bus.busProperty.transportation', function($q) use ($user) {
             $q->where('owner_user_id', $user->id);
         })
         ->with([
-            'booking.user:id,name,email',
+            'booking.user:id,name,email,phone_number',
+            'booking.payments:id,booking_id,status',
             'schedule.route.fromProvince:province_categoryID,province_categoryName',
             'schedule.route.toProvince:province_categoryID,province_categoryName',
-            'schedule.bus:id,bus_name,bus_plate',
-            'schedule.bus.transportation.place',
+            'schedule.bus:id,bus_name,bus_plate,bus_property_id',
+            'schedule.bus.busProperty.transportation.place',
             'seat:id,seat_number'
         ])
         ->orderBy('created_at', 'desc')
@@ -405,18 +516,18 @@ class TransportationOwnerController extends Controller
         // Transform data to match frontend expectations
         $bookings->getCollection()->transform(function($seatBooking) {
             // Map passenger information from booking.user
-            $seatBooking->passenger_name = $seatBooking->booking->user->name ?? 'Unknown Passenger';
-            $seatBooking->passenger_email = $seatBooking->booking->user->email ?? null;
-            $seatBooking->passenger_phone = null; // Phone not available in users table
+            $seatBooking->passenger_name = $seatBooking->booking?->user?->name ?? 'Unknown Passenger';
+            $seatBooking->passenger_email = $seatBooking->booking?->user?->email ?? null;
+            $seatBooking->passenger_phone = $seatBooking->booking?->user?->phone_number ?? null;
             
             // Map booking status
-            $seatBooking->booking_status = $seatBooking->booking->status ?? 'pending';
-            $seatBooking->payment_status = $seatBooking->booking->payments->first()->status ?? 'pending';
+            $seatBooking->booking_status = $seatBooking->booking?->status ?? 'pending';
+            $seatBooking->payment_status = $seatBooking->booking?->payments?->first()?->status ?? 'pending';
             
             // Map route origin/destination from province names
             if ($seatBooking->schedule && $seatBooking->schedule->route) {
-                $seatBooking->schedule->route->origin = $seatBooking->schedule->route->fromProvince->province_categoryName ?? 'N/A';
-                $seatBooking->schedule->route->destination = $seatBooking->schedule->route->toProvince->province_categoryName ?? 'N/A';
+                $seatBooking->schedule->route->origin = $seatBooking->schedule->route->fromProvince?->province_categoryName ?? 'N/A';
+                $seatBooking->schedule->route->destination = $seatBooking->schedule->route->toProvince?->province_categoryName ?? 'N/A';
                 
                 // Clean up unnecessary relationships
                 unset($seatBooking->schedule->route->fromProvince);
@@ -485,23 +596,37 @@ class TransportationOwnerController extends Controller
         })
         ->with([
             'bus:id,bus_name,bus_plate,bus_property_id,description,is_available,status',
-            'bus.busProperty:id,bus_type,seat_capacity,image_url,amenities,features,price_per_seat,transportation_id',
+            'bus.busProperty:id,bus_type,seat_capacity,image_url,amenities,features,price_per_seat,transportation_id,seat_layout',
             'bus.busProperty.transportation:id,placeID',
             'bus.busProperty.transportation.place:placeID,name',
             'route:id,from_location,to_location,distance_km,duration_hours',
             'route.fromProvince:province_categoryID,province_categoryName',
             'route.toProvince:province_categoryID,province_categoryName',
-            'bookings.user:id,name,email,phone',
-            'bookings.seats',
+            'bookings' => function($query) {
+                $query->whereHas('booking', function($q) {
+                    $q->whereIn('status', ['pending', 'confirmed', 'completed']);
+                });
+            },
+            'bookings.booking:id,user_id,status',
+            'bookings.booking.user:id,name,email,phone_number',
+            'bookings.seat:id,seat_number',
         ])
         ->findOrFail($id);
         
         // Map route province names
         if ($schedule->route) {
-            $schedule->route->from_location = $schedule->route->fromProvince->province_categoryName ?? $schedule->route->from_location;
-            $schedule->route->to_location = $schedule->route->toProvince->province_categoryName ?? $schedule->route->to_location;
+            $schedule->route->from_location = $schedule->route->fromProvince?->province_categoryName ?? $schedule->route->from_location;
+            $schedule->route->to_location = $schedule->route->toProvince?->province_categoryName ?? $schedule->route->to_location;
             unset($schedule->route->fromProvince);
             unset($schedule->route->toProvince);
+        }
+        
+        // Transform bookings to add booking_status at the top level
+        if ($schedule->bookings) {
+            $schedule->bookings->transform(function($seatBooking) {
+                $seatBooking->booking_status = $seatBooking->booking?->status ?? 'pending';
+                return $seatBooking;
+            });
         }
         
         return Inertia::render('transportation-owner/schedules/show', [
@@ -593,6 +718,8 @@ class TransportationOwnerController extends Controller
                 $q->orderBy('departure_time', 'desc')->limit(10);
             },
             'schedules.route',
+            'schedules.route.fromProvince:province_categoryID,province_categoryName',
+            'schedules.route.toProvince:province_categoryID,province_categoryName',
             'schedules.bookings'
         ])
         ->findOrFail($id);
@@ -603,6 +730,18 @@ class TransportationOwnerController extends Controller
             'busProperty.transportation',
             'busProperty.transportation.place'
         ]);
+        
+        // Transform schedules to explicitly map province names
+        if ($bus->schedules) {
+            $bus->schedules->transform(function($schedule) {
+                if ($schedule->route) {
+                    // Explicitly set province names as attributes
+                    $schedule->route->fromProvinceName = $schedule->route->fromProvince?->province_categoryName ?? $schedule->route->from_location;
+                    $schedule->route->toProvinceName = $schedule->route->toProvince?->province_categoryName ?? $schedule->route->to_location;
+                }
+                return $schedule;
+            });
+        }
         
         return Inertia::render('transportation-owner/buses/show', [
             'bus' => $bus
@@ -722,7 +861,7 @@ class TransportationOwnerController extends Controller
             'departure_time' => 'required|date|after:now',
             'arrival_time' => 'required|date|after:departure_time',
             'price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
+            'status' => 'required|string|in:scheduled,departed,completed,cancelled',
         ]);
         
         // Verify bus belongs to user and get seat capacity
@@ -731,6 +870,25 @@ class TransportationOwnerController extends Controller
         })
         ->with('busProperty:id,seat_capacity')
         ->findOrFail($validated['bus_id']);
+        
+        // Check for overlapping schedules
+        $overlappingSchedule = BusSchedule::where('bus_id', $validated['bus_id'])
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('departure_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhereBetween('arrival_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('departure_time', '<=', $validated['departure_time'])
+                          ->where('arrival_time', '>=', $validated['arrival_time']);
+                    });
+            })
+            ->whereIn('status', ['scheduled', 'departed'])
+            ->first();
+        
+        if ($overlappingSchedule) {
+            return back()->withErrors([
+                'bus_id' => 'This bus already has a schedule during the selected time period. Please choose a different time or bus.'
+            ])->withInput();
+        }
         
         $schedule = BusSchedule::create([
             'bus_id' => $validated['bus_id'],
@@ -804,6 +962,20 @@ class TransportationOwnerController extends Controller
         })
         ->findOrFail($id);
         
+        // Check if this is a status-only update (for quick status changes from index page)
+        if ($request->has('status') && count($request->all()) === 1) {
+            $validated = $request->validate([
+                'status' => 'required|string|in:scheduled,departed,arrived,cancelled',
+            ]);
+            
+            $schedule->update([
+                'status' => $validated['status'],
+            ]);
+            
+            return back()->with('success', 'Schedule status updated successfully.');
+        }
+        
+        // Full schedule update
         $validated = $request->validate([
             'bus_id' => 'required|exists:buses,id',
             'route_id' => 'required|exists:routes,id',
@@ -818,6 +990,26 @@ class TransportationOwnerController extends Controller
             $q->where('owner_user_id', $user->id);
         })
         ->findOrFail($validated['bus_id']);
+        
+        // Check for overlapping schedules (exclude current schedule)
+        $overlappingSchedule = BusSchedule::where('bus_id', $validated['bus_id'])
+            ->where('id', '!=', $schedule->id)
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('departure_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhereBetween('arrival_time', [$validated['departure_time'], $validated['arrival_time']])
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('departure_time', '<=', $validated['departure_time'])
+                          ->where('arrival_time', '>=', $validated['arrival_time']);
+                    });
+            })
+            ->whereIn('status', ['scheduled', 'departed'])
+            ->first();
+        
+        if ($overlappingSchedule) {
+            return back()->withErrors([
+                'bus_id' => 'This bus already has a schedule during the selected time period. Please choose a different time or bus.'
+            ])->withInput();
+        }
         
         $schedule->update([
             'bus_id' => $validated['bus_id'],

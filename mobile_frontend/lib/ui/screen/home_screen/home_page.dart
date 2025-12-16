@@ -5,6 +5,7 @@ import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/dertam_search_place_screen.dart';
+import 'package:mobile_frontend/ui/screen/home_screen/widget/dertam_upcoming_detail_screen.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/home_slide_show.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/places_category.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/widget/recommendation_place_card.dart';
@@ -114,6 +115,9 @@ class _HomePageState extends State<HomePage> {
                           // Handle empty state
                           if (userInfo.state == AsyncValueState.empty ||
                               userInfo.data == null) {
+                            print(
+                              'User PHOTO ${userInfo.data?.userPicture ?? ''}',
+                            );
                             return SizedBox(
                               height: 280,
                               child: Center(
@@ -127,19 +131,27 @@ class _HomePageState extends State<HomePage> {
                           // Handle success state
                           return Row(
                             children: [
-                              CircleAvatar(
-                                backgroundImage: NetworkImage(
-                                  userInfo.data?.imageUrl ??
-                                      'https://i.pravatar.cc/100',
-                                ),
-                                onBackgroundImageError: (e, stackTrace) {
-                                  return;
-                                },
-                                backgroundColor: Colors.grey[200],
-                                radius: 20,
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.grey[400],
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(9999),
+                                  image: DecorationImage(
+                                    image:
+                                        userInfo
+                                                .data
+                                                ?.userPicture
+                                                ?.isNotEmpty ==
+                                            true
+                                        ? NetworkImage(
+                                            userInfo.data?.userPicture ?? '',
+                                          )
+                                        : AssetImage(
+                                                'assets/images/dertam_logo.png',
+                                              )
+                                              as ImageProvider,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                               SizedBox(width: 8),
@@ -148,7 +160,7 @@ class _HomePageState extends State<HomePage> {
                                   userInfo.data?.name ?? 'Guest User',
                                   style: TextStyle(
                                     color: DertamColors.primaryBlue,
-                                    fontSize: 24,
+                                    fontSize: 20,
                                   ),
                                 ),
                               ),
@@ -163,13 +175,6 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   );
                                 },
-                              ),
-                              SizedBox(width: 8),
-                              IconButton(
-                                icon: Icon(Icons.notifications_none_outlined),
-                                color: DertamColors.neutralLight,
-                                iconSize: 28,
-                                onPressed: () {},
                               ),
                             ],
                           );
@@ -401,9 +406,10 @@ class _HomePageState extends State<HomePage> {
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => DetailEachPlace(
-                                          placeId: event.placeId,
-                                        ),
+                                        builder: (context) =>
+                                            DertamUpcomingDetailScreen(
+                                              eventId: event.id.toString(),
+                                            ),
                                       ),
                                     ),
                                   ),

@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
+import ViewBookingDialog from "./ViewBookingDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Empty,
@@ -24,6 +36,8 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,6 +52,10 @@ import {
     ChevronsRight,
     Bus,
     MapPin,
+    Pencil,
+    MoreHorizontal,
+    Trash,
+    RefreshCw,
 } from "lucide-react";
 import { type BreadcrumbItem } from "@/types";
 
@@ -130,6 +148,10 @@ export default function TransportationOwnerBookingsIndex({
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState<SeatBooking | null>(
+        null
+    );
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
     // Column visibility state with localStorage persistence
     const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
@@ -165,6 +187,22 @@ export default function TransportationOwnerBookingsIndex({
             JSON.stringify(columnVisibility)
         );
     }, [columnVisibility]);
+
+    // Client-side filtering
+    const filteredData = bookings.data.filter((booking) => {
+        // Search filter - match passenger name with prefix
+        const matchesSearch =
+            search === "" ||
+            booking.passenger_name
+                .toLowerCase()
+                .startsWith(search.toLowerCase());
+
+        // Status filter
+        const matchesStatus =
+            statusFilter === "all" || booking.booking_status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+    });
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -472,7 +510,7 @@ export default function TransportationOwnerBookingsIndex({
                                           </div>
                                       </div>
                                   ))
-                                : bookings.data.map((booking) => (
+                                : filteredData.map((booking) => (
                                       <div
                                           key={booking.id}
                                           className="p-4 hover:bg-muted/50"
@@ -596,30 +634,125 @@ export default function TransportationOwnerBookingsIndex({
                                                   </div>
                                               )}
                                               <div className="flex gap-2">
-                                                  <Button
-                                                      asChild
-                                                      size="sm"
-                                                      variant="outline"
+                                                  <Link
+                                                      href={`/transportation-owner/bookings/${booking.id}/edit`}
                                                   >
-                                                      <Link
-                                                          href={`/transportation-owner/bookings/${booking.id}`}
-                                                      >
-                                                          <Eye className="h-4 w-4" />
-                                                      </Link>
-                                                  </Button>
-                                                  {booking.passenger_phone && (
                                                       <Button
-                                                          asChild
+                                                          variant="ghost"
                                                           size="sm"
-                                                          variant="outline"
                                                       >
-                                                          <a
-                                                              href={`tel:${booking.passenger_phone}`}
-                                                          >
-                                                              <Phone className="h-4 w-4" />
-                                                          </a>
+                                                          <Pencil className="h-4 w-4" />
                                                       </Button>
-                                                  )}
+                                                  </Link>
+                                                  <DropdownMenu>
+                                                      <DropdownMenuTrigger
+                                                          asChild
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                          >
+                                                              <MoreHorizontal className="h-4 w-4" />
+                                                          </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                          <DropdownMenuItem
+                                                              onClick={() => {
+                                                                  setSelectedBooking(
+                                                                      booking
+                                                                  );
+                                                                  setIsViewDialogOpen(
+                                                                      true
+                                                                  );
+                                                              }}
+                                                          >
+                                                              <Eye className="mr-2 h-4 w-4" />
+                                                              View details
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              asChild
+                                                          >
+                                                              <Link
+                                                                  href={`/transportation-owner/bookings/${booking.id}/edit`}
+                                                              >
+                                                                  <Pencil className="mr-2 h-4 w-4" />
+                                                                  Edit booking
+                                                              </Link>
+                                                          </DropdownMenuItem>
+                                                          {booking.passenger_phone && (
+                                                              <DropdownMenuItem
+                                                                  asChild
+                                                              >
+                                                                  <a
+                                                                      href={`tel:${booking.passenger_phone}`}
+                                                                  >
+                                                                      <Phone className="mr-2 h-4 w-4" />
+                                                                      Call
+                                                                      passenger
+                                                                  </a>
+                                                              </DropdownMenuItem>
+                                                          )}
+                                                          <DropdownMenuSeparator />
+                                                          <AlertDialog>
+                                                              <AlertDialogTrigger
+                                                                  asChild
+                                                              >
+                                                                  <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground text-red-600">
+                                                                      <Trash className="mr-4 h-4 w-4" />
+                                                                      Delete
+                                                                      booking
+                                                                  </div>
+                                                              </AlertDialogTrigger>
+                                                              <AlertDialogContent>
+                                                                  <AlertDialogHeader>
+                                                                      <AlertDialogTitle>
+                                                                          Are
+                                                                          you
+                                                                          sure?
+                                                                      </AlertDialogTitle>
+                                                                      <AlertDialogDescription>
+                                                                          This
+                                                                          action
+                                                                          cannot
+                                                                          be
+                                                                          undone.
+                                                                          This
+                                                                          will
+                                                                          permanently
+                                                                          delete
+                                                                          the
+                                                                          booking
+                                                                          for{" "}
+                                                                          <strong>
+                                                                              {booking.passenger_name ||
+                                                                                  "this passenger"}
+                                                                          </strong>
+                                                                          .
+                                                                      </AlertDialogDescription>
+                                                                  </AlertDialogHeader>
+                                                                  <AlertDialogFooter>
+                                                                      <AlertDialogCancel>
+                                                                          Cancel
+                                                                      </AlertDialogCancel>
+                                                                      <AlertDialogAction
+                                                                          onClick={() => {
+                                                                              router.delete(
+                                                                                  `/transportation-owner/bookings/${booking.id}`,
+                                                                                  {
+                                                                                      preserveScroll:
+                                                                                          true,
+                                                                                  }
+                                                                              );
+                                                                          }}
+                                                                          className="bg-red-600 hover:bg-red-700"
+                                                                      >
+                                                                          Delete
+                                                                      </AlertDialogAction>
+                                                                  </AlertDialogFooter>
+                                                              </AlertDialogContent>
+                                                          </AlertDialog>
+                                                      </DropdownMenuContent>
+                                                  </DropdownMenu>
                                               </div>
                                           </div>
                                       </div>
@@ -629,7 +762,7 @@ export default function TransportationOwnerBookingsIndex({
                 </div>
 
                 {/* Empty State */}
-                {!isLoading && bookings.data.length === 0 && (
+                {!isLoading && filteredData.length === 0 && (
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
@@ -648,15 +781,17 @@ export default function TransportationOwnerBookingsIndex({
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing{" "}
-                        {(bookings.current_page - 1) * bookings.per_page + 1} to{" "}
-                        {Math.min(
-                            bookings.current_page * bookings.per_page,
-                            bookings.total
-                        )}{" "}
-                        of {bookings.total} row(s).
+                        {filteredData.length > 0 ? (
+                            <>
+                                Showing {filteredData.length} of{" "}
+                                {bookings.total} booking(s)
+                                {(search || statusFilter !== "all") &&
+                                    " (filtered)"}
+                            </>
+                        ) : (
+                            "No bookings to display"
+                        )}
                     </div>
-
                     <div className="flex items-center space-x-6 lg:space-x-8">
                         <div className="flex items-center space-x-2">
                             <p className="text-sm font-medium">Rows per page</p>
@@ -769,6 +904,13 @@ export default function TransportationOwnerBookingsIndex({
                     </div>
                 </div>
             </div>
+
+            {/* View Booking Dialog */}
+            <ViewBookingDialog
+                booking={selectedBooking}
+                open={isViewDialogOpen}
+                onOpenChange={setIsViewDialogOpen}
+            />
         </AppLayout>
     );
 }

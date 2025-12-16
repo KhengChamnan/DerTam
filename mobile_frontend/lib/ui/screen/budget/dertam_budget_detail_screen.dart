@@ -54,7 +54,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   List<Expense> get _expenses {
-    final budgetProvider = Provider.of<BudgetProvider>(context);
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
     return budgetProvider.getBudgetDetails.when(
       empty: () => [],
       loading: () => [],
@@ -64,7 +64,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Budget? get _budget {
-    final budgetProvider = Provider.of<BudgetProvider>(context);
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
     return budgetProvider.getBudgetDetails.when(
       empty: () => null,
       loading: () => null,
@@ -357,7 +357,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     switch (currency) {
       case 'USD':
         return '\$';
-      case 'KHR':
+      case 'KMR':
         return '៛';
       case 'EUR':
         return '€';
@@ -380,7 +380,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
           final updatedExpenses = List<Expense>.from(
             currentBudget.expenses ?? [],
           )..removeWhere((e) => e.id == expense.id);
-
           // Recalculate totals
           final newTotalSpent = updatedExpenses.fold<double>(
             0.0,
@@ -388,7 +387,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
           );
           final newRemainingBudget =
               (currentBudget.totalBudget ?? 0.0) - newTotalSpent;
-
           // Update the budget with new values
           final updatedBudget = Budget(
             budgetId: currentBudget.budgetId,
@@ -400,7 +398,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
             totalSpent: newTotalSpent,
             remainingBudget: newRemainingBudget,
           );
-
           // Update the provider state directly
           budgetProvider.updateBudgetDetailsLocally(updatedBudget);
         }

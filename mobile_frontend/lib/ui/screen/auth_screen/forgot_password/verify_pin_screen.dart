@@ -136,160 +136,167 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
     return Scaffold(
       backgroundColor: DertamColors.backgroundWhite,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.m),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Back button
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: DertamSpacings.l,
-                  bottom: DertamSpacings.xl,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.48),
-                    borderRadius: BorderRadius.circular(14.217),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new),
-                    iconSize: 24,
-                    color: DertamColors.black,
-                    onPressed: () => Navigator.pop(context),
-                    padding: const EdgeInsets.all(9.478),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: DertamSpacings.xxl * 3),
-              // Illustration
-              const LoginIllustration(),
-              SizedBox(height: DertamSpacings.s),
-              // Title
-              Center(
-                child: Text(
-                  'Verify Email',
-                  style: DertamTextStyles.title.copyWith(
-                    color: DertamColors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: DertamSpacings.l),
-
-              // Description
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DertamSpacings.m,
-                  ),
-                  child: Text(
-                    'Please check your email and enter the 6-digit verification code below.',
-                    textAlign: TextAlign.center,
-                    style: DertamTextStyles.body.copyWith(
-                      fontSize: 14,
-                      color: Colors.black.withOpacity(0.61),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: DertamSpacings.xxl),
-
-              // PIN input fields
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DertamSpacings.s,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(6, (index) {
-                    return _buildPinField(index);
-                  }),
-                ),
-              ),
-
-              const SizedBox(height: DertamSpacings.xxl),
-
-              // Confirm button
-              Consumer<AuthProvider>(
-                builder: (context, authProvider, child) {
-                  final isLoading =
-                      authProvider.verifyPinValue?.state ==
-                      AsyncValueState.loading;
-
-                  return Container(
-                    width: double.infinity,
-                    height: 53,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: DertamSpacings.m),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Back button
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: DertamColors.primaryDark,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: TextButton(
-                      onPressed: (isPinComplete && !isLoading)
-                          ? _handleConfirm
-                          : null,
-                      style: TextButton.styleFrom(
-                        foregroundColor: DertamColors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          spreadRadius: 0,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_ios_new,
+                        color: DertamColors.primaryDark,
+                        size: 20,
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ),
+                // Illustration
+                const LoginIllustration(),
+                SizedBox(height: DertamSpacings.s),
+                // Title
+                Center(
+                  child: Text(
+                    'Verify Email',
+                    style: DertamTextStyles.title.copyWith(
+                      color: DertamColors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: DertamSpacings.l),
+
+                // Description
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DertamSpacings.m,
+                    ),
+                    child: Text(
+                      'Please check your email and enter the 6-digit verification code below.',
+                      textAlign: TextAlign.center,
+                      style: DertamTextStyles.body.copyWith(
+                        fontSize: 14,
+                        color: Colors.black.withOpacity(0.61),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: DertamSpacings.xxl),
+
+                // PIN input fields
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DertamSpacings.s,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(6, (index) {
+                      return _buildPinField(index);
+                    }),
+                  ),
+                ),
+
+                const SizedBox(height: DertamSpacings.xxl),
+
+                // Confirm button
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    final isLoading =
+                        authProvider.verifyPinValue?.state ==
+                        AsyncValueState.loading;
+
+                    return Container(
+                      width: double.infinity,
+                      height: 53,
+                      decoration: BoxDecoration(
+                        color: DertamColors.primaryDark,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: TextButton(
+                        onPressed: (isPinComplete && !isLoading)
+                            ? _handleConfirm
+                            : null,
+                        style: TextButton.styleFrom(
+                          foregroundColor: DertamColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                'Confirm',
+                                style: DertamTextStyles.subtitle.copyWith(
+                                  color: DertamColors.white,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            )
-                          : Text(
-                              'Confirm',
-                              style: DertamTextStyles.subtitle.copyWith(
-                                color: DertamColors.white,
-                                fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: DertamSpacings.l),
+
+                // Resend PIN text
+                Center(
+                  child: RichText(
+                    text: TextSpan(
+                      text: "Don't get the PIN ? ",
+                      style: DertamTextStyles.body.copyWith(
+                        fontSize: 14,
+                        color: Colors.black.withOpacity(0.61),
+                      ),
+                      children: [
+                        WidgetSpan(
+                          child: GestureDetector(
+                            onTap: _handleResendPin,
+                            child: Text(
+                              'Send again',
+                              style: DertamTextStyles.body.copyWith(
+                                fontSize: 14,
+                                color: DertamColors.primaryDark,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: DertamSpacings.l),
-
-              // Resend PIN text
-              Center(
-                child: RichText(
-                  text: TextSpan(
-                    text: "Don't get the PIN ? ",
-                    style: DertamTextStyles.body.copyWith(
-                      fontSize: 14,
-                      color: Colors.black.withOpacity(0.61),
-                    ),
-                    children: [
-                      WidgetSpan(
-                        child: GestureDetector(
-                          onTap: _handleResendPin,
-                          child: Text(
-                            'Send again',
-                            style: DertamTextStyles.body.copyWith(
-                              fontSize: 14,
-                              color: DertamColors.primaryDark,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: DertamSpacings.l),
+              ],
+            ),
           ),
         ),
       ),

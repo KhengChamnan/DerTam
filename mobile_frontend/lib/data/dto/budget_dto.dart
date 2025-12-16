@@ -5,7 +5,6 @@ class BudgetDto {
   static Budget fromBudget(Map<String, dynamic> json) {
     // Extract data from the response wrapper
     final budgetData = json['data'] ?? json;
-
     return Budget(
       budgetId: budgetData['budget_id'] as int?,
       tripId: budgetData['trip_id'] as int?,

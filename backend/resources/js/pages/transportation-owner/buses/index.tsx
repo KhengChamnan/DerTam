@@ -106,18 +106,16 @@ export default function TransportationOwnerBusesIndex({
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(false);
 
+    // Client-side pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(12);
+
     // Client-side filtering for instant results
     const filteredBuses = buses.data.filter((bus) => {
-        // Search filter
-        const searchLower = search.toLowerCase();
+        // Search filter - only match bus name with prefix
         const matchesSearch =
             search === "" ||
-            bus.bus_name.toLowerCase().includes(searchLower) ||
-            bus.bus_plate.toLowerCase().includes(searchLower) ||
-            bus.bus_property?.bus_type.toLowerCase().includes(searchLower) ||
-            bus.bus_property?.transportation?.place?.name
-                ?.toLowerCase()
-                .includes(searchLower);
+            bus.bus_name.toLowerCase().startsWith(search.toLowerCase());
 
         // Type filter
         const matchesType =
@@ -131,6 +129,21 @@ export default function TransportationOwnerBusesIndex({
 
         return matchesSearch && matchesType && matchesStatus;
     });
+
+    // Client-side pagination calculations
+    const totalFiltered = filteredBuses.length;
+    const lastPage = Math.ceil(totalFiltered / perPage);
+
+    // Paginated data for current page
+    const paginatedBuses = filteredBuses.slice(
+        (currentPage - 1) * perPage,
+        currentPage * perPage
+    );
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [search, typeFilter, statusFilter]);
 
     const getBusTypeBadge = (type: string) => {
         const badgeColors: { [key: string]: string } = {
@@ -253,7 +266,7 @@ export default function TransportationOwnerBusesIndex({
                                   </CardContent>
                               </Card>
                           ))
-                        : filteredBuses.map((bus) => (
+                        : paginatedBuses.map((bus) => (
                               <Card
                                   key={bus.id}
                                   className="hover:shadow-lg transition-shadow overflow-hidden"

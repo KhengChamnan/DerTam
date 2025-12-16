@@ -65,6 +65,24 @@ class RolePermissionSeeder extends Seeder
             'manage own transportation bookings',
             'view own transportation analytics',
             
+            // Restaurant management permissions
+            'view restaurants',
+            'create restaurants',
+            'edit restaurants',
+            'delete restaurants',
+            'manage restaurant menus',
+            'view restaurant analytics',
+            
+            // Restaurant Owner specific permissions
+            'view own restaurant dashboard',
+            'manage own restaurant basic info',
+            'manage own restaurant menus',
+            'manage own restaurant categories',
+            'manage own restaurant items',
+            'view own restaurant bookings',
+            'manage own restaurant bookings',
+            'view own restaurant analytics',
+            
             // User management permissions
             'view users',
             'create users',
@@ -72,6 +90,7 @@ class RolePermissionSeeder extends Seeder
             'delete users',
             'assign roles',
             'assign hotel ownership',
+            'assign restaurant ownership',
             
             // Role management permissions
             'view roles',
@@ -145,11 +164,17 @@ class RolePermissionSeeder extends Seeder
             'edit transportations',
             'manage transportation buses',
             'view transportation analytics',
+            'view restaurants',
+            'create restaurants',
+            'edit restaurants',
+            'manage restaurant menus',
+            'view restaurant analytics',
             'view users',
             'create users',
             'edit users',
             'assign roles',
             'assign hotel ownership',
+            'assign restaurant ownership',
             'view roles',
             'create roles',
             'edit roles',

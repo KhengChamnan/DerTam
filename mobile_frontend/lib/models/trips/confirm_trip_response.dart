@@ -30,8 +30,8 @@ class ConfirmTripData {
   final DateTime? startDate;
   final DateTime? endDate;
   final Map<String, TripDays>? days;
-  
   final int? totalPlacesAdded;
+  final String? accessType;
 
   ConfirmTripData({
     this.tripId,
@@ -40,26 +40,64 @@ class ConfirmTripData {
     this.endDate,
     this.days,
     this.totalPlacesAdded,
+    this.accessType,
   });
 
   factory ConfirmTripData.fromJson(Map<String, dynamic> json) {
-    final daysMap = json['days'] as Map<String, dynamic>;
     final days = <String, TripDays>{};
-    daysMap.forEach((key, value) {
-      final dayJson = value as Map<String, dynamic>;
-      days[key] = TripDays.fromJson(dayJson);
-    });
-    return ConfirmTripData(
-      tripId: json['trip_id'] ?? 0,
-      tripName: json['trip_name'] ?? '',
-      startDate: json['start_date'] != null
+
+    // Handle both formats: nested "trip" object (share link) or flat structure
+    final tripData = json['trip'] as Map<String, dynamic>?;
+    final int? tripId;
+    final String? tripName;
+    final DateTime? startDate;
+    final DateTime? endDate;
+
+    if (tripData != null) {
+      // Share link response format: { "trip": {...}, "days": [...] }
+      tripId = tripData['trip_id'];
+      tripName = tripData['trip_name'];
+      startDate = tripData['start_date'] != null
+          ? DateTime.parse(tripData['start_date'])
+          : null;
+      endDate = tripData['end_date'] != null
+          ? DateTime.parse(tripData['end_date'])
+          : null;
+    } else {
+      // Original format: { "trip_id": ..., "days": {...} }
+      tripId = json['trip_id'];
+      tripName = json['trip_name'];
+      startDate = json['start_date'] != null
           ? DateTime.parse(json['start_date'])
-          : null,
-      endDate: json['end_date'] != null
+          : null;
+      endDate = json['end_date'] != null
           ? DateTime.parse(json['end_date'])
-          : null,
+          : null;
+    }
+
+    final daysData = json['days'];
+    if (daysData is List) {
+      // Share link response: days is an array
+      for (int i = 0; i < daysData.length; i++) {
+        final dayJson = daysData[i] as Map<String, dynamic>;
+        days['day_${i + 1}'] = TripDays.fromJson(dayJson);
+      }
+    } else if (daysData is Map<String, dynamic>) {
+      // Original format: days is a map
+      daysData.forEach((key, value) {
+        final dayJson = value as Map<String, dynamic>;
+        days[key] = TripDays.fromJson(dayJson);
+      });
+    }
+
+    return ConfirmTripData(
+      tripId: tripId,
+      tripName: tripName,
+      startDate: startDate,
+      endDate: endDate,
       days: days,
       totalPlacesAdded: json['total_places_added'] ?? 0,
+      accessType: json['trip_access_type'],
     );
   }
 

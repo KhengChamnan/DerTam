@@ -6,11 +6,13 @@ import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
+
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
   @override
   State<FavoriteScreen> createState() => _FavoriteScreenState();
 }
+
 class _FavoriteScreenState extends State<FavoriteScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
@@ -223,9 +225,30 @@ class _FavoriteScreenState extends State<FavoriteScreen>
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: DertamColors.primaryDark,
+                size: 20,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
         ),
         title: Text(
           'My Favorites',
@@ -234,41 +257,10 @@ class _FavoriteScreenState extends State<FavoriteScreen>
         centerTitle: true,
 
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
+          preferredSize: const Size.fromHeight(60),
           child: Column(
             children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) => _filterPlaces(),
-                  decoration: InputDecoration(
-                    hintText: 'Search your favorite places...',
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey[600]),
-                            onPressed: () {
-                              _searchController.clear();
-                              _filterPlaces();
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide: BorderSide(color: DertamColors.primaryDark),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              
               _buildCategoryFilter(),
             ],
           ),
@@ -575,127 +567,6 @@ class _FavoriteScreenState extends State<FavoriteScreen>
         locationName: 'Koh Rong, Cambodia',
       ),
     ];
-  }
-}
-
-// Search Delegate
-class _FavoriteSearchDelegate extends SearchDelegate<String> {
-  final List<Place> places;
-
-  _FavoriteSearchDelegate(this.places);
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        onPressed: () {
-          query = '';
-        },
-        icon: const Icon(Icons.clear),
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      onPressed: () {
-        close(context, '');
-      },
-      icon: const Icon(Icons.arrow_back),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return _buildSearchResults();
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return _buildSearchResults();
-  }
-
-  Widget _buildSearchResults() {
-    final results = places.where((place) {
-      return place.name.toLowerCase().contains(query.toLowerCase()) ||
-          place.description.toLowerCase().contains(query.toLowerCase()) ||
-          place.locationName.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-
-    if (results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No places found',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try searching with different keywords',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        final place = results[index];
-        return ListTile(
-          leading: CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.grey[200],
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(25),
-              child: Image.network(
-                place.imagesUrl,
-                fit: BoxFit.cover,
-                width: 50,
-                height: 50,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.place, color: Colors.grey[600]);
-                },
-              ),
-            ),
-          ),
-          title: Text(
-            place.name,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(place.locationName),
-              Row(
-                children: [
-                  Icon(Icons.star, color: Colors.amber, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    place.ratings.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '(${place.reviewsCount} reviews)',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          onTap: () {
-            close(context, place.name);
-          },
-        );
-      },
-    );
   }
 }
 
