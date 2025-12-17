@@ -26,12 +26,7 @@ class _DertamUserPreferrenceState extends State<DertamUserPreferrence> {
   void _initializeQuestions() {
     // Initialize your questions here - this would typically come from an API
     final questions = [
-      TripPlanningQuestion(
-        id: 'trip_name',
-        question: 'What would you like to name your trip?',
-        type: 'text',
-        placeholder: 'e.g., Summer Adventure 2025',
-      ),
+    
       TripPlanningQuestion(
         id: 'destination',
         question: 'Where do you want to go?',
@@ -144,14 +139,11 @@ class _DertamUserPreferrenceState extends State<DertamUserPreferrence> {
       appBar: AppBar(
         backgroundColor: DertamColors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: DertamColors.primaryBlue),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           'Plan Your Trip',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
             color: DertamColors.primaryBlue,
           ),

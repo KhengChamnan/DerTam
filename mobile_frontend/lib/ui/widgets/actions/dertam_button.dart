@@ -50,7 +50,7 @@ class DertamButton extends StatelessWidget {
         color: isGradient
             ? null
             : (isOutlined ? Colors.transparent : defaultBackgroundColor),
-        borderRadius: BorderRadius.circular(DertamSpacings.buttonRadius),
+        borderRadius: BorderRadius.circular(20),
         border: isOutlined
             ? Border.all(color: DertamColors.primaryDark, width: 2)
             : null,
@@ -59,7 +59,7 @@ class DertamButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(DertamSpacings.buttonRadius),
+          borderRadius: BorderRadius.circular(20),
           child: Center(
             child: isLoading
                 ? SizedBox(

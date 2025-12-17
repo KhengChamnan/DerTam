@@ -1,7 +1,7 @@
 class User {
-  final int id;
-  final String name;
-  final String email;
+  final int? id;
+  final String? name;
+  final String? email;
   final String? phone;
   final int? age;
   final String? gender;
@@ -16,9 +16,9 @@ class User {
   final String? confirmPassword;
 
   User({
-    required this.id,
-    required this.name,
-    required this.email,
+    this.id,
+    this.name,
+    this.email,
     this.userPicture,
     this.phone,
     this.gender,
@@ -90,5 +90,9 @@ class User {
           : null,
       token: json['token'] ?? '',
     );
+  }
+
+  factory User.fromTripAccessJson(Map<String, dynamic> json) {
+    return User(id: json['user_id'] ?? 0, name: json['name'] ?? '');
   }
 }

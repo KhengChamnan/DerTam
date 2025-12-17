@@ -7,10 +7,10 @@ import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/providers/restaurant_provider.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
-import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
 import 'package:mobile_frontend/ui/screen/favorite/favorite_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_profile.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_setting_screen.dart';
+import 'package:mobile_frontend/ui/screen/splash/widgets/splash_body.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_booking_screen.dart';
@@ -215,9 +215,9 @@ class _UserProfileState extends State<UserProfile> {
                                     child: const Text('Cancel'),
                                   ),
                                   TextButton(
-                                    onPressed: () {
+                                    onPressed: () async {
                                       // Clear all provider data on logout
-                                      authProvider.logout();
+                                      await authProvider.logout();
                                       context.read<TripProvider>().clearAll();
                                       context.read<PlaceProvider>().clearAll();
                                       context.read<HotelProvider>().clearAll();
@@ -233,7 +233,7 @@ class _UserProfileState extends State<UserProfile> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              DertamLoginScreen(),
+                                              const SplashBody(),
                                         ),
                                         (route) => false,
                                       );

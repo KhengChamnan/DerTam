@@ -202,9 +202,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       await authRepository.logOut();
       debugPrint('✅ Logout successful in provider');
-    } catch (error) {
-      debugPrint('❌ Logout error in provider: $error');
-    } finally {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('preferences_completed');
       _authToken = null;
       _currentUser = null;
       _isAuthenticated = false;
@@ -216,8 +215,10 @@ class AuthProvider extends ChangeNotifier {
       googleSignInValue = null;
       _userToken = AsyncValue.empty();
       _userInfo = AsyncValue.empty();
-      _hasCompletedPreferences = AsyncValue.loading();
+      _hasCompletedPreferences = AsyncValue.empty();
       notifyListeners();
+    } catch (error) {
+      debugPrint('❌ Logout error in provider: $error');
     }
   }
 

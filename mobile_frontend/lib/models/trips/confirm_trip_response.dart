@@ -1,4 +1,5 @@
 import 'package:mobile_frontend/models/trips/trip_days.dart';
+import 'package:mobile_frontend/models/user/user_model.dart';
 
 class ConfirmTripResponse {
   final bool success;
@@ -32,6 +33,7 @@ class ConfirmTripData {
   final Map<String, TripDays>? days;
   final int? totalPlacesAdded;
   final String? accessType;
+  final UserAccessType? userAccessType;
 
   ConfirmTripData({
     this.tripId,
@@ -41,12 +43,11 @@ class ConfirmTripData {
     this.days,
     this.totalPlacesAdded,
     this.accessType,
+    this.userAccessType,
   });
 
   factory ConfirmTripData.fromJson(Map<String, dynamic> json) {
     final days = <String, TripDays>{};
-
-    // Handle both formats: nested "trip" object (share link) or flat structure
     final tripData = json['trip'] as Map<String, dynamic>?;
     final int? tripId;
     final String? tripName;
@@ -54,7 +55,6 @@ class ConfirmTripData {
     final DateTime? endDate;
 
     if (tripData != null) {
-      // Share link response format: { "trip": {...}, "days": [...] }
       tripId = tripData['trip_id'];
       tripName = tripData['trip_name'];
       startDate = tripData['start_date'] != null
@@ -64,7 +64,6 @@ class ConfirmTripData {
           ? DateTime.parse(tripData['end_date'])
           : null;
     } else {
-      // Original format: { "trip_id": ..., "days": {...} }
       tripId = json['trip_id'];
       tripName = json['trip_name'];
       startDate = json['start_date'] != null
@@ -77,13 +76,11 @@ class ConfirmTripData {
 
     final daysData = json['days'];
     if (daysData is List) {
-      // Share link response: days is an array
       for (int i = 0; i < daysData.length; i++) {
         final dayJson = daysData[i] as Map<String, dynamic>;
         days['day_${i + 1}'] = TripDays.fromJson(dayJson);
       }
     } else if (daysData is Map<String, dynamic>) {
-      // Original format: days is a map
       daysData.forEach((key, value) {
         final dayJson = value as Map<String, dynamic>;
         days[key] = TripDays.fromJson(dayJson);
@@ -98,6 +95,11 @@ class ConfirmTripData {
       days: days,
       totalPlacesAdded: json['total_places_added'] ?? 0,
       accessType: json['trip_access_type'],
+      userAccessType: json['users_with_access'] != null
+          ? UserAccessType.fromUserAccessType(
+              json['users_with_access'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 
@@ -112,5 +114,19 @@ class ConfirmTripData {
       'days': daysJson,
       'total_places_added': totalPlacesAdded,
     };
+  }
+}
+
+class UserAccessType {
+  final int? totalUserJoin;
+  final List<User>? userAccess;
+  const UserAccessType({this.totalUserJoin, this.userAccess});
+  factory UserAccessType.fromUserAccessType(Map<String, dynamic> json) {
+    return UserAccessType(
+      totalUserJoin: json['total_count'] ?? 0,
+      userAccess: (json['users'] as List<dynamic>?)
+          ?.map((e) => User.fromTripAccessJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 }

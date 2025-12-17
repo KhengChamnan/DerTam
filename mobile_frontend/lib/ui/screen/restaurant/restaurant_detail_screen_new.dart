@@ -250,23 +250,23 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   ),
                   const SizedBox(height: DertamSpacings.m),
                   // Phone number
-                  Row(
-                    children: [
-                      Icon(
-                        Iconsax.call,
-                        size: 16,
-                        color: DertamColors.primaryDark,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '+855 123456',
-                        style: DertamTextStyles.bodyMedium.copyWith(
-                          color: DertamColors.primaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: DertamSpacings.s),
+                  // Row(
+                  //   children: [
+                  //     // Icon(
+                  //     //   Iconsax.call,
+                  //     //   size: 16,
+                  //     //   color: DertamColors.primaryDark,
+                  //     // ),
+                  //     // const SizedBox(width: 8),
+                  //     // Text(
+                  //     //   '+855 123456',
+                  //     //   style: DertamTextStyles.bodyMedium.copyWith(
+                  //     //     color: DertamColors.primaryDark,
+                  //     //   ),
+                  //     // ),
+                  //   ],
+                  // ),
+                  // const SizedBox(height: DertamSpacings.s),
                   // Menu section title
                   Text(
                     'Menu',
@@ -286,12 +286,12 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
             child: Consumer<RestaurantProvider>(
               builder: (context, provider, child) {
                 return provider.menuCategoriesSnapshot.when(
-                  empty: () => const SizedBox.shrink(),
+                  empty: () => const Text('Menu categories is empty!'),
                   loading: () => const Padding(
                     padding: EdgeInsets.symmetric(horizontal: DertamSpacings.m),
                     child: Center(child: CircularProgressIndicator()),
                   ),
-                  error: (error) => const SizedBox.shrink(),
+                  error: (error) => const Text('Failed to load menu categories'),
                   success: (categories) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(
@@ -370,7 +370,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                     padding: const EdgeInsets.all(DertamSpacings.l),
                     child: Center(
                       child: Text(
-                        'Error: ${error.toString()}',
+                        'Failed to load menu items!',
                         style: const TextStyle(color: Colors.red),
                       ),
                     ),
@@ -380,7 +380,6 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   final filteredItems = _filterMenuItems(
                     menuData.data.menuItems,
                   );
-
                   if (filteredItems.isEmpty) {
                     return const SliverToBoxAdapter(
                       child: Padding(
@@ -394,7 +393,6 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       ),
                     );
                   }
-
                   return SliverPadding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: DertamSpacings.m,

@@ -9,7 +9,7 @@ class Place {
   final String imagesUrl;
   final String imagePublicIds;
   final bool entryFree;
-  final Map<String, dynamic> operatingHours;
+  final Map<String, dynamic>? operatingHours;
   final String bestSeasonToVisit;
   final int provinceId;
   final double latitude;
@@ -29,7 +29,7 @@ class Place {
     required this.imagesUrl,
     required this.imagePublicIds,
     required this.entryFree,
-    required this.operatingHours,
+    this.operatingHours,
     required this.bestSeasonToVisit,
     required this.provinceId,
     required this.latitude,

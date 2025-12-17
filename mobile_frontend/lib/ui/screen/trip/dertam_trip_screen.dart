@@ -27,11 +27,13 @@ class _DertamTripScreenState extends State<DertamTripScreen>
       await context.read<TripProvider>().fetchAllTrip();
     });
   }
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
+
   List<Trip> _filterUpcomingTrips(List<Trip> trips) {
     final now = DateTime.now();
     return trips
@@ -407,6 +409,28 @@ class _DertamTripScreenState extends State<DertamTripScreen>
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          FloatingActionButton(
+            heroTag: 'create_trip',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TripPlanning()),
+              );
+            },
+            backgroundColor: DertamColors.white,
+            shape: const CircleBorder(),
+            elevation: 4,
+            child: Text(
+              'Add',
+              style: TextStyle(
+                color: DertamColors.primaryDark,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
+
           // Join Trip Button
           FloatingActionButton(
             heroTag: 'join_trip',
@@ -420,22 +444,8 @@ class _DertamTripScreenState extends State<DertamTripScreen>
               size: 28,
             ),
           ),
-          SizedBox(height: 12),
+
           // Create Trip Button
-          FloatingActionButton(
-            heroTag: 'create_trip',
-            onPressed: () {
-              // Navigate to create trip screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => TripPlanning()),
-              );
-            },
-            backgroundColor: DertamColors.white,
-            shape: const CircleBorder(),
-            elevation: 4,
-            child: Icon(Icons.add, color: DertamColors.primaryBlue, size: 32),
-          ),
         ],
       ),
       bottomNavigationBar: const Navigationbar(currentIndex: 2),
