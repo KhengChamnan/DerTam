@@ -303,6 +303,7 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     name: hotel?.name ?? '',
                     location: hotel?.provinceCategoryName ?? '',
                     rating: hotel?.ratings.toString() ?? '0.0',
+                    reviewCount: hotel?.reviewsCount.toString() ?? '0',
                     imageUrl: hotel?.imagesUrl.isNotEmpty ?? false
                         ? (hotel?.imagesUrl.first ?? '')
                         : '',

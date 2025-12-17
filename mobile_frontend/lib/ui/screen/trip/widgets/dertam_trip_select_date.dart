@@ -20,6 +20,7 @@ class _TripDateScreenState extends State<TripDateScreen> {
   bool _isLoading = false;
   Future<void> _createTrip() async {
     final tripProvider = Provider.of<TripProvider>(context, listen: false);
+    tripProvider.clearAddedPlaces();
 
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +58,6 @@ class _TripDateScreenState extends State<TripDateScreen> {
       }
     }
   }
-
 
   void _selectDate(DateTime date) {
     setState(() {

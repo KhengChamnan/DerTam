@@ -258,12 +258,7 @@ class _FavoriteScreenState extends State<FavoriteScreen>
 
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
-          child: Column(
-            children: [
-              
-              _buildCategoryFilter(),
-            ],
-          ),
+          child: Column(children: [_buildCategoryFilter()]),
         ),
       ),
       body: _isLoading
@@ -1218,7 +1213,8 @@ class _PlaceDetailsSheet extends StatelessWidget {
                   ],
 
                   // Operating Hours
-                  if (place.operatingHours.isNotEmpty) ...[
+                  if (place.operatingHours != null &&
+                      place.operatingHours!.isNotEmpty) ...[
                     Row(
                       children: [
                         Icon(
@@ -1228,7 +1224,7 @@ class _PlaceDetailsSheet extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Open: ${place.operatingHours['open']} - ${place.operatingHours['close']}',
+                          'Open: ${place.operatingHours!['open']} - ${place.operatingHours!['close']}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[700],

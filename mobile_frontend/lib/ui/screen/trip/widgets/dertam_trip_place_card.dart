@@ -20,7 +20,7 @@ class TripPlaceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget cardContent = Container(
       margin: EdgeInsets.only(bottom: DertamSpacings.m),
-      height: 100, // Fixed height for consistency
+      height: 120, // Fixed height for consistency
       decoration: BoxDecoration(
         color: DertamColors.white,
         borderRadius: BorderRadius.circular(12),
@@ -38,15 +38,55 @@ class TripPlaceCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: EdgeInsets.all(DertamSpacings.m),
+            padding: EdgeInsets.all(DertamSpacings.xs),
             child: Row(
               children: [
                 // Place image - fixed size
+
+                // Place details - takes remaining space
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 16,
+                            color: DertamColors.primaryDark,
+                          ),
+                          SizedBox(width: DertamSpacings.xs),
+                          Flexible(
+                            child: Text(
+                              place.name,
+                              style: DertamTextStyles.subtitle.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      Text(
+                        place.description,
+                        style: DertamTextStyles.bodySmall.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: DertamSpacings.s),
+                    ],
+                  ),
+                ),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: 96,
+                    height: 114,
                     decoration: BoxDecoration(color: Colors.grey[200]),
                     child: place.imagesUrl.isNotEmpty
                         ? Image.network(
@@ -57,37 +97,6 @@ class TripPlaceCard extends StatelessWidget {
                             },
                           )
                         : _buildPlaceholderImage(),
-                  ),
-                ),
-
-                SizedBox(width: DertamSpacings.m),
-
-                // Place details - takes remaining space
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment:
-                        MainAxisAlignment.center, // Center vertically
-                    children: [
-                      Text(
-                        place.name,
-                        style: DertamTextStyles.subtitle.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        place.description,
-                        style: DertamTextStyles.bodySmall.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ),
                 ),
               ],

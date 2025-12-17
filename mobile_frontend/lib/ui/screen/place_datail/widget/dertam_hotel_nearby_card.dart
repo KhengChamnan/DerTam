@@ -189,6 +189,7 @@ class DertamHotelNearby extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey[600],
+                              fontWeight: FontWeight.w500
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

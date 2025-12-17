@@ -17,10 +17,7 @@ class DertamSearchPlaceScreen extends StatefulWidget {
 }
 
 class _DertamSearchPlaceScreenState extends State<DertamSearchPlaceScreen> {
-  // ----------------------------------
-  // Search State
-  // ----------------------------------
-
+ 
   List<Place> searchResults = [];
   String searchText = '';
   bool isLoading = false;
