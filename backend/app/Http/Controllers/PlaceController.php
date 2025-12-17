@@ -455,7 +455,31 @@ class PlaceController extends Controller
             $availableCategories = \App\Models\PlaceCategory::pluck('category_name')->toArray();
             $availableProvinces = \App\Models\ProvinceCategory::pluck('province_categoryName')->toArray();
             
-            // Create headers for the CSV template
+            // Create a new Spreadsheet object
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Set sheet title
+            $sheet->setTitle('Places Import');
+            
+            // Add instructions in first rows
+            $sheet->setCellValue('A1', 'Instructions: Delete these instruction rows before importing');
+            $sheet->setCellValue('A2', 'Available Categories: ' . implode(', ', array_slice($availableCategories, 0, 15)) . '...');
+            $sheet->setCellValue('A3', 'Available Provinces: ' . implode(', ', array_slice($availableProvinces, 0, 10)) . '...');
+            $sheet->setCellValue('A4', 'entry_free: 1 for free entry, 0 for paid entry');
+            $sheet->setCellValue('A5', 'image_urls: Supports JSON array ["url1","url2"], pipe-separated url1|url2, or comma-separated url1,url2');
+            $sheet->setCellValue('A6', 'Images must be publicly accessible URLs and will be uploaded to Cloudinary automatically');
+            
+            // Style instruction rows
+            $instructionStyle = [
+                'font' => ['italic' => true, 'color' => ['rgb' => '666666']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFF9E6']]
+            ];
+            for ($i = 1; $i <= 6; $i++) {
+                $sheet->getStyle("A{$i}:J{$i}")->applyFromArray($instructionStyle);
+            }
+            
+            // Add headers starting from row 8
             $headers = [
                 'name',
                 'description',
@@ -465,10 +489,25 @@ class PlaceController extends Controller
                 'longitude',
                 'entry_free',
                 'google_maps_link',
-                'best_season_to_visit'
+                'best_season_to_visit',
+                'image_urls'
             ];
-
-            // Create sample data rows
+            
+            $col = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col . '8', $header);
+                $col++;
+            }
+            
+            // Style header row
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+            ];
+            $sheet->getStyle('A8:J8')->applyFromArray($headerStyle);
+            
+            // Add sample data rows
             $sampleData = [
                 [
                     'Angkor Wat Temple',
@@ -479,7 +518,8 @@ class PlaceController extends Controller
                     '103.8670',
                     '0',
                     'https://maps.google.com/example1',
-                    'November to March'
+                    'November to March',
+                    '["https://example.com/image1.jpg","https://example.com/image2.jpg","https://example.com/image3.jpg"]'
                 ],
                 [
                     'Koh Rong Beach',
@@ -490,7 +530,8 @@ class PlaceController extends Controller
                     '103.2906',
                     '1',
                     'https://maps.google.com/example2',
-                    'December to April'
+                    'December to April',
+                    'https://example.com/beach1.jpg|https://example.com/beach2.jpg'
                 ],
                 [
                     'Bokor National Park',
@@ -501,38 +542,42 @@ class PlaceController extends Controller
                     '104.0167',
                     '1',
                     'https://maps.google.com/example3',
-                    'Year round'
+                    'Year round',
+                    'https://example.com/park1.jpg,https://example.com/park2.jpg'
                 ]
             ];
-
-            // Create CSV content
-            $csvContent = '';
             
-            // Add instruction comments
-            $csvContent .= "# Instructions: Delete these comment lines before importing\n";
-            $csvContent .= "# Available Categories: " . implode(', ', $availableCategories) . "\n";
-            $csvContent .= "# Available Provinces: " . implode(', ', array_slice($availableProvinces, 0, 10)) . "... (and more)\n";
-            $csvContent .= "# entry_free: 1 for free, 0 for paid entry\n";
-            $csvContent .= "\n";
-            
-            // Add headers
-            $csvContent .= implode(',', array_map(function($header) {
-                return '"' . str_replace('"', '""', $header) . '"';
-            }, $headers)) . "\n";
-            
-            // Add sample data
-            foreach ($sampleData as $row) {
-                $csvContent .= implode(',', array_map(function($value) {
-                    return '"' . str_replace('"', '""', $value) . '"';
-                }, $row)) . "\n";
+            $row = 9;
+            foreach ($sampleData as $data) {
+                $col = 'A';
+                foreach ($data as $value) {
+                    $sheet->setCellValue($col . $row, $value);
+                    $col++;
+                }
+                $row++;
             }
-
-            return response($csvContent)
-                ->header('Content-Type', 'text/csv')
-                ->header('Content-Disposition', 'attachment; filename="places_import_template.csv"')
-                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                ->header('Pragma', 'no-cache')
-                ->header('Expires', '0');
+            
+            // Auto-size columns
+            foreach (range('A', 'J') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+            
+            // Create Excel file
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            
+            // Set headers for download
+            $filename = 'places_import_template.xlsx';
+            
+            // Create temporary file
+            $tempFile = tempnam(sys_get_temp_dir(), 'places_template_');
+            $writer->save($tempFile);
+            
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
             return back()->with([
