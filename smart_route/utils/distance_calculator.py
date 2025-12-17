@@ -1,252 +1,252 @@
 """
-Distance Calculator - 100% FREE
-No paid APIs required - Uses Haversine formula
+Distance Calculator with Traffic Support
+Calculates distance and time matrices with traffic factors
 """
 import numpy as np
-from math import radians, sin, cos, sqrt, atan2
-from typing import List, Dict
+from haversine import haversine
+from typing import List, Dict, Optional
+import json
+from pathlib import Path
 
 
 class DistanceCalculator:
     """
-    Calculate distances between geographic coordinates
-    100% FREE - Haversine formula (great-circle distance)
-    
-    No Google Maps API needed!
+    Calculate distance and time matrices for POIs
+    Supports traffic factors for realistic time calculations
     """
     
-    def __init__(self, earth_radius_km: float = 6371.0):
+    def __init__(self, traffic_data_path: Optional[str] = None, default_speed_kmh: float = 30.0):
         """
-        Args:
-            earth_radius_km: Earth's radius in kilometers (default: 6371)
-        """
-        self.earth_radius = earth_radius_km
-        
-    def haversine_distance(
-        self,
-        lat1: float,
-        lon1: float,
-        lat2: float,
-        lon2: float
-    ) -> float:
-        """
-        Calculate distance between two points using Haversine formula
-        FREE - No API calls
+        Initialize distance calculator
         
         Args:
-            lat1, lon1: First point (degrees)
-            lat2, lon2: Second point (degrees)
-            
-        Returns:
-            Distance in kilometers
-            
-        Formula:
-        a = sin²(Δφ/2) + cos φ1 ⋅ cos φ2 ⋅ sin²(Δλ/2)
-        c = 2 ⋅ atan2(√a, √(1−a))
-        d = R ⋅ c
+            traffic_data_path: Path to traffic JSON file
+            default_speed_kmh: Default travel speed in km/h
         """
-        # Convert to radians
-        lat1_rad = radians(lat1)
-        lon1_rad = radians(lon1)
-        lat2_rad = radians(lat2)
-        lon2_rad = radians(lon2)
+        self.default_speed_kmh = default_speed_kmh
+        self.traffic_factors = {}
+        self.default_traffic_factor = 1.2
         
-        # Differences
-        dlat = lat2_rad - lat1_rad
-        dlon = lon2_rad - lon1_rad
-        
-        # Haversine formula
-        a = sin(dlat / 2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        distance = self.earth_radius * c
-        
-        return distance
+        if traffic_data_path:
+            self.load_traffic_data(traffic_data_path)
     
-    def calculate_distance_matrix(
-        self,
-        pois: List[Dict]
-    ) -> np.ndarray:
+    def load_traffic_data(self, traffic_data_path: str):
+        """Load traffic factors from JSON file"""
+        try:
+            with open(traffic_data_path, 'r') as f:
+                data = json.load(f)
+            
+            # Load traffic conditions
+            conditions = data.get('traffic_conditions', [])
+            for condition in conditions:
+                from_id = condition['from_poi_id']
+                to_id = condition['to_poi_id']
+                factor = condition.get('traffic_factor', 1.0)
+                self.traffic_factors[(from_id, to_id)] = factor
+            
+            # Load default factor
+            self.default_traffic_factor = data.get('default_traffic_factor', 1.2)
+        except FileNotFoundError:
+            print(f"Warning: Traffic data file not found: {traffic_data_path}")
+        except Exception as e:
+            print(f"Warning: Error loading traffic data: {e}")
+    
+    def calculate_distance_matrix(self, pois: List[Dict]) -> np.ndarray:
         """
-        Calculate distance matrix for all POI pairs
-        FREE - No external API calls
+        Calculate distance matrix using Haversine formula
         
         Args:
-            pois: List of POIs with 'lat' and 'lon' fields
+            pois: List of POI dictionaries with 'lat' and 'lng' keys
             
         Returns:
-            n×n distance matrix where matrix[i][j] = distance from POI i to POI j
+            Distance matrix in kilometers (n x n numpy array)
         """
         n = len(pois)
-        matrix = np.zeros((n, n))
+        distance_matrix = np.zeros((n, n))
+        
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    distance_matrix[i][j] = 0.0
+                else:
+                    poi_i = (pois[i]['lat'], pois[i]['lng'])
+                    poi_j = (pois[j]['lat'], pois[j]['lng'])
+                    distance_km = haversine(poi_i, poi_j)
+                    distance_matrix[i][j] = distance_km
+        
+        return distance_matrix
+    
+    def get_traffic_factor(self, from_poi: Dict, to_poi: Dict) -> float:
+        """
+        Get traffic factor between two POIs
+        
+        Args:
+            from_poi: Source POI dictionary
+            to_poi: Destination POI dictionary
+            
+        Returns:
+            Traffic factor (1.0 = normal, >1.0 = slower)
+        """
+        from_id = from_poi.get('id', '')
+        to_id = to_poi.get('id', '')
+        
+        # Check for specific pair
+        factor = self.traffic_factors.get((from_id, to_id))
+        if factor is not None:
+            return factor
+        
+        # Return default
+        return self.default_traffic_factor
+    
+    def calculate_time_matrix(
+        self, 
+        distance_matrix: np.ndarray, 
+        pois: List[Dict],
+        apply_traffic: bool = True
+    ) -> np.ndarray:
+        """
+        Calculate time matrix from distance matrix
+        
+        Args:
+            distance_matrix: Distance matrix in kilometers
+            pois: List of POI dictionaries
+            apply_traffic: Whether to apply traffic factors
+            
+        Returns:
+            Time matrix in minutes (n x n numpy array)
+        """
+        n = len(distance_matrix)
+        time_matrix = np.zeros((n, n))
+        
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    time_matrix[i][j] = 0.0
+                else:
+                    # Base time = distance / speed
+                    distance_km = distance_matrix[i][j]
+                    base_time_minutes = (distance_km / self.default_speed_kmh) * 60
+                    
+                    # Apply traffic factor if enabled
+                    if apply_traffic and i < len(pois) and j < len(pois):
+                        traffic_factor = self.get_traffic_factor(pois[i], pois[j])
+                        time_matrix[i][j] = base_time_minutes * traffic_factor
+                    else:
+                        time_matrix[i][j] = base_time_minutes
+        
+        return time_matrix
+    
+    def calculate_distance_from_start(
+        self, 
+        start_lat: float, 
+        start_lon: float, 
+        pois: List[Dict]
+    ) -> List[float]:
+        """
+        Calculate distances from start location to all POIs
+        
+        Args:
+            start_lat: Starting latitude
+            start_lon: Starting longitude
+            pois: List of POI dictionaries
+            
+        Returns:
+            List of distances in kilometers
+        """
+        start_location = (start_lat, start_lon)
+        distances = []
+        
+        for poi in pois:
+            poi_location = (poi['lat'], poi['lng'])
+            distance_km = haversine(start_location, poi_location)
+            distances.append(distance_km)
+        
+        return distances
+    
+    def filter_pois_by_distance(
+        self,
+        pois: List[Dict],
+        start_lat: float,
+        start_lon: float,
+        max_distance_km: float
+    ) -> List[Dict]:
+        """
+        Filter POIs that are within max_distance from start location
+        
+        Args:
+            pois: List of POI dictionaries
+            start_lat: Starting latitude
+            start_lon: Starting longitude
+            max_distance_km: Maximum distance in kilometers
+            
+        Returns:
+            Filtered list of POIs within distance limit
+        """
+        distances = self.calculate_distance_from_start(start_lat, start_lon, pois)
+        filtered_pois = []
+        
+        for poi, distance in zip(pois, distances):
+            if distance <= max_distance_km:
+                filtered_pois.append(poi)
+        
+        return filtered_pois
+    
+    def get_traffic_penalty_matrix(
+        self,
+        pois: List[Dict],
+        distance_matrix: np.ndarray
+    ) -> np.ndarray:
+        """
+        Calculate traffic penalty matrix for QUBO encoding
+        
+        Args:
+            pois: List of POI dictionaries
+            distance_matrix: Distance matrix in kilometers
+            
+        Returns:
+            Traffic penalty matrix (higher values = more penalty)
+        """
+        n = len(pois)
+        penalty_matrix = np.zeros((n, n))
         
         for i in range(n):
             for j in range(n):
                 if i != j:
-                    dist = self.haversine_distance(
-                        pois[i]['lat'],
-                        pois[i]['lon'],
-                        pois[j]['lat'],
-                        pois[j]['lon']
-                    )
-                    matrix[i][j] = dist
+                    traffic_factor = self.get_traffic_factor(pois[i], pois[j])
+                    # Penalty increases with traffic factor and distance
+                    penalty = (traffic_factor - 1.0) * distance_matrix[i][j]
+                    penalty_matrix[i][j] = penalty
         
-        return matrix
-    
-    def calculate_time_matrix(
-        self,
-        distance_matrix: np.ndarray,
-        avg_speed_kmh: float = 30.0
-    ) -> np.ndarray:
-        """
-        Convert distance matrix to time matrix
-        FREE - Simple speed calculation
-        
-        Args:
-            distance_matrix: Distance matrix (km)
-            avg_speed_kmh: Average travel speed in km/h
-            
-        Returns:
-            Time matrix in minutes
-        """
-        # Time = Distance / Speed
-        # Convert to minutes: (km / km/h) * 60
-        time_matrix = (distance_matrix / avg_speed_kmh) * 60
-        return time_matrix
-    
-    def estimate_total_trip_time(
-        self,
-        route: List[int],
-        pois: List[Dict],
-        distance_matrix: np.ndarray,
-        avg_speed_kmh: float = 30.0
-    ) -> Dict:
-        """
-        Estimate total trip time including travel and visits
-        FREE - Comprehensive time calculation
-        
-        Returns:
-            {
-                'travel_time': minutes,
-                'visit_time': minutes,
-                'total_time': minutes,
-                'breakdown': [(poi, travel_min, visit_min), ...]
-            }
-        """
-        travel_time = 0.0
-        visit_time = 0.0
-        breakdown = []
-        
-        for i in range(len(route)):
-            poi_idx = route[i]
-            poi = pois[poi_idx]
-            
-            # Travel time to this POI
-            if i > 0:
-                prev_idx = route[i - 1]
-                distance = distance_matrix[prev_idx][poi_idx]
-                travel_min = (distance / avg_speed_kmh) * 60
-                travel_time += travel_min
-            else:
-                travel_min = 0.0
-            
-            # Visit duration
-            visit_min = poi.get('visit_duration', 60)
-            visit_time += visit_min
-            
-            breakdown.append({
-                'poi': poi.get('name', f'POI_{poi_idx}'),
-                'travel_minutes': travel_min,
-                'visit_minutes': visit_min
-            })
-        
-        return {
-            'travel_time_minutes': travel_time,
-            'visit_time_minutes': visit_time,
-            'total_time_minutes': travel_time + visit_time,
-            'breakdown': breakdown
-        }
-    
-    def find_nearest_poi(
-        self,
-        lat: float,
-        lon: float,
-        pois: List[Dict],
-        max_distance_km: float = None
-    ) -> Dict:
-        """
-        Find nearest POI to a location
-        FREE - For dynamic re-routing
-        
-        Args:
-            lat, lon: Current location
-            pois: POI list
-            max_distance_km: Optional distance limit
-            
-        Returns:
-            {
-                'poi': nearest POI dict,
-                'distance': distance in km,
-                'index': POI index
-            }
-        """
-        nearest_poi = None
-        nearest_dist = float('inf')
-        nearest_idx = -1
-        
-        for i, poi in enumerate(pois):
-            dist = self.haversine_distance(lat, lon, poi['lat'], poi['lon'])
-            
-            if dist < nearest_dist:
-                if max_distance_km is None or dist <= max_distance_km:
-                    nearest_dist = dist
-                    nearest_poi = poi
-                    nearest_idx = i
-        
-        return {
-            'poi': nearest_poi,
-            'distance': nearest_dist,
-            'index': nearest_idx
-        }
+        return penalty_matrix
 
 
-# Example usage (FREE)
+# Example usage
 if __name__ == "__main__":
-    # Sample POIs in Bangkok
+    # Sample POIs
     sample_pois = [
-        {'id': 1, 'name': 'Wat Arun', 'lat': 13.7437, 'lon': 100.4887},
-        {'id': 2, 'name': 'Grand Palace', 'lat': 13.7500, 'lon': 100.4917},
-        {'id': 3, 'name': 'Wat Pho', 'lat': 13.7465, 'lon': 100.4927},
-        {'id': 4, 'name': 'Khao San Road', 'lat': 13.7589, 'lon': 100.4976},
+        {"id": "poi_01", "name": "Royal Palace", "lat": 11.5625, "lng": 104.9310},
+        {"id": "poi_02", "name": "Silver Pagoda", "lat": 11.5627, "lng": 104.9312},
+        {"id": "poi_03", "name": "National Museum", "lat": 11.5640, "lng": 104.9282},
+        {"id": "poi_04", "name": "Independence Monument", "lat": 11.5564, "lng": 104.9312}
     ]
     
-    # Create calculator (FREE)
-    calc = DistanceCalculator()
+    # Initialize calculator
+    calc = DistanceCalculator(
+        traffic_data_path="data/traffic/phnompenh_traffic.json",
+        default_speed_kmh=30.0
+    )
     
-    # Calculate distance matrix (FREE - no API calls)
-    print("Calculating distance matrix...")
+    # Calculate matrices
     distance_matrix = calc.calculate_distance_matrix(sample_pois)
+    time_matrix = calc.calculate_time_matrix(distance_matrix, sample_pois, apply_traffic=True)
     
-    print("\nDistance Matrix (km):")
-    print("        ", end="")
-    for poi in sample_pois:
-        print(f"{poi['name'][:10]:<12}", end="")
-    print()
+    print("Distance Matrix (km):")
+    print(distance_matrix)
+    print("\nTime Matrix (minutes):")
+    print(time_matrix)
     
-    for i, poi in enumerate(sample_pois):
-        print(f"{poi['name'][:10]:<8}", end="")
-        for j in range(len(sample_pois)):
-            print(f"{distance_matrix[i][j]:>10.2f}  ", end="")
-        print()
-    
-    # Calculate time matrix (FREE)
-    time_matrix = calc.calculate_time_matrix(distance_matrix, avg_speed_kmh=25)
-    print(f"\nTime to travel (assuming 25 km/h):")
-    print(f"Wat Arun → Grand Palace: {time_matrix[0][1]:.1f} minutes")
-    
-    # Find nearest POI to current location (FREE)
-    current_lat, current_lon = 13.7500, 100.4950  # Near Grand Palace
-    nearest = calc.find_nearest_poi(current_lat, current_lon, sample_pois)
-    print(f"\nNearest POI to (13.7500, 100.4950):")
-    print(f"  {nearest['poi']['name']} - {nearest['distance']:.2f} km away")
-    
-    print("\n✓ All distance calculations 100% FREE - No API costs!")
+    # Test traffic penalties
+    penalty_matrix = calc.get_traffic_penalty_matrix(sample_pois, distance_matrix)
+    print("\nTraffic Penalty Matrix:")
+    print(penalty_matrix)
+

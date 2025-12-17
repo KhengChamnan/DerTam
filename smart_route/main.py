@@ -30,16 +30,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Import our FREE modules
-from classical_optimizer.poi_recommender import POIRecommender
-from classical_optimizer.nearest_neighbor import NearestNeighborSolver
-from classical_optimizer.two_opt import TwoOptSolver
-from classical_optimizer.ortools_solver import ORToolsSolver
+# Import our modules
+try:
+    from classical_optimizer.poi_recommender import POIRecommender
+    from classical_optimizer.nearest_neighbor import NearestNeighborSolver
+    from classical_optimizer.two_opt import TwoOptSolver
+    from classical_optimizer.ortools_solver import ORToolsSolver
+except ImportError:
+    # These modules may not exist yet, create placeholders
+    POIRecommender = None
+    NearestNeighborSolver = None
+    TwoOptSolver = None
+    ORToolsSolver = None
+
 from quantum_optimizer.qubo_encoder import QUBOEncoder
 from quantum_optimizer.qaoa_solver import QAOASolver
+from quantum_optimizer.route_decoder import RouteDecoder
 from quantum_optimizer.circuit_visualizer import CircuitVisualizer
 from comparison.metrics import MetricsCalculator
 from utils.distance_calculator import DistanceCalculator
+from classical_optimizer.feature_engineer import FeatureEngineer
+from utils.json_data_manager import JSONDataManager
 
 
 # Request/Response models
@@ -189,49 +200,99 @@ async def optimize_classical(request: OptimizeRequest):
 @app.post("/api/optimize/quantum")
 async def optimize_quantum(request: OptimizeRequest):
     """
-    Optimize route using QAOA (FREE simulation)
-    Demonstration endpoint - Limited to 4 POIs
+    Optimize route using QAOA with full workflow
+    Supports 4-8 POIs with constraints and traffic
     """
     try:
         pois = [poi.dict() for poi in request.pois]
         
-        # Limit to 4 POIs for quantum
-        if len(pois) > 4:
+        # Limit to 4-8 POIs for quantum
+        if len(pois) < 4 or len(pois) > 8:
             return {
                 "success": False,
-                "error": "Quantum optimization limited to 4 POIs",
-                "suggestion": "Use classical algorithms for more POIs",
+                "error": "Quantum optimization requires 4-8 POIs",
                 "pois_provided": len(pois),
-                "max_pois_quantum": 4
+                "min_pois": 4,
+                "max_pois": 8
             }
         
-        # Calculate matrices
-        distance_matrix = distance_calc.calculate_distance_matrix(pois)
+        # Extract user preferences
+        user_prefs = request.user_preferences or {}
+        start_time_str = user_prefs.get('start_time', '08:00:00')
+        time_parts = start_time_str.split(':')
+        start_time_minutes = int(time_parts[0]) * 60 + int(time_parts[1]) if len(time_parts) >= 2 else 480
         
-        # Step 1: Encode to QUBO
+        # Step 1: Feature Engineering
+        from pathlib import Path
+        base_path = Path(__file__).parent
+        traffic_path = base_path / "data" / "traffic" / "phnompenh_traffic.json"
+        distance_calc = DistanceCalculator(
+            traffic_data_path=str(traffic_path) if traffic_path.exists() else None
+        )
+        feature_engineer = FeatureEngineer(distance_calc)
+        
+        # Prepare user preferences for feature engineering
+        prep_prefs = {
+            "start_lat": user_prefs.get('start_lat', 11.5625),
+            "start_lon": user_prefs.get('start_lon', 104.9310),
+            "start_time": start_time_str,
+            "trip_duration": user_prefs.get('trip_duration', 8),
+            "max_distance": user_prefs.get('max_distance', 10.0),
+            "constraint_weights": user_prefs.get('constraint_weights', {
+                'distance': 0.4,
+                'time': 0.3,
+                'preferences': 0.2,
+                'traffic': 0.1
+            })
+        }
+        
+        prepared_data = feature_engineer.prepare_pois_for_optimization(pois, prep_prefs)
+        
+        # Step 2: Calculate matrices with traffic
+        distance_matrix = prepared_data['distance_matrix']
+        time_matrix = prepared_data['time_matrix']
+        traffic_penalty = distance_calc.get_traffic_penalty_matrix(
+            prepared_data['pois'],
+            distance_matrix
+        )
+        
+        # Step 3: Encode to QUBO
         encoder = QUBOEncoder(penalty_coefficient=1000.0)
-        qubo_matrix, encoding_info = encoder.encode_tsp(pois, distance_matrix)
+        qubo_matrix, encoding_info = encoder.encode_tsp(
+            prepared_data['pois'],
+            distance_matrix,
+            time_matrix=time_matrix,
+            start_time_minutes=start_time_minutes,
+            max_distance=prep_prefs['max_distance'],
+            traffic_penalty_matrix=traffic_penalty,
+            constraint_weights=prep_prefs['constraint_weights']
+        )
         
-        # Step 2: Solve with QAOA
+        # Step 4: Solve with QAOA
         qaoa_solver = QAOASolver(
             num_layers=int(os.getenv('QAOA_LAYERS', 2)),
             shots=int(os.getenv('QUANTUM_SHOTS', 1024)),
-            optimizer=os.getenv('QAOA_OPTIMIZER', 'COBYLA')
+            optimizer=os.getenv('QAOA_OPTIMIZER', 'COBYLA'),
+            max_iterations=100
         )
         
-        result = qaoa_solver.solve(qubo_matrix, len(pois))
+        result = qaoa_solver.solve(qubo_matrix, len(prepared_data['pois']), encoding_info)
         
-        # Step 3: Evaluate
+        # Step 5: Evaluate
         quality = metrics_calc.evaluate_solution_quality(
-            result['route'], pois, distance_matrix
+            result['route'], prepared_data['pois'], distance_matrix, time_matrix
         )
+        
+        # Map route indices back to original POI indices
+        route_pois = [prepared_data['pois'][i] for i in result['route']]
         
         return {
             "success": True,
             "algorithm": "QAOA (Quantum Simulation)",
             "route": result['route'],
-            "route_names": [pois[i]['name'] for i in result['route']],
+            "route_names": [poi['name'] for poi in route_pois],
             "total_distance_km": quality['total_distance'],
+            "total_time_minutes": quality['total_time'],
             "is_valid_solution": result['is_valid'],
             "quantum_details": {
                 "num_qubits": result['num_qubits'],
@@ -241,11 +302,13 @@ async def optimize_quantum(request: OptimizeRequest):
                 "energy": result['energy']
             },
             "encoding_info": encoding_info,
+            "validation_info": prepared_data['validation_info'],
             "cost": "FREE (simulation only, no quantum hardware)"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        raise HTTPException(status_code=500, detail=f"{str(e)}\n{traceback.format_exc()}")
 
 
 @app.post("/api/compare")

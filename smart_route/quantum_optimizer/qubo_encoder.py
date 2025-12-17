@@ -1,452 +1,318 @@
 """
-QUBO Encoder - Convert TSP to Quantum Problem
-FREE - Core quantum formulation (for teacher explanation)
+QUBO Encoder for Route Optimization
+Encodes TSP problem with constraints into QUBO format
 """
 import numpy as np
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 
 class QUBOEncoder:
     """
-    Encode Tourist Routing Problem into QUBO Matrix
-    100% FREE - No quantum hardware needed
-    
-    QUBO = Quadratic Unconstrained Binary Optimization
-    
-    For Teacher Understanding:
-    - Binary variables: x_{i,p} = 1 if POI i is at position p
-    - 4 POIs → 16 binary variables (4 × 4 position encoding)
-    - QUBO matrix Q: 16×16 where energy = x^T Q x
-    
-    Objective:
-    Minimize: Total distance + Constraint penalties
+    Encode route optimization problem to QUBO format
+    Supports constraints: opening hours, distance limits, traffic penalties
     """
     
     def __init__(self, penalty_coefficient: float = 1000.0):
         """
-        Args:
-            penalty_coefficient: Weight for constraint violations (A >> B)
-        """
-        self.penalty = penalty_coefficient
+        Initialize QUBO encoder
         
+        Args:
+            penalty_coefficient: Penalty weight for constraint violations
+        """
+        self.penalty_coefficient = penalty_coefficient
+        self.encoding_info = {}
+    
     def encode_tsp(
         self,
         pois: List[Dict],
-        distance_matrix: np.ndarray
+        distance_matrix: np.ndarray,
+        time_matrix: Optional[np.ndarray] = None,
+        start_time_minutes: int = 480,
+        max_distance: Optional[float] = None,
+        traffic_penalty_matrix: Optional[np.ndarray] = None,
+        constraint_weights: Optional[Dict] = None
     ) -> Tuple[np.ndarray, Dict]:
         """
-        Encode TSP into QUBO matrix
-        FREE - Position encoding method
+        Encode TSP problem to QUBO format
         
         Args:
-            pois: List of POIs (max 4 for quantum demo)
-            distance_matrix: n×n distance matrix
+            pois: List of POI dictionaries
+            distance_matrix: Distance matrix (n x n)
+            time_matrix: Time matrix (n x n), optional
+            start_time_minutes: Start time in minutes since midnight
+            max_distance: Maximum distance constraint, optional
+            traffic_penalty_matrix: Traffic penalty matrix, optional
+            constraint_weights: Weights for different objectives
             
         Returns:
-            (qubo_matrix, encoding_info)
-            
-        QUBO Formulation:
-        H = A * Σ(1 - Σx_{i,p})² + A * Σ(1 - Σx_{i,p})² + B * ΣΣ d_{ij} x_{i,p} x_{j,p+1}
-        
-        Where:
-        - First term: Each POI visited exactly once
-        - Second term: Each position filled exactly once  
-        - Third term: Minimize distance between consecutive POIs
+            (QUBO_matrix, encoding_info)
         """
         n = len(pois)
         
-        if n > 4:
-            print("WARNING: Quantum limited to 4 POIs (16 qubits)")
-            print("Using first 4 POIs only")
-            pois = pois[:4]
-            distance_matrix = distance_matrix[:4, :4]
-            n = 4
+        if n < 2:
+            raise ValueError("Need at least 2 POIs for TSP")
         
-        # Number of binary variables: n × n (POI × position)
-        num_vars = n * n
+        if constraint_weights is None:
+            constraint_weights = {
+                'distance': 0.4,
+                'time': 0.3,
+                'traffic': 0.1,
+                'constraints': 0.2
+            }
+        else:
+            # Ensure 'constraints' key exists with default value if not provided
+            if 'constraints' not in constraint_weights:
+                constraint_weights['constraints'] = 0.2
         
-        # Initialize QUBO matrix (symmetric)
-        Q = np.zeros((num_vars, num_vars))
+        # Number of qubits: n * n (n POIs, n positions)
+        num_qubits = n * n
+        qubo_matrix = np.zeros((num_qubits, num_qubits))
         
-        # Penalty coefficients
-        A = self.penalty  # Constraint penalty
-        B = 1.0  # Distance cost
+        # Encoding: x[i][t] = 1 if POI i is visited at position t
+        # QUBO index: i * n + t
         
-        # Encoding: variable index = i * n + p
-        # where i = POI index, p = position index
+        # 1. Objective: Minimize total distance
+        self._add_distance_objective(qubo_matrix, distance_matrix, n, constraint_weights['distance'])
         
-        # CONSTRAINT 1: Each POI visited exactly once
-        # Σ_p x_{i,p} = 1 for all i
-        # Expanded: (1 - Σ_p x_{i,p})² = 1 - 2*Σx + Σx² + 2*ΣΣx*x
-        for i in range(n):
-            for p in range(n):
-                var_idx = i * n + p
-                
-                # Linear term: -2A * x_{i,p}
-                Q[var_idx][var_idx] += -2 * A
-                
-                # Quadratic terms: 2A * x_{i,p} * x_{i,q} for p != q
-                for q in range(p + 1, n):
-                    var_idx2 = i * n + q
-                    Q[var_idx][var_idx2] += 2 * A
-                    Q[var_idx2][var_idx] += 2 * A  # Symmetric
+        # 2. Objective: Minimize total time (if provided)
+        if time_matrix is not None:
+            self._add_time_objective(qubo_matrix, time_matrix, n, constraint_weights['time'])
         
-        # CONSTRAINT 2: Each position filled exactly once
-        # Σ_i x_{i,p} = 1 for all p
-        for p in range(n):
-            for i in range(n):
-                var_idx = i * n + p
-                
-                # Linear term: -2A * x_{i,p}
-                Q[var_idx][var_idx] += -2 * A
-                
-                # Quadratic terms: 2A * x_{i,p} * x_{j,p} for i != j
-                for j in range(i + 1, n):
-                    var_idx2 = j * n + p
-                    Q[var_idx][var_idx2] += 2 * A
-                    Q[var_idx2][var_idx] += 2 * A
+        # 3. Objective: Minimize traffic penalties (if provided)
+        if traffic_penalty_matrix is not None:
+            self._add_traffic_penalty(qubo_matrix, traffic_penalty_matrix, n, constraint_weights['traffic'])
         
-        # OBJECTIVE: Minimize distance
-        # Σ_i Σ_j Σ_p d_{ij} * x_{i,p} * x_{j,p+1}
-        for i in range(n):
-            for j in range(n):
-                if i == j:
-                    continue
-                    
-                dist = distance_matrix[i][j]
-                
-                for p in range(n - 1):
-                    var_i = i * n + p
-                    var_j = j * n + (p + 1)
-                    
-                    # Add distance cost
-                    Q[var_i][var_j] += B * dist
-                    Q[var_j][var_i] += B * dist
+        # 4. Constraints: Each POI visited exactly once
+        self._add_poi_constraint(qubo_matrix, n, self.penalty_coefficient)
         
-        # Encoding information for teacher explanation
-        encoding_info = {
+        # 5. Constraints: Each position has exactly one POI
+        self._add_position_constraint(qubo_matrix, n, self.penalty_coefficient)
+        
+        # 6. Constraints: Opening hours violations (penalty)
+        if time_matrix is not None:
+            self._add_opening_hours_penalty(
+                qubo_matrix, pois, time_matrix, n, start_time_minutes, 
+                self.penalty_coefficient * constraint_weights['constraints']
+            )
+        
+        # 7. Constraints: Distance limit violations (penalty)
+        if max_distance is not None:
+            self._add_distance_limit_penalty(
+                qubo_matrix, distance_matrix, n, max_distance,
+                self.penalty_coefficient * constraint_weights['constraints']
+            )
+        
+        # Store encoding information
+        self.encoding_info = {
             'num_pois': n,
-            'num_variables': num_vars,
-            'num_qubits': num_vars,
-            'encoding_type': 'position',
-            'penalty_coefficient': A,
-            'distance_coefficient': B,
-            'variable_mapping': self._create_variable_mapping(n),
-            'constraint_terms': 2 * n,  # n POI constraints + n position constraints
-            'distance_terms': n * (n - 1) * (n - 1)
+            'num_qubits': num_qubits,
+            'encoding': 'x[i*n + t] = 1 if POI i at position t',
+            'penalty_coefficient': self.penalty_coefficient,
+            'constraint_weights': constraint_weights
         }
         
-        return Q, encoding_info
+        return qubo_matrix, self.encoding_info
     
-    def encode_with_preferences(
-        self,
-        pois: List[Dict],
-        distance_matrix: np.ndarray,
-        user_preferences: Dict[int, float]
-    ) -> Tuple[np.ndarray, Dict]:
-        """
-        Encode with user preference scores
-        FREE - Add preference bonuses to QUBO
-        
-        Args:
-            pois: POI list
-            distance_matrix: Distances
-            user_preferences: {poi_id: preference_score} where score in [0,1]
-            
-        Returns:
-            QUBO matrix with preference terms
-        """
-        # Start with basic TSP encoding
-        Q, info = self.encode_tsp(pois, distance_matrix)
-        
-        n = len(pois) if len(pois) <= 4 else 4
-        C = 10.0  # Preference bonus coefficient
-        
-        # Add preference bonuses (negative cost = reward)
-        for i in range(n):
-            poi_id = pois[i]['id']
-            preference = user_preferences.get(poi_id, 0.5)
-            
-            # Reward visiting preferred POIs
-            # Subtract from diagonal (linear term)
-            for p in range(n):
-                var_idx = i * n + p
-                Q[var_idx][var_idx] -= C * preference
-        
-        info['preference_coefficient'] = C
-        info['has_preferences'] = True
-        
-        return Q, info
-    
-    def encode_multi_objective(
-        self,
-        pois: List[Dict],
-        distance_matrix: np.ndarray,
-        user_preferences: Dict[int, float] = None,
-        time_constraints: List[Dict] = None,
-        weights: Dict[str, float] = None
-    ) -> Tuple[np.ndarray, Dict]:
-        """
-        Encode multi-objective TSP with configurable weights
-        Demonstrates QAOA advantage for complex optimization
-        
-        Args:
-            pois: List of POIs (max 4-6)
-            distance_matrix: n×n distance matrix
-            user_preferences: {poi_id: preference_score} in [0,1]
-            time_constraints: List of time window constraints (optional)
-            weights: Objective weights {
-                'constraint': 1000.0,  # Hard constraint penalty
-                'distance': 1.0,       # Distance minimization
-                'preference': 50.0,    # Preference maximization
-                'time_penalty': 100.0  # Time window violations
-            }
-            
-        Returns:
-            (qubo_matrix, encoding_info)
-            
-        QUBO Formulation:
-        H = A*(constraint violations) + B*(distance) - C*(preferences) + D*(time violations)
-        
-        This encoding allows QAOA to optimize multiple objectives simultaneously,
-        demonstrating quantum advantage over greedy classical algorithms.
-        """
-        # Default weights if not provided
-        if weights is None:
-            weights = {
-                'constraint': 1000.0,  # A >> others (hard constraints)
-                'distance': 1.0,       # B (distance cost)
-                'preference': 50.0,    # C (preference reward)
-                'time_penalty': 100.0  # D (time constraint penalty)
-            }
-        
-        n = len(pois)
-        
-        if n > 6:
-            print("WARNING: Multi-objective quantum limited to 6 POIs (36 qubits)")
-            print("Using first 6 POIs only")
-            pois = pois[:6]
-            distance_matrix = distance_matrix[:6, :6]
-            n = 6
-        
-        # Start with base TSP encoding (constraints + distance)
-        Q, info = self.encode_tsp(pois, distance_matrix)
-        
-        A = weights['constraint']
-        B = weights['distance']
-        C = weights['preference']
-        D = weights['time_penalty']
-        
-        # Rescale base QUBO to use custom weights
-        # Base QUBO uses self.penalty for A and 1.0 for B
-        scale_factor = A / self.penalty
-        Q = Q * scale_factor
-        
-        # Rescale distance terms
-        distance_scale = B / 1.0
+    def _add_distance_objective(
+        self, 
+        qubo_matrix: np.ndarray, 
+        distance_matrix: np.ndarray, 
+        n: int,
+        weight: float
+    ):
+        """Add distance minimization objective to QUBO"""
         for i in range(n):
             for j in range(n):
-                if i == j:
-                    continue
-                dist = distance_matrix[i][j]
-                for p in range(n - 1):
-                    var_i = i * n + p
-                    var_j = j * n + (p + 1)
-                    # Adjust existing distance terms
-                    Q[var_i][var_j] = Q[var_i][var_j] / scale_factor * distance_scale
-                    Q[var_j][var_i] = Q[var_j][var_i] / scale_factor * distance_scale
-        
-        # Add preference bonuses (negative = reward)
-        if user_preferences:
-            for i in range(n):
-                poi_id = pois[i].get('id', i)
-                preference = user_preferences.get(poi_id, 0.5)
-                
-                # Reward visiting preferred POIs at any position
-                for p in range(n):
-                    var_idx = i * n + p
-                    Q[var_idx][var_idx] -= C * preference
-        
-        # Add time window penalties (if provided)
-        time_violations = 0
-        if time_constraints:
-            for constraint in time_constraints:
-                poi_idx = constraint.get('poi_index')
-                if poi_idx is None or poi_idx >= n:
-                    continue
-                
-                opening = constraint.get('opening_time', 0)
-                closing = constraint.get('closing_time', 1440)
-                
-                # Penalize visiting this POI at incompatible positions
-                # (Simplified: penalize late positions if early closing)
-                if closing < 720:  # Closes before noon
-                    for p in range(n // 2, n):  # Penalize late positions
-                        var_idx = poi_idx * n + p
-                        Q[var_idx][var_idx] += D
-                        time_violations += 1
-        
-        # Update encoding info
-        info.update({
-            'weights': weights,
-            'has_preferences': user_preferences is not None,
-            'has_time_constraints': time_constraints is not None,
-            'time_violations_encoded': time_violations,
-            'optimization_type': 'multi_objective',
-            'objectives': {
-                'constraint_satisfaction': f'Weight: {A}',
-                'distance_minimization': f'Weight: {B}',
-                'preference_maximization': f'Weight: {C}',
-                'time_feasibility': f'Weight: {D}'
-            }
-        })
-        
-        return Q, info
+                if i != j:
+                    # For each consecutive position pair (t, t+1)
+                    for t in range(n - 1):
+                        # x[i][t] * x[j][t+1] contributes distance[i][j]
+                        idx_i_t = i * n + t
+                        idx_j_t1 = j * n + (t + 1)
+                        qubo_matrix[idx_i_t][idx_j_t1] += weight * distance_matrix[i][j]
+                        qubo_matrix[idx_j_t1][idx_i_t] += weight * distance_matrix[i][j]
     
-    def _create_variable_mapping(self, n: int) -> Dict[int, Dict]:
+    def _add_time_objective(
+        self,
+        qubo_matrix: np.ndarray,
+        time_matrix: np.ndarray,
+        n: int,
+        weight: float
+    ):
+        """Add time minimization objective to QUBO"""
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    for t in range(n - 1):
+                        idx_i_t = i * n + t
+                        idx_j_t1 = j * n + (t + 1)
+                        qubo_matrix[idx_i_t][idx_j_t1] += weight * time_matrix[i][j]
+                        qubo_matrix[idx_j_t1][idx_i_t] += weight * time_matrix[i][j]
+    
+    def _add_traffic_penalty(
+        self,
+        qubo_matrix: np.ndarray,
+        traffic_penalty_matrix: np.ndarray,
+        n: int,
+        weight: float
+    ):
+        """Add traffic penalty objective to QUBO"""
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    for t in range(n - 1):
+                        idx_i_t = i * n + t
+                        idx_j_t1 = j * n + (t + 1)
+                        penalty = traffic_penalty_matrix[i][j]
+                        qubo_matrix[idx_i_t][idx_j_t1] += weight * penalty
+                        qubo_matrix[idx_j_t1][idx_i_t] += weight * penalty
+    
+    def _add_poi_constraint(self, qubo_matrix: np.ndarray, n: int, penalty: float):
         """
-        Create mapping for teacher explanation
-        Shows which qubit represents which POI-position combination
+        Constraint: Each POI visited exactly once
+        Sum over positions: (sum_t x[i][t] - 1)^2
+        """
+        for i in range(n):
+            # Linear terms: -2 * sum_t x[i][t]
+            for t in range(n):
+                idx = i * n + t
+                qubo_matrix[idx][idx] -= 2 * penalty
+            
+            # Quadratic terms: sum_{t1,t2} x[i][t1] * x[i][t2]
+            for t1 in range(n):
+                for t2 in range(n):
+                    idx1 = i * n + t1
+                    idx2 = i * n + t2
+                    qubo_matrix[idx1][idx2] += penalty
+            
+            # Constant term: +1 (handled in offset, not in QUBO matrix)
+    
+    def _add_position_constraint(self, qubo_matrix: np.ndarray, n: int, penalty: float):
+        """
+        Constraint: Each position has exactly one POI
+        Sum over POIs: (sum_i x[i][t] - 1)^2
+        """
+        for t in range(n):
+            # Linear terms: -2 * sum_i x[i][t]
+            for i in range(n):
+                idx = i * n + t
+                qubo_matrix[idx][idx] -= 2 * penalty
+            
+            # Quadratic terms: sum_{i1,i2} x[i1][t] * x[i2][t]
+            for i1 in range(n):
+                for i2 in range(n):
+                    idx1 = i1 * n + t
+                    idx2 = i2 * n + t
+                    qubo_matrix[idx1][idx2] += penalty
+    
+    def _add_opening_hours_penalty(
+        self,
+        qubo_matrix: np.ndarray,
+        pois: List[Dict],
+        time_matrix: np.ndarray,
+        n: int,
+        start_time_minutes: int,
+        penalty_weight: float
+    ):
+        """
+        Add penalty for opening hours violations
+        Penalizes routes that arrive too early or too late
+        """
+        for i in range(n):
+            poi = pois[i]
+            opening_time = poi.get('opening_time', 0)
+            closing_time = poi.get('closing_time', 1440)
+            visit_duration = poi.get('visit_duration', 60)
+            
+            for t in range(n):
+                idx = i * n + t
+                
+                # Estimate arrival time at position t
+                # Simplified: assume average travel time
+                avg_travel_time = np.mean(time_matrix[time_matrix > 0])
+                estimated_arrival = start_time_minutes + t * avg_travel_time
+                
+                # Penalty if arrives before opening
+                if estimated_arrival < opening_time:
+                    wait_penalty = (opening_time - estimated_arrival) * penalty_weight * 0.1
+                    qubo_matrix[idx][idx] += wait_penalty
+                
+                # Penalty if cannot complete visit before closing
+                if estimated_arrival + visit_duration > closing_time:
+                    violation_penalty = (estimated_arrival + visit_duration - closing_time) * penalty_weight
+                    qubo_matrix[idx][idx] += violation_penalty
+    
+    def _add_distance_limit_penalty(
+        self,
+        qubo_matrix: np.ndarray,
+        distance_matrix: np.ndarray,
+        n: int,
+        max_distance: float,
+        penalty_weight: float
+    ):
+        """
+        Add penalty for exceeding maximum distance constraint
+        """
+        # Calculate cumulative distance for each possible route segment
+        for i in range(n):
+            for j in range(n):
+                if i != j and distance_matrix[i][j] > max_distance:
+                    # Penalize transitions that exceed max distance
+                    for t in range(n - 1):
+                        idx_i_t = i * n + t
+                        idx_j_t1 = j * n + (t + 1)
+                        excess = distance_matrix[i][j] - max_distance
+                        penalty = excess * penalty_weight
+                        qubo_matrix[idx_i_t][idx_j_t1] += penalty
+                        qubo_matrix[idx_j_t1][idx_i_t] += penalty
+    
+    def get_qubit_to_poi_mapping(self, n: int) -> Dict[int, Tuple[int, int]]:
+        """
+        Get mapping from qubit index to (POI_index, position)
         
-        Example for n=4:
-        {
-            0: {'poi': 0, 'position': 0, 'meaning': 'POI_0 at position 0'},
-            1: {'poi': 0, 'position': 1, 'meaning': 'POI_0 at position 1'},
-            ...
-            15: {'poi': 3, 'position': 3, 'meaning': 'POI_3 at position 3'}
-        }
+        Args:
+            n: Number of POIs
+            
+        Returns:
+            Dictionary mapping qubit_index -> (poi_index, position)
         """
         mapping = {}
         for i in range(n):
-            for p in range(n):
-                var_idx = i * n + p
-                mapping[var_idx] = {
-                    'poi_index': i,
-                    'position': p,
-                    'meaning': f'POI_{i} at position {p}',
-                    'qubit': var_idx
-                }
+            for t in range(n):
+                qubit_idx = i * n + t
+                mapping[qubit_idx] = (i, t)
         return mapping
-    
-    def decode_solution(
-        self,
-        binary_solution: List[int],
-        n_pois: int
-    ) -> Tuple[List[int], bool]:
-        """
-        Decode binary solution back to route
-        FREE - Convert quantum measurement to route
-        
-        Args:
-            binary_solution: [0,1,0,...,1] length n²
-            n_pois: Number of POIs
-            
-        Returns:
-            (route, is_valid)
-            route: [poi_0, poi_2, poi_1, poi_3]
-            is_valid: Whether solution satisfies constraints
-        """
-        n = n_pois
-        
-        # Extract position assignments
-        route = [-1] * n
-        is_valid = True
-        
-        for i in range(n):
-            for p in range(n):
-                var_idx = i * n + p
-                if binary_solution[var_idx] == 1:
-                    if route[p] == -1:
-                        route[p] = i
-                    else:
-                        # Constraint violation: position p assigned twice
-                        is_valid = False
-        
-        # Check if all positions filled
-        if -1 in route:
-            is_valid = False
-        
-        return route, is_valid
-    
-    def explain_qubo(self, Q: np.ndarray, n_pois: int) -> str:
-        """
-        Generate explanation text for teacher
-        FREE - Educational tool
-        """
-        n = n_pois
-        explanation = f"""
-=== QUBO Matrix Explanation ===
-
-Problem Size:
-- Number of POIs: {n}
-- Number of binary variables: {n * n}
-- QUBO matrix size: {n * n} × {n * n}
-
-Variable Encoding (Position Encoding):
-- x_{{i,p}} = 1 if POI i is visited at position p
-- Example: x_{{0,0}} = 1 means POI 0 is visited first
--         x_{{2,3}} = 1 means POI 2 is visited last (position 3)
-
-Constraints Encoded:
-1. Each POI visited exactly once: Σ_p x_{{i,p}} = 1 for all i
-2. Each position filled exactly once: Σ_i x_{{i,p}} = 1 for all p
-
-Objective:
-- Minimize total distance: Σ_{{i,j,p}} d_{{ij}} · x_{{i,p}} · x_{{j,p+1}}
-
-QUBO Matrix Structure:
-- Diagonal elements: Linear costs (constraints + preferences)
-- Off-diagonal elements: Pairwise interactions (distance costs)
-- Symmetric matrix (Q_{{ij}} = Q_{{ji}})
-
-Energy Function:
-E(x) = x^T Q x = Σ_i Q_{{ii}} x_i + Σ_{{i<j}} Q_{{ij}} x_i x_j
-
-Goal: Find binary vector x that minimizes E(x)
-"""
-        return explanation
 
 
-# Example usage for teacher demonstration (FREE)
+# Example usage
 if __name__ == "__main__":
-    # Sample 4 POIs (teacher requirement)
+    # Sample data
     sample_pois = [
-        {'id': 1, 'name': 'Temple A'},
-        {'id': 2, 'name': 'Museum B'},
-        {'id': 3, 'name': 'Beach C'},
-        {'id': 4, 'name': 'Restaurant D'}
+        {"id": "poi_01", "name": "Royal Palace", "opening_time": 480, "closing_time": 1020, "visit_duration": 90},
+        {"id": "poi_02", "name": "Silver Pagoda", "opening_time": 480, "closing_time": 1020, "visit_duration": 60},
+        {"id": "poi_03", "name": "National Museum", "opening_time": 480, "closing_time": 1020, "visit_duration": 90},
+        {"id": "poi_04", "name": "Independence Monument", "opening_time": 0, "closing_time": 1440, "visit_duration": 30}
     ]
     
-    # Distance matrix (km)
+    # Sample distance matrix
     distance_matrix = np.array([
-        [0.0, 2.5, 4.0, 3.0],
-        [2.5, 0.0, 3.5, 2.0],
-        [4.0, 3.5, 0.0, 5.0],
-        [3.0, 2.0, 5.0, 0.0]
+        [0.0, 0.2, 0.3, 0.6],
+        [0.2, 0.0, 0.2, 0.5],
+        [0.3, 0.2, 0.0, 0.4],
+        [0.6, 0.5, 0.4, 0.0]
     ])
     
-    # Create QUBO encoder (FREE)
+    # Encode to QUBO
     encoder = QUBOEncoder(penalty_coefficient=1000.0)
+    qubo_matrix, encoding_info = encoder.encode_tsp(
+        sample_pois,
+        distance_matrix,
+        start_time_minutes=480,
+        max_distance=1.0
+    )
     
-    # Encode problem
-    qubo_matrix, info = encoder.encode_tsp(sample_pois, distance_matrix)
-    
-    print("QUBO Encoding Complete!")
-    print(f"Number of qubits needed: {info['num_qubits']}")
-    print(f"Number of variables: {info['num_variables']}")
-    print(f"Encoding type: {info['encoding_type']}")
-    print(f"\nQUBO Matrix shape: {qubo_matrix.shape}")
-    print(f"\nVariable Mapping (first 4):")
-    for i in range(4):
-        print(f"  Qubit {i}: {info['variable_mapping'][i]['meaning']}")
-    
-    # Show explanation for teacher
-    print(encoder.explain_qubo(qubo_matrix, 4))
-    
-    # Test decode
-    sample_solution = [1,0,0,0, 0,0,1,0, 0,0,0,1, 0,1,0,0]
-    route, valid = encoder.decode_solution(sample_solution, 4)
-    print(f"\nSample Solution: {sample_solution}")
-    print(f"Decoded Route: {route}")
-    print(f"Valid: {valid}")
-    print(f"Route interpretation: {[sample_pois[i]['name'] for i in route]}")
+    print(f"QUBO Matrix Shape: {qubo_matrix.shape}")
+    print(f"Encoding Info: {encoding_info}")
+    print(f"\nQUBO Matrix (first 4x4):")
+    print(qubo_matrix[:4, :4])
+

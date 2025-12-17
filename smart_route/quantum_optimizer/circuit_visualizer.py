@@ -1,385 +1,386 @@
 """
-Circuit Visualizer - Show QAOA circuit for teacher presentation
-100% FREE - Uses matplotlib for visualization
+Circuit Visualizer for QAOA
+Visualizes quantum circuits and optimization progress
 """
-import matplotlib.pyplot as plt
-from qiskit import QuantumCircuit
-from qiskit.visualization import circuit_drawer, plot_histogram
-from typing import Dict, List, Optional
 import numpy as np
+from typing import Dict, List, Optional, Tuple
+from qiskit import QuantumCircuit
+from qiskit.visualization import plot_histogram
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend
+from pathlib import Path
+import json
+
+# Note: plot_circuit doesn't exist in qiskit.visualization
+# We use circuit.draw() method instead, which is already implemented below
 
 
 class CircuitVisualizer:
-
+    """
+    Visualize QAOA circuits and results
+    """
     
-    def __init__(self, output_dir: str = './outputs/circuits'):
-        self.output_dir = output_dir
+    def __init__(self, output_dir: str = "outputs/circuits"):
+        """
+        Initialize circuit visualizer
         
+        Args:
+            output_dir: Directory to save visualizations
+        """
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+    
     def visualize_circuit(
         self,
         circuit: QuantumCircuit,
-        parameters: Optional[List[float]] = None,
-        filename: str = 'qaoa_circuit',
-        style: str = 'mpl'
+        title: str = "QAOA Circuit",
+        filename: Optional[str] = None
     ) -> str:
         """
-        Generate circuit diagram
-        FREE - For teacher to see circuit structure
+        Visualize quantum circuit
         
         Args:
-            circuit: QAOA circuit
-            parameters: Optimized [γ₁, β₁, γ₂, β₂] values
-            filename: Output filename
-            style: 'mpl' (matplotlib) or 'text'
+            circuit: QuantumCircuit object
+            title: Plot title
+            filename: Output filename (optional)
             
         Returns:
-            Path to saved image
+            Path to saved visualization
         """
-        print(f"\nGenerating circuit diagram...")
+        if filename is None:
+            filename = f"circuit_{hash(str(circuit))}.png"
         
-        # Bind parameters if provided
-        if parameters is not None and len(circuit.parameters) > 0:
-            param_dict = dict(zip(circuit.parameters, parameters))
-            bound_circuit = circuit.bind_parameters(param_dict)
-        else:
-            bound_circuit = circuit
+        filepath = self.output_dir / filename
         
-        # Draw circuit
-        if style == 'mpl':
-            fig = circuit_drawer(
-                bound_circuit,
-                output='mpl',
-                style={'backgroundcolor': '#FFFFFF'},
-                fold=100  # Wrap long circuits
-            )
+        try:
+            # Plot circuit using circuit.draw() method
+            # Try different output formats for compatibility
+            try:
+                # Try matplotlib output (most common)
+                fig = circuit.draw('mpl', output='mpl', style='clifford')
+                if hasattr(fig, 'suptitle'):
+                    fig.suptitle(title, fontsize=14, fontweight='bold')
+                fig.savefig(filepath, dpi=150, bbox_inches='tight')
+                plt.close(fig)
+            except (TypeError, AttributeError):
+                # Fallback: try without style parameter
+                try:
+                    fig = circuit.draw('mpl', output='mpl')
+                    if hasattr(fig, 'suptitle'):
+                        fig.suptitle(title, fontsize=14, fontweight='bold')
+                    fig.savefig(filepath, dpi=150, bbox_inches='tight')
+                    plt.close(fig)
+                except Exception:
+                    # Final fallback: text representation
+                    return self._create_text_circuit(circuit, filepath)
             
-            # Save figure
-            save_path = f"{self.output_dir}/{filename}.png"
-            fig.savefig(save_path, dpi=300, bbox_inches='tight')
-            print(f"Circuit diagram saved: {save_path}")
-            return save_path
-        else:
-            # Text output for console
-            print(circuit_drawer(bound_circuit, output='text'))
-            return "console"
+            return str(filepath)
+        except Exception as e:
+            print(f"Error visualizing circuit: {e}")
+            # Fallback: create simple text representation
+            return self._create_text_circuit(circuit, filepath)
     
-    def explain_qubit_mapping(
-        self,
-        num_pois: int,
-        pois: List[Dict],
-        save: bool = True,
-        filename: str = 'qubit_mapping'
-    ) -> str:
-        """
-        Create visual qubit-to-feature mapping for teacher
-        FREE - Shows which qubit represents what
-        
-        For 4 POIs:
-        Qubit 0:  POI_0 at position 0  [Temple at 1st]
-        Qubit 1:  POI_0 at position 1  [Temple at 2nd]
-        ...
-        Qubit 15: POI_3 at position 3  [Restaurant at 4th]
-        
-        Returns:
-            Explanation text
-        """
-        n = num_pois
-        num_qubits = n * n
-        
-        explanation_lines = ["=" * 60]
-        explanation_lines.append("QUBIT-TO-FEATURE MAPPING FOR TEACHER")
-        explanation_lines.append("=" * 60)
-        explanation_lines.append(f"\nProblem: {n} POIs, {num_qubits} qubits needed")
-        explanation_lines.append(f"Encoding: Position encoding (x_{{i,p}})")
-        explanation_lines.append("\nEach qubit represents: POI_i at position_p\n")
-        
-        # Create mapping table
-        explanation_lines.append(f"{'Qubit':<8} {'POI':<6} {'Position':<10} {'Meaning':<30}")
-        explanation_lines.append("-" * 60)
-        
-        for i in range(n):
-            poi_name = pois[i]['name'] if i < len(pois) else f"POI_{i}"
-            for p in range(n):
-                qubit_idx = i * n + p
-                position_name = ['1st', '2nd', '3rd', '4th'][p]
-                meaning = f"{poi_name} visited {position_name}"
-                
-                explanation_lines.append(
-                    f"{qubit_idx:<8} {i:<6} {p:<10} {meaning:<30}"
-                )
-        
-        explanation_lines.append("\n" + "=" * 60)
-        explanation_lines.append("QUANTUM CIRCUIT STRUCTURE")
-        explanation_lines.append("=" * 60)
-        explanation_lines.append("\n1. Initialization Layer:")
-        explanation_lines.append(f"   - Apply Hadamard (H) gates to all {num_qubits} qubits")
-        explanation_lines.append(f"   - Creates uniform superposition: |+⟩^⊗{num_qubits}")
-        
-        explanation_lines.append("\n2. QAOA Ansatz (p=2 layers):")
-        explanation_lines.append("   Layer 1:")
-        explanation_lines.append("     - Cost Hamiltonian: e^(-iγ₁H_C)")
-        explanation_lines.append("       * ZZ gates for distance costs (POI interactions)")
-        explanation_lines.append("       * RZ gates for constraint penalties")
-        explanation_lines.append("     - Mixer Hamiltonian: e^(-iβ₁H_M)")
-        explanation_lines.append("       * RX(2β₁) gates on all qubits")
-        explanation_lines.append("   Layer 2:")
-        explanation_lines.append("     - Cost Hamiltonian: e^(-iγ₂H_C)")
-        explanation_lines.append("     - Mixer Hamiltonian: e^(-iβ₂H_M)")
-        
-        explanation_lines.append("\n3. Measurement Layer:")
-        explanation_lines.append(f"   - Measure all {num_qubits} qubits in computational basis")
-        explanation_lines.append("   - Get bitstring: e.g., '1000010000100001'")
-        
-        explanation_lines.append("\n" + "=" * 60)
-        explanation_lines.append("PARAMETER OPTIMIZATION")
-        explanation_lines.append("=" * 60)
-        explanation_lines.append("\nParameters to optimize: {γ₁, β₁, γ₂, β₂}")
-        explanation_lines.append("  - γ (gamma): Cost layer rotation angles")
-        explanation_lines.append("  - β (beta): Mixer layer rotation angles")
-        explanation_lines.append("  - Range: [0, 2π] radians")
-        explanation_lines.append("\nClassical Optimizer: COBYLA")
-        explanation_lines.append("  - Iteratively adjusts parameters")
-        explanation_lines.append("  - Goal: Minimize expected energy ⟨ψ|H_C|ψ⟩")
-        explanation_lines.append("  - Typical iterations: 50-200")
-        
-        explanation = "\n".join(explanation_lines)
-        
-        # Save to file
-        if save:
-            save_path = f"{self.output_dir}/{filename}.txt"
-            with open(save_path, 'w') as f:
-                f.write(explanation)
-            print(f"Qubit mapping saved: {save_path}")
-        
-        print(explanation)
-        return explanation
-    
-    def plot_measurement_histogram(
+    def visualize_measurement_results(
         self,
         counts: Dict[str, int],
-        top_n: int = 10,
-        filename: str = 'measurement_histogram'
+        title: str = "Measurement Results",
+        filename: Optional[str] = None,
+        top_k: int = 10
     ) -> str:
         """
-        Plot measurement outcome histogram
-        FREE - Show which solutions were found
+        Visualize measurement results as histogram
         
         Args:
-            counts: {'bitstring': count, ...}
-            top_n: Show top N most frequent outcomes
-            filename: Output filename
+            counts: Dictionary mapping bitstrings to counts
+            title: Plot title
+            filename: Output filename (optional)
+            top_k: Number of top results to show
             
         Returns:
-            Path to saved plot
+            Path to saved visualization
         """
-        # Get top N results
-        sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
-        top_counts = dict(sorted_counts[:top_n])
+        if filename is None:
+            filename = f"measurements_{hash(str(counts))}.png"
         
-        # Create plot
-        fig, ax = plt.subplots(figsize=(12, 6))
+        filepath = self.output_dir / filename
         
-        # Plot bars
-        bitstrings = list(top_counts.keys())
-        values = list(top_counts.values())
-        
-        bars = ax.bar(range(len(bitstrings)), values, color='steelblue', alpha=0.7)
-        
-        # Customize
-        ax.set_xlabel('Measurement Outcome (Bitstring)', fontsize=12)
-        ax.set_ylabel('Count (out of total shots)', fontsize=12)
-        ax.set_title(f'Top {top_n} QAOA Measurement Outcomes', fontsize=14, fontweight='bold')
-        ax.set_xticks(range(len(bitstrings)))
-        ax.set_xticklabels(bitstrings, rotation=45, ha='right', fontsize=8)
-        ax.grid(axis='y', alpha=0.3)
-        
-        # Add count labels on bars
-        for i, (bar, count) in enumerate(zip(bars, values)):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{count}',
-                   ha='center', va='bottom', fontsize=9)
-        
-        plt.tight_layout()
-        
-        # Save
-        save_path = f"{self.output_dir}/{filename}.png"
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        print(f"Histogram saved: {save_path}")
-        return save_path
+        try:
+            # Sort by count and take top K
+            sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:top_k]
+            top_counts = dict(sorted_counts)
+            
+            # Plot histogram
+            fig, ax = plt.subplots(figsize=(12, 6))
+            plot_histogram(top_counts, ax=ax, title=title)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            fig.savefig(filepath, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            
+            return str(filepath)
+        except Exception as e:
+            print(f"Error visualizing measurements: {e}")
+            return ""
     
-    def plot_convergence(
+    def visualize_optimization_progress(
         self,
-        history: List[Tuple[int, float]],
-        filename: str = 'convergence'
+        optimization_history: List[Dict],
+        title: str = "QAOA Optimization Progress",
+        filename: Optional[str] = None
     ) -> str:
         """
-        Plot optimization convergence
-        FREE - Show how QAOA improves
+        Visualize parameter optimization progress
         
         Args:
-            history: [(iteration, energy), ...]
-            filename: Output filename
+            optimization_history: List of optimization steps
+                Each dict should have 'iteration', 'energy', 'parameters'
+            title: Plot title
+            filename: Output filename (optional)
+            
+        Returns:
+            Path to saved visualization
         """
-        iterations = [h[0] for h in history]
-        energies = [h[1] for h in history]
+        if filename is None:
+            filename = f"optimization_{len(optimization_history)}.png"
         
-        fig, ax = plt.subplots(figsize=(10, 6))
+        filepath = self.output_dir / filename
         
-        ax.plot(iterations, energies, marker='o', linewidth=2, markersize=6)
-        ax.set_xlabel('Iteration', fontsize=12)
-        ax.set_ylabel('Energy (lower is better)', fontsize=12)
-        ax.set_title('QAOA Convergence', fontsize=14, fontweight='bold')
-        ax.grid(True, alpha=0.3)
-        
-        # Annotate best
-        best_idx = np.argmin(energies)
-        ax.annotate(
-            f'Best: {energies[best_idx]:.2f}',
-            xy=(iterations[best_idx], energies[best_idx]),
-            xytext=(10, 10), textcoords='offset points',
-            bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.5),
-            arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0')
-        )
-        
-        plt.tight_layout()
-        
-        save_path = f"{self.output_dir}/{filename}.png"
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        print(f"Convergence plot saved: {save_path}")
-        return save_path
+        try:
+            iterations = [step['iteration'] for step in optimization_history]
+            energies = [step['energy'] for step in optimization_history]
+            
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.plot(iterations, energies, 'b-', linewidth=2, marker='o', markersize=4)
+            ax.set_xlabel('Iteration', fontsize=12)
+            ax.set_ylabel('Energy', fontsize=12)
+            ax.set_title(title, fontsize=14, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            plt.tight_layout()
+            fig.savefig(filepath, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            
+            return str(filepath)
+        except Exception as e:
+            print(f"Error visualizing optimization: {e}")
+            return ""
     
-    def create_teacher_presentation(
+    def create_route_visualization(
         self,
-        circuit: QuantumCircuit,
-        parameters: List[float],
-        counts: Dict[str, int],
         route: List[int],
         pois: List[Dict],
-        energy: float,
-        num_qubits: int
+        distance_matrix: np.ndarray,
+        title: str = "Optimized Route",
+        filename: Optional[str] = None
+    ) -> str:
+        """
+        Visualize route on map (simplified 2D plot)
+        
+        Args:
+            route: Route as list of POI indices
+            pois: List of POI dictionaries with 'lat', 'lng', 'name'
+            distance_matrix: Distance matrix
+            title: Plot title
+            filename: Output filename (optional)
+            
+        Returns:
+            Path to saved visualization
+        """
+        if filename is None:
+            filename = f"route_{hash(str(route))}.png"
+        
+        filepath = self.output_dir / filename
+        
+        try:
+            fig, ax = plt.subplots(figsize=(12, 8))
+            
+            # Extract coordinates
+            lats = [pois[i]['lat'] for i in route]
+            lngs = [pois[i]['lng'] for i in route]
+            names = [pois[i].get('name', f'POI_{i}') for i in route]
+            
+            # Plot route
+            ax.plot(lngs, lats, 'b-o', linewidth=2, markersize=8, label='Route')
+            
+            # Add arrows to show direction
+            for i in range(len(route) - 1):
+                dx = lngs[i+1] - lngs[i]
+                dy = lats[i+1] - lats[i]
+                ax.arrow(lngs[i], lats[i], dx*0.7, dy*0.7,
+                        head_width=0.001, head_length=0.001, fc='blue', ec='blue')
+            
+            # Annotate POIs
+            for i, (lat, lng, name) in enumerate(zip(lats, lngs, names)):
+                ax.annotate(f"{i+1}. {name}", (lng, lat),
+                           xytext=(5, 5), textcoords='offset points',
+                           fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7))
+            
+            ax.set_xlabel('Longitude', fontsize=12)
+            ax.set_ylabel('Latitude', fontsize=12)
+            ax.set_title(title, fontsize=14, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+            plt.tight_layout()
+            fig.savefig(filepath, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            
+            return str(filepath)
+        except Exception as e:
+            print(f"Error visualizing route: {e}")
+            return ""
+    
+    def create_comprehensive_visualization(
+        self,
+        qaoa_result: Dict,
+        pois: List[Dict],
+        distance_matrix: np.ndarray,
+        encoding_info: Optional[Dict] = None
     ) -> Dict[str, str]:
         """
-        Generate complete visualization package for teacher
-        FREE - All materials for presentation
+        Create comprehensive visualization package
         
+        Args:
+            qaoa_result: QAOA result dictionary
+            pois: List of POI dictionaries
+            distance_matrix: Distance matrix
+            encoding_info: Encoding information
+            
         Returns:
-            Dictionary of saved file paths
+            Dictionary mapping visualization type to filepath
         """
-        print("\n" + "=" * 60)
-        print("GENERATING TEACHER PRESENTATION MATERIALS")
-        print("=" * 60)
+        visualizations = {}
         
-        outputs = {}
+        # 1. Measurement results
+        if 'counts' in qaoa_result:
+            vis_path = self.visualize_measurement_results(
+                qaoa_result['counts'],
+                title="QAOA Measurement Results",
+                filename="measurements.png"
+            )
+            if vis_path:
+                visualizations['measurements'] = vis_path
         
-        # 1. Circuit diagram
-        outputs['circuit'] = self.visualize_circuit(
-            circuit, parameters, 'qaoa_circuit_with_params'
-        )
+        # 2. Route visualization
+        if 'route' in qaoa_result:
+            vis_path = self.create_route_visualization(
+                qaoa_result['route'],
+                pois,
+                distance_matrix,
+                title="Optimized Route",
+                filename="route.png"
+            )
+            if vis_path:
+                visualizations['route'] = vis_path
         
-        # 2. Qubit mapping explanation
-        outputs['mapping'] = self.explain_qubit_mapping(
-            len(pois), pois, save=True
-        )
+        # 3. Circuit (if available)
+        if 'circuit' in qaoa_result and qaoa_result['circuit'] is not None:
+            vis_path = self.visualize_circuit(
+                qaoa_result['circuit'],
+                title="QAOA Circuit",
+                filename="circuit.png"
+            )
+            if vis_path:
+                visualizations['circuit'] = vis_path
         
-        # 3. Measurement histogram
-        outputs['histogram'] = self.plot_measurement_histogram(
-            counts, top_n=10
-        )
-        
-        # 4. Summary statistics
-        summary = self._generate_summary_stats(
-            circuit, parameters, route, pois, energy, num_qubits
-        )
-        outputs['summary'] = summary
-        
-        print("\n" + "=" * 60)
-        print("PRESENTATION MATERIALS READY!")
-        print("=" * 60)
-        print(f"\nFiles saved in: {self.output_dir}/")
-        for key, path in outputs.items():
-            print(f"  - {key}: {path}")
-        
-        return outputs
+        return visualizations
     
-    def _generate_summary_stats(
+    def _create_text_circuit(self, circuit: QuantumCircuit, filepath: Path) -> str:
+        """
+        Create text representation of circuit
+        
+        Args:
+            circuit: QuantumCircuit object
+            filepath: Output filepath
+            
+        Returns:
+            Path to saved file
+        """
+        try:
+            text_repr = str(circuit)
+            with open(filepath.with_suffix('.txt'), 'w') as f:
+                f.write(text_repr)
+            return str(filepath.with_suffix('.txt'))
+        except Exception as e:
+            print(f"Error creating text circuit: {e}")
+            return ""
+    
+    def export_results_json(
         self,
-        circuit: QuantumCircuit,
-        parameters: List[float],
-        route: List[int],
-        pois: List[Dict],
-        energy: float,
-        num_qubits: int
+        qaoa_result: Dict,
+        filepath: Optional[str] = None
     ) -> str:
-        """Generate summary statistics text file"""
-        lines = ["=" * 60]
-        lines.append("QAOA SUMMARY STATISTICS FOR TEACHER")
-        lines.append("=" * 60)
+        """
+        Export QAOA results to JSON
         
-        lines.append("\n--- PROBLEM SIZE ---")
-        lines.append(f"Number of POIs: {len(pois)}")
-        lines.append(f"Number of qubits: {num_qubits}")
-        lines.append(f"Number of binary variables: {num_qubits}")
+        Args:
+            qaoa_result: QAOA result dictionary
+            filepath: Output filepath (optional)
+            
+        Returns:
+            Path to saved JSON file
+        """
+        if filepath is None:
+            filepath = self.output_dir / "qaoa_result.json"
+        else:
+            filepath = Path(filepath)
         
-        lines.append("\n--- CIRCUIT DETAILS ---")
-        lines.append(f"Circuit depth: {circuit.depth()}")
-        lines.append(f"Total gates: {len(circuit.data)}")
-        lines.append(f"Number of QAOA layers (p): {len(parameters) // 2}")
-        lines.append(f"Number of parameters: {len(parameters)}")
+        # Convert numpy types to native Python types
+        def convert_to_native(obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_to_native(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_native(item) for item in obj]
+            else:
+                return obj
         
-        lines.append("\n--- OPTIMIZED PARAMETERS ---")
-        for i in range(0, len(parameters), 2):
-            layer = i // 2 + 1
-            gamma = parameters[i]
-            beta = parameters[i+1]
-            lines.append(f"Layer {layer}:")
-            lines.append(f"  γ{layer} = {gamma:.4f} rad ({gamma*180/np.pi:.2f}°)")
-            lines.append(f"  β{layer} = {beta:.4f} rad ({beta*180/np.pi:.2f}°)")
+        exportable_result = convert_to_native(qaoa_result)
         
-        lines.append("\n--- SOLUTION ---")
-        lines.append(f"Route: {[pois[i]['name'] for i in route]}")
-        lines.append(f"Final energy: {energy:.4f}")
+        with open(filepath, 'w') as f:
+            json.dump(exportable_result, f, indent=2)
         
-        lines.append("\n--- GATE BREAKDOWN ---")
-        gate_counts = {}
-        for instruction in circuit.data:
-            gate_name = instruction[0].name
-            gate_counts[gate_name] = gate_counts.get(gate_name, 0) + 1
-        
-        for gate, count in sorted(gate_counts.items()):
-            lines.append(f"{gate.upper()}: {count} gates")
-        
-        summary = "\n".join(lines)
-        
-        # Save
-        save_path = f"{self.output_dir}/summary_statistics.txt"
-        with open(save_path, 'w') as f:
-            f.write(summary)
-        
-        print(f"\nSummary statistics saved: {save_path}")
-        return save_path
+        return str(filepath)
 
 
-# Example usage (FREE)
+# Example usage
 if __name__ == "__main__":
-    import os
-    os.makedirs('./outputs/circuits', exist_ok=True)
-    
-    visualizer = CircuitVisualizer(output_dir='./outputs/circuits')
-    
     # Sample data
     sample_pois = [
-        {'id': 1, 'name': 'Temple'},
-        {'id': 2, 'name': 'Museum'},
-        {'id': 3, 'name': 'Beach'},
-        {'id': 4, 'name': 'Restaurant'}
+        {"id": "poi_01", "name": "Royal Palace", "lat": 11.5625, "lng": 104.9310},
+        {"id": "poi_02", "name": "Silver Pagoda", "lat": 11.5627, "lng": 104.9312},
+        {"id": "poi_03", "name": "National Museum", "lat": 11.5640, "lng": 104.9282},
+        {"id": "poi_04", "name": "Independence Monument", "lat": 11.5564, "lng": 104.9312}
     ]
     
-    # Show qubit mapping
-    visualizer.explain_qubit_mapping(4, sample_pois, save=True)
+    distance_matrix = np.array([
+        [0.0, 0.2, 0.3, 0.6],
+        [0.2, 0.0, 0.2, 0.5],
+        [0.3, 0.2, 0.0, 0.4],
+        [0.6, 0.5, 0.4, 0.0]
+    ])
     
-    print("\nVisualization tools ready for teacher demonstration!")
+    sample_result = {
+        'route': [0, 1, 2, 3],
+        'counts': {'00011010': 100, '00110100': 50},
+        'energy': -2.5,
+        'parameters': {'gamma': [0.1, 0.2], 'beta': [0.3, 0.4]}
+    }
+    
+    # Visualize
+    visualizer = CircuitVisualizer()
+    
+    # Route visualization
+    route_path = visualizer.create_route_visualization(
+        sample_result['route'], sample_pois, distance_matrix
+    )
+    print(f"Route visualization saved: {route_path}")
+    
+    # Measurement visualization
+    meas_path = visualizer.visualize_measurement_results(sample_result['counts'])
+    print(f"Measurement visualization saved: {meas_path}")
+
