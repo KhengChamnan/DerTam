@@ -462,10 +462,13 @@ class HotelOwnerController extends Controller
             'roomProperty.amenities:amenity_id,amenity_name'
         ])
         ->orderBy('room_number')
-        ->paginate(12);
+        ->get();
         
         return Inertia::render('hotel-owner/rooms/allRooms', [
-            'rooms' => $rooms
+            'rooms' => [
+                'data' => $rooms,
+                'total' => $rooms->count()
+            ]
         ]);
     }
 }
