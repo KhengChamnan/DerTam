@@ -11,12 +11,16 @@ interface HotelNearbyCardProps {
     rating: number;
     image: string;
   };
+  referringPlaceId?: number;
 }
 
-export default function HotelNearbyCard({ hotel }: HotelNearbyCardProps) {
+export default function HotelNearbyCard({ hotel, referringPlaceId }: HotelNearbyCardProps) {
   return (
-    <Link to={`/hotel/${hotel.place_id}`}>
-      <div className="flex space-x-3 group cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition">
+    <Link 
+      to={`/hotel/${hotel.place_id}`}
+      className="block group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all duration-300"
+    >
+      <div className="flex space-x-3 p-2">
         <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
           <img
             src={hotel.image}

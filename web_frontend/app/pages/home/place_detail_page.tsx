@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useLocation, useNavigate } from "react-router";
 import { X, ArrowLeft,ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles , MapPinHouse, LucideHotel, Utensils} from "lucide-react";
 import { getPlaceById, type Place } from "~/api/place";
 import PlaceHeader from "./components/placeheader";
@@ -13,6 +13,8 @@ import { useFavorites } from "../profile/hooks/usefavorites";
 
 export default function PlaceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,16 +99,28 @@ export default function PlaceDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
-      {/* Back Button */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <button
-          onClick={() => window.history.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-[#01005B] mb-6 transition-colors"
-        >
-          <ArrowLeft size={22} />
-          <span className="font-medium">Back</span>
-        </button>
-      </div>
+      {/* Header with Back Button */}
+      <header className=" backdrop-blur-sm shadow-sm sticky top-0 z-50 ">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <button
+            onClick={() => {
+              // Always use browser back for natural navigation through history
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                // Fallback to home if no history
+                navigate('/');
+              }
+            }}
+            className="group inline-flex items-center gap-2.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-[#01005B] hover:to-[#000047] text-gray-700 hover:text-white rounded-xl border border-gray-200 hover:border-[#01005B] transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-95"
+          >
+            <div className="w-6 h-6 rounded-full bg-white/50 group-hover:bg-white/20 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+            </div>
+            <span className="font-semibold text-sm sm:text-base tracking-wide">Back</span>
+          </button>
+        </div>
+      </header>
     
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
         <PlaceHeader 
@@ -176,7 +190,7 @@ export default function PlaceDetailPage() {
                 </div>
                 <div className="space-y-4">
                   {(showAllPlaces ? place.nearbyPlaces : place.nearbyPlaces.slice(0, 2)).map((nearby) => (
-                    <NearbyPlaceCard key={nearby.id} place={nearby} />
+                    <NearbyPlaceCard key={nearby.id} place={nearby} referringPlaceId={place.id} />
                   ))}
                 </div>
                 {place.nearbyPlaces.length > 2 && (
@@ -237,15 +251,16 @@ export default function PlaceDetailPage() {
                 </div>
                 <div className="space-y-4">
                   {(showAllHotels ? place.nearbyHotels : place.nearbyHotels.slice(0, 3)).map((hotel) => {
-                    const hotelCardData = {
-                      ...hotel,
-                      place_id: hotel.place_id ?? place.id,
-                    };
-                    console.log('Hotel card data:', hotelCardData);
+                    console.log('Rendering hotel card:', { id: hotel.id, place_id: hotel.place_id, name: hotel.name });
+                    if (!hotel.place_id) {
+                      console.warn('Hotel missing place_id:', hotel);
+                      return null;
+                    }
                     return (
                       <HotelNearbyCard
                         key={hotel.id}
-                        hotel={hotelCardData}
+                        hotel={hotel}
+                        referringPlaceId={place.id}
                       />
                     );
                   })}
@@ -305,9 +320,10 @@ export default function PlaceDetailPage() {
                 </div>
                 <div className="space-y-4">
                   {(showAllRestaurants ? place.nearbyRestaurants : place.nearbyRestaurants.slice(0, 3)).map((restaurant) => (
-                    <RestaurantNearbyCard key={restaurant.id} restaurant={restaurant} />
+                    <RestaurantNearbyCard key={restaurant.id} restaurant={restaurant} referringPlaceId={place.id} />
                   ))}
                 </div>
+                
                 {place.nearbyRestaurants.length > 3 && (
                   <button
                     onClick={() => setShowAllRestaurants(!showAllRestaurants)}

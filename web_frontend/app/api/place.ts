@@ -182,15 +182,18 @@ export async function getPlaceById(id: string): Promise<Place> {
       rating: parseFloat(place.ratings) || 0,
       category: place.category_name || '',
     })) || [],
-    nearbyHotels: hotelNearby?.map((hotel: any) => ({
-      id: hotel.property_id,
-      place_id: hotel.place_id || hotel.placeID,
-      name: hotel.property_name || hotel.name || hotel.title || '', // <-- fallback for hotel name
-      image: hotel.images_url?.[0] || hotel.image_url || '',
-      rating: parseFloat(hotel.ratings) || 0,
-      price: parseFloat(hotel.price_per_night) || 0,
-      distance: hotel.distance ? `${hotel.distance.toFixed(1)} km` : 'N/A',
-    })) || [],
+    nearbyHotels: hotelNearby?.map((hotel: any) => {
+      console.log('Backend hotel data:', hotel);
+      return {
+        id: hotel.property_id,
+        place_id: hotel.place_id || hotel.placeID,
+        name: hotel.property_name || hotel.name || hotel.title || '',
+        image: hotel.images_url?.[0] || hotel.image_url || '',
+        rating: parseFloat(hotel.ratings) || 0,
+        price: parseFloat(hotel.price_per_night) || 0,
+        distance: hotel.distance ? `${hotel.distance.toFixed(1)} km` : 'N/A',
+      };
+    }) || [],
     nearbyRestaurants: restaurantNearby?.map((restaurant: any) => ({
       id: restaurant.placeID,
       name: restaurant.name,

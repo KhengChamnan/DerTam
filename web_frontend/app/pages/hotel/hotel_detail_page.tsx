@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, Star, MapPin, Users, Maximize } from "lucide-react";
 import { getHotelPropertyById, type HotelPropertyDetail } from "~/api/hotel";
 
 export default function HotelDetailPage() {
   const { id } = useParams(); // This is now place_id
   const navigate = useNavigate();
+  const location = useLocation();
   const [hotel, setHotel] = useState<HotelPropertyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -13,6 +14,7 @@ export default function HotelDetailPage() {
 
   useEffect(() => {
     if (id) {
+      console.log('Loading hotel with place_id:', id);
       setLoading(true);
       getHotelPropertyById(id) // Now using place_id
         .then((data) => {
@@ -21,6 +23,7 @@ export default function HotelDetailPage() {
         })
         .catch((error) => {
           console.error('Error loading hotel:', error);
+          console.error('Failed place_id:', id);
           setHotel(null);
         })
         .finally(() => setLoading(false));
@@ -54,11 +57,20 @@ export default function HotelDetailPage() {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Hotel not found</h2>
             <button
-              onClick={() => navigate('/hotels')}
+              onClick={() => {
+                const from = (location.state as any)?.from;
+                if (from) {
+                  navigate(from);
+                } else if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate('/hotels');
+                }
+              }}
               style={{ color: '#01005B' }}
               className="hover:underline font-semibold"
             >
-              Back to hotels
+              Back
             </button>
           </div>
         </div>
@@ -72,15 +84,24 @@ export default function HotelDetailPage() {
     <div className="min-h-screen bg-gray-50">
     
 
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* Header with Back Button */}
+      <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-40 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <button
-            onClick={() => navigate('/hotels')}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#01005B] transition-colors group"
+            onClick={() => {
+              // Always use browser back for natural navigation
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate('/hotels');
+              }
+            }}
+            className="group inline-flex items-center gap-2.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-[#01005B] hover:to-[#000047] text-gray-700 hover:text-white rounded-xl border border-gray-200 hover:border-[#01005B] transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-95"
           >
-            <ChevronLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Hotels</span>
+            <div className="w-6 h-6 rounded-full bg-white/50 group-hover:bg-white/20 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+              <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+            </div>
+            <span className="font-semibold text-sm sm:text-base tracking-wide">Back</span>
           </button>
         </div>
       </header>

@@ -10,12 +10,17 @@ interface RestaurantNearbyCardProps {
     rating: number;
     image: string;
   };
+  referringPlaceId?: number;
 }
 
-export default function RestaurantNearbyCard({ restaurant }: RestaurantNearbyCardProps) {
+
+export default function RestaurantNearbyCard({ restaurant, referringPlaceId }: RestaurantNearbyCardProps) {
   return (
-    <Link to={`/restaurant/${restaurant.id}`} className="block">
-      <div className="flex space-x-3 group cursor-pointer hover:bg-gray-50 p-2 sm:p-3 rounded-xl transition-all duration-300 border border-transparent hover:border-gray-200 hover:shadow-sm">
+    <Link 
+      to={`/restaurant/${restaurant.id}`}
+      className="block group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all duration-300"
+    >
+      <div className="flex space-x-3 p-2 sm:p-3">
         <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg sm:rounded-xl overflow-hidden">
           <img
             src={restaurant.image}

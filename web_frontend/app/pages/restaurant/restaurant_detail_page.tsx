@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import { ChevronLeft, Star, Phone, MapPin, Heart, Navigation, Calendar, Users, X } from "lucide-react";
 import { useRestaurantData } from "./hooks/useRestaurantData";
 import RestaurantImageGallery from "./components/restaurantimagegallery";
@@ -9,6 +9,7 @@ import MenuItemCard from "./components/menuitemcard";
 export default function RestaurantDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { restaurant, loading } = useRestaurantData(id);
   const [selectedCategory, setSelectedCategory] = useState("Food");
   const [isFavorite, setIsFavorite] = useState(false);
@@ -65,17 +66,24 @@ export default function RestaurantDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* Header with Back Button */}
+      <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#01005B] transition-colors group"
+            onClick={() => {
+              // Always use browser back for natural navigation
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate('/');
+              }
+            }}
+            className="group inline-flex items-center gap-2.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-[#01005B] hover:to-[#000047] text-gray-700 hover:text-white rounded-xl border border-gray-200 hover:border-[#01005B] transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-95"
           >
-            <div className="p-1.5 rounded-full group-hover:bg-gray-100 transition-colors">
-              <ChevronLeft className="w-5 h-5" />
+            <div className="w-6 h-6 rounded-full bg-white/50 group-hover:bg-white/20 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+              <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             </div>
-            <span className="font-medium">Back</span>
+            <span className="font-semibold text-sm sm:text-base tracking-wide">Back</span>
           </button>
         </div>
       </header>

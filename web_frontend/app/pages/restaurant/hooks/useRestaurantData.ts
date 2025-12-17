@@ -199,7 +199,19 @@ export function useRestaurantData(restaurantId: string | undefined) {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const id = restaurantId ? parseInt(restaurantId) : 1;
-      setRestaurant(mockRestaurants[id] || null);
+      console.log('Looking for restaurant ID:', id);
+      console.log('Available restaurant IDs:', Object.keys(mockRestaurants));
+      
+      const foundRestaurant = mockRestaurants[id];
+      
+      if (!foundRestaurant) {
+        console.warn(`Restaurant with ID ${id} not found in mock data. Using default restaurant.`);
+        // Use restaurant ID 1 as fallback
+        setRestaurant(mockRestaurants[1] || null);
+      } else {
+        setRestaurant(foundRestaurant);
+      }
+      
       setLoading(false);
     };
 
