@@ -24,5 +24,11 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        // Set secure session cookies when APP_URL uses HTTPS or in production
+        $appUrl = config('app.url', '');
+        if ($this->app->environment('production') || str_starts_with($appUrl, 'https://')) {
+            config(['session.secure' => true]);
+        }
     }
 }
