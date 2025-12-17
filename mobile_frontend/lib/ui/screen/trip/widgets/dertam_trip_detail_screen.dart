@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_frontend/ui/screen/place_datail/place_detailed.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:location/location.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
@@ -510,6 +511,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         }
 
         final tripName = tripData.tripName ?? 'Trip';
+        final getUserJoinTrip = tripData.userAccessType?.totalUserJoin ?? 0;
         final tripId = tripData.tripId ?? '';
         final startDate = tripData.startDate ?? DateTime.now();
         final endDate = tripData.endDate ?? DateTime.now();
@@ -652,6 +654,16 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             ],
                           ),
                         ),
+                        SizedBox(width: 12),
+                        Text(
+                          '$getUserJoinTrip Joined',
+                          style: TextStyle(
+                            color: DertamColors.primaryDark,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(width: 12),
 
                         if (isOwner)
                           GestureDetector(
@@ -845,147 +857,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     SizedBox(height: 10),
                   ],
                 )
-              : null, 
+              : null,
         );
       },
-    );
-  }
-}
-
-// Avatar Stack Widget - KEEPING ORIGINAL SIZES
-class AvatarStack extends StatelessWidget {
-  final List<Map<String, dynamic>> users;
-  final int maxVisibleAvatars;
-
-  const AvatarStack({
-    super.key,
-    required this.users,
-    this.maxVisibleAvatars = 2, // Default to 2 for mobile
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final visibleUsers = users.take(maxVisibleAvatars).toList();
-    final remainingCount = users.length - maxVisibleAvatars;
-
-    return SizedBox(
-      width: _calculateTotalWidth(),
-      height: 32, // Original height
-      child: Stack(
-        children: [
-          // Visible avatars
-          ...visibleUsers.asMap().entries.map((entry) {
-            final index = entry.key;
-            final user = entry.value;
-            return Positioned(
-              left: index * 20.0, // Original overlap
-              child: _buildAvatar(
-                user: user,
-                isCurrentUser: user['isCurrentUser'] ?? false,
-              ),
-            );
-          }),
-
-          // +X indicator for remaining users
-          if (remainingCount > 0)
-            Positioned(
-              left: visibleUsers.length * 20.0,
-              child: _buildMoreIndicator(remainingCount),
-            ),
-        ],
-      ),
-    );
-  }
-
-  double _calculateTotalWidth() {
-    final visibleCount = users.length > maxVisibleAvatars
-        ? maxVisibleAvatars
-        : users.length;
-    final baseWidth = visibleCount * 20.0 + 12.0; // Original calculation
-    final moreIndicatorWidth = users.length > maxVisibleAvatars ? 32.0 : 0.0;
-    return baseWidth + moreIndicatorWidth;
-  }
-
-  Widget _buildAvatar({
-    required Map<String, dynamic> user,
-    required bool isCurrentUser,
-  }) {
-    return Container(
-      width: 32, // Original size
-      height: 32, // Original size
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isCurrentUser ? DertamColors.primaryDark : Colors.white,
-          width: isCurrentUser ? 2.5 : 2, // Original border width
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: DertamColors.black.withOpacity(0.1),
-            blurRadius: 3, // Original blur radius
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: ClipOval(
-        child: user['imageUrl'] != null
-            ? Image.network(
-                user['imageUrl'],
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildFallbackAvatar(user);
-                },
-              )
-            : _buildFallbackAvatar(user),
-      ),
-    );
-  }
-
-  Widget _buildFallbackAvatar(Map<String, dynamic> user) {
-    return Container(
-      color: user['color'] ?? Colors.blue[300],
-      child: Center(
-        child: Text(
-          user['initial'] ?? user['name']?.substring(0, 1).toUpperCase() ?? 'U',
-          style: TextStyle(
-            color: DertamColors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 14, // Original font size
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMoreIndicator(int count) {
-    return Container(
-      width: 32, // Original size
-      height: 32, // Original size
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.grey[400],
-        border: Border.all(
-          color: DertamColors.white,
-          width: 2,
-        ), // Original border width
-        boxShadow: [
-          BoxShadow(
-            color: DertamColors.black.withOpacity(0.1),
-            blurRadius: 3, // Original blur radius
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          '+$count',
-          style: TextStyle(
-            color: DertamColors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1013,7 +887,6 @@ class TripDayCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Day header
           Text(
             'Day $dayNumber: ${_formatDate(date)}',
             style: DertamTextStyles.subtitle.copyWith(
@@ -1038,7 +911,17 @@ class TripDayCard extends StatelessWidget {
             )
           else
             ...places.map((place) {
-              return TripPlaceCard(place: place, enableSwipeToDelete: false);
+              return TripPlaceCard(
+                place: place,
+                enableSwipeToDelete: false,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        DetailEachPlace(placeId: place.placeId),
+                  ),
+                ),
+              );
             }),
         ],
       ),

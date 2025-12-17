@@ -21,6 +21,9 @@ class LaravelRestaurantApiRepository extends RestaurantRepository {
       print(
         '🚀 [DEBUG] getMenuCategories response body: ${getMenuCategoriesResponse.body}',
       );
+      print(
+        '🚀 [DEBUG] getMenuCategories response status: ${getMenuCategoriesResponse.body}',
+      );
       if (getMenuCategoriesResponse.statusCode == 200) {
         final jsonResponse = json.decode(getMenuCategoriesResponse.body);
         final List<dynamic> categoriesData =
@@ -49,6 +52,9 @@ class LaravelRestaurantApiRepository extends RestaurantRepository {
       );
       print(
         '🚀 [DEBUG] getMenuItems response status: ${getMenuItemsResponse.statusCode}',
+      );
+      print(
+        '🚀 [DEBUG] getMenuItems response body: ${getMenuItemsResponse.body}',
       );
       if (getMenuItemsResponse.statusCode == 200) {
         final jsonResponse = json.decode(getMenuItemsResponse.body);

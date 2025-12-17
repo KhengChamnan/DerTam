@@ -34,6 +34,11 @@ class _ReviewTripScreenState extends State<ReviewTripScreen> {
   @override
   void initState() {
     super.initState();
+    // Ensure TripProvider is initialized with the current trip's places for editing
+    final tripProvider = context.read<TripProvider>();
+    tripProvider.setAddedPlaces(
+      List<Map<String, dynamic>>.from(widget.addedPlaces),
+    );
     _organizeByDays();
   }
 

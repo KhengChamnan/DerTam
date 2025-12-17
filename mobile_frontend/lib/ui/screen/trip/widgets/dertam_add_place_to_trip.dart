@@ -232,7 +232,6 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
             padding: EdgeInsets.all(DertamSpacings.m),
             child: Column(
               children: [
-                // Search Bar
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
