@@ -68,7 +68,7 @@ export default function SettingsPage() {
           </button>
 
           <button
-            onClick={() => navigate('/profile/payment-methods')}
+            // onClick={() => navigate('/profile/payment-methods')}
             className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
           >
             <div className="flex items-center gap-4">
