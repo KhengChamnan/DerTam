@@ -49,7 +49,13 @@ class RoomController extends Controller
         
         $validated = $request->validate([
             'room_properties_id' => 'required|exists:room_properties,room_properties_id',
-            'room_number' => 'required|string|max:255|unique:rooms,room_number',
+            'room_number' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('rooms', 'room_number')
+                    ->where('room_properties_id', $request->room_properties_id)
+            ],
             'is_available' => 'boolean',
             'status' => 'required|in:available,occupied,maintenance,cleaning',
             'notes' => 'nullable|string',
@@ -118,7 +124,14 @@ class RoomController extends Controller
         
         $validated = $request->validate([
             'room_properties_id' => 'required|exists:room_properties,room_properties_id',
-            'room_number' => 'required|string|max:255|unique:rooms,room_number,' . $room_id . ',room_id',
+            'room_number' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('rooms', 'room_number')
+                    ->where('room_properties_id', $request->room_properties_id)
+                    ->ignore($room_id, 'room_id')
+            ],
             'is_available' => 'boolean',
             'status' => 'required|in:available,occupied,maintenance,cleaning',
             'notes' => 'nullable|string',
