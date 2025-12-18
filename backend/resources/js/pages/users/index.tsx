@@ -66,6 +66,7 @@ interface UserWithRole {
     roles: string[];
     created_at: string;
     last_login_at?: string;
+    profile_photo_url?: string;
 }
 
 interface UsersPageProps {
@@ -617,17 +618,28 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                     >
                                         <div>
                                             <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    <span className="text-sm font-medium text-primary">
-                                                        {user.name
-                                                            .split(" ")
-                                                            .map(
-                                                                (n: string) =>
-                                                                    n[0]
-                                                            )
-                                                            .join("")
-                                                            .toUpperCase()}
-                                                    </span>
+                                                <div className="size-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                                    {user.profile_photo_url ? (
+                                                        <img
+                                                            src={
+                                                                user.profile_photo_url
+                                                            }
+                                                            alt={user.name}
+                                                            className="size-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm font-medium text-muted-foreground">
+                                                            {user.name
+                                                                .split(" ")
+                                                                .map(
+                                                                    (
+                                                                        n: string
+                                                                    ) => n[0]
+                                                                )
+                                                                .join("")
+                                                                .toUpperCase()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <span className="font-medium truncate">
                                                     {user.name}
