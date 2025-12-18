@@ -20,7 +20,11 @@ class RouteDecoder:
         self,
         measurement_result: Dict[str, int],
         num_pois: int,
-        encoding_info: Optional[Dict] = None
+        encoding_info: Optional[Dict] = None,
+        distance_matrix: Optional[np.ndarray] = None,
+        time_matrix: Optional[np.ndarray] = None,
+        traffic_penalty_matrix: Optional[np.ndarray] = None,
+        pois: Optional[List[Dict]] = None
     ) -> Tuple[List[int], Dict]:
         """
         Decode quantum measurement result to route
@@ -30,12 +34,29 @@ class RouteDecoder:
                 e.g., {'0000': 100, '0001': 50, ...}
             num_pois: Number of POIs
             encoding_info: Encoding information from QUBOEncoder
+            distance_matrix: Distance matrix for weighted nearest neighbor
+            time_matrix: Time matrix for weighted nearest neighbor
+            traffic_penalty_matrix: Traffic penalty matrix
+            pois: List of POI dictionaries for category-based routing
             
         Returns:
             (route, decode_info)
             route: List of POI indices in visit order
             decode_info: Decoding information and validation
         """
+        # Check if feature-based encoding
+        if encoding_info and encoding_info.get('encoding') == 'feature_based':
+            return self.decode_feature_based(
+                measurement_result,
+                num_pois,
+                encoding_info,
+                distance_matrix,
+                time_matrix,
+                traffic_penalty_matrix,
+                pois
+            )
+        
+        # Legacy decoding (n*n qubits)
         # Find most frequent measurement
         if isinstance(measurement_result, dict):
             best_bitstring = max(measurement_result.items(), key=lambda x: x[1])[0]
@@ -63,6 +84,177 @@ class RouteDecoder:
         }
         
         return route, decode_info
+    
+    def decode_feature_based(
+        self,
+        measurement_result: Dict[str, int],
+        num_pois: int,
+        encoding_info: Dict,
+        distance_matrix: np.ndarray,
+        time_matrix: Optional[np.ndarray] = None,
+        traffic_penalty_matrix: Optional[np.ndarray] = None,
+        pois: Optional[List[Dict]] = None
+    ) -> Tuple[List[int], Dict]:
+        """
+        Decode feature-based quantum result to route using weighted nearest neighbor
+        
+        Args:
+            measurement_result: Dictionary mapping bitstring to count
+            num_pois: Number of POIs
+            encoding_info: Encoding information with qubit mapping
+            distance_matrix: Distance matrix
+            time_matrix: Time matrix
+            traffic_penalty_matrix: Traffic penalty matrix
+            pois: List of POI dictionaries
+            
+        Returns:
+            (route, decode_info)
+        """
+        # Find most frequent measurement
+        if isinstance(measurement_result, dict):
+            best_bitstring = max(measurement_result.items(), key=lambda x: x[1])[0]
+        elif isinstance(measurement_result, str):
+            best_bitstring = measurement_result
+        else:
+            raise ValueError(f"Invalid measurement_result type: {type(measurement_result)}")
+        
+        # Decode qubit states to feature preferences
+        qubit_mapping = encoding_info.get('qubit_mapping', {})
+        num_qubits = encoding_info.get('num_qubits', 4)
+        
+        # Ensure bitstring has correct length
+        if len(best_bitstring) < num_qubits:
+            best_bitstring = best_bitstring.zfill(num_qubits)
+        elif len(best_bitstring) > num_qubits:
+            best_bitstring = best_bitstring[:num_qubits]
+        
+        # Extract feature preferences from qubit states
+        preferences = {}
+        for i, feature_name in qubit_mapping.items():
+            if i < len(best_bitstring):
+                # |0⟩ = prefer feature, |1⟩ = accept opposite
+                preferences[feature_name] = int(best_bitstring[i])
+        
+        # Create weighted cost matrix based on preferences
+        weighted_matrix = self._create_weighted_matrix(
+            distance_matrix,
+            time_matrix,
+            traffic_penalty_matrix,
+            preferences,
+            encoding_info.get('constraint_weights', {})
+        )
+        
+        # Apply weighted nearest neighbor
+        route = self._weighted_nearest_neighbor(weighted_matrix, num_pois)
+        
+        # Validate route
+        validation = self._validate_route(route, num_pois)
+        
+        decode_info = {
+            'bitstring': best_bitstring,
+            'route': route,
+            'validation': validation,
+            'num_pois': num_pois,
+            'preferences': preferences,
+            'qubit_mapping': qubit_mapping,
+            'encoding_type': 'feature_based'
+        }
+        
+        return route, decode_info
+    
+    def _create_weighted_matrix(
+        self,
+        distance_matrix: np.ndarray,
+        time_matrix: Optional[np.ndarray],
+        traffic_penalty_matrix: Optional[np.ndarray],
+        preferences: Dict[str, int],
+        constraint_weights: Dict
+    ) -> np.ndarray:
+        """
+        Create weighted cost matrix from preferences
+        
+        Args:
+            distance_matrix: Distance matrix
+            time_matrix: Time matrix
+            traffic_penalty_matrix: Traffic penalty matrix
+            preferences: Feature preferences from qubits
+            constraint_weights: Constraint weights
+            
+        Returns:
+            Weighted cost matrix
+        """
+        n = distance_matrix.shape[0]
+        weighted_matrix = np.zeros((n, n))
+        
+        # Normalize matrices
+        max_dist = np.max(distance_matrix[distance_matrix > 0]) if np.any(distance_matrix > 0) else 1.0
+        max_time = np.max(time_matrix[time_matrix > 0]) if time_matrix is not None and np.any(time_matrix > 0) else 1.0
+        max_traffic = np.max(traffic_penalty_matrix[traffic_penalty_matrix > 0]) if traffic_penalty_matrix is not None and np.any(traffic_penalty_matrix > 0) else 1.0
+        
+        # Weight factors based on qubit states
+        # |0⟩ = minimize (weight = 1.0), |1⟩ = accept (weight = 0.5)
+        dist_weight = 1.0 if preferences.get('distance', 0) == 0 else 0.5
+        time_weight = 1.0 if preferences.get('time', 0) == 0 else 0.5
+        traffic_weight = 1.0 if preferences.get('traffic', 0) == 0 else 0.5
+        
+        # Combine weighted matrices
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    cost = 0.0
+                    
+                    # Distance component
+                    if max_dist > 0:
+                        cost += constraint_weights.get('distance', 0.4) * dist_weight * (distance_matrix[i][j] / max_dist)
+                    
+                    # Time component
+                    if time_matrix is not None and max_time > 0:
+                        cost += constraint_weights.get('time', 0.3) * time_weight * (time_matrix[i][j] / max_time)
+                    
+                    # Traffic component
+                    if traffic_penalty_matrix is not None and max_traffic > 0:
+                        cost += constraint_weights.get('traffic', 0.1) * traffic_weight * (traffic_penalty_matrix[i][j] / max_traffic)
+                    
+                    weighted_matrix[i][j] = cost
+        
+        return weighted_matrix
+    
+    def _weighted_nearest_neighbor(self, weighted_matrix: np.ndarray, num_pois: int, start_idx: int = 0) -> List[int]:
+        """
+        Apply weighted nearest neighbor algorithm
+        
+        Args:
+            weighted_matrix: Weighted cost matrix
+            num_pois: Number of POIs
+            start_idx: Starting POI index
+            
+        Returns:
+            Route as list of POI indices
+        """
+        route = [start_idx]
+        unvisited = set(range(num_pois)) - {start_idx}
+        
+        current = start_idx
+        while unvisited:
+            # Find nearest unvisited POI based on weighted cost
+            nearest = None
+            min_cost = float('inf')
+            
+            for next_poi in unvisited:
+                cost = weighted_matrix[current][next_poi]
+                if cost < min_cost:
+                    min_cost = cost
+                    nearest = next_poi
+            
+            if nearest is not None:
+                route.append(nearest)
+                unvisited.remove(nearest)
+                current = nearest
+            else:
+                # Fallback: add any remaining POI
+                route.append(unvisited.pop())
+        
+        return route
     
     def _bitstring_to_route(self, bitstring: str, num_pois: int) -> List[int]:
         """

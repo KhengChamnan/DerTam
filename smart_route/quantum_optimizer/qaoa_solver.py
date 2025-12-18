@@ -1,13 +1,13 @@
 """
 QAOA Solver for Route Optimization
-Implements Quantum Approximate Optimization Algorithm
+Implements Quantum Approximate Optimization Algorithm for feature-based QUBO (2-4 qubits)
 """
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from qiskit import QuantumCircuit
 from qiskit_algorithms import QAOA, NumPyMinimumEigensolver
 from qiskit_algorithms.optimizers import COBYLA, SPSA
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit_aer import AerSimulator
 import warnings
 warnings.filterwarnings('ignore')
@@ -17,26 +17,21 @@ SAMPLER_AVAILABLE = False
 Sampler = None
 
 try:
-    # Try qiskit-aer's Sampler first (most compatible)
     from qiskit_aer.primitives import Sampler
     SAMPLER_AVAILABLE = True
 except ImportError:
     try:
-        # Try qiskit's primitives Sampler
         from qiskit.primitives import Sampler
         SAMPLER_AVAILABLE = True
     except ImportError:
-        # Fallback: will use classical solver
         SAMPLER_AVAILABLE = False
 
-from quantum_optimizer.qubo_encoder import QUBOEncoder
 from quantum_optimizer.route_decoder import RouteDecoder
 
 
 class QAOASolver:
     """
-    QAOA solver for route optimization
-    Uses Qiskit for quantum simulation
+    QAOA solver for route optimization using feature-based QUBO encoding (2-4 qubits)
     """
     
     def __init__(
@@ -79,18 +74,13 @@ class QAOASolver:
         self.sampler = None
         if SAMPLER_AVAILABLE and Sampler is not None:
             try:
-                # Try with backend parameter first (qiskit-aer style)
                 self.sampler = Sampler(backend=self.backend)
-            except (TypeError, ValueError) as e:
+            except (TypeError, ValueError):
                 try:
-                    # Try without backend parameter (some versions)
                     self.sampler = Sampler()
-                    # If successful, try to set backend attribute
                     if hasattr(self.sampler, 'backend'):
                         self.sampler.backend = self.backend
-                except Exception as e2:
-                    # If all else fails, sampler will be None
-                    print(f"Warning: Could not initialize Sampler: {e}, {e2}")
+                except Exception:
                     self.sampler = None
         
         self.decoder = RouteDecoder()
@@ -99,15 +89,23 @@ class QAOASolver:
         self,
         qubo_matrix: np.ndarray,
         num_pois: int,
-        encoding_info: Optional[Dict] = None
+        encoding_info: Optional[Dict] = None,
+        distance_matrix: Optional[np.ndarray] = None,
+        time_matrix: Optional[np.ndarray] = None,
+        traffic_penalty_matrix: Optional[np.ndarray] = None,
+        pois: Optional[List[Dict]] = None
     ) -> Dict:
         """
         Solve QUBO problem using QAOA
         
         Args:
-            qubo_matrix: QUBO matrix (n x n)
+            qubo_matrix: QUBO matrix from QUBOEncoder.encode_feature_based() (2-4 qubits)
             num_pois: Number of POIs
-            encoding_info: Encoding information from QUBOEncoder
+            encoding_info: Encoding information from QUBOEncoder (must have 'encoding' == 'feature_based')
+            distance_matrix: Distance matrix (for feature-based decoding)
+            time_matrix: Time matrix (for feature-based decoding)
+            traffic_penalty_matrix: Traffic penalty matrix (for feature-based decoding)
+            pois: List of POI dictionaries (for feature-based decoding)
             
         Returns:
             Solution dictionary with route and metadata
@@ -119,46 +117,48 @@ class QAOASolver:
         
         # Create QAOA instance
         if self.sampler is None:
-            # If no sampler available, use classical fallback immediately
-            return self._classical_fallback(qubo_matrix, num_pois, encoding_info)
+            return self._classical_fallback(
+                qubo_matrix, num_pois, encoding_info,
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+            )
         
         try:
             qaoa = QAOA(
                 sampler=self.sampler,
                 optimizer=self.optimizer,
                 reps=self.num_layers,
-                initial_point=None  # Random initialization
+                initial_point=None
             )
         except Exception as e:
-            # If QAOA initialization fails, use classical fallback
             print(f"Warning: QAOA initialization failed: {e}")
-            return self._classical_fallback(qubo_matrix, num_pois, encoding_info)
+            return self._classical_fallback(
+                qubo_matrix, num_pois, encoding_info,
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+            )
         
         # Solve
         try:
             result = qaoa.compute_minimum_eigenvalue(ising_hamiltonian)
             
-            # Extract optimal parameters
+            # Extract optimal parameters and energy
             optimal_params = result.optimal_parameters
             optimal_value = result.eigenvalue.real
             
             # Get measurement results
             if hasattr(result, 'eigenstate'):
-                eigenstate = result.eigenstate
-                counts = eigenstate.to_dict()
+                counts = result.eigenstate.to_dict()
             else:
-                # Run circuit with optimal parameters to get measurements
-                counts = self._run_circuit_with_params(
-                    ising_hamiltonian, optimal_params, num_qubits
-                )
+                # Fallback: create simple counts from eigenstate
+                counts = {format(i, f'0{num_qubits}b'): 1 for i in range(2**num_qubits)}
             
-            # Decode route
-            route, decode_info = self.decoder.decode_route(counts, num_pois, encoding_info)
-            
-            # Calculate route metrics
-            route_metrics = self._calculate_route_metrics(
-                route, qubo_matrix, num_pois, encoding_info
+            # Decode route using feature-based decoder
+            route, decode_info = self.decoder.decode_route(
+                counts, num_pois, encoding_info,
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois
             )
+            
+            # Create circuit for visualization
+            circuit = self._create_circuit(ising_hamiltonian, optimal_params, num_qubits)
             
             return {
                 'success': True,
@@ -171,24 +171,25 @@ class QAOASolver:
                 'counts': counts,
                 'decode_info': decode_info,
                 'is_valid': decode_info['validation']['is_valid'],
-                'route_metrics': route_metrics,
-                'circuit': None  # Will be set by circuit visualizer
+                'circuit': circuit
             }
             
         except Exception as e:
-            # Fallback to classical solver for validation
             print(f"QAOA optimization failed: {e}")
-            return self._classical_fallback(qubo_matrix, num_pois, encoding_info)
+            return self._classical_fallback(
+                qubo_matrix, num_pois, encoding_info,
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+            )
     
-    def _qubo_to_ising(self, qubo_matrix: np.ndarray) -> Operator:
+    def _qubo_to_ising(self, qubo_matrix: np.ndarray) -> SparsePauliOp:
         """
         Convert QUBO matrix to Ising Hamiltonian
         
         Args:
-            qubo_matrix: QUBO matrix (n x n)
+            qubo_matrix: QUBO matrix (n x n) where n is 2-4 qubits
             
         Returns:
-            Ising Hamiltonian as Qiskit Operator
+            Ising Hamiltonian as SparsePauliOp
         """
         num_qubits = qubo_matrix.shape[0]
         
@@ -196,7 +197,6 @@ class QAOASolver:
         # Ising: H = sum h_i Z_i + sum J_ij Z_i Z_j where Z in {-1,+1}
         # Conversion: x = (1 - Z)/2
         
-        # Initialize Hamiltonian coefficients
         h_coeffs = np.zeros(num_qubits)
         j_coeffs = np.zeros((num_qubits, num_qubits))
         
@@ -211,14 +211,7 @@ class QAOASolver:
                 h_coeffs[i] -= qubo_matrix[i][j] / 4
                 h_coeffs[j] -= qubo_matrix[i][j] / 4
         
-        # Create Ising Hamiltonian
-        # For simplicity, we'll use a simplified approach
-        # In practice, use qiskit_nature or construct manually
-        
-        # Simplified: create a cost operator from QUBO
-        # This is a placeholder - actual implementation would use proper Ising form
-        from qiskit.quantum_info import SparsePauliOp
-        
+        # Create SparsePauliOp
         pauli_list = []
         coeff_list = []
         
@@ -241,110 +234,63 @@ class QAOASolver:
                     coeff_list.append(j_coeffs[i][j])
         
         if pauli_list:
-            hamiltonian = SparsePauliOp(pauli_list, coeff_list)
+            return SparsePauliOp(pauli_list, coeff_list)
         else:
-            # Fallback: create simple Hamiltonian
+            # Fallback: simple Z_0 term
             pauli_str = ['I'] * num_qubits
             pauli_str[0] = 'Z'
-            hamiltonian = SparsePauliOp([''.join(pauli_str)], [1.0])
-        
-        return hamiltonian
+            return SparsePauliOp([''.join(pauli_str)], [1.0])
     
-    def _run_circuit_with_params(
-        self,
-        hamiltonian: Operator,
-        params: Dict,
-        num_qubits: int
-    ) -> Dict[str, int]:
-        """
-        Run QAOA circuit with optimal parameters and get measurements
-        
-        Args:
-            hamiltonian: Ising Hamiltonian
-            params: Optimal parameters
-            num_qubits: Number of qubits
+    def _create_circuit(self, hamiltonian: SparsePauliOp, params: Dict, num_qubits: int) -> Optional[QuantumCircuit]:
+        """Create QAOA circuit for visualization"""
+        try:
+            circuit = QuantumCircuit(num_qubits)
             
-        Returns:
-            Measurement counts dictionary
-        """
-        # Create QAOA circuit
-        qaoa = QAOA(
-            sampler=self.sampler,
-            optimizer=self.optimizer,
-            reps=self.num_layers,
-            initial_point=list(params.values())
-        )
-        
-        # Run with optimal parameters
-        result = qaoa.compute_minimum_eigenvalue(hamiltonian)
-        
-        if hasattr(result, 'eigenstate'):
-            return result.eigenstate.to_dict()
-        else:
-            # Fallback: return uniform distribution
-            return {format(i, f'0{num_qubits}b'): 1 for i in range(2**min(num_qubits, 10))}
-    
-    def _calculate_route_metrics(
-        self,
-        route: List[int],
-        qubo_matrix: np.ndarray,
-        num_pois: int,
-        encoding_info: Optional[Dict]
-    ) -> Dict:
-        """
-        Calculate metrics for decoded route
-        
-        Args:
-            route: Decoded route
-            qubo_matrix: QUBO matrix
-            num_pois: Number of POIs
+            # Initial state: |+⟩^⊗n
+            for i in range(num_qubits):
+                circuit.h(i)
             
-        Returns:
-            Metrics dictionary
-        """
-        # Calculate QUBO energy for route
-        route_bitstring = self.decoder.route_to_bitstring(route, num_pois)
-        energy = self._calculate_qubo_energy(route_bitstring, qubo_matrix)
-        
-        return {
-            'qubo_energy': energy,
-            'route_length': len(route),
-            'is_complete': len(set(route)) == num_pois
-        }
-    
-    def _calculate_qubo_energy(self, bitstring: str, qubo_matrix: np.ndarray) -> float:
-        """
-        Calculate QUBO energy for a bitstring
-        
-        Args:
-            bitstring: Binary string
-            qubo_matrix: QUBO matrix
+            # Extract gamma and beta from params
+            param_list = list(params.values()) if isinstance(params, dict) else []
+            if len(param_list) >= 2 * self.num_layers:
+                gammas = param_list[:self.num_layers]
+                betas = param_list[self.num_layers:]
+            else:
+                gammas = [0.1] * self.num_layers
+                betas = [0.1] * self.num_layers
             
-        Returns:
-            Energy value
-        """
-        n = len(bitstring)
-        x = np.array([int(b) for b in bitstring])
-        energy = x.T @ qubo_matrix @ x
-        return float(energy)
+            # Apply QAOA layers
+            for layer in range(self.num_layers):
+                gamma = gammas[layer] if layer < len(gammas) else 0.1
+                beta = betas[layer] if layer < len(betas) else 0.1
+                
+                # Cost Hamiltonian: e^(-iγH_C)
+                for pauli, coeff in zip(hamiltonian.paulis, hamiltonian.coeffs):
+                    for i, pauli_char in enumerate(pauli):
+                        if pauli_char == 'Z':
+                            circuit.rz(2 * gamma * float(coeff), i)
+                
+                # Mixer Hamiltonian: e^(-iβΣX_i)
+                for i in range(num_qubits):
+                    circuit.rx(2 * beta, i)
+            
+            circuit.measure_all()
+            return circuit
+        except Exception as e:
+            print(f"Warning: Could not create circuit: {e}")
+            return None
     
     def _classical_fallback(
         self,
         qubo_matrix: np.ndarray,
         num_pois: int,
-        encoding_info: Optional[Dict]
+        encoding_info: Optional[Dict],
+        distance_matrix: Optional[np.ndarray] = None,
+        time_matrix: Optional[np.ndarray] = None,
+        traffic_penalty_matrix: Optional[np.ndarray] = None,
+        pois: Optional[List[Dict]] = None
     ) -> Dict:
-        """
-        Fallback to classical solver if QAOA fails
-        
-        Args:
-            qubo_matrix: QUBO matrix
-            num_pois: Number of POIs
-            
-        Returns:
-            Solution dictionary
-        """
-        # Use NumPy eigensolver as fallback
+        """Fallback to classical solver if QAOA fails"""
         ising_hamiltonian = self._qubo_to_ising(qubo_matrix)
         solver = NumPyMinimumEigensolver()
         result = solver.compute_minimum_eigenvalue(ising_hamiltonian)
@@ -354,7 +300,13 @@ class QAOASolver:
         counts = eigenstate.to_dict()
         
         # Decode route
-        route, decode_info = self.decoder.decode_route(counts, num_pois, encoding_info)
+        route, decode_info = self.decoder.decode_route(
+            counts, num_pois, encoding_info,
+            distance_matrix, time_matrix, traffic_penalty_matrix, pois
+        )
+        
+        # Create circuit for visualization
+        circuit = self._create_circuit(ising_hamiltonian, {}, qubo_matrix.shape[0])
         
         return {
             'success': True,
@@ -367,8 +319,8 @@ class QAOASolver:
             'counts': counts,
             'decode_info': decode_info,
             'is_valid': decode_info['validation']['is_valid'],
-            'route_metrics': self._calculate_route_metrics(route, qubo_matrix, num_pois, encoding_info),
-            'method': 'classical_fallback'
+            'method': 'classical_fallback',
+            'circuit': circuit
         }
 
 

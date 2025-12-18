@@ -1,0 +1,130 @@
+{
+  "scenarios": [
+    {
+      "id": "scenario_1",
+      "name": "Rush Hour High Traffic",
+      "description": "Scenario with high traffic conditions during rush hour",
+      "user_preferences": {
+        "province": "Phnom Penh",
+        "start_lat": 11.5625,
+        "start_lon": 104.931,
+        "start_time": "08:00:00",
+        "trip_duration": 8,
+        "max_distance": 10.0,
+        "num_pois": 4,
+        "traffic_sensitivity": 0.9,
+        "constraint_weights": {
+          "distance": 0.3,
+          "time": 0.4,
+          "preferences": 0.1,
+          "traffic": 0.2
+        },
+        "traffic_avoidance": true,
+        "preferred_categories": ["Temple", "Historical"],
+        "avoid_categories": []
+      },
+      "traffic_conditions": "rush_hour",
+      "expected_outcomes": {
+        "quantum_advantage": "Better traffic avoidance through feature-based encoding",
+        "classical_advantage": "Faster computation"
+      },
+      "selected_pois": ["poi_01", "poi_02", "poi_03", "poi_04"]
+    },
+    {
+      "id": "scenario_2",
+      "name": "Temple-Focused Preferences",
+      "description": "User prefers temples and historical sites",
+      "user_preferences": {
+        "province": "Phnom Penh",
+        "start_lat": 11.5625,
+        "start_lon": 104.931,
+        "start_time": "09:00:00",
+        "trip_duration": 6,
+        "max_distance": 8.0,
+        "num_pois": 4,
+        "traffic_sensitivity": 0.5,
+        "constraint_weights": {
+          "distance": 0.2,
+          "time": 0.2,
+          "preferences": 0.5,
+          "traffic": 0.1
+        },
+        "traffic_avoidance": false,
+        "preferred_categories": ["Temple", "Historical"],
+        "avoid_categories": ["Mall", "Entertainment"]
+      },
+      "traffic_conditions": "normal",
+      "expected_outcomes": {
+        "quantum_advantage": "Better category preference handling through qubit encoding",
+        "classical_advantage": "Direct category filtering"
+      },
+      "selected_pois": ["poi_02", "poi_05", "poi_13", "poi_14"]
+    },
+    {
+      "id": "scenario_3",
+      "name": "Museum-Focused Preferences",
+      "description": "User prefers museums and cultural sites",
+      "user_preferences": {
+        "province": "Phnom Penh",
+        "start_lat": 11.5625,
+        "start_lon": 104.931,
+        "start_time": "10:00:00",
+        "trip_duration": 7,
+        "max_distance": 12.0,
+        "num_pois": 4,
+        "traffic_sensitivity": 0.4,
+        "constraint_weights": {
+          "distance": 0.3,
+          "time": 0.3,
+          "preferences": 0.3,
+          "traffic": 0.1
+        },
+        "traffic_avoidance": false,
+        "preferred_categories": ["Museum", "Historical", "Art"],
+        "avoid_categories": ["Market"]
+      },
+      "traffic_conditions": "normal",
+      "expected_outcomes": {
+        "quantum_advantage": "Multi-objective optimization balancing preferences and distance",
+        "classical_advantage": "Efficient category-based filtering"
+      },
+      "selected_pois": ["poi_03", "poi_08", "poi_23", "poi_39"]
+    },
+    {
+      "id": "scenario_4",
+      "name": "Tight Time Constraints",
+      "description": "Limited time with strict opening hours constraints",
+      "user_preferences": {
+        "province": "Phnom Penh",
+        "start_lat": 11.5625,
+        "start_lon": 104.931,
+        "start_time": "14:00:00",
+        "trip_duration": 4,
+        "max_distance": 5.0,
+        "num_pois": 4,
+        "traffic_sensitivity": 0.7,
+        "constraint_weights": {
+          "distance": 0.4,
+          "time": 0.5,
+          "preferences": 0.05,
+          "traffic": 0.05
+        },
+        "traffic_avoidance": true,
+        "preferred_categories": [],
+        "avoid_categories": []
+      },
+      "traffic_conditions": "normal",
+      "expected_outcomes": {
+        "quantum_advantage": "Better constraint satisfaction through QUBO penalties",
+        "classical_advantage": "Fast nearest neighbor for time-critical scenarios"
+      },
+      "selected_pois": ["poi_01", "poi_02", "poi_04", "poi_10"]
+    }
+  ],
+  "metadata": {
+    "description": "Test scenarios for route optimization comparison",
+    "version": "1.0",
+    "created": "2025-01-15"
+  }
+}
+

@@ -35,15 +35,19 @@ class CircuitVisualizer:
         self,
         circuit: QuantumCircuit,
         title: str = "QAOA Circuit",
-        filename: Optional[str] = None
+        filename: Optional[str] = None,
+        parameters: Optional[Dict] = None,
+        encoding_info: Optional[Dict] = None
     ) -> str:
         """
-        Visualize quantum circuit
+        Visualize quantum circuit with detailed parameters
         
         Args:
             circuit: QuantumCircuit object
             title: Plot title
             filename: Output filename (optional)
+            parameters: QAOA parameters (gamma, beta values)
+            encoding_info: Encoding information with qubit mapping
             
         Returns:
             Path to saved visualization
@@ -72,14 +76,157 @@ class CircuitVisualizer:
                     fig.savefig(filepath, dpi=150, bbox_inches='tight')
                     plt.close(fig)
                 except Exception:
-                    # Final fallback: text representation
-                    return self._create_text_circuit(circuit, filepath)
+                    # Final fallback: return None if image creation fails
+                    return None
             
-            return str(filepath)
+            # Verify the file was created and is a valid image
+            if filepath.exists() and filepath.suffix.lower() == '.png':
+                return str(filepath)
+            else:
+                # File doesn't exist or is not an image - return None
+                return None
         except Exception as e:
             print(f"Error visualizing circuit: {e}")
-            # Fallback: create simple text representation
-            return self._create_text_circuit(circuit, filepath)
+            # Return None instead of text file to indicate failure
+            return None
+    
+    def create_detailed_circuit_visualization(
+        self,
+        circuit: QuantumCircuit,
+        parameters: Dict,
+        encoding_info: Optional[Dict] = None,
+        filename: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        Create detailed circuit visualization with parameters, angles, and qubit labels
+        
+        Args:
+            circuit: QuantumCircuit object
+            parameters: QAOA parameters dictionary
+            encoding_info: Encoding information with qubit mapping
+            filename: Base filename (optional)
+            
+        Returns:
+            Dictionary with visualization file paths and parameter details
+        """
+        import math
+        
+        if filename is None:
+            filename = "detailed_circuit"
+        
+        # Extract qubit mapping
+        qubit_mapping = {}
+        if encoding_info:
+            qubit_mapping = encoding_info.get('qubit_mapping', {})
+            qubit_features = encoding_info.get('qubit_features', [])
+            for i, feature in enumerate(qubit_features):
+                qubit_mapping[i] = feature
+        
+        num_qubits = circuit.num_qubits
+        
+        # Extract parameters
+        gammas = []
+        betas = []
+        param_details = {}
+        
+        if isinstance(parameters, dict):
+            for key, value in parameters.items():
+                if 'gamma' in key.lower() or 'γ' in key or 'g' in key.lower():
+                    gammas.append(float(value))
+                    param_details[key] = {
+                        'value': float(value),
+                        'type': 'gamma',
+                        'angle_rad': float(value),
+                        'angle_deg': math.degrees(float(value)),
+                        'angle_pi': f"{float(value)/math.pi:.3f}π" if float(value) != 0 else "0"
+                    }
+                elif 'beta' in key.lower() or 'β' in key or 'b' in key.lower():
+                    betas.append(float(value))
+                    param_details[key] = {
+                        'value': float(value),
+                        'type': 'beta',
+                        'angle_rad': float(value),
+                        'angle_deg': math.degrees(float(value)),
+                        'angle_pi': f"{float(value)/math.pi:.3f}π" if float(value) != 0 else "0"
+                    }
+        
+        # Create parameter summary text
+        param_summary = []
+        param_summary.append("=" * 60)
+        param_summary.append("QAOA Circuit Parameters")
+        param_summary.append("=" * 60)
+        param_summary.append(f"\nNumber of Qubits: {num_qubits}")
+        param_summary.append(f"Number of Layers (p): {len(gammas) if gammas else len(betas) if betas else 1}")
+        
+        if qubit_mapping:
+            param_summary.append("\nQubit Feature Mapping:")
+            for qubit_idx, feature in qubit_mapping.items():
+                param_summary.append(f"  Q{qubit_idx}: {feature}")
+        
+        param_summary.append("\nRotation Angles:")
+        for key, details in param_details.items():
+            param_summary.append(f"\n  {key}:")
+            param_summary.append(f"    Value: {details['value']:.6f}")
+            param_summary.append(f"    Angle: {details['angle_rad']:.6f} rad = {details['angle_deg']:.2f}°")
+            param_summary.append(f"    In π units: {details['angle_pi']}")
+            if details['type'] == 'gamma':
+                param_summary.append(f"    Rotation: R_Z(2γ) = R_Z({2*details['value']:.6f})")
+            else:
+                param_summary.append(f"    Rotation: R_X(2β) = R_X({2*details['value']:.6f})")
+        
+        # Calculate rotation angles for each gate
+        gate_details = []
+        for layer_idx in range(len(gammas) if gammas else len(betas) if betas else 1):
+            gamma = gammas[layer_idx] if layer_idx < len(gammas) else 0.1
+            beta = betas[layer_idx] if layer_idx < len(betas) else 0.1
+            
+            gate_details.append({
+                'layer': layer_idx + 1,
+                'gamma': gamma,
+                'beta': beta,
+                'rz_angle': 2 * gamma,
+                'rx_angle': 2 * beta,
+                'rz_angle_pi': f"{2*gamma/math.pi:.3f}π" if gamma != 0 else "0",
+                'rx_angle_pi': f"{2*beta/math.pi:.3f}π" if beta != 0 else "0"
+            })
+        
+        param_summary.append("\n\nGate Details by Layer:")
+        for gate in gate_details:
+            param_summary.append(f"\n  Layer {gate['layer']}:")
+            param_summary.append(f"    Cost Hamiltonian (R_Z):")
+            param_summary.append(f"      Angle: {gate['rz_angle']:.6f} rad = {gate['rz_angle_pi']}")
+            param_summary.append(f"    Mixer Hamiltonian (R_X):")
+            param_summary.append(f"      Angle: {gate['rx_angle']:.6f} rad = {gate['rx_angle_pi']}")
+        
+        # Save parameter details
+        param_text = "\n".join(param_summary)
+        param_file = self.output_dir / f"{filename}_parameters.txt"
+        with open(param_file, 'w') as f:
+            f.write(param_text)
+        
+        # Create circuit visualization
+        circuit_file = self.visualize_circuit(
+            circuit,
+            title=f"QAOA Circuit - {num_qubits} Qubits",
+            filename=f"{filename}_circuit.png",
+            parameters=parameters,
+            encoding_info=encoding_info
+        )
+        
+        # Only include circuit_image if it's a valid image file
+        result_dict = {
+            'parameters_text': str(param_file),
+            'parameters': param_details,
+            'gate_details': gate_details,
+            'qubit_mapping': qubit_mapping,
+            'summary': param_text
+        }
+        
+        # Add circuit_image only if visualization was successful
+        if circuit_file is not None:
+            result_dict['circuit_image'] = circuit_file
+        
+        return result_dict
     
     def visualize_measurement_results(
         self,
