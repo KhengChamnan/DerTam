@@ -61,6 +61,7 @@ class UserController extends Controller
                 'role' => !empty($displayRoles) ? $displayRoles[0] : 'User', // Primary role for display
                 'created_at' => $user->created_at,
                 'last_login_at' => $user->last_login_at,
+                'profile_photo_url' => $user->profile_image_url ?? $user->profile_photo_url,
             ];
         });
 
@@ -171,6 +172,7 @@ class UserController extends Controller
             'role' => $displayRole, // Use display name for the form
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
+            'profile_photo_url' => $user->profile_image_url ?? $user->profile_photo_url,
         ];
 
         return Inertia::render('users/createEdit', [

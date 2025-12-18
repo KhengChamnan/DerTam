@@ -4,6 +4,7 @@ import AppLayout from "@/layouts/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type BreadcrumbItem } from "@/types";
 import {
     Bus,
@@ -165,7 +166,12 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
     const seatLayout: SeatLayout | null = schedule.bus.bus_property?.seat_layout
         ? (() => {
               try {
-                  return JSON.parse(schedule.bus.bus_property.seat_layout);
+                  // Check if it's already an object or a string
+                  const layout =
+                      typeof schedule.bus.bus_property.seat_layout === "string"
+                          ? JSON.parse(schedule.bus.bus_property.seat_layout)
+                          : schedule.bus.bus_property.seat_layout;
+                  return layout;
               } catch {
                   return null;
               }
@@ -494,234 +500,542 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                     {/* Legend */}
                                     <div className="flex items-center gap-4 text-sm">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded border-2 border-primary bg-primary/10 flex items-center justify-center">
-                                                <span className="text-xs font-medium text-primary">
-                                                    A
-                                                </span>
-                                            </div>
+                                            <div className="w-12 h-12 rounded-lg border-2 border-blue-300 bg-blue-100 flex items-center justify-center"></div>
                                             <span className="text-muted-foreground">
                                                 Available
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded border-2 border-red-500 bg-red-50 flex items-center justify-center">
-                                                <span className="text-xs font-medium text-red-700">
-                                                    B
-                                                </span>
-                                            </div>
+                                            <div className="w-12 h-12 rounded-lg border-2 border-gray-400 bg-gray-200 flex items-center justify-center"></div>
                                             <span className="text-muted-foreground">
                                                 Booked
                                             </span>
                                         </div>
                                     </div>
 
-                                    {/* Level Selector for multi-level buses */}
-                                    {seatLayout?.has_levels && (
-                                        <div className="flex items-center gap-2 justify-center mb-4">
-                                            <Button
-                                                variant={
-                                                    selectedLevel === "lower"
-                                                        ? "default"
-                                                        : "outline"
-                                                }
-                                                size="sm"
-                                                onClick={() =>
-                                                    setSelectedLevel("lower")
-                                                }
-                                            >
-                                                Lower Deck
-                                            </Button>
-                                            <Button
-                                                variant={
-                                                    selectedLevel === "upper"
-                                                        ? "default"
-                                                        : "outline"
-                                                }
-                                                size="sm"
-                                                onClick={() =>
-                                                    setSelectedLevel("upper")
-                                                }
-                                            >
-                                                Upper Deck
-                                            </Button>
-                                        </div>
-                                    )}
-
                                     {/* Seat Grid with Actual Layout */}
-                                    {seatLayout ? (
-                                        <div className="p-4 bg-muted/30 rounded-lg">
-                                            {/* Column Labels */}
-
-                                            {/* Render seats by row */}
-                                            {(() => {
-                                                const bookedSeatNumbers =
-                                                    new Set(
-                                                        schedule.bookings?.map(
-                                                            (b) =>
-                                                                b.seat
-                                                                    ?.seat_number
-                                                        ) || []
-                                                    );
-                                                const maxRow = Math.max(
-                                                    ...seatLayout.seats.map(
-                                                        (s) => s.row
-                                                    ),
-                                                    0
-                                                );
-                                                const rows = [];
-
-                                                for (
-                                                    let row = 1;
-                                                    row <= maxRow;
-                                                    row++
-                                                ) {
-                                                    const rowSeats = [];
-
-                                                    // Add row number
-                                                    rowSeats.push(
-                                                        <div
-                                                            key={`row-num-${row}`}
-                                                            className="w-8 h-12 flex items-center justify-center text-xs font-medium text-muted-foreground"
-                                                        >
-                                                            {row}
-                                                        </div>
-                                                    );
-
-                                                    // Add seats for each column
-                                                    seatLayout.columns.forEach(
-                                                        (
-                                                            columnLabel,
-                                                            colIndex
-                                                        ) => {
-                                                            if (
-                                                                columnLabel ===
-                                                                ""
-                                                            ) {
-                                                                // Aisle space
-                                                                rowSeats.push(
-                                                                    <div
-                                                                        key={`${row}-aisle-${colIndex}`}
-                                                                        className="w-8 h-12 flex items-center justify-center"
-                                                                    >
-                                                                        <div className="h-full w-px bg-border" />
-                                                                    </div>
-                                                                );
-                                                            } else {
-                                                                // Find seat by row and col
-                                                                const seat =
-                                                                    seatLayout.seats.find(
-                                                                        (s) =>
-                                                                            s.row ===
-                                                                                row &&
-                                                                            s.col ===
-                                                                                colIndex &&
-                                                                            (seatLayout.has_levels
-                                                                                ? s.level ===
-                                                                                  selectedLevel
-                                                                                : true) &&
-                                                                            s.type !==
-                                                                                "empty"
-                                                                    );
-
-                                                                if (
-                                                                    seat &&
-                                                                    seat.number !==
-                                                                        null
-                                                                ) {
-                                                                    const seatNumber = `${seat.number
-                                                                        .toString()
-                                                                        .padStart(
-                                                                            2
-                                                                        )}`;
-                                                                    const isBooked =
-                                                                        bookedSeatNumbers.has(
-                                                                            seatNumber
-                                                                        );
-                                                                    const booking =
-                                                                        schedule.bookings?.find(
+                                    {seatLayout &&
+                                    seatLayout.seats &&
+                                    seatLayout.seats.length > 0 ? (
+                                        <div className="bg-gray-50 p-6 rounded-lg border">
+                                            {seatLayout.has_levels ? (
+                                                <Tabs
+                                                    defaultValue="lower"
+                                                    className="w-full"
+                                                    onValueChange={(value) =>
+                                                        setSelectedLevel(
+                                                            value as
+                                                                | "lower"
+                                                                | "upper"
+                                                        )
+                                                    }
+                                                >
+                                                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                                                        <TabsTrigger value="lower">
+                                                            Lower Deck
+                                                        </TabsTrigger>
+                                                        <TabsTrigger value="upper">
+                                                            Upper Deck
+                                                        </TabsTrigger>
+                                                    </TabsList>
+                                                    <TabsContent
+                                                        value="lower"
+                                                        className="space-y-4"
+                                                    >
+                                                        <div className="space-y-2 max-w-xl mx-auto">
+                                                            {(() => {
+                                                                const bookedSeatNumbers =
+                                                                    new Set(
+                                                                        schedule.bookings?.map(
                                                                             (
                                                                                 b
                                                                             ) =>
                                                                                 b
                                                                                     .seat
-                                                                                    ?.seat_number ===
-                                                                                seatNumber
-                                                                        );
+                                                                                    ?.seat_number
+                                                                        ) || []
+                                                                    );
+                                                                const maxRow =
+                                                                    Math.max(
+                                                                        ...seatLayout.seats.map(
+                                                                            (
+                                                                                s: Seat
+                                                                            ) =>
+                                                                                s.row
+                                                                        ),
+                                                                        0
+                                                                    );
+                                                                const columns =
+                                                                    seatLayout.columns;
+                                                                const grid: React.ReactElement[] =
+                                                                    [];
 
-                                                                    rowSeats.push(
+                                                                for (
+                                                                    let row = 0;
+                                                                    row <=
+                                                                    maxRow;
+                                                                    row++
+                                                                ) {
+                                                                    const rowSeats: React.ReactElement[] =
+                                                                        [];
+
+                                                                    columns.forEach(
+                                                                        (
+                                                                            columnLabel,
+                                                                            colIndex
+                                                                        ) => {
+                                                                            if (
+                                                                                columnLabel ===
+                                                                                ""
+                                                                            ) {
+                                                                                // Aisle space
+                                                                                rowSeats.push(
+                                                                                    <div
+                                                                                        key={`${row}-aisle-${colIndex}`}
+                                                                                        className="w-8 h-12"
+                                                                                    />
+                                                                                );
+                                                                            } else {
+                                                                                // Find seat by row and col (not column_label)
+                                                                                const seat =
+                                                                                    seatLayout.seats.find(
+                                                                                        (
+                                                                                            s: Seat
+                                                                                        ) =>
+                                                                                            s.row ===
+                                                                                                row &&
+                                                                                            s.col ===
+                                                                                                colIndex &&
+                                                                                            s.level ===
+                                                                                                "lower"
+                                                                                    );
+
+                                                                                if (
+                                                                                    seat &&
+                                                                                    seat.number !==
+                                                                                        null
+                                                                                ) {
+                                                                                    const seatNumber = `${seat.number
+                                                                                        .toString()
+                                                                                        .padStart(
+                                                                                            2,
+                                                                                            "0"
+                                                                                        )}`;
+                                                                                    const isBooked =
+                                                                                        bookedSeatNumbers.has(
+                                                                                            seatNumber
+                                                                                        );
+                                                                                    const booking =
+                                                                                        schedule.bookings?.find(
+                                                                                            (
+                                                                                                b
+                                                                                            ) =>
+                                                                                                b
+                                                                                                    .seat
+                                                                                                    ?.seat_number ===
+                                                                                                seatNumber
+                                                                                        );
+
+                                                                                    const levelBadge =
+                                                                                        seat.level ===
+                                                                                        "upper"
+                                                                                            ? "rounded-t-lg"
+                                                                                            : "rounded-lg";
+
+                                                                                    rowSeats.push(
+                                                                                        <div
+                                                                                            key={
+                                                                                                seat.id
+                                                                                            }
+                                                                                            className={`
+                                                                                        relative flex items-center justify-center text-xs font-medium
+                                                                                        transition-all border-2 w-12 h-12 cursor-pointer
+                                                                                        ${levelBadge}
+                                                                                        ${
+                                                                                            isBooked
+                                                                                                ? "bg-gray-200 border-gray-400 text-gray-700"
+                                                                                                : "bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200"
+                                                                                        }
+                                                                                    `}
+                                                                                            title={
+                                                                                                isBooked
+                                                                                                    ? `Seat ${
+                                                                                                          seat.number
+                                                                                                      } - Booked by ${
+                                                                                                          booking
+                                                                                                              ?.booking
+                                                                                                              ?.user
+                                                                                                              ?.name ||
+                                                                                                          "Unknown"
+                                                                                                      }`
+                                                                                                    : `Seat ${seat.number} - Available`
+                                                                                            }
+                                                                                        >
+                                                                                            <span className="font-semibold">
+                                                                                                {
+                                                                                                    seat.number
+                                                                                                }
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    );
+                                                                                } else {
+                                                                                    // Empty space where no seat exists
+                                                                                    rowSeats.push(
+                                                                                        <div
+                                                                                            key={`${row}-${colIndex}-empty`}
+                                                                                            className="w-12 h-12"
+                                                                                        />
+                                                                                    );
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    );
+
+                                                                    grid.push(
                                                                         <div
                                                                             key={
-                                                                                seat.id
+                                                                                row
                                                                             }
-                                                                            className={`
-                                                                            w-12 h-12 rounded border-2 flex flex-col items-center justify-center
-                                                                            transition-all cursor-pointer hover:scale-105 text-xs font-bold
-                                                                            ${
-                                                                                isBooked
-                                                                                    ? "border-red-500 bg-red-50 hover:bg-red-100 text-red-700"
-                                                                                    : "border-primary bg-primary/10 hover:bg-primary/20 text-primary"
-                                                                            }
-                                                                        `}
-                                                                            title={
-                                                                                isBooked
-                                                                                    ? `${seatNumber} - Booked by ${
-                                                                                          booking
-                                                                                              ?.booking
-                                                                                              ?.user
-                                                                                              ?.name ||
-                                                                                          "Unknown"
-                                                                                      }`
-                                                                                    : `${seatNumber} - Available`
-                                                                            }
+                                                                            className="flex gap-1 justify-center items-center mb-2"
                                                                         >
-                                                                            <span className="text-[10px]">
-                                                                                {
-                                                                                    seatNumber
-                                                                                }
-                                                                            </span>
-                                                                            {isBooked &&
-                                                                                booking
-                                                                                    ?.booking
-                                                                                    ?.user && (
-                                                                                    <span className="text-[7px] mt-0.5 truncate max-w-full px-1">
-                                                                                        {
-                                                                                            booking.booking.user.name.split(
-                                                                                                " "
-                                                                                            )[0]
-                                                                                        }
-                                                                                    </span>
-                                                                                )}
+                                                                            {
+                                                                                rowSeats
+                                                                            }
                                                                         </div>
                                                                     );
-                                                                } else {
-                                                                    // Empty space
-                                                                    rowSeats.push(
+                                                                }
+
+                                                                return grid;
+                                                            })()}
+                                                        </div>
+                                                    </TabsContent>
+                                                    <TabsContent
+                                                        value="upper"
+                                                        className="space-y-4"
+                                                    >
+                                                        <div className="space-y-2 max-w-xl mx-auto">
+                                                            {(() => {
+                                                                const bookedSeatNumbers =
+                                                                    new Set(
+                                                                        schedule.bookings?.map(
+                                                                            (
+                                                                                b
+                                                                            ) =>
+                                                                                b
+                                                                                    .seat
+                                                                                    ?.seat_number
+                                                                        ) || []
+                                                                    );
+                                                                const maxRow =
+                                                                    Math.max(
+                                                                        ...seatLayout.seats.map(
+                                                                            (
+                                                                                s: Seat
+                                                                            ) =>
+                                                                                s.row
+                                                                        ),
+                                                                        0
+                                                                    );
+                                                                const columns =
+                                                                    seatLayout.columns;
+                                                                const grid: React.ReactElement[] =
+                                                                    [];
+
+                                                                for (
+                                                                    let row = 0;
+                                                                    row <=
+                                                                    maxRow;
+                                                                    row++
+                                                                ) {
+                                                                    const rowSeats: React.ReactElement[] =
+                                                                        [];
+
+                                                                    columns.forEach(
+                                                                        (
+                                                                            columnLabel,
+                                                                            colIndex
+                                                                        ) => {
+                                                                            if (
+                                                                                columnLabel ===
+                                                                                ""
+                                                                            ) {
+                                                                                // Aisle space
+                                                                                rowSeats.push(
+                                                                                    <div
+                                                                                        key={`${row}-aisle-${colIndex}`}
+                                                                                        className="w-8 h-12"
+                                                                                    />
+                                                                                );
+                                                                            } else {
+                                                                                // Find seat by row and col (not column_label)
+                                                                                const seat =
+                                                                                    seatLayout.seats.find(
+                                                                                        (
+                                                                                            s: Seat
+                                                                                        ) =>
+                                                                                            s.row ===
+                                                                                                row &&
+                                                                                            s.col ===
+                                                                                                colIndex &&
+                                                                                            s.level ===
+                                                                                                "upper"
+                                                                                    );
+
+                                                                                if (
+                                                                                    seat &&
+                                                                                    seat.number !==
+                                                                                        null
+                                                                                ) {
+                                                                                    const seatNumber = `${seat.number
+                                                                                        .toString()
+                                                                                        .padStart(
+                                                                                            2,
+                                                                                            "0"
+                                                                                        )}`;
+                                                                                    const isBooked =
+                                                                                        bookedSeatNumbers.has(
+                                                                                            seatNumber
+                                                                                        );
+                                                                                    const booking =
+                                                                                        schedule.bookings?.find(
+                                                                                            (
+                                                                                                b
+                                                                                            ) =>
+                                                                                                b
+                                                                                                    .seat
+                                                                                                    ?.seat_number ===
+                                                                                                seatNumber
+                                                                                        );
+
+                                                                                    const levelBadge =
+                                                                                        seat.level ===
+                                                                                        "upper"
+                                                                                            ? "rounded-t-lg"
+                                                                                            : "rounded-lg";
+
+                                                                                    rowSeats.push(
+                                                                                        <div
+                                                                                            key={
+                                                                                                seat.id
+                                                                                            }
+                                                                                            className={`
+                                                                                        relative flex items-center justify-center text-xs font-medium
+                                                                                        transition-all border-2 w-12 h-12 cursor-pointer
+                                                                                        ${levelBadge}
+                                                                                        ${
+                                                                                            isBooked
+                                                                                                ? "bg-gray-200 border-gray-400 text-gray-700"
+                                                                                                : "bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200"
+                                                                                        }
+                                                                                    `}
+                                                                                            title={
+                                                                                                isBooked
+                                                                                                    ? `Seat ${
+                                                                                                          seat.number
+                                                                                                      } - Booked by ${
+                                                                                                          booking
+                                                                                                              ?.booking
+                                                                                                              ?.user
+                                                                                                              ?.name ||
+                                                                                                          "Unknown"
+                                                                                                      }`
+                                                                                                    : `Seat ${seat.number} - Available`
+                                                                                            }
+                                                                                        >
+                                                                                            <span className="font-semibold">
+                                                                                                {
+                                                                                                    seat.number
+                                                                                                }
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    );
+                                                                                } else {
+                                                                                    // Empty space where no seat exists
+                                                                                    rowSeats.push(
+                                                                                        <div
+                                                                                            key={`${row}-${colIndex}-empty`}
+                                                                                            className="w-12 h-12"
+                                                                                        />
+                                                                                    );
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    );
+
+                                                                    grid.push(
                                                                         <div
-                                                                            key={`${row}-${colIndex}-empty`}
-                                                                            className="w-12 h-12"
-                                                                        />
+                                                                            key={
+                                                                                row
+                                                                            }
+                                                                            className="flex gap-1 justify-center items-center mb-2"
+                                                                        >
+                                                                            {
+                                                                                rowSeats
+                                                                            }
+                                                                        </div>
                                                                     );
                                                                 }
-                                                            }
-                                                        }
-                                                    );
 
-                                                    rows.push(
-                                                        <div
-                                                            key={`row-${row}`}
-                                                            className="flex gap-1 justify-center items-center mb-2"
-                                                        >
-                                                            {rowSeats}
+                                                                return grid;
+                                                            })()}
                                                         </div>
-                                                    );
-                                                }
+                                                    </TabsContent>
+                                                </Tabs>
+                                            ) : (
+                                                <div className="space-y-2 max-w-xl mx-auto">
+                                                    {(() => {
+                                                        const bookedSeatNumbers =
+                                                            new Set(
+                                                                schedule.bookings?.map(
+                                                                    (b) =>
+                                                                        b.seat
+                                                                            ?.seat_number
+                                                                ) || []
+                                                            );
+                                                        const maxRow = Math.max(
+                                                            ...seatLayout.seats.map(
+                                                                (s: Seat) =>
+                                                                    s.row
+                                                            ),
+                                                            0
+                                                        );
+                                                        const columns =
+                                                            seatLayout.columns;
+                                                        const grid: React.ReactElement[] =
+                                                            [];
 
-                                                return rows;
-                                            })()}
+                                                        for (
+                                                            let row = 0;
+                                                            row <= maxRow;
+                                                            row++
+                                                        ) {
+                                                            const rowSeats: React.ReactElement[] =
+                                                                [];
+
+                                                            columns.forEach(
+                                                                (
+                                                                    columnLabel,
+                                                                    colIndex
+                                                                ) => {
+                                                                    if (
+                                                                        columnLabel ===
+                                                                        ""
+                                                                    ) {
+                                                                        // Aisle space
+                                                                        rowSeats.push(
+                                                                            <div
+                                                                                key={`${row}-aisle-${colIndex}`}
+                                                                                className="w-8 h-12"
+                                                                            />
+                                                                        );
+                                                                    } else {
+                                                                        // Find seat by row and col (not column_label)
+                                                                        const seat =
+                                                                            seatLayout.seats.find(
+                                                                                (
+                                                                                    s: Seat
+                                                                                ) =>
+                                                                                    s.row ===
+                                                                                        row &&
+                                                                                    s.col ===
+                                                                                        colIndex &&
+                                                                                    (!s.level ||
+                                                                                        s.level ===
+                                                                                            "lower")
+                                                                            );
+
+                                                                        if (
+                                                                            seat &&
+                                                                            seat.number !==
+                                                                                null
+                                                                        ) {
+                                                                            const seatNumber = `${seat.number
+                                                                                .toString()
+                                                                                .padStart(
+                                                                                    2,
+                                                                                    "0"
+                                                                                )}`;
+                                                                            const isBooked =
+                                                                                bookedSeatNumbers.has(
+                                                                                    seatNumber
+                                                                                );
+                                                                            const booking =
+                                                                                schedule.bookings?.find(
+                                                                                    (
+                                                                                        b
+                                                                                    ) =>
+                                                                                        b
+                                                                                            .seat
+                                                                                            ?.seat_number ===
+                                                                                        seatNumber
+                                                                                );
+
+                                                                            rowSeats.push(
+                                                                                <div
+                                                                                    key={
+                                                                                        seat.id
+                                                                                    }
+                                                                                    className={`
+                                                                                    relative flex items-center justify-center text-xs font-medium
+                                                                                    transition-all border-2 w-12 h-12 cursor-pointer rounded-lg
+                                                                                    ${
+                                                                                        isBooked
+                                                                                            ? "bg-gray-200 border-gray-400 text-gray-700"
+                                                                                            : "bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200"
+                                                                                    }
+                                                                                `}
+                                                                                    title={
+                                                                                        isBooked
+                                                                                            ? `Seat ${
+                                                                                                  seat.number
+                                                                                              } - Booked by ${
+                                                                                                  booking
+                                                                                                      ?.booking
+                                                                                                      ?.user
+                                                                                                      ?.name ||
+                                                                                                  "Unknown"
+                                                                                              }`
+                                                                                            : `Seat ${seat.number} - Available`
+                                                                                    }
+                                                                                >
+                                                                                    <span className="font-semibold">
+                                                                                        {
+                                                                                            seat.number
+                                                                                        }
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        } else {
+                                                                            // Empty space where no seat exists
+                                                                            rowSeats.push(
+                                                                                <div
+                                                                                    key={`${row}-${colIndex}-empty`}
+                                                                                    className="w-12 h-12"
+                                                                                />
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                }
+                                                            );
+
+                                                            grid.push(
+                                                                <div
+                                                                    key={row}
+                                                                    className="flex gap-1 justify-center items-center mb-2"
+                                                                >
+                                                                    {rowSeats}
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        return grid;
+                                                    })()}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         // Fallback to simple grid if no layout
-                                        <div className="grid grid-cols-4 gap-2 p-4 bg-muted/30 rounded-lg">
+                                        <div className="grid grid-cols-5 gap-2 p-4 bg-muted/30 rounded-lg">
                                             {(() => {
                                                 const bookedSeatNumbers =
                                                     new Set(
@@ -738,9 +1052,9 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                     i <= seatCapacity;
                                                     i++
                                                 ) {
-                                                    const seatNumber = `S${i
+                                                    const seatNumber = i
                                                         .toString()
-                                                        .padStart(2, "0")}`;
+                                                        .padStart(2, "0");
                                                     const isBooked =
                                                         bookedSeatNumbers.has(
                                                             seatNumber
@@ -757,46 +1071,29 @@ export default function TransportationOwnerScheduleShow({ schedule }: Props) {
                                                         <div
                                                             key={i}
                                                             className={`
-                                                                w-full aspect-square rounded border-2 flex flex-col items-center justify-center
-                                                                transition-all cursor-pointer hover:scale-105
+                                                                relative flex items-center justify-center text-xs font-semibold
+                                                                transition-all cursor-pointer border-2 rounded-lg w-12 h-12
                                                                 ${
                                                                     isBooked
-                                                                        ? "border-red-500 bg-red-50 hover:bg-red-100"
-                                                                        : "border-primary bg-primary/10 hover:bg-primary/20"
+                                                                        ? "bg-gray-200 border-gray-400 text-gray-700 cursor-not-allowed"
+                                                                        : "bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200"
                                                                 }
                                                             `}
                                                             title={
                                                                 isBooked
-                                                                    ? `Booked by ${
+                                                                    ? `Seat ${seatNumber} - Booked by ${
                                                                           booking
                                                                               ?.booking
                                                                               ?.user
                                                                               ?.name ||
                                                                           "Unknown"
                                                                       }`
-                                                                    : "Available"
+                                                                    : `Seat ${seatNumber} - Available`
                                                             }
                                                         >
-                                                            <span
-                                                                className={`text-xs font-bold ${
-                                                                    isBooked
-                                                                        ? "text-red-700"
-                                                                        : "text-primary"
-                                                                }`}
-                                                            >
+                                                            <span>
                                                                 {seatNumber}
                                                             </span>
-                                                            {isBooked &&
-                                                                booking?.booking
-                                                                    ?.user && (
-                                                                    <span className="text-[8px] text-red-600 mt-0.5 truncate max-w-full px-1">
-                                                                        {
-                                                                            booking.booking.user.name.split(
-                                                                                " "
-                                                                            )[0]
-                                                                        }
-                                                                    </span>
-                                                                )}
                                                         </div>
                                                     );
                                                 }
