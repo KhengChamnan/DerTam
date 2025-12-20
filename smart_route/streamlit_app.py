@@ -51,6 +51,17 @@ st.markdown("""
     .stButton>button {
         width: 100%;
     }
+    .stTabs [data-baseweb="tab-list"] {
+        background: #f0f2f6;
+        border-radius: 12px 12px 0 0;
+        padding: 0.5rem 0.5rem 0 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #01005B;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,18 +74,26 @@ render_header()
 # Sidebar - POI Selection
 render_sidebar()
 
+
 # Main content area
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "⚙️ Preferences", "🚀 Optimize", "📊 Results", "🔬 Circuit", "📊 Compare"
+    "Preferences", 
+    "Optimize", 
+    "Results", 
+    "Circuit", 
+    "Compare"
 ])
 
 # Tab 1: Preferences
 with tab1:
+    st.markdown("## Preferences & Settings")
+    st.caption("Set your travel preferences and constraints for route optimization.")
     render_preferences_tab()
 
 # Tab 2: Optimize
 with tab2:
-    st.header("🚀 Route Optimization")
+    st.markdown("## Route Optimization")
+    st.caption("Run the quantum optimizer and view your optimized route.")
     
     # Validate POI selection
     is_valid, error_msg = validate_poi_selection(st.session_state.selected_pois)
@@ -90,7 +109,7 @@ with tab2:
     qaoa_config = render_qaoa_settings()
     
     # Optimize button
-    if st.button("🚀 Optimize Route with QAOA", type="primary", use_container_width=True):
+    if st.button("Optimize Route with QAOA", type="primary", use_container_width=True):
         with st.spinner("Optimizing route..."):
             try:
                 optimization_result = run_quantum_optimization(
@@ -126,7 +145,8 @@ with tab2:
 
 # Tab 3: Results
 with tab3:
-    st.header("📊 Optimization Results")
+    st.markdown("## Optimization Results")
+    st.caption("Review the results and details of your optimized route.")
     
     if st.session_state.optimization_result is None:
         st.info("👈 Please run optimization first in the 'Optimize' tab")
@@ -165,7 +185,8 @@ with tab3:
 
 # Tab 4: Circuit
 with tab4:
-    st.header("🔬 Quantum Circuit Visualization")
+    st.markdown("## Quantum Circuit Visualization")
+    st.caption("Visualize the quantum circuit and its parameters.")
     
     if st.session_state.optimization_result is None:
         st.info("👈 Please run optimization first in the 'Optimize' tab")
@@ -175,7 +196,7 @@ with tab4:
         
         # Circuit visualization
         if 'circuit' in result and result['circuit'] is not None:
-            st.subheader("🔬 QAOA Circuit Diagram")
+            st.subheader("QAOA Circuit Diagram")
             visualizer = CircuitVisualizer()
             circuit_details = visualizer.create_detailed_circuit_visualization(
                 result['circuit'], result.get('parameters', {}), encoding_info
@@ -225,12 +246,12 @@ with tab4:
                             st.write(f"In π units: {gate['rx_angle_pi']}")
         
         # Measurement results
-        st.subheader("📊 Measurement Results")
+        st.subheader("Measurement Results")
         if 'counts' in result:
             render_measurement_results(result['counts'], encoding_info)
         
         # QAOA Parameters
-        st.subheader("⚙️ QAOA Parameters")
+        st.subheader("QAOA Parameters")
         if 'parameters' in result and result['parameters']:
             clean_params = {}
             for key, value in result['parameters'].items():
@@ -281,7 +302,8 @@ with tab4:
 
 # Tab 5: Compare
 with tab5:
-    st.header("📊 Classical vs Quantum Comparison")
+    st.markdown("## Classical vs Quantum Comparison")
+    st.caption("Compare classical and quantum optimization results side by side.")
     
     # Validate POI selection
     is_valid, error_msg = validate_poi_selection(st.session_state.selected_pois)
@@ -290,7 +312,7 @@ with tab5:
         st.stop()
     
     # Algorithm selection
-    st.subheader("⚙️ Comparison Settings")
+    st.subheader("Comparison Settings")
     col1, col2 = st.columns(2)
     with col1:
         classical_algorithm = st.selectbox(
@@ -305,7 +327,7 @@ with tab5:
         qaoa_shots = st.number_input("QAOA Shots", min_value=100, max_value=10000, value=1024, step=100, key="compare_shots")
     
     # Run comparison
-    if st.button("🚀 Run Comparison", type="primary", use_container_width=True):
+    if st.button(" Run Comparison", type="primary", use_container_width=True):
         with st.spinner("Running comparison..."):
             try:
                 comparison_result = run_comparison(
@@ -585,79 +607,3 @@ with tab5:
     else:
         st.info("👈 Click 'Run Comparison' to compare classical and quantum optimization results")
 
-# Tab 6: Step-by-Step Workflow
-# with tab6:
-#     st.header("📋 Step-by-Step Optimization Workflow")
-#     
-#     if st.session_state.optimization_result is None:
-#         st.info("👈 Please run optimization first in the 'Optimize' tab to see the step-by-step workflow")
-#     else:
-#         result = st.session_state.optimization_result
-#         
-#         # Check if we have all required data
-#         required_keys = ['result', 'route', 'route_pois', 'pois', 'encoding_info', 
-#                         'feature_matrix', 'feature_info', 'distance_matrix', 'time_matrix']
-#         missing_keys = [key for key in required_keys if key not in result]
-#         
-#         if missing_keys:
-#             st.warning(f"⚠️ Missing data for workflow visualization: {', '.join(missing_keys)}")
-#             st.info("Please run optimization again to generate complete workflow data")
-#         else:
-#             # Convert lists back to numpy arrays if needed
-#             import numpy as np
-#             
-#             feature_matrix = np.array(result['feature_matrix']) if isinstance(result['feature_matrix'], list) else result['feature_matrix']
-#             distance_matrix = np.array(result['distance_matrix']) if isinstance(result['distance_matrix'], list) else result['distance_matrix']
-#             time_matrix = np.array(result['time_matrix']) if isinstance(result['time_matrix'], list) else result['time_matrix']
-#             
-#             # Get QUBO matrix from encoding info or reconstruct it
-#             qubo_matrix = None
-#             if 'qubo_matrix' in result:
-#                 qubo_matrix = np.array(result['qubo_matrix']) if isinstance(result['qubo_matrix'], list) else result['qubo_matrix']
-#             elif 'encoding_info' in result:
-#                 # Try to get from encoding_info if stored
-#                 encoding_info = result['encoding_info']
-#                 if 'qubo_matrix' in encoding_info:
-#                     qubo_matrix = np.array(encoding_info['qubo_matrix']) if isinstance(encoding_info['qubo_matrix'], list) else encoding_info['qubo_matrix']
-#             
-#             # If still no QUBO matrix, we need to recreate it (but this shouldn't happen)
-#             if qubo_matrix is None:
-#                 st.warning("⚠️ QUBO matrix not found. Recreating from feature matrix...")
-#                 try:
-#                     from quantum_optimizer.qubo_encoder import QUBOEncoder
-#                     from app_helpers import calculate_matrices
-#                     
-#                     distance_calc, dist_mat, time_mat, traffic_penalty = calculate_matrices(result['pois'])
-#                     encoder = QUBOEncoder()
-#                     qubo_matrix, encoding_info = encoder.encode_feature_based(
-#                         feature_matrix, dist_mat,
-#                         time_matrix=time_mat,
-#                         traffic_penalty_matrix=traffic_penalty,
-#                         constraint_weights=st.session_state.user_preferences.get('constraint_weights', {}),
-#                         num_qubits=4,
-#                         feature_info=result['feature_info']
-#                     )
-#                 except Exception as e:
-#                     st.error(f"Could not recreate QUBO matrix: {e}")
-#                     st.stop()
-#             
-#             # Render step-by-step workflow
-#             render_step_by_step_workflow(
-#                 pois=result['pois'],
-#                 user_preferences=st.session_state.user_preferences,
-#                 feature_matrix=feature_matrix,
-#                 feature_info=result['feature_info'],
-#                 qubo_matrix=qubo_matrix,
-#                 encoding_info=result['encoding_info'],
-#                 optimization_result=result,
-#                 distance_matrix=distance_matrix,
-#                 time_matrix=time_matrix
-#             )
-
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666;">
-    <p>🗺️ Quantum Route Optimization | Powered by QAOA 🚀</p>
-</div>
-""", unsafe_allow_html=True)
