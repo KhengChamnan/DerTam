@@ -294,7 +294,6 @@ with tab5:
                     {'num_layers': qaoa_layers, 'shots': qaoa_shots, 'optimizer': 'COBYLA'}
                 )
                 st.session_state.comparison_result = comparison_result
-                st.success("✅ Comparison complete!")
             except Exception as e:
                 st.error(f"❌ Error during comparison: {str(e)}")
                 st.exception(e)
@@ -317,84 +316,9 @@ with tab5:
         # Check if routes are different
         routes_are_different = classical_route != quantum_route
         
-        # Show comparison method explanation
-        with st.expander("ℹ️ How Classical vs QAOA Comparison Works", expanded=False):
-            st.markdown("""
-            **Classical Algorithm (Raw Distance):**
-            - Uses ONLY the distance matrix
-            - No preference weights, traffic, or time considerations
-            - Greedily selects nearest unvisited POI
-            
-            **QAOA Algorithm (Quantum-Weighted):**
-            - Uses quantum circuit to optimize preference qubits
-            - Qubit measurements determine feature preferences:
-              - `|0⟩` = minimize/avoid (weight = 1.0)
-              - `|1⟩` = accept/deprioritize (weight = 0.2)
-            - Creates weighted cost matrix including distance, time, traffic, and category
-            - Applies weighted nearest neighbor with QAOA-derived preferences
-            
-            **When routes are identical:**
-            - The shortest distance path is also optimal for QAOA preferences
-            - Small POI sets have limited routing alternatives
-            - Traffic/time data may not vary enough to affect routes
-            """)
-        
-        if not routes_are_different:
-            st.warning("⚠️ **Warning:** Classical and Quantum routes are identical!")
-            st.write("This may happen when:")
-            st.write("- The shortest distance path is also optimal considering all QAOA preferences")
-            st.write("- Traffic and time differences don't create alternative optimal paths")
-            st.write("- The POI set is small with limited routing options")
-        
-        # Display route indices
-        col_route1, col_route2 = st.columns(2)
-        with col_route1:
-            st.markdown("**Classical Route Indices:**")
-            st.code(f"{classical_route}")
-            st.markdown("**Classical Route Names:**")
-            route_text_c = " → ".join([f"{i+1}. {poi['name']}" for i, poi in enumerate(classical['route_pois'])])
-            st.write(route_text_c)
-        
-        with col_route2:
-            st.markdown("**Quantum Route Indices:**")
-            st.code(f"{quantum_route}")
-            st.markdown("**Quantum Route Names:**")
-            route_text_q = " → ".join([f"{i+1}. {poi['name']}" for i, poi in enumerate(quantum['route_pois'])])
-            st.write(route_text_q)
         
         # Show QAOA preferences and method info
-        method = quantum['result'].get('method', 'unknown')
-        if method == 'qaoa':
-            st.success("✅ **QAOA Optimization** - Quantum measurements determined route preferences")
-        elif method == 'classical_fallback':
-            st.warning("⚠️ **Classical Fallback** - QAOA used NumPyMinimumEigensolver (Sampler unavailable)")
-        
-        # Show quantum measurement info if available
-        if 'decode_info' in quantum['result']:
-            decode_info = quantum['result']['decode_info']
-            with st.expander("🔬 Quantum Measurement Details"):
-                if 'bitstring' in decode_info:
-                    st.write(f"**Measured Bitstring:** `{decode_info['bitstring']}`")
-                if 'preferences' in decode_info:
-                    st.write("**QAOA-Decoded Preferences (from qubit states):**")
-                    prefs = decode_info['preferences']
-                    pref_display = []
-                    for feature, value in prefs.items():
-                        state = "|0⟩" if value == 0 else "|1⟩"
-                        meaning = "minimize/avoid" if value == 0 else "accept/deprioritize"
-                        pref_display.append({
-                            "Feature": feature.capitalize(),
-                            "Qubit State": state,
-                            "Effect": meaning
-                        })
-                    st.dataframe(pref_display, use_container_width=True, hide_index=True)
-                if 'counts' in quantum['result']:
-                    counts = quantum['result']['counts']
-                    if isinstance(counts, dict):
-                        sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:5]
-                        st.write("**Top 5 Measurement Results:**")
-                        for bitstring, count in sorted_counts:
-                            st.write(f"  - `{bitstring}`: {count} counts")
+       
         
         render_comparison_maps(
             classical['route_pois'],
@@ -409,26 +333,19 @@ with tab5:
         classical_traffic = classical.get('traffic_impact', {})
         quantum_traffic = quantum.get('traffic_impact', {})
         
+        # Build comparison data with only the specified metrics
         comparison_data = {
             "Metric": [
-                "Total Distance (km)", "Total Time (min)", "Execution Time (s)",
-                "Feasible", "Constraint Violations", "Average Distance per POI (km)"
+                "Total Distance (km)",
+                "Total Time (min)"
             ],
             "Classical": [
                 f"{classical['quality']['total_distance']:.2f}",
-                f"{classical['quality']['total_time']:.1f}" if classical['quality']['total_time'] > 0 else "N/A",
-                f"{classical['result']['execution_time']:.4f}",
-                "✅ Yes" if classical['constraints']['is_feasible'] else "❌ No",
-                str(classical['constraints']['num_violations']),
-                f"{classical['quality']['avg_distance_per_poi']:.2f}"
+                f"{classical['quality']['total_time']:.1f}" if classical['quality']['total_time'] > 0 else "N/A"
             ],
             "Quantum": [
                 f"{quantum['quality']['total_distance']:.2f}",
-                f"{quantum['quality']['total_time']:.1f}" if quantum['quality']['total_time'] > 0 else "N/A",
-                f"{quantum['result'].get('execution_time', 0):.4f}",
-                "✅ Yes" if quantum['constraints']['is_feasible'] else "❌ No",
-                str(quantum['constraints']['num_violations']),
-                f"{quantum['quality']['avg_distance_per_poi']:.2f}"
+                f"{quantum['quality']['total_time']:.1f}" if quantum['quality']['total_time'] > 0 else "N/A"
             ]
         }
         
@@ -436,19 +353,16 @@ with tab5:
         if classical_traffic and quantum_traffic:
             comparison_data["Metric"].extend([
                 "Traffic Impact Score",
-                "Average Traffic Factor",
                 "High-Traffic Segments",
                 "Time Efficiency (min/km)"
             ])
             comparison_data["Classical"].extend([
                 f"{classical_traffic.get('traffic_impact_score', 0):.2f}",
-                f"{classical_traffic.get('avg_traffic_factor', 0):.2f}x",
                 str(classical_traffic.get('high_traffic_segments', 0)),
                 f"{classical_traffic.get('time_efficiency', 0):.2f}"
             ])
             comparison_data["Quantum"].extend([
                 f"{quantum_traffic.get('traffic_impact_score', 0):.2f}",
-                f"{quantum_traffic.get('avg_traffic_factor', 0):.2f}x",
                 str(quantum_traffic.get('high_traffic_segments', 0)),
                 f"{quantum_traffic.get('time_efficiency', 0):.2f}"
             ])
@@ -507,100 +421,107 @@ with tab5:
         with summary_col3:
             st.metric("Feasible", winner_feasible)
         
-        # Google Maps Comparison
-        st.subheader("🗺️ Google Maps / OpenRouteService Comparison")
-        if st.button("🔄 Compare with External Routing Service", type="secondary"):
-            with st.spinner("Fetching route from external service..."):
-                try:
-                    comparator = RouteComparison(use_openrouteservice=True)
-                    quantum_route_data = {
-                        'total_distance_km': quantum['quality']['total_distance'],
-                        'total_duration_minutes': quantum['quality']['total_time'],
-                        'route': quantum['result']['route']
-                    }
-                    external_route = comparator.get_route_from_service(
-                        comparison['pois'], quantum['result']['route']
-                    )
+        # Warning if routes are identical
+        if not routes_are_different:
+            st.warning("⚠️ **Warning:** Classical and Quantum routes may be identical due to:")
+            st.write("This may happen when:")
+            st.write("- The shortest distance path is also optimal considering all QAOA preferences")
+            st.write("- Traffic and time differences don't create alternative optimal paths")
+            st.write("- The POI set is small with limited routing options")
+        
+    #     # Google Maps Comparison
+    #     st.subheader("🗺️ Google Maps / OpenRouteService Comparison")
+    #     if st.button("🔄 Compare with External Routing Service", type="secondary"):
+    #         with st.spinner("Fetching route from external service..."):
+    #             try:
+    #                 comparator = RouteComparison(use_openrouteservice=True)
+    #                 quantum_route_data = {
+    #                     'total_distance_km': quantum['quality']['total_distance'],
+    #                     'total_duration_minutes': quantum['quality']['total_time'],
+    #                     'route': quantum['result']['route']
+    #                 }
+    #                 external_route = comparator.get_route_from_service(
+    #                     comparison['pois'], quantum['result']['route']
+    #                 )
                     
-                    if external_route.get('success'):
-                        comparison_result = comparator.compare_routes(quantum_route_data, external_route)
+    #                 if external_route.get('success'):
+    #                     comparison_result = comparator.compare_routes(quantum_route_data, external_route)
                         
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Our Route Distance", f"{comparison_result['our_route']['distance_km']:.2f} km")
-                            st.metric("Our Route Time", f"{comparison_result['our_route']['duration_minutes']:.1f} min")
-                        with col2:
-                            st.metric("External Service Distance", 
-                                    f"{comparison_result['external_route']['distance_km']:.2f} km",
-                                    delta=f"{comparison_result['comparison']['distance_difference_km']:.2f} km")
-                            st.metric("External Service Time",
-                                    f"{comparison_result['external_route']['duration_minutes']:.1f} min",
-                                    delta=f"{comparison_result['comparison']['time_difference_minutes']:.1f} min")
-                        with col3:
-                            st.metric("Distance Winner", comparison_result['comparison']['distance_winner'])
-                            st.metric("Time Winner", comparison_result['comparison']['time_winner'])
+    #                     col1, col2, col3 = st.columns(3)
+    #                     with col1:
+    #                         st.metric("Our Route Distance", f"{comparison_result['our_route']['distance_km']:.2f} km")
+    #                         st.metric("Our Route Time", f"{comparison_result['our_route']['duration_minutes']:.1f} min")
+    #                     with col2:
+    #                         st.metric("External Service Distance", 
+    #                                 f"{comparison_result['external_route']['distance_km']:.2f} km",
+    #                                 delta=f"{comparison_result['comparison']['distance_difference_km']:.2f} km")
+    #                         st.metric("External Service Time",
+    #                                 f"{comparison_result['external_route']['duration_minutes']:.1f} min",
+    #                                 delta=f"{comparison_result['comparison']['time_difference_minutes']:.1f} min")
+    #                     with col3:
+    #                         st.metric("Distance Winner", comparison_result['comparison']['distance_winner'])
+    #                         st.metric("Time Winner", comparison_result['comparison']['time_winner'])
                         
-                        st.write(f"**Service Used:** {comparison_result['external_route']['service']}")
-                        st.session_state.google_maps_comparison = comparison_result
-                    else:
-                        st.warning("Could not fetch route from external service.")
-                except Exception as e:
-                    st.error(f"Error comparing with external service: {e}")
+    #                     st.write(f"**Service Used:** {comparison_result['external_route']['service']}")
+    #                     st.session_state.google_maps_comparison = comparison_result
+    #                 else:
+    #                     st.warning("Could not fetch route from external service.")
+    #             except Exception as e:
+    #                 st.error(f"Error comparing with external service: {e}")
         
-        # Route Difference Analysis
-        if routes_are_different:
-            st.subheader("🔍 Route Difference Analysis")
+    #     # Route Difference Analysis
+    #     if routes_are_different:
+    #         st.subheader("🔍 Route Difference Analysis")
             
-            # Find positions where routes differ
-            differences = []
-            for i, (c_idx, q_idx) in enumerate(zip(classical_route, quantum_route)):
-                if c_idx != q_idx:
-                    differences.append({
-                        'position': i + 1,
-                        'classical_poi': f"{c_idx} ({classical['route_pois'][i]['name']})",
-                        'quantum_poi': f"{q_idx} ({quantum['route_pois'][i]['name']})"
-                    })
+    #         # Find positions where routes differ
+    #         differences = []
+    #         for i, (c_idx, q_idx) in enumerate(zip(classical_route, quantum_route)):
+    #             if c_idx != q_idx:
+    #                 differences.append({
+    #                     'position': i + 1,
+    #                     'classical_poi': f"{c_idx} ({classical['route_pois'][i]['name']})",
+    #                     'quantum_poi': f"{q_idx} ({quantum['route_pois'][i]['name']})"
+    #                 })
             
-            if differences:
-                diff_df = pd.DataFrame(differences)
-                st.dataframe(diff_df, use_container_width=True, hide_index=True)
-            else:
-                st.info("Routes visit the same POIs but in different order")
+    #         if differences:
+    #             diff_df = pd.DataFrame(differences)
+    #             st.dataframe(diff_df, use_container_width=True, hide_index=True)
+    #         else:
+    #             st.info("Routes visit the same POIs but in different order")
         
-        # Detailed comparison
-        with st.expander("🔍 Detailed Comparison"):
-            col_det1, col_det2 = st.columns(2)
-            with col_det1:
-                st.markdown("### Classical Details")
-                classical_details = {
-                    'algorithm': classical['result']['algorithm'],
-                    'route': classical['result']['route'],
-                    'total_distance': classical['quality']['total_distance'],
-                    'total_time': classical['quality']['total_time'],
-                    'execution_time': classical['result']['execution_time'],
-                    'is_feasible': classical['constraints']['is_feasible'],
-                    'num_violations': classical['constraints']['num_violations']
-                }
-                if 'iterations' in classical['result']:
-                    classical_details['iterations'] = classical['result']['iterations']
-                st.json(classical_details)
-            with col_det2:
-                st.markdown("### Quantum Details")
-                quantum_details = {
-                    'algorithm': 'QAOA',
-                    'route': quantum['result']['route'],
-                    'total_distance': quantum['quality']['total_distance'],
-                    'total_time': quantum['quality']['total_time'],
-                    'execution_time': quantum['result'].get('execution_time', 0),
-                    'energy': float(quantum['result'].get('energy', 0).real) if isinstance(quantum['result'].get('energy', 0), complex) else quantum['result'].get('energy', 0),
-                    'is_feasible': quantum['constraints']['is_feasible'],
-                    'num_violations': quantum['constraints']['num_violations'],
-                    'num_qubits': quantum['result'].get('num_qubits', 'N/A'),
-                    'num_layers': quantum['result'].get('num_layers', 'N/A')
-                }
-                if 'decode_info' in quantum['result']:
-                    quantum_details['decode_info'] = quantum['result']['decode_info']
-                st.json(quantum_details)
+    #     # Detailed comparison
+    #     with st.expander("🔍 Detailed Comparison"):
+    #         col_det1, col_det2 = st.columns(2)
+    #         with col_det1:
+    #             st.markdown("### Classical Details")
+    #             classical_details = {
+    #                 'algorithm': classical['result']['algorithm'],
+    #                 'route': classical['result']['route'],
+    #                 'total_distance': classical['quality']['total_distance'],
+    #                 'total_time': classical['quality']['total_time'],
+    #                 'execution_time': classical['result']['execution_time'],
+    #                 'is_feasible': classical['constraints']['is_feasible'],
+    #                 'num_violations': classical['constraints']['num_violations']
+    #             }
+    #             if 'iterations' in classical['result']:
+    #                 classical_details['iterations'] = classical['result']['iterations']
+    #             st.json(classical_details)
+    #         with col_det2:
+    #             st.markdown("### Quantum Details")
+    #             quantum_details = {
+    #                 'algorithm': 'QAOA',
+    #                 'route': quantum['result']['route'],
+    #                 'total_distance': quantum['quality']['total_distance'],
+    #                 'total_time': quantum['quality']['total_time'],
+    #                 'execution_time': quantum['result'].get('execution_time', 0),
+    #                 'energy': float(quantum['result'].get('energy', 0).real) if isinstance(quantum['result'].get('energy', 0), complex) else quantum['result'].get('energy', 0),
+    #                 'is_feasible': quantum['constraints']['is_feasible'],
+    #                 'num_violations': quantum['constraints']['num_violations'],
+    #                 'num_qubits': quantum['result'].get('num_qubits', 'N/A'),
+    #                 'num_layers': quantum['result'].get('num_layers', 'N/A')
+    #             }
+    #             if 'decode_info' in quantum['result']:
+    #                 quantum_details['decode_info'] = quantum['result']['decode_info']
+    #             st.json(quantum_details)
     else:
         st.info("👈 Click 'Run Comparison' to compare classical and quantum optimization results")
-

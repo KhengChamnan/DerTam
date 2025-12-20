@@ -36,19 +36,20 @@ def get_traffic_data_path() -> Optional[str]:
     return str(traffic_path) if traffic_path.exists() else None
 
 
-def calculate_matrices(pois: List[Dict]) -> Tuple[DistanceCalculator, np.ndarray, np.ndarray, np.ndarray]:
+def calculate_matrices(pois: List[Dict]) -> Tuple[DistanceCalculator, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculate distance, time, and traffic penalty matrices
     
     Returns:
-        (distance_calc, distance_matrix, time_matrix, traffic_penalty)
+        (distance_calc, distance_matrix, time_matrix_with_traffic, traffic_penalty, time_matrix_without_traffic)
     """
     distance_calc = DistanceCalculator(traffic_data_path=get_traffic_data_path())
     distance_matrix = distance_calc.calculate_distance_matrix(pois)
-    time_matrix = distance_calc.calculate_time_matrix(distance_matrix, pois, apply_traffic=True)
+    time_matrix_with_traffic = distance_calc.calculate_time_matrix(distance_matrix, pois, apply_traffic=True)
+    time_matrix_without_traffic = distance_calc.calculate_time_matrix(distance_matrix, pois, apply_traffic=False)
     traffic_penalty = distance_calc.get_traffic_penalty_matrix(pois, distance_matrix)
     
-    return distance_calc, distance_matrix, time_matrix, traffic_penalty
+    return distance_calc, distance_matrix, time_matrix_with_traffic, traffic_penalty, time_matrix_without_traffic
 
 
 def create_feature_matrix(

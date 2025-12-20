@@ -47,9 +47,7 @@ def run_quantum_optimization(
         Dictionary with optimization result and metadata
     """
     # Step 1: Calculate matrices
-    st.write("📐 Step 1: Calculating Distance & Time Matrices")
-    distance_calc, distance_matrix, time_matrix, traffic_penalty = calculate_matrices(pois)
-    st.success(f"✅ Calculated matrices for {len(pois)} POIs")
+    distance_calc, distance_matrix, time_matrix, traffic_penalty, time_matrix_without_traffic = calculate_matrices(pois)
     
     # Debug: Show traffic penalty matrix statistics
     if traffic_penalty is not None:
@@ -65,7 +63,6 @@ def run_quantum_optimization(
             st.info(f"✅ Traffic penalty has variation (std={traffic_std:.4f}), so traffic sensitivity should affect routes.")
     
     # Step 2: Create feature matrix
-    st.write("📊 Step 2: Creating Feature Matrix")
     feature_matrix, feature_info = create_feature_matrix(pois, user_preferences, distance_calc)
     st.success(f"✅ Feature matrix created: {feature_matrix.shape}")
     st.write(f"**Features:** {', '.join(feature_info['feature_names'])}")
@@ -79,7 +76,6 @@ def run_quantum_optimization(
     st.dataframe(feature_df.style.background_gradient(cmap='viridis'), use_container_width=True)
     
     # Step 3: QUBO Encoding
-    st.write("🔢 Step 3: Encoding to QUBO (Feature-Based)")
     qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
     # Map 'preferences' to 'category' for QUBO encoder
     qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
@@ -109,7 +105,6 @@ def run_quantum_optimization(
     st.dataframe(qubo_df, use_container_width=True)
     
     # Step 4: QAOA Solving
-    st.write("⚛️ Step 4: Solving with QAOA")
     qaoa_solver = QAOASolver(
         num_layers=qaoa_config['num_layers'],
         shots=qaoa_config['shots'],
@@ -122,21 +117,41 @@ def run_quantum_optimization(
         distance_matrix=distance_matrix,
         time_matrix=time_matrix,
         traffic_penalty_matrix=traffic_penalty,
-        pois=pois
+        pois=pois,
+        time_matrix_without_traffic=time_matrix_without_traffic
     )
     
     st.success("✅ Optimization complete!")
     
     # Step 5: Decode and display
-    st.write("🔍 Step 5: Decoding Route")
     route = result['route']
     route_pois = [pois[i] for i in route]
     
-    # Display decoding info
-    if 'decode_info' in result and 'preferences' in result['decode_info']:
-        st.write("**Decoded Feature Preferences:**")
-        for feature, value in result['decode_info']['preferences'].items():
-            st.write(f"  {feature}: {'|1⟩' if value == 1 else '|0⟩'}")
+    # Display decoding info with debug information
+    if 'decode_info' in result:
+        decode_info = result['decode_info']
+        if 'preferences' in decode_info:
+            st.write("**Decoded Feature Preferences:**")
+            for feature, value in decode_info['preferences'].items():
+                state_str = "|1⟩ (accept/deprioritize)" if value == 1 else "|0⟩ (minimize/avoid)"
+                st.write(f"  {feature}: {state_str}")
+        
+        # Debug information
+        if 'traffic_qubit_state' in decode_info:
+            traffic_state = decode_info['traffic_qubit_state']
+            traffic_state_str = "|0⟩ (avoid traffic)" if traffic_state == 0 else "|1⟩ (accept traffic)"
+            st.write(f"**Traffic Qubit State:** {traffic_state_str}")
+        
+        if 'traffic_weight_used' in decode_info and decode_info['traffic_weight_used'] is not None:
+            st.write(f"**Traffic Weight Used:** {decode_info['traffic_weight_used']:.4f}")
+        
+        if 'time_matrix_used' in decode_info:
+            time_matrix_type = decode_info['time_matrix_used']
+            st.write(f"**Time Matrix Used:** {time_matrix_type}")
+            if time_matrix_type == 'without_traffic':
+                st.info("ℹ️ Using time matrix WITHOUT traffic - QAOA chose to avoid traffic")
+            else:
+                st.info("ℹ️ Using time matrix WITH traffic - QAOA accepted traffic")
     
     return {
         'result': result,
@@ -165,7 +180,7 @@ def run_classical_optimization(
         (result_dict, distance_matrix, time_matrix)
     """
     # Calculate matrices
-    distance_calc, distance_matrix, time_matrix, _ = calculate_matrices(pois)
+    distance_calc, distance_matrix, time_matrix, _, _ = calculate_matrices(pois)
     
     # Prepare data
     prepared_data = prepare_data_for_classical(pois, user_preferences, distance_matrix, time_matrix)
@@ -193,32 +208,18 @@ def run_comparison(
     from app_helpers import time_string_to_minutes
     
     # Step 1: Calculate matrices
-    st.write("📐 Step 1: Calculating Distance & Time Matrices")
-    distance_calc, distance_matrix, time_matrix, traffic_penalty = calculate_matrices(pois)
-    st.success(f"✅ Calculated matrices for {len(pois)} POIs")
+    distance_calc, distance_matrix, time_matrix, traffic_penalty, time_matrix_without_traffic = calculate_matrices(pois)
     
     # Step 2: Classical Optimization
-    st.write("🔧 Step 2: Classical Optimization")
     classical_result, _, _ = run_classical_optimization(pois, user_preferences, classical_algorithm)
     classical_route_pois = [pois[i] for i in classical_result['route']]
-    st.success(f"✅ Classical optimization complete ({classical_algorithm})")
     
-    # Display classical route for debugging
-    with st.expander("🔍 Classical Route Details"):
-        st.write(f"**Algorithm:** {classical_algorithm} (Raw Distance Only)")
-        st.write(f"**Route Indices:** {classical_result['route']}")
-        st.write(f"**Route Names:** {' → '.join([poi['name'] for poi in classical_route_pois])}")
-        st.write(f"**Total Distance:** {classical_result.get('total_distance', 0):.2f} km")
-        st.write(f"**Execution Time:** {classical_result.get('execution_time', 0):.4f} s")
-        st.info("ℹ️ Classical algorithm uses ONLY raw distance matrix - no traffic, time, or preference weights")
+    
     
     # Step 3: Create Feature Matrix
-    st.write("📊 Step 3: Creating Feature Matrix")
     feature_matrix, feature_info = create_feature_matrix(pois, user_preferences, distance_calc)
-    st.success(f"✅ Feature matrix created: {feature_matrix.shape}")
     
     # Step 4: Quantum Optimization
-    st.write("⚛️ Step 4: Quantum Optimization")
     qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
     # Map 'preferences' to 'category' for QUBO encoder
     qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
@@ -243,57 +244,12 @@ def run_comparison(
         distance_matrix=distance_matrix,
         time_matrix=time_matrix,
         traffic_penalty_matrix=traffic_penalty,
-        pois=pois
+        pois=pois,
+        time_matrix_without_traffic=time_matrix_without_traffic
     )
     quantum_route_pois = [pois[i] for i in quantum_result['route']]
-    st.success("✅ Quantum optimization complete (QAOA - Feature-Based)")
-    
-    # Display quantum route for debugging
-    with st.expander("🔍 Quantum Route Details"):
-        st.write(f"**Route Indices:** {quantum_result['route']}")
-        st.write(f"**Route Names:** {' → '.join([poi['name'] for poi in quantum_route_pois])}")
-        st.write(f"**Total Distance:** {quantum_result.get('total_distance', 0):.2f} km")
-        st.write(f"**Energy:** {quantum_result.get('energy', 0):.4f}")
-        st.write(f"**Success:** {quantum_result.get('success', False)}")
-        
-        # Show optimization method used
-        method = quantum_result.get('method', 'unknown')
-        if method == 'qaoa':
-            st.success("✅ **QAOA Optimization Used** - Quantum measurements determined preferences")
-        elif method == 'classical_fallback':
-            st.warning("⚠️ **Classical Fallback Used** - QAOA initialization failed, used NumPyMinimumEigensolver")
-        else:
-            st.info(f"**Method:** {method}")
-        
-        # Show measurement results and decoded preferences
-        if 'decode_info' in quantum_result:
-            decode_info = quantum_result['decode_info']
-            if 'bitstring' in decode_info:
-                st.write(f"**Measured Bitstring:** `{decode_info['bitstring']}`")
-            if 'preferences' in decode_info:
-                st.write("**QAOA Decoded Preferences (from qubit measurements):**")
-                prefs = decode_info['preferences']
-                for feature, value in prefs.items():
-                    state_str = "|0⟩ (minimize/avoid)" if value == 0 else "|1⟩ (accept/deprioritize)"
-                    st.write(f"  - **{feature.capitalize()}**: {state_str}")
-        
-        # Show comparison summary
-        st.markdown("---")
-        st.markdown("**Comparison Method:**")
-        st.write("- **Classical**: Uses ONLY raw distance (no preferences, no weights)")
-        st.write("- **QAOA**: Uses weighted matrix based on quantum measurements")
-        
-        # Show if routes are the same
-        if classical_result['route'] == quantum_result['route']:
-            st.warning("⚠️ **Routes are identical!** This may happen when:")
-            st.write("  - The shortest distance path is also optimal for QAOA preferences")
-            st.write("  - POI set is small with limited routing options")
-            st.write("  - Traffic/time differences don't create alternative optimal paths")
-        else:
-            st.success("✅ **Routes are different!** QAOA found a different solution based on quantum preferences.")
     
     # Step 5: Calculate metrics
-    st.write("📈 Step 5: Calculating Comparison Metrics")
     metrics_calc = MetricsCalculator()
     start_time_minutes = time_string_to_minutes(user_preferences.get('start_time', '08:00:00'))
     

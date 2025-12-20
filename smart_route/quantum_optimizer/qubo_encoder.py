@@ -169,8 +169,10 @@ class QUBOEncoder:
             traffic_factor = avg_traffic_value / max_traffic_value if max_traffic_value > 0 else 1.0
             traffic_weight = constraint_weights.get('traffic', 0.1)
             # Stronger diagonal term: prefer |0⟩ (avoid traffic) when traffic_weight is high
-            # Scale by traffic_weight * 4 to amplify the effect more
-            qubo_matrix[3, 3] = -traffic_weight * 4.0 * traffic_factor
+            # Scale by traffic_weight * 10.0 to amplify the effect more aggressively
+            # Adaptive scaling: higher traffic_weight gets even stronger encoding
+            scaling_factor = 10.0 + (traffic_weight * 5.0)  # 10.0 to 15.0 range
+            qubo_matrix[3, 3] = -traffic_weight * scaling_factor * traffic_factor
             
             # Interaction: traffic affects time (stronger when traffic_weight is high)
             # When traffic is high, avoiding traffic (|0⟩) should reduce time

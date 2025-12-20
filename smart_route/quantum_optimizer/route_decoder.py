@@ -24,7 +24,8 @@ class RouteDecoder:
         distance_matrix: Optional[np.ndarray] = None,
         time_matrix: Optional[np.ndarray] = None,
         traffic_penalty_matrix: Optional[np.ndarray] = None,
-        pois: Optional[List[Dict]] = None
+        pois: Optional[List[Dict]] = None,
+        time_matrix_without_traffic: Optional[np.ndarray] = None
     ) -> Tuple[List[int], Dict]:
         """
         Decode quantum measurement result to route
@@ -53,7 +54,8 @@ class RouteDecoder:
                 distance_matrix,
                 time_matrix,
                 traffic_penalty_matrix,
-                pois
+                pois,
+                time_matrix_without_traffic
             )
         
         # Legacy decoding (n*n qubits)
@@ -93,7 +95,8 @@ class RouteDecoder:
         distance_matrix: np.ndarray,
         time_matrix: Optional[np.ndarray] = None,
         traffic_penalty_matrix: Optional[np.ndarray] = None,
-        pois: Optional[List[Dict]] = None
+        pois: Optional[List[Dict]] = None,
+        time_matrix_without_traffic: Optional[np.ndarray] = None
     ) -> Tuple[List[int], Dict]:
         """
         Decode feature-based quantum result to route using weighted nearest neighbor
@@ -139,10 +142,25 @@ class RouteDecoder:
         # Get constraint weights for weighted matrix creation
         constraint_weights = encoding_info.get('constraint_weights', {})
         
+        # Determine which time matrix to use based on traffic qubit measurement
+        # |0⟩ (avoid traffic) = use time without traffic for time component
+        # |1⟩ (accept traffic) = use time with traffic
+        traffic_qubit_state = preferences.get('traffic', 0)
+        effective_time_matrix = time_matrix  # Default to time with traffic
+        
+        if traffic_qubit_state == 0 and time_matrix_without_traffic is not None:
+            # Traffic qubit is |0⟩ (avoid traffic) - use time without traffic
+            effective_time_matrix = time_matrix_without_traffic
+        
+        # Calculate traffic weight for debug info (same logic as in _create_weighted_matrix)
+        base_traffic_weight = 1.0 if traffic_qubit_state == 0 else 0.15
+        traffic_constraint_weight = constraint_weights.get('traffic', 0.1)
+        traffic_weight = base_traffic_weight * (1.0 + traffic_constraint_weight * 15.0)
+        
         # Create weighted cost matrix based on preferences
         weighted_matrix = self._create_weighted_matrix(
             distance_matrix,
-            time_matrix,
+            effective_time_matrix,
             traffic_penalty_matrix,
             preferences,
             constraint_weights
@@ -154,6 +172,7 @@ class RouteDecoder:
         # Validate route
         validation = self._validate_route(route, num_pois)
         
+        # Store debug information
         decode_info = {
             'bitstring': best_bitstring,
             'route': route,
@@ -161,7 +180,10 @@ class RouteDecoder:
             'num_pois': num_pois,
             'preferences': preferences,
             'qubit_mapping': qubit_mapping,
-            'encoding_type': 'feature_based'
+            'encoding_type': 'feature_based',
+            'traffic_qubit_state': traffic_qubit_state,
+            'traffic_weight_used': traffic_weight if 'traffic' in preferences else None,
+            'time_matrix_used': 'without_traffic' if (traffic_qubit_state == 0 and time_matrix_without_traffic is not None) else 'with_traffic'
         }
         
         return route, decode_info
@@ -211,8 +233,8 @@ class RouteDecoder:
         base_traffic_weight = 1.0 if preferences.get('traffic', 0) == 0 else 0.15
         traffic_constraint_weight = constraint_weights.get('traffic', 0.1)
         # Scale traffic weight: higher constraint weight = stronger traffic avoidance
-        # Multiply by (1 + traffic_constraint_weight * 8) for even stronger amplification
-        traffic_weight = base_traffic_weight * (1.0 + traffic_constraint_weight * 8.0)
+        # Multiply by (1 + traffic_constraint_weight * 15.0) for stronger amplification
+        traffic_weight = base_traffic_weight * (1.0 + traffic_constraint_weight * 15.0)
         
         # Combine weighted matrices - QAOA preferences influence each component
         for i in range(n):

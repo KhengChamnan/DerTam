@@ -226,7 +226,8 @@ class QAOASolver:
         distance_matrix: Optional[np.ndarray] = None,
         time_matrix: Optional[np.ndarray] = None,
         traffic_penalty_matrix: Optional[np.ndarray] = None,
-        pois: Optional[List[Dict]] = None
+        pois: Optional[List[Dict]] = None,
+        time_matrix_without_traffic: Optional[np.ndarray] = None
     ) -> Dict:
         """
         Solve QUBO problem using QAOA
@@ -255,7 +256,7 @@ class QAOASolver:
         if self.sampler is None:
             return self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
-                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
         
         try:
@@ -269,13 +270,13 @@ class QAOASolver:
             print(f"Warning: QAOA initialization failed (TypeError - likely sampler API mismatch): {e}")
             return self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
-                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
         except Exception as e:
             print(f"Warning: QAOA initialization failed: {e}")
             return self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
-                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
         
         # Solve
@@ -306,7 +307,7 @@ class QAOASolver:
             # Decode route using feature-based decoder
             route, decode_info = self.decoder.decode_route(
                 counts, num_pois, encoding_info,
-                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
             
             # Create circuit for visualization
@@ -383,7 +384,7 @@ class QAOASolver:
             print(f"QAOA optimization failed: {e}")
             return self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
-                distance_matrix, time_matrix, traffic_penalty_matrix, pois
+                distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
     
     def _qubo_to_ising(self, qubo_matrix: np.ndarray) -> SparsePauliOp:
@@ -525,7 +526,8 @@ class QAOASolver:
         distance_matrix: Optional[np.ndarray] = None,
         time_matrix: Optional[np.ndarray] = None,
         traffic_penalty_matrix: Optional[np.ndarray] = None,
-        pois: Optional[List[Dict]] = None
+        pois: Optional[List[Dict]] = None,
+        time_matrix_without_traffic: Optional[np.ndarray] = None
     ) -> Dict:
         """Fallback to classical solver if QAOA fails"""
         ising_hamiltonian = self._qubo_to_ising(qubo_matrix)
@@ -547,7 +549,7 @@ class QAOASolver:
         # Decode route
         route, decode_info = self.decoder.decode_route(
             counts, num_pois, encoding_info,
-            distance_matrix, time_matrix, traffic_penalty_matrix, pois
+            distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
         )
         
         # Create circuit for visualization (still show full layers for display)
