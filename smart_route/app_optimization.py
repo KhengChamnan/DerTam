@@ -47,7 +47,7 @@ def run_quantum_optimization(
         Dictionary with optimization result and metadata
     """
     # Step 1: Calculate matrices
-    distance_calc, distance_matrix, time_matrix, traffic_penalty = calculate_matrices(pois)
+    distance_calc, distance_matrix, time_matrix, traffic_penalty, time_matrix_without_traffic = calculate_matrices(pois)
   
     # Step 2: Create feature matrix
     feature_matrix, feature_info = create_feature_matrix(pois, user_preferences, distance_calc)
