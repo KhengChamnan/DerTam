@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 def render_route_map(route_pois: List[Dict], title: str = "Optimized Route"):
-    """Render route on map"""
+    """Render route on map with full width and interactive controls"""
     fig = go.Figure()
     
     lats = [float(poi['lat']) for poi in route_pois]
@@ -32,13 +32,35 @@ def render_route_map(route_pois: List[Dict], title: str = "Optimized Route"):
         mapbox=dict(
             style="open-street-map",
             center=dict(lat=float(np.mean(lats)), lon=float(np.mean(lngs))),
-            zoom=12
+            zoom=12,
+            bearing=0,
+            pitch=0
         ),
         height=600,
-        title=title
+        title=title,
+        # Remove margins for full width display
+        margin=dict(l=0, r=0, t=40, b=0),
+        # Enable pan and zoom interactions
+        dragmode="pan",
+        hovermode="closest"
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    # Configure Plotly chart for full interactivity (pan, zoom, etc.)
+    config = {
+        'displayModeBar': True,
+        'displaylogo': False,
+        'scrollZoom': True,  # Enable mouse wheel zoom
+        'doubleClick': 'reset',  # Double-click to reset view
+        'toImageButtonOptions': {
+            'format': 'png',
+            'filename': 'route_map',
+            'height': 600,
+            'width': None,
+            'scale': 1
+        }
+    }
+    
+    st.plotly_chart(fig, use_container_width=True, config=config)
 
 
 def render_route_details(route: List[int], route_pois: List[Dict], 
@@ -172,7 +194,7 @@ def render_comparison_maps(classical_route_pois: List[Dict], quantum_route_pois:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 🔧 Classical Route")
+        st.markdown("###  Classical Route")
         fig_classical = go.Figure()
         lats_c = [float(poi['lat']) for poi in classical_route_pois]
         lngs_c = [float(poi['lng']) for poi in classical_route_pois]
@@ -196,7 +218,7 @@ def render_comparison_maps(classical_route_pois: List[Dict], quantum_route_pois:
         st.markdown(f"**Route:** {route_text_c}")
     
     with col2:
-        st.markdown("### ⚛️ Quantum Route")
+        st.markdown("###  Quantum Route")
         fig_quantum = go.Figure()
         lats_q = [float(poi['lat']) for poi in quantum_route_pois]
         lngs_q = [float(poi['lng']) for poi in quantum_route_pois]
@@ -304,7 +326,7 @@ def render_traffic_comparison(
     
     
     # Traffic heatmap for route segments
-    st.markdown("### 📊 Traffic Heatmap by Route Segment")
+    st.markdown("###  Traffic by Route Segment")
     
     # Prepare data for heatmap
     classical_segments = []
