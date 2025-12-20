@@ -117,6 +117,13 @@ with tab2:
                 )
                 
                 st.metric("Total Distance", f"{total_distance:.2f} km")
+                # Calculate total time
+                time_matrix = np.array(optimization_result['time_matrix'])
+                total_time = sum(
+                    time_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
+                    for i in range(len(optimization_result['route']) - 1)
+                )
+                st.metric("Total Travel Time", f"{total_time:.1f} min")
                 st.metric("Energy", f"{optimization_result['result']['energy']:.4f}")
                 st.metric("Valid Solution", "✅ Yes" if optimization_result['result']['is_valid'] else "❌ No")
                 

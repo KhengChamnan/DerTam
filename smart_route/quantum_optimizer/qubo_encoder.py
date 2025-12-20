@@ -167,14 +167,20 @@ class QUBOEncoder:
         # |0⟩ = avoid high-traffic routes, |1⟩ = accept high-traffic routes
         if num_qubits >= 4:
             traffic_factor = avg_traffic_value / max_traffic_value if max_traffic_value > 0 else 1.0
-            qubo_matrix[3, 3] = -constraint_weights.get('traffic', 0.1) * traffic_factor
+            traffic_weight = constraint_weights.get('traffic', 0.1)
+            # Stronger diagonal term: prefer |0⟩ (avoid traffic) when traffic_weight is high
+            # Scale by traffic_weight * 4 to amplify the effect more
+            qubo_matrix[3, 3] = -traffic_weight * 4.0 * traffic_factor
             
-            # Interaction: traffic affects time
-            qubo_matrix[1, 3] = constraint_weights.get('traffic', 0.1) * 0.15
+            # Interaction: traffic affects time (stronger when traffic_weight is high)
+            # When traffic is high, avoiding traffic (|0⟩) should reduce time
+            qubo_matrix[1, 3] = traffic_weight * 0.5  # Increased for stronger coupling
             qubo_matrix[3, 1] = qubo_matrix[1, 3]
             
             # Interaction: traffic affects distance preference
-            qubo_matrix[0, 3] = constraint_weights.get('traffic', 0.1) * 0.1
+            # When avoiding traffic (|0⟩), may need longer routes (|0⟩ for distance too)
+            # This creates a trade-off: longer distance to avoid traffic
+            qubo_matrix[0, 3] = traffic_weight * 0.4  # Increased for stronger coupling
             qubo_matrix[3, 0] = qubo_matrix[0, 3]
         
         # Store encoding information

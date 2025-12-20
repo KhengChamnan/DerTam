@@ -13,6 +13,9 @@ from app_helpers import (
     calculate_matrices, create_feature_matrix, prepare_data_for_classical
 )
 
+# Import for traffic debugging
+import numpy as np
+
 
 def _map_constraint_weights_for_qubo(constraint_weights: Dict) -> Dict:
     """
@@ -47,6 +50,19 @@ def run_quantum_optimization(
     st.write("📐 Step 1: Calculating Distance & Time Matrices")
     distance_calc, distance_matrix, time_matrix, traffic_penalty = calculate_matrices(pois)
     st.success(f"✅ Calculated matrices for {len(pois)} POIs")
+    
+    # Debug: Show traffic penalty matrix statistics
+    if traffic_penalty is not None:
+        traffic_min = np.min(traffic_penalty[traffic_penalty > 0]) if np.any(traffic_penalty > 0) else 0
+        traffic_max = np.max(traffic_penalty) if np.any(traffic_penalty > 0) else 0
+        traffic_mean = np.mean(traffic_penalty[traffic_penalty > 0]) if np.any(traffic_penalty > 0) else 0
+        traffic_std = np.std(traffic_penalty[traffic_penalty > 0]) if np.any(traffic_penalty > 0) else 0
+        
+        st.write(f"**Traffic Penalty Stats:** Min={traffic_min:.4f}, Max={traffic_max:.4f}, Mean={traffic_mean:.4f}, Std={traffic_std:.4f}")
+        if traffic_std < 0.01:
+            st.warning("⚠️ **Warning:** Traffic penalty matrix is nearly uniform (std < 0.01). Routes may not change with traffic sensitivity because all routes have similar traffic penalties.")
+        else:
+            st.info(f"✅ Traffic penalty has variation (std={traffic_std:.4f}), so traffic sensitivity should affect routes.")
     
     # Step 2: Create feature matrix
     st.write("📊 Step 2: Creating Feature Matrix")

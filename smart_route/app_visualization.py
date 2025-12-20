@@ -6,7 +6,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 
 
@@ -800,4 +800,137 @@ def render_step_by_step_workflow(
         # Route details table
         st.markdown("**Route Details:**")
         render_route_details(route, route_pois, distance_matrix, time_matrix)
+
+
+def render_traffic_sensitivity_explanation(
+    traffic_sensitivity: float,
+    total_distance: float,
+    total_time: float,
+    distance_matrix: np.ndarray,
+    time_matrix: np.ndarray,
+    route: List[int],
+    user_preferences: Dict = None
+):
+    """
+    Explain how traffic sensitivity affects the route optimization
+    
+    Args:
+        traffic_sensitivity: Traffic sensitivity value (0.0 to 1.0)
+        total_distance: Total route distance in km
+        total_time: Total route time in minutes
+        distance_matrix: Distance matrix
+        time_matrix: Time matrix (with traffic)
+        route: Route as list of POI indices
+        user_preferences: User preferences dict
+    """
+    st.markdown("---")
+    st.subheader("🚦 Traffic Sensitivity Impact Analysis")
+    
+    # Calculate base time (without traffic) for comparison
+    base_time = 0.0
+    for i in range(len(route) - 1):
+        dist = distance_matrix[route[i]][route[i+1]]
+        # Assume 30 km/h average speed without traffic
+        base_time += (dist / 30.0) * 60.0  # Convert to minutes
+    
+    time_increase = total_time - base_time
+    time_increase_pct = (time_increase / base_time * 100) if base_time > 0 else 0
+    
+    # Determine traffic sensitivity level
+    if traffic_sensitivity >= 0.7:
+        sensitivity_level = "High"
+        sensitivity_emoji = "🔴"
+        expected_behavior = "Avoid traffic routes (longer distance, faster time)"
+    elif traffic_sensitivity >= 0.4:
+        sensitivity_level = "Medium"
+        sensitivity_emoji = "🟡"
+        expected_behavior = "Balance between distance and traffic avoidance"
+    else:
+        sensitivity_level = "Low"
+        sensitivity_emoji = "🟢"
+        expected_behavior = "Accept direct routes (shorter distance, slower time due to traffic)"
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(f"### {sensitivity_emoji} Traffic Sensitivity: **{sensitivity_level}** ({traffic_sensitivity:.1f})")
+        st.info(f"""
+        **Expected Behavior:**
+        {expected_behavior}
+        
+        **Your Route:**
+        - Total Distance: **{total_distance:.2f} km**
+        - Total Travel Time: **{total_time:.1f} min**
+        - Base Time (no traffic): **{base_time:.1f} min**
+        - Time Increase: **+{time_increase:.1f} min** ({time_increase_pct:.1f}% slower)
+        """)
+    
+    with col2:
+        # Show what would happen with opposite sensitivity
+        if traffic_sensitivity >= 0.7:
+            opposite_level = "Low (0.1)"
+            opposite_expected = "Shorter distance but stuck in traffic"
+        else:
+            opposite_level = "High (0.9)"
+            opposite_expected = "Longer distance to avoid traffic"
+        
+        st.markdown(f"### 🔄 If Sensitivity Was {opposite_level}")
+        st.warning(f"""
+        **Expected Behavior:**
+        {opposite_expected}
+        
+        **To see the actual difference:**
+        1. Change Traffic Sensitivity to {opposite_level} in Preferences tab
+        2. Save Preferences
+        3. Run optimization again
+        4. Compare the results
+        
+        *Note: Routes may not change if traffic data is uniform across all routes*
+        """)
+    
+    # Show traffic sensitivity explanation
+    st.markdown("### 📊 How Traffic Sensitivity Works")
+    
+    explanation_text = f"""
+    **Traffic Sensitivity = {traffic_sensitivity:.1f}** controls how much the optimizer avoids traffic:
+    
+    - **High Sensitivity (0.7-1.0)**: Optimizer heavily penalizes high-traffic routes
+      - ✅ **Benefit**: Faster travel time (avoids traffic jams)
+      - ❌ **Trade-off**: Longer total distance (takes detours to avoid traffic)
+      
+    - **Low Sensitivity (0.0-0.3)**: Optimizer accepts high-traffic routes
+      - ✅ **Benefit**: Shorter total distance (takes direct routes)
+      - ❌ **Trade-off**: Slower travel time (gets stuck in traffic)
+      
+    - **Medium Sensitivity (0.4-0.6)**: Balanced approach
+      - Balances distance and traffic avoidance
+    """
+    
+    st.markdown(explanation_text)
+    
+    # Show constraint weights if available
+    if user_preferences and 'constraint_weights' in user_preferences:
+        weights = user_preferences['constraint_weights']
+        st.markdown("### ⚖️ Current Constraint Weights")
+        weights_df = pd.DataFrame([
+            {"Constraint": "Distance", "Weight": f"{weights.get('distance', 0):.3f}"},
+            {"Constraint": "Time", "Weight": f"{weights.get('time', 0):.3f}"},
+            {"Constraint": "Category Diversity", "Weight": f"{weights.get('preferences', 0):.3f}"},
+            {"Constraint": "Traffic Avoidance", "Weight": f"{weights.get('traffic', 0):.3f}"},
+        ])
+        st.dataframe(weights_df, use_container_width=True, hide_index=True)
+        st.caption("💡 Higher traffic weight = stronger traffic avoidance")
+    
+    # Add important note about route changes
+    st.markdown("---")
+    st.info("""
+    **⚠️ Important Note:** 
+    
+    Routes may not change significantly if:
+    - Traffic data is uniform across all route segments (all routes have similar traffic)
+    - The POIs are very close together (distance differences are small)
+    - The optimal route is already the shortest path regardless of traffic
+    
+    To see traffic sensitivity effects, ensure your traffic data file has varied traffic factors for different route segments.
+    """)
 
