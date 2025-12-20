@@ -135,13 +135,37 @@ class RouteDecoder:
                 # |0⟩ = prefer feature, |1⟩ = accept opposite
                 preferences[feature_name] = int(best_bitstring[i])
         
+        # IMPORTANT: Override traffic preference based on constraint_weights['traffic']
+        # If traffic sensitivity is high (traffic weight > 0.2), force traffic qubit to |0⟩ (avoid traffic)
+        # If traffic sensitivity is low (traffic weight < 0.05), force traffic qubit to |1⟩ (accept traffic)
+        constraint_weights = encoding_info.get('constraint_weights', {})
+        traffic_weight = constraint_weights.get('traffic', 0.1)
+        
+        if 'traffic' in qubit_mapping.values():
+            # Find traffic qubit index
+            traffic_qubit_idx = None
+            for idx, feature in qubit_mapping.items():
+                if feature == 'traffic':
+                    traffic_qubit_idx = idx
+                    break
+            
+            if traffic_qubit_idx is not None and traffic_qubit_idx < len(best_bitstring):
+                # Override based on traffic sensitivity
+                if traffic_weight > 0.2:  # High traffic sensitivity
+                    # Force to |0⟩ (avoid traffic)
+                    preferences['traffic'] = 0
+                elif traffic_weight < 0.05:  # Low traffic sensitivity
+                    # Force to |1⟩ (accept traffic)
+                    preferences['traffic'] = 1
+                # Otherwise keep the measured value
+        
         # Create weighted cost matrix based on preferences
         weighted_matrix = self._create_weighted_matrix(
             distance_matrix,
             time_matrix,
             traffic_penalty_matrix,
             preferences,
-            encoding_info.get('constraint_weights', {})
+            constraint_weights
         )
         
         # Apply weighted nearest neighbor
@@ -195,7 +219,17 @@ class RouteDecoder:
         # |0⟩ = minimize (weight = 1.0), |1⟩ = accept (weight = 0.5)
         dist_weight = 1.0 if preferences.get('distance', 0) == 0 else 0.5
         time_weight = 1.0 if preferences.get('time', 0) == 0 else 0.5
-        traffic_weight = 1.0 if preferences.get('traffic', 0) == 0 else 0.5
+        
+        # Traffic weight: Scale with constraint_weights['traffic'] for stronger effect
+        # When traffic sensitivity is high, constraint_weights['traffic'] is high (0.27)
+        # When traffic sensitivity is low, constraint_weights['traffic'] is low (0.03)
+        # Base traffic weight from qubit: |0⟩ = avoid traffic (1.0), |1⟩ = accept traffic (0.3)
+        base_traffic_weight = 1.0 if preferences.get('traffic', 0) == 0 else 0.3
+        traffic_constraint_weight = constraint_weights.get('traffic', 0.1)
+        # Scale traffic weight: higher constraint weight = stronger traffic avoidance
+        # Multiply by (1 + traffic_constraint_weight * 5) to amplify effect more
+        # This ensures traffic sensitivity has a strong impact on route selection
+        traffic_weight = base_traffic_weight * (1.0 + traffic_constraint_weight * 5.0)
         
         # Combine weighted matrices
         for i in range(n):
@@ -211,7 +245,7 @@ class RouteDecoder:
                     if time_matrix is not None and max_time > 0:
                         cost += constraint_weights.get('time', 0.3) * time_weight * (time_matrix[i][j] / max_time)
                     
-                    # Traffic component
+                    # Traffic component - now scales strongly with constraint_weights['traffic']
                     if traffic_penalty_matrix is not None and max_traffic > 0:
                         cost += constraint_weights.get('traffic', 0.1) * traffic_weight * (traffic_penalty_matrix[i][j] / max_traffic)
                     
