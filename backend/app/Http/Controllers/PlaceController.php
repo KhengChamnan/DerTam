@@ -403,6 +403,10 @@ class PlaceController extends Controller
     public function import(Request $request): RedirectResponse
     {
         try {
+            // Increase limits for import operations
+            set_time_limit(600); // 10 minutes
+            ini_set('memory_limit', '512M');
+            
             $request->validate([
                 'file' => 'required|file|mimes:xlsx,csv,xls|max:102400',
             ]);

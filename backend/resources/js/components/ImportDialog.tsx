@@ -202,11 +202,6 @@ export default function ImportDialog({ trigger }: ImportDialogProps) {
                         <FileSpreadsheet className="h-5 w-5" />
                         Import Places
                     </DialogTitle>
-                    <DialogDescription>
-                        Upload an Excel or CSV file to import multiple places at
-                        once. Download the template first to see the required
-                        format.
-                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6">

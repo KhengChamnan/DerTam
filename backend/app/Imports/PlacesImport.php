@@ -26,6 +26,10 @@ class PlacesImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
+        // Increase execution time and memory limit for import
+        set_time_limit(600); // 10 minutes
+        ini_set('memory_limit', '512M');
+        
         foreach ($rows as $index => $row) {
             try {
                 $this->processRow($row, $index + 2); // +2 because of heading row and 0-based index
@@ -105,9 +109,17 @@ class PlacesImport implements ToCollection, WithHeadingRow
         $imagePublicIds = [];
         $urlList = [];
         
-        // Method 1: Check for 'image_urls' column (single column with JSON array, pipe-separated, or comma-separated)
+        // Method 1: Check for 'image_urls' or 'images_url' column (single column with JSON array, pipe-separated, or comma-separated)
+        // Support both column names for flexibility
+        $imageUrlsColumn = null;
         if (!empty($row['image_urls'])) {
-            $imageUrlsValue = trim($row['image_urls']);
+            $imageUrlsColumn = 'image_urls';
+        } elseif (!empty($row['images_url'])) {
+            $imageUrlsColumn = 'images_url';
+        }
+        
+        if ($imageUrlsColumn !== null) {
+            $imageUrlsValue = trim($row[$imageUrlsColumn]);
             
             // Decode HTML entities (convert &amp; to &, etc.)
             $imageUrlsValue = html_entity_decode($imageUrlsValue, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -143,9 +155,11 @@ class PlacesImport implements ToCollection, WithHeadingRow
             }
         }
         
-        // Log how many URLs were found
+        // Log if images are found
         if (!empty($urlList)) {
-            Log::info("Row {$rowNumber}: Found " . count($urlList) . " image URLs for place: " . $row['name']);
+            Log::info("Row {$rowNumber}: Found {count} image URL(s) for: {$row['name']}", [
+                'count' => count($urlList)
+            ]);
         }
         
         // Process all collected URLs
@@ -166,23 +180,16 @@ class PlacesImport implements ToCollection, WithHeadingRow
             }
             
             try {
-                Log::info("Row {$rowNumber}: Attempting to download image [" . ($index + 1) . "]", [
-                    'url_preview' => substr($imageUrl, 0, 100) . '...'
-                ]);
-                
                 $result = $this->downloadAndUploadImage($imageUrl, $row['name']);
                 
                 if ($result) {
                     $imageUrls[] = $result['url'];
                     $imagePublicIds[] = $result['public_id'];
-                    Log::info("Row {$rowNumber}: Successfully uploaded image [" . ($index + 1) . "] to Cloudinary");
                 }
             } catch (\Exception $e) {
-                Log::error("Row {$rowNumber}: Failed to download/upload image [" . ($index + 1) . "]", [
-                    'place_name' => $row['name'],
-                    'image_url' => substr($imageUrl, 0, 200) . '...', // Show more of URL for debugging
+                Log::error("Row {$rowNumber}: Failed to process image [" . ($index + 1) . "] for {$row['name']}", [
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'url_preview' => substr($imageUrl, 0, 100)
                 ]);
                 // Continue with other images even if one fails
             }
@@ -234,7 +241,7 @@ class PlacesImport implements ToCollection, WithHeadingRow
                     'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n",
                     'follow_location' => true,
                     'max_redirects' => 5,
-                    'timeout' => 30,
+                    'timeout' => 15, // Reduced to 15 seconds per image
                     'ignore_errors' => false
                 ],
                 'ssl' => [
