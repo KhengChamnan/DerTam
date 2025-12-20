@@ -14,6 +14,24 @@ from app_helpers import (
 )
 
 
+def _map_constraint_weights_for_qubo(constraint_weights: Dict) -> Dict:
+    """
+    Map constraint_weights from user preferences format to QUBO format.
+    Maps 'preferences' to 'category' for quantum optimization.
+    
+    Args:
+        constraint_weights: Constraint weights dict with 'preferences' key
+        
+    Returns:
+        Constraint weights dict with 'category' key (for QUBO encoder)
+    """
+    qubo_weights = constraint_weights.copy()
+    # Map 'preferences' to 'category' for QUBO encoder
+    if 'preferences' in qubo_weights:
+        qubo_weights['category'] = qubo_weights.pop('preferences')
+    return qubo_weights
+
+
 def run_quantum_optimization(
     pois: List[Dict],
     user_preferences: Dict,
@@ -47,11 +65,13 @@ def run_quantum_optimization(
     # Step 3: QUBO Encoding
     st.write("🔢 Step 3: Encoding to QUBO (Feature-Based)")
     qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
+    # Map 'preferences' to 'category' for QUBO encoder
+    qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
     qubo_matrix, encoding_info = qubo_encoder.encode_feature_based(
         feature_matrix, distance_matrix,
         time_matrix=time_matrix,
         traffic_penalty_matrix=traffic_penalty,
-        constraint_weights=user_preferences['constraint_weights'],
+        constraint_weights=qubo_constraint_weights,
         num_qubits=4,
         feature_info=feature_info
     )
@@ -182,11 +202,13 @@ def run_comparison(
     # Step 4: Quantum Optimization
     st.write("⚛️ Step 4: Quantum Optimization")
     qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
+    # Map 'preferences' to 'category' for QUBO encoder
+    qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
     qubo_matrix, encoding_info = qubo_encoder.encode_feature_based(
         feature_matrix, distance_matrix,
         time_matrix=time_matrix,
         traffic_penalty_matrix=traffic_penalty,
-        constraint_weights=user_preferences['constraint_weights'],
+        constraint_weights=qubo_constraint_weights,
         num_qubits=4,
         feature_info=feature_info
     )

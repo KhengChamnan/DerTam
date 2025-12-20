@@ -190,52 +190,30 @@ def render_preferences_tab() -> Dict:
         calculated_weights = calculate_weights_from_traffic_sensitivity(traffic_sensitivity)
         
         st.subheader("⚖️ Constraint Weights (Auto-calculated)")
-        st.info("ℹ️ All weights are automatically calculated based on Traffic Sensitivity. When traffic sensitivity is high, distance and time are prioritized more; when low, preferences get more weight.")
+        st.info("ℹ️ All weights are automatically calculated based on Traffic Sensitivity. When traffic sensitivity is high, distance and time are prioritized more; when low, category diversity gets more weight.")
         
         # Display calculated weights in a read-only format
         weights_df = pd.DataFrame([
             {"Constraint": "Distance", "Weight": f"{calculated_weights['distance']:.3f}"},
             {"Constraint": "Time", "Weight": f"{calculated_weights['time']:.3f}"},
-            {"Constraint": "Preferences", "Weight": f"{calculated_weights['preferences']:.3f}"},
+            {"Constraint": "Category Diversity", "Weight": f"{calculated_weights['preferences']:.3f}"},
             {"Constraint": "Traffic (from Traffic Sensitivity)", "Weight": f"{calculated_weights['traffic']:.3f}"},
             {"Constraint": "Total", "Weight": f"{sum(calculated_weights.values()):.3f}"}
         ])
         st.dataframe(weights_df, use_container_width=True, hide_index=True)
-    
-    # POI Category Preferences - Dynamic based on selected POIs
-    st.subheader("🎯 POI Category Preferences")
-    
-    if selected_pois:
-        # Get unique categories only from selected POIs
-        categories = sorted(set(poi.get('category', 'Unknown') for poi in selected_pois))
-        category_options = ["No preference"] + categories
+        st.caption("💡 **Category Diversity**: Weight for category diversity in quantum optimization. Controls whether to prefer similar categories (grouped) or diverse categories (mixed). Higher weight = more emphasis on category diversity.")
         
-        # Get current preferred category from session state if it exists
-        current_preferred = st.session_state.get('preferred_category', "No preference")
-        
-        # If current preferred category is not in the new options, reset to "No preference"
-        if current_preferred not in category_options:
-            current_preferred = "No preference"
-            st.session_state.preferred_category = "No preference"
-        
-        # Find index of current preferred category
-        try:
-            default_index = category_options.index(current_preferred)
-        except ValueError:
-            default_index = 0
-        
-        preferred_category = st.radio(
-            "Select preferred POI category:",
-            options=category_options,
-            index=default_index,
-            key="preferred_category",
-            help=f"Choose a category to prioritize in route optimization. Showing categories from your {len(selected_pois)} selected POI(s)."
-        )
-        if preferred_category == "No preference":
-            preferred_category = None
-    else:
-        st.info("ℹ️ Please select POIs in the sidebar to see category preferences.")
-        preferred_category = None
+        # Add clarification note about Category Diversity
+        with st.expander("ℹ️ About Category Diversity (Quantum/QUBO)", expanded=False):
+            st.markdown("""
+            **Category Diversity** (Quantum/QUBO): This weight controls whether the optimizer prefers routes with similar categories grouped together, or routes with diverse categories mixed.
+            
+            **How it works**: Qubit 2 in the QUBO encoding represents category diversity preference:
+            - |0⟩ = prefer similar categories (grouped)
+            - |1⟩ = prefer diverse categories (mixed)
+            
+            **Note**: Quantum optimization does NOT prioritize specific categories (like "Temple"). It only considers whether categories should be similar or diverse.
+            """)
     
     preferences = {
         "province": "Phnom Penh",
@@ -245,7 +223,7 @@ def render_preferences_tab() -> Dict:
         "trip_duration": trip_duration,
         "traffic_sensitivity": traffic_sensitivity,
         "traffic_avoidance": False,  # Always False, kept for backward compatibility
-        "preferred_category": preferred_category,
+        "preferred_category": None,  # Not used in quantum optimization
         "constraint_weights": {
             "distance": calculated_weights["distance"],
             "time": calculated_weights["time"],

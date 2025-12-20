@@ -1,17 +1,17 @@
 {
   "province": "Phnom Penh",
-  "start_lat": 11.5625,
-  "start_lon": 104.931,
-  "start_time": "12:20:15",
+  "start_lat": 11.5627,
+  "start_lon": 104.9312,
+  "start_time": "12:34:37",
   "trip_duration": 8,
-  "traffic_sensitivity": 1.0,
+  "traffic_sensitivity": 0.5,
   "traffic_avoidance": false,
-  "preferred_category": null,
+  "preferred_category": "Temple",
   "constraint_weights": {
-    "distance": 0.3,
-    "time": 0.3,
-    "preferences": 0.0,
-    "traffic": 0.4,
+    "distance": 0.34,
+    "time": 0.255,
+    "preferences": 0.255,
+    "traffic": 0.15,
     "constraints": 0.2
   }
 }
