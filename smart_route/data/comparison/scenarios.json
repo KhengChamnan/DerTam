@@ -119,6 +119,36 @@
         "classical_advantage": "Fast nearest neighbor for time-critical scenarios"
       },
       "selected_pois": ["poi_01", "poi_02", "poi_04", "poi_10"]
+    },
+    {
+      "id": "scenario_high_traffic",
+      "name": "High Traffic Route Comparison",
+      "description": "Demonstrates QAOA advantage: NN finds shortest distance but longer time due to traffic; QAOA finds traffic-aware route with better duration despite slightly longer distance",
+      "user_preferences": {
+        "province": "Phnom Penh",
+        "start_lat": 11.5625,
+        "start_lon": 104.931,
+        "start_time": "08:00:00",
+        "trip_duration": 8,
+        "max_distance": 15.0,
+        "num_pois": 4,
+        "traffic_sensitivity": 0.9,
+        "constraint_weights": {
+          "distance": 0.2,
+          "time": 0.5,
+          "preferences": 0.1,
+          "traffic": 0.2
+        },
+        "traffic_avoidance": true,
+        "preferred_category": null,
+        "avoid_categories": []
+      },
+      "traffic_conditions": "high_traffic",
+      "expected_outcomes": {
+        "quantum_advantage": "Finds traffic-aware route: slightly longer distance but significantly shorter travel time by avoiding high-traffic segments",
+        "classical_advantage": "Finds shortest distance path quickly, but may go through high-traffic areas resulting in longer travel time"
+      },
+      "selected_pois": ["poi_01", "poi_05", "poi_07", "poi_08"]
     }
   ],
   "metadata": {

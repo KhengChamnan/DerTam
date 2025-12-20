@@ -65,8 +65,7 @@ def render_route_details(route: List[int], route_pois: List[Dict],
             "POI Name": poi['name'],
             "Category": poi['category'],
             "Distance from Previous": f"{dist:.2f} km" if i > 0 else "Start",
-            "Travel Time": f"{time_val:.1f} min" if i > 0 else "Start",
-            "Visit Duration": f"{poi.get('visit_duration', 60)} min"
+            "Travel Time": f"{time_val:.1f} min" if i > 0 else "Start"
         })
     
     st.dataframe(route_details, use_container_width=True)
@@ -196,6 +195,260 @@ def render_comparison_charts(classical_quality: Dict, quantum_quality: Dict,
         st.plotly_chart(fig_time, use_container_width=True)
 
 
+def render_traffic_comparison(
+    classical_route: List[int],
+    quantum_route: List[int],
+    classical_route_pois: List[Dict],
+    quantum_route_pois: List[Dict],
+    classical_quality: Dict,
+    quantum_quality: Dict,
+    classical_traffic_impact: Dict,
+    quantum_traffic_impact: Dict,
+    distance_matrix: np.ndarray,
+    time_matrix: np.ndarray
+):
+    """
+    Render traffic-aware comparison showing NN vs QAOA advantage
+    
+    Args:
+        classical_route: Classical route indices
+        quantum_route: Quantum route indices
+        classical_route_pois: Classical route POI dictionaries
+        quantum_route_pois: Quantum route POI dictionaries
+        classical_quality: Classical quality metrics
+        quantum_quality: Quantum quality metrics
+        classical_traffic_impact: Classical traffic impact metrics
+        quantum_traffic_impact: Quantum traffic impact metrics
+        distance_matrix: Distance matrix
+        time_matrix: Time matrix with traffic
+    """
+    st.subheader("🚦 Traffic-Aware Route Comparison")
+    
+    # Key insight box
+    time_saved = classical_quality['total_time'] - quantum_quality['total_time']
+    distance_added = quantum_quality['total_distance'] - classical_quality['total_distance']
+    time_savings_pct = (time_saved / classical_quality['total_time'] * 100) if classical_quality['total_time'] > 0 else 0
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🔧 Nearest Neighbor (Classical)")
+        st.info(f"""
+        **Shortest Path Strategy**
+        - Distance: **{classical_quality['total_distance']:.2f} km** (shortest)
+        - Time: **{classical_quality['total_time']:.1f} min** (longer due to traffic)
+        - Traffic Impact: **{classical_traffic_impact['avg_traffic_factor']:.2f}x** average
+        - High-Traffic Segments: **{classical_traffic_impact['high_traffic_segments']}**
+        """)
+    
+    with col2:
+        st.markdown("### ⚛️ QAOA (Quantum)")
+        st.success(f"""
+        **Traffic-Aware Strategy**
+        - Distance: **{quantum_quality['total_distance']:.2f} km** (+{distance_added:.2f} km)
+        - Time: **{quantum_quality['total_time']:.1f} min** ({time_saved:.1f} min saved, {time_savings_pct:.1f}% faster)
+        - Traffic Impact: **{quantum_traffic_impact['avg_traffic_factor']:.2f}x** average
+        - High-Traffic Segments: **{quantum_traffic_impact['high_traffic_segments']}**
+        """)
+    
+    # Traffic heatmap for route segments
+    st.markdown("### 📊 Traffic Heatmap by Route Segment")
+    
+    # Prepare data for heatmap
+    classical_segments = []
+    quantum_segments = []
+    
+    for i, segment in enumerate(classical_traffic_impact['traffic_segments']):
+        classical_segments.append({
+            'Segment': f"{segment['from_poi']} → {segment['to_poi']}",
+            'Traffic Factor': segment['traffic_factor'],
+            'Distance (km)': segment['distance_km'],
+            'Time (min)': segment['time_with_traffic_min']
+        })
+    
+    for i, segment in enumerate(quantum_traffic_impact['traffic_segments']):
+        quantum_segments.append({
+            'Segment': f"{segment['from_poi']} → {segment['to_poi']}",
+            'Traffic Factor': segment['traffic_factor'],
+            'Distance (km)': segment['distance_km'],
+            'Time (min)': segment['time_with_traffic_min']
+        })
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### Classical Route Segments")
+        classical_df = pd.DataFrame(classical_segments)
+        st.dataframe(classical_df.style.background_gradient(
+            subset=['Traffic Factor'], 
+            cmap='Reds', 
+            vmin=1.0, 
+            vmax=2.0
+        ), use_container_width=True, hide_index=True)
+    
+    with col2:
+        st.markdown("#### Quantum Route Segments")
+        quantum_df = pd.DataFrame(quantum_segments)
+        st.dataframe(quantum_df.style.background_gradient(
+            subset=['Traffic Factor'], 
+            cmap='Greens', 
+            vmin=1.0, 
+            vmax=2.0
+        ), use_container_width=True, hide_index=True)
+    
+    # Comparison chart
+    st.markdown("### 📈 Distance vs Time Trade-off")
+    
+    fig = go.Figure()
+    
+    # Add classical point
+    fig.add_trace(go.Scatter(
+        x=[classical_quality['total_distance']],
+        y=[classical_quality['total_time']],
+        mode='markers+text',
+        marker=dict(size=15, color='blue', symbol='circle'),
+        text=['NN'],
+        textposition='top center',
+        name='Nearest Neighbor'
+    ))
+    
+    # Add quantum point
+    fig.add_trace(go.Scatter(
+        x=[quantum_quality['total_distance']],
+        y=[quantum_quality['total_time']],
+        mode='markers+text',
+        marker=dict(size=15, color='red', symbol='star'),
+        text=['QAOA'],
+        textposition='top center',
+        name='QAOA'
+    ))
+    
+    # Add annotation showing trade-off
+    fig.add_annotation(
+        x=(classical_quality['total_distance'] + quantum_quality['total_distance']) / 2,
+        y=(classical_quality['total_time'] + quantum_quality['total_time']) / 2,
+        text=f"Time saved: {time_saved:.1f} min<br>Distance added: {distance_added:.2f} km",
+        showarrow=True,
+        arrowhead=2,
+        bgcolor="rgba(255,255,255,0.8)"
+    )
+    
+    fig.update_layout(
+        title="Route Comparison: Distance vs Travel Time",
+        xaxis_title="Total Distance (km)",
+        yaxis_title="Total Travel Time (minutes)",
+        height=400,
+        showlegend=True
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Key insight summary
+    if time_saved > 0 and distance_added < time_saved * 2:  # Reasonable trade-off
+        st.success(f"""
+        **✅ Quantum Advantage Demonstrated:**
+        
+        QAOA found a route that is **{distance_added:.2f} km longer** but saves **{time_saved:.1f} minutes** 
+        ({time_savings_pct:.1f}% faster) by avoiding high-traffic segments. 
+        
+        This demonstrates QAOA's ability to optimize for **multi-objective goals** (distance + traffic) 
+        rather than just shortest path like Nearest Neighbor.
+        """)
+    else:
+        st.info("Both routes have similar performance. Try a different scenario with more traffic variation.")
+
+
+def render_traffic_aware_route_explanation(
+    classical_route: List[int],
+    quantum_route: List[int],
+    classical_route_pois: List[Dict],
+    quantum_route_pois: List[Dict],
+    classical_traffic_impact: Dict,
+    quantum_traffic_impact: Dict,
+    encoding_info: Dict = None
+):
+    """
+    Add detailed explanation of why routes differ due to traffic awareness
+    """
+    with st.expander("🔍 Traffic-Aware Route Analysis", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 🔧 Nearest Neighbor Route Analysis")
+            st.write("**Why shortest distance led to longer time:**")
+            
+            high_traffic_segments = [s for s in classical_traffic_impact['traffic_segments'] if s['is_high_traffic']]
+            
+            if high_traffic_segments:
+                st.write("**High-traffic segments taken:**")
+                for segment in high_traffic_segments:
+                    st.write(f"- {segment['from_poi']} → {segment['to_poi']}: "
+                           f"Factor {segment['traffic_factor']:.2f}x "
+                           f"({segment['time_with_traffic_min']:.1f} min)")
+                st.write(f"\n**Total high-traffic segments: {len(high_traffic_segments)}**")
+            else:
+                st.write("No high-traffic segments in this route.")
+            
+            st.write(f"\n**Average traffic factor: {classical_traffic_impact['avg_traffic_factor']:.2f}x**")
+            st.write(f"**Total traffic impact score: {classical_traffic_impact['traffic_impact_score']:.2f}**")
+        
+        with col2:
+            st.markdown("#### ⚛️ QAOA Route Analysis")
+            st.write("**How quantum optimization avoided traffic:**")
+            
+            if encoding_info and 'qubit_mapping' in encoding_info:
+                qubit_mapping = encoding_info.get('qubit_mapping', {})
+                st.write("**Qubit states (feature preferences):**")
+                for qubit_idx, feature in qubit_mapping.items():
+                    if feature == 'traffic':
+                        st.write(f"- Q{qubit_idx} (Traffic): Optimized to avoid high-traffic routes")
+            
+            high_traffic_segments = [s for s in quantum_traffic_impact['traffic_segments'] if s['is_high_traffic']]
+            
+            if high_traffic_segments:
+                st.write(f"\n**High-traffic segments taken: {len(high_traffic_segments)}**")
+                for segment in high_traffic_segments:
+                    st.write(f"- {segment['from_poi']} → {segment['to_poi']}: "
+                           f"Factor {segment['traffic_factor']:.2f}x")
+            else:
+                st.success("✅ **No high-traffic segments!** QAOA successfully avoided all high-traffic routes.")
+            
+            st.write(f"\n**Average traffic factor: {quantum_traffic_impact['avg_traffic_factor']:.2f}x**")
+            st.write(f"**Total traffic impact score: {quantum_traffic_impact['traffic_impact_score']:.2f}**")
+        
+        # Comparison summary
+        st.markdown("---")
+        st.markdown("### 📊 Comparison Summary")
+        
+        traffic_avoidance_rate = (
+            (classical_traffic_impact['high_traffic_segments'] - quantum_traffic_impact['high_traffic_segments']) 
+            / max(classical_traffic_impact['high_traffic_segments'], 1) * 100
+        ) if classical_traffic_impact['high_traffic_segments'] > 0 else 0
+        
+        comparison_data = {
+            "Metric": [
+                "High-Traffic Segments",
+                "Average Traffic Factor",
+                "Traffic Impact Score",
+                "Traffic Avoidance Rate"
+            ],
+            "Nearest Neighbor": [
+                str(classical_traffic_impact['high_traffic_segments']),
+                f"{classical_traffic_impact['avg_traffic_factor']:.2f}x",
+                f"{classical_traffic_impact['traffic_impact_score']:.2f}",
+                "0%"
+            ],
+            "QAOA": [
+                str(quantum_traffic_impact['high_traffic_segments']),
+                f"{quantum_traffic_impact['avg_traffic_factor']:.2f}x",
+                f"{quantum_traffic_impact['traffic_impact_score']:.2f}",
+                f"{traffic_avoidance_rate:.1f}%"
+            ]
+        }
+        
+        st.dataframe(pd.DataFrame(comparison_data), use_container_width=True, hide_index=True)
+
+
 def render_step_by_step_workflow(
     pois: List[Dict],
     user_preferences: Dict,
@@ -274,8 +527,7 @@ def render_step_by_step_workflow(
                 "Name": poi['name'],
                 "Category": poi['category'],
                 "Latitude": f"{poi['lat']:.4f}",
-                "Longitude": f"{poi['lng']:.4f}",
-                "Visit Duration": f"{poi.get('visit_duration', 60)} min"
+                "Longitude": f"{poi['lng']:.4f}"
             })
         st.dataframe(pd.DataFrame(poi_data), use_container_width=True, hide_index=True)
     
@@ -316,7 +568,6 @@ def render_step_by_step_workflow(
         # Feature descriptions
         st.markdown("**Feature Descriptions:**")
         st.write("- **Category features**: One-hot encoded (1 if POI belongs to category, 0 otherwise)")
-        st.write("- **Visit duration**: Normalized 0-1 (max 180 minutes)")
         st.write("- **Distance from start**: Normalized 0-1")
         st.write("- **Opening compatibility**: 0-1 score (1 = fully accessible during trip)")
         st.write("- **Average traffic**: Normalized 0-1 (from traffic data)")

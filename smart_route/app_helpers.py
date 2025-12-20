@@ -86,7 +86,7 @@ def time_string_to_minutes(time_str: str) -> int:
         return 480  # Default to 8 AM
 
 
-def validate_poi_selection(selected_pois: List[Dict], min_pois: int = 4, max_pois: int = 8) -> Tuple[bool, Optional[str]]:
+def validate_poi_selection(selected_pois: List[Dict], min_pois: int = 2, max_pois: int = 8) -> Tuple[bool, Optional[str]]:
     """Validate POI selection"""
     if not selected_pois:
         return False, "Please select POIs in the sidebar first!"
@@ -98,4 +98,31 @@ def validate_poi_selection(selected_pois: List[Dict], min_pois: int = 4, max_poi
         return False, f"Maximum {max_pois} POIs allowed"
     
     return True, None
+
+
+def calculate_minimum_required_distance(selected_pois: List[Dict], start_lat: float, start_lon: float) -> float:
+    """
+    Calculate minimum required distance to include all selected POIs
+    
+    Args:
+        selected_pois: List of selected POI dictionaries
+        start_lat: Starting latitude
+        start_lon: Starting longitude
+        
+    Returns:
+        Minimum required distance in kilometers
+    """
+    if not selected_pois:
+        return 0.0
+    
+    distance_calc = DistanceCalculator()
+    distances = distance_calc.calculate_distance_from_start(start_lat, start_lon, selected_pois)
+    
+    if not distances:
+        return 0.0
+    
+    # Return the maximum distance needed (with some buffer)
+    max_distance = max(distances)
+    # Add 10% buffer to ensure all POIs are included
+    return max_distance * 1.1
 

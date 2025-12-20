@@ -65,10 +65,6 @@ class MetricsCalculator:
                 poi_a = route[i]
                 poi_b = route[i + 1]
                 total_time += time_matrix[poi_a][poi_b]
-                
-                # Add visit duration
-                if i + 1 < len(pois):
-                    total_time += pois[route[i + 1]].get('visit_duration', 60)
         
         return {
             'total_distance': total_dist,
@@ -108,7 +104,6 @@ class MetricsCalculator:
             poi = pois[poi_idx]
             opening = poi.get('opening_time', 0)
             closing = poi.get('closing_time', 1440)
-            visit_dur = poi.get('visit_duration', 60)
             
             # Check if we can visit
             if current_time < opening:
@@ -116,19 +111,16 @@ class MetricsCalculator:
                 wait_time = opening - current_time
                 current_time = opening
             
-            if current_time + visit_dur > closing:
-                # Violation: arrives too late
+            if current_time > closing:
+                # Violation: arrives after closing
                 violations.append({
                     'poi_index': poi_idx,
                     'poi_name': poi.get('name', f'POI_{poi_idx}'),
                     'type': 'time_window',
                     'arrival_time': current_time,
                     'closing_time': closing,
-                    'violation_amount': (current_time + visit_dur) - closing
+                    'violation_amount': current_time - closing
                 })
-            
-            # Update time
-            current_time += visit_dur
         
         return {
             'num_violations': len(violations),
@@ -426,7 +418,6 @@ class MetricsCalculator:
             poi = pois[poi_idx]
             opening = poi.get('opening_time', 0)
             closing = poi.get('closing_time', 1440)
-            visit_dur = poi.get('visit_duration', 60)
             
             # Check arrival vs opening
             if current_time < opening:
@@ -441,9 +432,9 @@ class MetricsCalculator:
                 })
                 total_penalty += wait_time * 0.1
             
-            # Check if can complete visit before closing
-            if current_time + visit_dur > closing:
-                overtime = (current_time + visit_dur) - closing
+            # Check if arrives after closing
+            if current_time > closing:
+                overtime = current_time - closing
                 hard_violations += 1
                 violations_detail.append({
                     'poi': poi.get('name', f'POI_{poi_idx}'),
@@ -452,8 +443,6 @@ class MetricsCalculator:
                     'penalty': overtime  # Full penalty for missing deadline
                 })
                 total_penalty += overtime
-            
-            current_time += visit_dur
         
         # Calculate satisfaction degree
         satisfaction_degree = 1.0 - min(total_penalty / max_possible_penalty, 1.0)
@@ -510,16 +499,108 @@ class MetricsCalculator:
                         f"({comp['fastest']['value']:.4f} seconds)")
         
         return "\n".join(lines)
+    
+    def calculate_traffic_impact(
+        self,
+        route: List[int],
+        pois: List[Dict],
+        distance_matrix: np.ndarray,
+        traffic_factors: Dict[tuple, float] = None,
+        default_traffic_factor: float = 1.2
+    ) -> Dict:
+        """
+        Calculate traffic impact metrics for a route
+        
+        Args:
+            route: Route as list of POI indices
+            pois: List of POI dictionaries
+            distance_matrix: Distance matrix
+            traffic_factors: Dictionary mapping (from_poi_id, to_poi_id) to traffic factor
+            default_traffic_factor: Default traffic factor if pair not found
+            
+        Returns:
+            {
+                'traffic_impact_score': float (sum of traffic factors),
+                'avg_traffic_factor': float (average traffic factor),
+                'high_traffic_segments': int (count of segments with factor > 1.5),
+                'traffic_segments': List[Dict] (details for each segment),
+                'total_distance': float,
+                'estimated_time_without_traffic': float,
+                'estimated_time_with_traffic': float
+            }
+        """
+        if traffic_factors is None:
+            traffic_factors = {}
+        
+        traffic_segments = []
+        traffic_impact_score = 0.0
+        high_traffic_count = 0
+        total_distance = 0.0
+        estimated_time_without_traffic = 0.0
+        estimated_time_with_traffic = 0.0
+        
+        # Assume average speed of 30 km/h for time estimation
+        speed_kmh = 30.0
+        
+        for i in range(len(route) - 1):
+            from_idx = route[i]
+            to_idx = route[i + 1]
+            
+            # Get POI IDs
+            from_poi = pois[from_idx]
+            to_poi = pois[to_idx]
+            from_id = from_poi.get('id', f'poi_{from_idx}')
+            to_id = to_poi.get('id', f'poi_{to_idx}')
+            
+            # Get distance
+            dist = distance_matrix[from_idx][to_idx]
+            total_distance += dist
+            
+            # Get traffic factor
+            traffic_factor = traffic_factors.get((from_id, to_id), default_traffic_factor)
+            traffic_impact_score += traffic_factor
+            
+            # Check if high traffic
+            if traffic_factor > 1.5:
+                high_traffic_count += 1
+            
+            # Calculate time estimates
+            base_time = (dist / speed_kmh) * 60  # minutes
+            estimated_time_without_traffic += base_time
+            estimated_time_with_traffic += base_time * traffic_factor
+            
+            traffic_segments.append({
+                'from_poi': from_poi.get('name', f'POI_{from_idx}'),
+                'to_poi': to_poi.get('name', f'POI_{to_idx}'),
+                'distance_km': dist,
+                'traffic_factor': traffic_factor,
+                'is_high_traffic': traffic_factor > 1.5,
+                'base_time_min': base_time,
+                'time_with_traffic_min': base_time * traffic_factor
+            })
+        
+        avg_traffic_factor = traffic_impact_score / len(traffic_segments) if traffic_segments else default_traffic_factor
+        
+        return {
+            'traffic_impact_score': traffic_impact_score,
+            'avg_traffic_factor': avg_traffic_factor,
+            'high_traffic_segments': high_traffic_count,
+            'traffic_segments': traffic_segments,
+            'total_distance': total_distance,
+            'estimated_time_without_traffic': estimated_time_without_traffic,
+            'estimated_time_with_traffic': estimated_time_with_traffic,
+            'time_efficiency': estimated_time_with_traffic / total_distance if total_distance > 0 else 0.0
+        }
 
 
 # Example usage (FREE)
 if __name__ == "__main__":
     # Sample data
     sample_pois = [
-        {'id': 1, 'name': 'Hotel', 'opening_time': 0, 'closing_time': 1440, 'visit_duration': 0},
-        {'id': 2, 'name': 'Temple', 'opening_time': 360, 'closing_time': 1080, 'visit_duration': 60},
-        {'id': 3, 'name': 'Museum', 'opening_time': 540, 'closing_time': 1020, 'visit_duration': 90},
-        {'id': 4, 'name': 'Restaurant', 'opening_time': 660, 'closing_time': 1320, 'visit_duration': 60}
+        {'id': 1, 'name': 'Hotel', 'opening_time': 0, 'closing_time': 1440},
+        {'id': 2, 'name': 'Temple', 'opening_time': 360, 'closing_time': 1080},
+        {'id': 3, 'name': 'Museum', 'opening_time': 540, 'closing_time': 1020},
+        {'id': 4, 'name': 'Restaurant', 'opening_time': 660, 'closing_time': 1320}
     ]
     
     distance_matrix = np.array([

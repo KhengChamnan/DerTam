@@ -71,31 +71,28 @@ class QUBOEncoder:
         qubo_matrix = np.zeros((num_qubits, num_qubits))
         
         # Extract features from feature matrix based on structure from FeatureEngineer
-        # Structure: [category_one_hot..., visit_duration, distance_from_start, opening_compatibility, avg_traffic]
+        # Structure: [category_one_hot..., distance_from_start, opening_compatibility, avg_traffic]
         if feature_info is not None and 'feature_names' in feature_info:
             feature_names = feature_info['feature_names']
             n_categories = len(feature_info.get('categories', []))
             
             # Find indices of specific features
             try:
-                visit_duration_idx = feature_names.index('visit_duration')
                 distance_from_start_idx = feature_names.index('distance_from_start')
                 opening_compatibility_idx = feature_names.index('opening_compatibility')
                 avg_traffic_idx = feature_names.index('avg_traffic')
             except ValueError:
                 # Fallback: assume standard structure
-                n_categories = n_features - 4
-                visit_duration_idx = n_categories
-                distance_from_start_idx = n_categories + 1
-                opening_compatibility_idx = n_categories + 2
-                avg_traffic_idx = n_categories + 3
+                n_categories = n_features - 3
+                distance_from_start_idx = n_categories
+                opening_compatibility_idx = n_categories + 1
+                avg_traffic_idx = n_categories + 2
         else:
-            # Fallback: infer structure (assume last 4 columns are the standard features)
-            n_categories = n_features - 4
-            visit_duration_idx = n_categories
-            distance_from_start_idx = n_categories + 1
-            opening_compatibility_idx = n_categories + 2
-            avg_traffic_idx = n_categories + 3
+            # Fallback: infer structure (assume last 3 columns are the standard features)
+            n_categories = n_features - 3
+            distance_from_start_idx = n_categories
+            opening_compatibility_idx = n_categories + 1
+            avg_traffic_idx = n_categories + 2
         
         # Extract feature values from feature matrix
         # 1. Distance from start (normalized 0-1)
@@ -119,10 +116,6 @@ class QUBOEncoder:
         category_diversity = np.std(np.sum(category_features, axis=0)) if n_categories > 0 else 0.5
         # Normalize to 0-1 range
         category_diversity = min(category_diversity / max(n_categories, 1), 1.0) if n_categories > 0 else 0.5
-        
-        # 5. Visit duration (for time estimation, normalized 0-1)
-        visit_durations = feature_matrix[:, visit_duration_idx]
-        avg_visit_duration = np.mean(visit_durations)
         
         # Use distance matrix for route distance (between POIs)
         avg_route_distance = np.mean(distance_matrix[distance_matrix > 0]) if np.any(distance_matrix > 0) else 1.0
@@ -148,9 +141,9 @@ class QUBOEncoder:
         
         # Qubit 1: Time preference
         # |0⟩ = minimize time, |1⟩ = accept longer times
-        # Consider route time and visit duration
+        # Consider route time only
         if num_qubits >= 2:
-            time_factor = 0.7 * (avg_route_time / max_route_time) + 0.3 * avg_visit_duration
+            time_factor = avg_route_time / max_route_time if max_route_time > 0 else 1.0
             qubo_matrix[1, 1] = -constraint_weights.get('time', 0.3) * time_factor
             
             # Interaction: distance and time are correlated
@@ -200,8 +193,7 @@ class QUBOEncoder:
                 'avg_distance_from_start': float(avg_distance_from_start),
                 'avg_opening_compatibility': float(avg_opening_compatibility),
                 'avg_traffic_value': float(avg_traffic_value),
-                'category_diversity': float(category_diversity),
-                'avg_visit_duration': float(avg_visit_duration)
+                'category_diversity': float(category_diversity)
             }
         }
         
@@ -210,13 +202,13 @@ class QUBOEncoder:
 
 # Example usage
 if __name__ == "__main__":
-    # Sample feature matrix (4 POIs, 6 features: 2 categories + 4 standard features)
-    # Features: [Historical, Temple, visit_duration, distance_from_start, opening_compatibility, avg_traffic]
+    # Sample feature matrix (4 POIs, 5 features: 2 categories + 3 standard features)
+    # Features: [Historical, Temple, distance_from_start, opening_compatibility, avg_traffic]
     sample_feature_matrix = np.array([
-        [1.0, 0.0, 0.5, 0.2, 1.0, 0.3],  # POI 1: Historical, 90min, close, compatible, low traffic
-        [0.0, 1.0, 0.33, 0.3, 1.0, 0.2],  # POI 2: Temple, 60min, medium, compatible, low traffic
-        [1.0, 0.0, 0.5, 0.4, 1.0, 0.4],  # POI 3: Historical, 90min, far, compatible, medium traffic
-        [0.0, 0.0, 0.17, 0.5, 0.8, 0.5]   # POI 4: Other, 30min, far, less compatible, high traffic
+        [1.0, 0.0, 0.2, 1.0, 0.3],  # POI 1: Historical, close, compatible, low traffic
+        [0.0, 1.0, 0.3, 1.0, 0.2],  # POI 2: Temple, medium, compatible, low traffic
+        [1.0, 0.0, 0.4, 1.0, 0.4],  # POI 3: Historical, far, compatible, medium traffic
+        [0.0, 0.0, 0.5, 0.8, 0.5]   # POI 4: Other, far, less compatible, high traffic
     ])
     
     # Sample distance matrix
@@ -237,10 +229,10 @@ if __name__ == "__main__":
     
     # Sample feature info
     feature_info = {
-        'feature_names': ['Historical', 'Temple', 'visit_duration', 'distance_from_start', 
+        'feature_names': ['Historical', 'Temple', 'distance_from_start', 
                          'opening_compatibility', 'avg_traffic'],
         'categories': ['Historical', 'Temple'],
-        'n_features': 6,
+        'n_features': 5,
         'n_pois': 4
     }
     

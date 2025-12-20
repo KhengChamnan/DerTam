@@ -255,23 +255,40 @@ def run_comparison(
         quantum_result['route'], pois, time_matrix, start_time_minutes
     )
     
+    # Calculate traffic impact metrics
+    traffic_factors = distance_calc.traffic_factors if hasattr(distance_calc, 'traffic_factors') else {}
+    default_traffic_factor = distance_calc.default_traffic_factor if hasattr(distance_calc, 'default_traffic_factor') else 1.2
+    
+    classical_traffic_impact = metrics_calc.calculate_traffic_impact(
+        classical_result['route'], pois, distance_matrix,
+        traffic_factors, default_traffic_factor
+    )
+    
+    quantum_traffic_impact = metrics_calc.calculate_traffic_impact(
+        quantum_result['route'], pois, distance_matrix,
+        traffic_factors, default_traffic_factor
+    )
+    
     return {
         'classical': {
             'result': classical_result,
             'route': classical_result['route'],
             'route_pois': classical_route_pois,
             'quality': classical_quality,
-            'constraints': classical_constraints
+            'constraints': classical_constraints,
+            'traffic_impact': classical_traffic_impact
         },
         'quantum': {
             'result': quantum_result,
             'route': quantum_result['route'],
             'route_pois': quantum_route_pois,
             'quality': quantum_quality,
-            'constraints': quantum_constraints
+            'constraints': quantum_constraints,
+            'traffic_impact': quantum_traffic_impact
         },
         'pois': pois,
         'distance_matrix': distance_matrix.tolist(),
-        'time_matrix': time_matrix.tolist()
+        'time_matrix': time_matrix.tolist(),
+        'encoding_info': encoding_info
     }
 

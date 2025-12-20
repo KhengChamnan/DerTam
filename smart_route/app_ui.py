@@ -3,10 +3,14 @@ UI Components for Streamlit app
 Sidebar, tabs, preferences form, and other UI elements
 """
 import streamlit as st
-from typing import Dict, List
+import pandas as pd
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, List, Optional
 from app_helpers import load_pois_data
 
-
+ 
 def render_header():
     """Render page header"""
     st.markdown('<div class="main-header">🗺️ Quantum Route Optimization</div>', unsafe_allow_html=True)
@@ -15,6 +19,45 @@ def render_header():
         <p style="font-size: 1.2rem;">Optimize your route using quantum algorithms</p>
     </div>
     """, unsafe_allow_html=True)
+
+
+def calculate_weights_from_traffic_sensitivity(traffic_sensitivity: float) -> Dict[str, float]:
+    """
+    Calculate weights with proper distribution that always sums to 1.0
+    
+    Strategy:
+    - Traffic weight: 0% to 30% (more reasonable max)
+    - At low traffic: Preferences matter more
+    - At high traffic: Distance and Time matter more
+    """
+    traffic_sensitivity = max(0.0, min(1.0, traffic_sensitivity))
+    
+    # Traffic weight: 0% to 30% (reduced from 40% for better balance)
+    traffic_weight = traffic_sensitivity * 0.3
+    remaining_weight = 1.0 - traffic_weight
+    
+    # Distribution of remaining weight based on traffic sensitivity
+    # At traffic=0: preferences=50%, distance=30%, time=20%
+    # At traffic=1: preferences=10%, distance=50%, time=40%
+    
+    preferences_factor = 0.5 - 0.4 * traffic_sensitivity  # 50% to 10%
+    distance_factor = 0.3 + 0.2 * traffic_sensitivity      # 30% to 50%
+    time_factor = 0.2 + 0.2 * traffic_sensitivity         # 20% to 40%
+    
+    # These factors should already sum to 1.0, but verify
+    factor_sum = preferences_factor + distance_factor + time_factor
+    if abs(factor_sum - 1.0) > 0.001:  # Allow small floating point error
+        # Normalize if needed
+        preferences_factor /= factor_sum
+        distance_factor /= factor_sum
+        time_factor /= factor_sum
+    
+    return {
+        "distance": remaining_weight * distance_factor,
+        "time": remaining_weight * time_factor,
+        "preferences": remaining_weight * preferences_factor,
+        "traffic": traffic_weight
+    }
 
 
 def render_sidebar() -> List[Dict]:
@@ -31,7 +74,7 @@ def render_sidebar() -> List[Dict]:
         # POI selector
         poi_options = {f"{poi['name']} ({poi['category']})": poi for poi in pois_data}
         selected_poi_names = st.multiselect(
-            "Choose 4-8 POIs to visit:",
+            "Choose 2-8 POIs to visit:",
             options=list(poi_options.keys()),
             default=[],
             max_selections=8
@@ -54,47 +97,145 @@ def render_preferences_tab() -> Dict:
     """Render preferences tab and return user preferences"""
     st.header("User Preferences & Constraints")
     
+    # Get selected POIs to auto-update start location
+    selected_pois = st.session_state.get('selected_pois', [])
+    
+    # Auto-update start location from first POI if available
+    if selected_pois and len(selected_pois) > 0:
+        # Always use first POI's coordinates
+        start_lat = selected_pois[0].get('lat', 11.5625)
+        start_lon = selected_pois[0].get('lng', 104.9310)
+        # Update session state
+        st.session_state.start_lat = start_lat
+        st.session_state.start_lon = start_lon
+    else:
+        # Default values when no POIs selected
+        start_lat = st.session_state.get('start_lat', 11.5625)
+        start_lon = st.session_state.get('start_lon', 104.9310)
+    
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("📍 Starting Location")
-        start_lat = st.number_input("Latitude", value=11.5625, format="%.4f", key="start_lat")
-        start_lon = st.number_input("Longitude", value=104.9310, format="%.4f", key="start_lon")
+        if selected_pois and len(selected_pois) > 0:
+            st.info(f"📍 Automatically set to first POI: **{selected_pois[0]['name']}**")
+            # Display read-only coordinates
+            col_lat, col_lon = st.columns(2)
+            with col_lat:
+                st.metric("Latitude", f"{start_lat:.4f}")
+            with col_lon:
+                st.metric("Longitude", f"{start_lon:.4f}")
+        else:
+            st.warning("⚠️ Please select POIs in the sidebar to set start location")
+            # Display NA when no POIs selected
+            col_lat, col_lon = st.columns(2)
+            with col_lat:
+                st.metric("Latitude", "N/A")
+            with col_lon:
+                st.metric("Longitude", "N/A")
         
         st.subheader("⏰ Time Settings")
-        start_time_str = st.time_input("Start Time", value=None, key="start_time")
-        if start_time_str:
-            start_time_str = start_time_str.strftime("%H:%M:%S")
+        # Get start time from saved preferences, session state, or use default
+        saved_preferences = st.session_state.get('user_preferences', {})
+        start_time_str = saved_preferences.get('start_time') or st.session_state.get('start_time', "N/A")
+        
+        if isinstance(start_time_str, str):
+            # Already a string in HH:MM:SS format or "N/A"
+            if start_time_str.upper() in ["N/A", "NA", ""]:
+                start_time_str = "N/A"
         else:
-            start_time_str = "08:00:00"
+            # If it's a time object, convert to string
+            start_time_str = start_time_str.strftime("%H:%M:%S") if start_time_str else "N/A"
         
-        trip_duration = st.number_input("Trip Duration (hours)", min_value=1, max_value=12, value=8, key="trip_duration")
+        # Store in session state for consistency
+        st.session_state.start_time = start_time_str
         
-        st.subheader("📏 Distance Constraints")
-        max_distance = st.slider("Max distance from start (km)", 1.0, 20.0, 10.0, step=0.5, key="max_distance")
+        # Display departure time as read-only
+        st.metric("Departure Time", start_time_str)
+        
+        # Calculate and display estimated current time (start_time + 10 minutes)
+        if start_time_str and start_time_str.upper() not in ["N/A", "NA", ""]:
+            try:
+                time_parts = start_time_str.split(":")
+                hours = int(time_parts[0])
+                minutes = int(time_parts[1])
+                seconds = int(time_parts[2]) if len(time_parts) > 2 else 0
+                
+                start_datetime = datetime(2000, 1, 1, hours, minutes, seconds)
+                estimated_datetime = start_datetime + timedelta(minutes=10)
+                estimated_time_str = estimated_datetime.strftime("%H:%M")
+                
+                st.info(f"🕐 Estimated Current Time: **{estimated_time_str}** (10 minutes after departure)")
+            except Exception:
+                st.info("🕐 Estimated Current Time: N/A")
+        else:
+            st.info("🕐 Estimated Current Time: N/A")
+        
+        trip_duration = st.number_input("Total trip duration per day (hours)", min_value=1, max_value=12, value=8, key="trip_duration", 
+                                        help="Maximum duration you want to travel in a day")
     
     with col2:
-        st.subheader("🚦 Traffic Settings")
+        st.subheader("🚦 Traffic Sensitivity")
         traffic_sensitivity = st.slider(
-            "Traffic Sensitivity", min_value=0.0, max_value=1.0, value=0.5, step=0.1,
-            help="Higher values prioritize routes with less traffic", key="traffic_sensitivity"
+            "Traffic Sensitivity", 
+            min_value=0.0, 
+            max_value=1.0, 
+            value=st.session_state.get('traffic_sensitivity', 0.5), 
+            step=0.1,
+            help="Controls how much traffic affects route optimization. 0 = Ignore traffic, 1 = Avoid all traffic. All constraint weights are automatically calculated based on this setting.", 
+            key="traffic_sensitivity"
         )
-        traffic_avoidance = st.checkbox("Avoid high-traffic routes", value=False, key="traffic_avoidance")
         
-        st.subheader("⚖️ Constraint Weights")
-        st.markdown("Balance between different objectives:")
-        weight_distance = st.slider("Distance", 0.0, 1.0, 0.4, step=0.1, key="weight_distance")
-        weight_time = st.slider("Time", 0.0, 1.0, 0.3, step=0.1, key="weight_time")
-        weight_preferences = st.slider("Preferences", 0.0, 1.0, 0.2, step=0.1, key="weight_preferences")
-        weight_traffic = st.slider("Traffic", 0.0, 1.0, 0.1, step=0.1, key="weight_traffic")
+        # Calculate all weights automatically based on traffic sensitivity
+        calculated_weights = calculate_weights_from_traffic_sensitivity(traffic_sensitivity)
         
-        # Normalize weights
-        total_weight = weight_distance + weight_time + weight_preferences + weight_traffic
-        if total_weight > 0:
-            weight_distance /= total_weight
-            weight_time /= total_weight
-            weight_preferences /= total_weight
-            weight_traffic /= total_weight
+        st.subheader("⚖️ Constraint Weights (Auto-calculated)")
+        st.info("ℹ️ All weights are automatically calculated based on Traffic Sensitivity. When traffic sensitivity is high, distance and time are prioritized more; when low, preferences get more weight.")
+        
+        # Display calculated weights in a read-only format
+        weights_df = pd.DataFrame([
+            {"Constraint": "Distance", "Weight": f"{calculated_weights['distance']:.3f}"},
+            {"Constraint": "Time", "Weight": f"{calculated_weights['time']:.3f}"},
+            {"Constraint": "Preferences", "Weight": f"{calculated_weights['preferences']:.3f}"},
+            {"Constraint": "Traffic (from Traffic Sensitivity)", "Weight": f"{calculated_weights['traffic']:.3f}"},
+            {"Constraint": "Total", "Weight": f"{sum(calculated_weights.values()):.3f}"}
+        ])
+        st.dataframe(weights_df, use_container_width=True, hide_index=True)
+    
+    # POI Category Preferences - Dynamic based on selected POIs
+    st.subheader("🎯 POI Category Preferences")
+    
+    if selected_pois:
+        # Get unique categories only from selected POIs
+        categories = sorted(set(poi.get('category', 'Unknown') for poi in selected_pois))
+        category_options = ["No preference"] + categories
+        
+        # Get current preferred category from session state if it exists
+        current_preferred = st.session_state.get('preferred_category', "No preference")
+        
+        # If current preferred category is not in the new options, reset to "No preference"
+        if current_preferred not in category_options:
+            current_preferred = "No preference"
+            st.session_state.preferred_category = "No preference"
+        
+        # Find index of current preferred category
+        try:
+            default_index = category_options.index(current_preferred)
+        except ValueError:
+            default_index = 0
+        
+        preferred_category = st.radio(
+            "Select preferred POI category:",
+            options=category_options,
+            index=default_index,
+            key="preferred_category",
+            help=f"Choose a category to prioritize in route optimization. Showing categories from your {len(selected_pois)} selected POI(s)."
+        )
+        if preferred_category == "No preference":
+            preferred_category = None
+    else:
+        st.info("ℹ️ Please select POIs in the sidebar to see category preferences.")
+        preferred_category = None
     
     preferences = {
         "province": "Phnom Penh",
@@ -102,20 +243,65 @@ def render_preferences_tab() -> Dict:
         "start_lon": start_lon,
         "start_time": start_time_str,
         "trip_duration": trip_duration,
-        "max_distance": max_distance,
         "traffic_sensitivity": traffic_sensitivity,
-        "traffic_avoidance": traffic_avoidance,
+        "traffic_avoidance": False,  # Always False, kept for backward compatibility
+        "preferred_category": preferred_category,
         "constraint_weights": {
-            "distance": weight_distance,
-            "time": weight_time,
-            "preferences": weight_preferences,
-            "traffic": weight_traffic,
+            "distance": calculated_weights["distance"],
+            "time": calculated_weights["time"],
+            "preferences": calculated_weights["preferences"],
+            "traffic": calculated_weights["traffic"],
             "constraints": 0.2
         }
     }
     
+    # Always update session state for real-time updates
     st.session_state.user_preferences = preferences
-    st.success("✅ Preferences saved!")
+    
+    # Save Preferences Button
+    st.markdown("---")
+    if st.button("💾 Save Preferences", type="primary", use_container_width=True, key="save_preferences_btn"):
+        try:
+            # Calculate current time + 10 minutes as start_time
+            current_time = datetime.now()
+            start_time_calculated = current_time + timedelta(minutes=10)
+            start_time_str = start_time_calculated.strftime("%H:%M:%S")
+            
+            # Update preferences with calculated start_time
+            preferences['start_time'] = start_time_str
+            
+            # Update session state
+            st.session_state.start_time = start_time_str
+            st.session_state.user_preferences = preferences
+            
+            # Save to JSON file
+            preferences_file = Path("data/users/user_preferences.json")
+            preferences_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(preferences_file, 'w', encoding='utf-8') as f:
+                json.dump(preferences, f, indent=2, ensure_ascii=False)
+            
+            # Read back the saved preferences to confirm
+            with open(preferences_file, 'r', encoding='utf-8') as f:
+                saved_preferences = json.load(f)
+            
+            # Calculate estimated time for display (start_time + 10 minutes)
+            estimated_datetime = start_time_calculated + timedelta(minutes=10)
+            estimated_time_str = estimated_datetime.strftime("%H:%M")
+            
+            st.success(f"✅ Preferences saved successfully!")
+            st.info(f"🕐 Departure Time: **{start_time_str}** (current time + 10 min) | Estimated Current Time: **{estimated_time_str}** (10 minutes after departure)")
+            
+            # Display saved preferences
+            st.subheader("📄 Saved Preferences")
+            st.json(saved_preferences)
+            
+            # Force rerun to update UI
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"❌ Error saving preferences: {str(e)}")
+    
     return preferences
 
 
@@ -128,8 +314,7 @@ def render_poi_table(pois: List[Dict]):
             "Name": poi['name'],
             "Category": poi['category'],
             "Opening": f"{poi.get('opening_time', 0)//60:02d}:{poi.get('opening_time', 0)%60:02d}",
-            "Closing": f"{poi.get('closing_time', 1440)//60:02d}:{poi.get('closing_time', 1440)%60:02d}",
-            "Duration": f"{poi.get('visit_duration', 60)} min"
+            "Closing": f"{poi.get('closing_time', 1440)//60:02d}:{poi.get('closing_time', 1440)%60:02d}"
         })
     
     st.dataframe(poi_df_data, use_container_width=True)

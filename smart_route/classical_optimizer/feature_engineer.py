@@ -54,13 +54,12 @@ class FeatureEngineer:
         
         Features:
         - Category (one-hot encoded: Historical, Temple, Museum, etc.)
-        - Visit duration (normalized 0-1)
         - Distance from start (normalized 0-1)
         - Opening hours compatibility (0-1 score)
         - Traffic factor (normalized 0-1)
         
         Args:
-            pois: List of manually selected POI dictionaries (4-8 POIs)
+            pois: List of manually selected POI dictionaries (2-8 POIs)
             user_preferences: User preference dictionary
             start_lat: Starting latitude
             start_lon: Starting longitude
@@ -71,8 +70,8 @@ class FeatureEngineer:
             feature_info: Dictionary with feature names and metadata
         """
         n_pois = len(pois)
-        if n_pois < 4 or n_pois > 8:
-            raise ValueError(f"Number of POIs must be between 4 and 8, got {n_pois}")
+        if n_pois < 2 or n_pois > 8:
+            raise ValueError(f"Number of POIs must be between 2 and 8, got {n_pois}")
         
         # Get all unique categories
         all_categories = set()
@@ -98,8 +97,8 @@ class FeatureEngineer:
         max_traffic = np.max(traffic_penalty) if np.max(traffic_penalty) > 0 else 1.0
         
         # Build feature matrix
-        # Features: [category_one_hot..., visit_duration, distance_from_start, opening_compatibility, avg_traffic]
-        n_features = n_categories + 4  # categories + 4 other features
+        # Features: [category_one_hot..., distance_from_start, opening_compatibility, avg_traffic]
+        n_features = n_categories + 3  # categories + 3 other features
         feature_matrix = np.zeros((n_pois, n_features))
         
         for i, poi in enumerate(pois):
@@ -112,41 +111,27 @@ class FeatureEngineer:
                 feature_matrix[i, cat_idx] = 1.0
             feature_idx += n_categories
             
-            # 2. Visit duration (normalized 0-1, max 180 minutes)
-            visit_duration = poi.get('visit_duration', 60)
-            feature_matrix[i, feature_idx] = min(visit_duration / 180.0, 1.0)
-            feature_idx += 1
-            
-            # 3. Distance from start (normalized 0-1)
+            # 2. Distance from start (normalized 0-1)
             dist = distances_from_start[i] if i < len(distances_from_start) else 0.0
             feature_matrix[i, feature_idx] = dist / max_distance if max_distance > 0 else 0.0
             feature_idx += 1
             
-            # 4. Opening hours compatibility (0-1 score)
+            # 3. Opening hours compatibility (0-1 score)
             opening_time = poi.get('opening_time', 0)
             closing_time = poi.get('closing_time', 1440)
-            visit_dur = poi.get('visit_duration', 60)
             
             # Check if POI is accessible during trip window
             trip_end = start_time_minutes + trip_duration
             if closing_time < start_time_minutes or opening_time > trip_end:
                 compatibility = 0.0  # Not accessible
             else:
-                # Calculate available time window
-                available_start = max(start_time_minutes, opening_time)
-                available_end = min(trip_end, closing_time)
-                available_time = available_end - available_start
-                
-                # Score based on how much time is available vs needed
-                if available_time >= visit_dur:
-                    compatibility = 1.0
-                else:
-                    compatibility = available_time / visit_dur
+                # Binary: 1.0 if accessible during trip window, 0.0 if not
+                compatibility = 1.0
             
             feature_matrix[i, feature_idx] = compatibility
             feature_idx += 1
             
-            # 5. Average traffic factor (normalized 0-1)
+            # 4. Average traffic factor (normalized 0-1)
             # Average traffic penalty for routes to/from this POI
             if traffic_penalty.shape[0] > i:
                 avg_traffic = np.mean(traffic_penalty[i, :]) if np.any(traffic_penalty[i, :]) else 0.0
@@ -155,7 +140,7 @@ class FeatureEngineer:
                 feature_matrix[i, feature_idx] = 0.0
         
         # Create feature info
-        feature_names = all_categories + ['visit_duration', 'distance_from_start', 'opening_compatibility', 'avg_traffic']
+        feature_names = all_categories + ['distance_from_start', 'opening_compatibility', 'avg_traffic']
         feature_info = {
             'feature_names': feature_names,
             'n_features': n_features,
@@ -237,7 +222,6 @@ class FeatureEngineer:
                 poi = pois[poi_idx]
                 opening = poi.get('opening_time', 0)
                 closing = poi.get('closing_time', 1440)
-                visit_dur = poi.get('visit_duration', 60)
                 
                 # Check if we can visit
                 if current_time < opening:
@@ -245,19 +229,16 @@ class FeatureEngineer:
                     wait_time = opening - current_time
                     current_time = opening
                 
-                if current_time + visit_dur > closing:
-                    # Violation: arrives too late
+                if current_time > closing:
+                    # Violation: arrives after closing
                     violations.append({
                         'poi_index': poi_idx,
                         'poi_name': poi.get('name', f'POI_{poi_idx}'),
                         'type': 'time_window',
                         'arrival_time': current_time,
                         'closing_time': closing,
-                        'violation_amount': (current_time + visit_dur) - closing
+                        'violation_amount': current_time - closing
                     })
-                
-                # Update time
-                current_time += visit_dur
         
         is_feasible = len(errors) == 0 and len(violations) == 0
         

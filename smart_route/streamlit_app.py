@@ -17,7 +17,8 @@ from app_ui import (
 from app_optimization import run_quantum_optimization, run_comparison
 from app_visualization import (
     render_route_map, render_route_details, render_measurement_results,
-    render_comparison_maps, render_comparison_charts, render_step_by_step_workflow
+    render_comparison_maps, render_comparison_charts, render_step_by_step_workflow,
+    render_traffic_comparison, render_traffic_aware_route_explanation
 )
 from app_helpers import validate_poi_selection
 from quantum_optimizer.circuit_visualizer import CircuitVisualizer
@@ -63,8 +64,8 @@ render_header()
 render_sidebar()
 
 # Main content area
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "⚙️ Preferences", "🚀 Optimize", "📊 Results", "🔬 Circuit", "📊 Compare", "📋 Workflow"
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "⚙️ Preferences", "🚀 Optimize", "📊 Results", "🔬 Circuit", "📊 Compare"
 ])
 
 # Tab 1: Preferences
@@ -294,9 +295,10 @@ with tab5:
     with col1:
         classical_algorithm = st.selectbox(
             "Classical Algorithm",
-            ["nearest_neighbor", "two_opt", "simulated_annealing"],
+            ["nearest_neighbor", "two_opt", "simulated_annealing", "weighted_nearest_neighbor"],
             index=0,
-            key="classical_algorithm"
+            key="classical_algorithm",
+            help="weighted_nearest_neighbor: Uses constraint_weights directly (Scenario A - no QAOA)"
         )
     with col2:
         qaoa_layers = st.number_input("QAOA Layers (p)", min_value=1, max_value=5, value=2, key="compare_layers")
@@ -383,6 +385,11 @@ with tab5:
         
         # Metrics comparison table
         st.subheader("📊 Metrics Comparison")
+        
+        # Get traffic impact metrics if available
+        classical_traffic = classical.get('traffic_impact', {})
+        quantum_traffic = quantum.get('traffic_impact', {})
+        
         comparison_data = {
             "Metric": [
                 "Total Distance (km)", "Total Time (min)", "Execution Time (s)",
@@ -405,7 +412,56 @@ with tab5:
                 f"{quantum['quality']['avg_distance_per_poi']:.2f}"
             ]
         }
+        
+        # Add traffic metrics if available
+        if classical_traffic and quantum_traffic:
+            comparison_data["Metric"].extend([
+                "Traffic Impact Score",
+                "Average Traffic Factor",
+                "High-Traffic Segments",
+                "Time Efficiency (min/km)"
+            ])
+            comparison_data["Classical"].extend([
+                f"{classical_traffic.get('traffic_impact_score', 0):.2f}",
+                f"{classical_traffic.get('avg_traffic_factor', 0):.2f}x",
+                str(classical_traffic.get('high_traffic_segments', 0)),
+                f"{classical_traffic.get('time_efficiency', 0):.2f}"
+            ])
+            comparison_data["Quantum"].extend([
+                f"{quantum_traffic.get('traffic_impact_score', 0):.2f}",
+                f"{quantum_traffic.get('avg_traffic_factor', 0):.2f}x",
+                str(quantum_traffic.get('high_traffic_segments', 0)),
+                f"{quantum_traffic.get('time_efficiency', 0):.2f}"
+            ])
+        
         st.dataframe(comparison_data, use_container_width=True)
+        
+        # Traffic comparison visualization if available
+        if classical_traffic and quantum_traffic:
+            render_traffic_comparison(
+                classical['route'],
+                quantum['route'],
+                classical['route_pois'],
+                quantum['route_pois'],
+                classical['quality'],
+                quantum['quality'],
+                classical_traffic,
+                quantum_traffic,
+                np.array(comparison['distance_matrix']),
+                np.array(comparison['time_matrix'])
+            )
+            
+            # Add traffic-aware route explanation
+            encoding_info = comparison.get('encoding_info', {})
+            render_traffic_aware_route_explanation(
+                classical['route'],
+                quantum['route'],
+                classical['route_pois'],
+                quantum['route_pois'],
+                classical_traffic,
+                quantum_traffic,
+                encoding_info
+            )
         
         # Performance charts
         st.subheader("📈 Performance Visualization")
@@ -530,73 +586,73 @@ with tab5:
         st.info("👈 Click 'Run Comparison' to compare classical and quantum optimization results")
 
 # Tab 6: Step-by-Step Workflow
-with tab6:
-    st.header("📋 Step-by-Step Optimization Workflow")
-    
-    if st.session_state.optimization_result is None:
-        st.info("👈 Please run optimization first in the 'Optimize' tab to see the step-by-step workflow")
-    else:
-        result = st.session_state.optimization_result
-        
-        # Check if we have all required data
-        required_keys = ['result', 'route', 'route_pois', 'pois', 'encoding_info', 
-                        'feature_matrix', 'feature_info', 'distance_matrix', 'time_matrix']
-        missing_keys = [key for key in required_keys if key not in result]
-        
-        if missing_keys:
-            st.warning(f"⚠️ Missing data for workflow visualization: {', '.join(missing_keys)}")
-            st.info("Please run optimization again to generate complete workflow data")
-        else:
-            # Convert lists back to numpy arrays if needed
-            import numpy as np
-            
-            feature_matrix = np.array(result['feature_matrix']) if isinstance(result['feature_matrix'], list) else result['feature_matrix']
-            distance_matrix = np.array(result['distance_matrix']) if isinstance(result['distance_matrix'], list) else result['distance_matrix']
-            time_matrix = np.array(result['time_matrix']) if isinstance(result['time_matrix'], list) else result['time_matrix']
-            
-            # Get QUBO matrix from encoding info or reconstruct it
-            qubo_matrix = None
-            if 'qubo_matrix' in result:
-                qubo_matrix = np.array(result['qubo_matrix']) if isinstance(result['qubo_matrix'], list) else result['qubo_matrix']
-            elif 'encoding_info' in result:
-                # Try to get from encoding_info if stored
-                encoding_info = result['encoding_info']
-                if 'qubo_matrix' in encoding_info:
-                    qubo_matrix = np.array(encoding_info['qubo_matrix']) if isinstance(encoding_info['qubo_matrix'], list) else encoding_info['qubo_matrix']
-            
-            # If still no QUBO matrix, we need to recreate it (but this shouldn't happen)
-            if qubo_matrix is None:
-                st.warning("⚠️ QUBO matrix not found. Recreating from feature matrix...")
-                try:
-                    from quantum_optimizer.qubo_encoder import QUBOEncoder
-                    from app_helpers import calculate_matrices
-                    
-                    distance_calc, dist_mat, time_mat, traffic_penalty = calculate_matrices(result['pois'])
-                    encoder = QUBOEncoder()
-                    qubo_matrix, encoding_info = encoder.encode_feature_based(
-                        feature_matrix, dist_mat,
-                        time_matrix=time_mat,
-                        traffic_penalty_matrix=traffic_penalty,
-                        constraint_weights=st.session_state.user_preferences.get('constraint_weights', {}),
-                        num_qubits=4,
-                        feature_info=result['feature_info']
-                    )
-                except Exception as e:
-                    st.error(f"Could not recreate QUBO matrix: {e}")
-                    st.stop()
-            
-            # Render step-by-step workflow
-            render_step_by_step_workflow(
-                pois=result['pois'],
-                user_preferences=st.session_state.user_preferences,
-                feature_matrix=feature_matrix,
-                feature_info=result['feature_info'],
-                qubo_matrix=qubo_matrix,
-                encoding_info=result['encoding_info'],
-                optimization_result=result,
-                distance_matrix=distance_matrix,
-                time_matrix=time_matrix
-            )
+# with tab6:
+#     st.header("📋 Step-by-Step Optimization Workflow")
+#     
+#     if st.session_state.optimization_result is None:
+#         st.info("👈 Please run optimization first in the 'Optimize' tab to see the step-by-step workflow")
+#     else:
+#         result = st.session_state.optimization_result
+#         
+#         # Check if we have all required data
+#         required_keys = ['result', 'route', 'route_pois', 'pois', 'encoding_info', 
+#                         'feature_matrix', 'feature_info', 'distance_matrix', 'time_matrix']
+#         missing_keys = [key for key in required_keys if key not in result]
+#         
+#         if missing_keys:
+#             st.warning(f"⚠️ Missing data for workflow visualization: {', '.join(missing_keys)}")
+#             st.info("Please run optimization again to generate complete workflow data")
+#         else:
+#             # Convert lists back to numpy arrays if needed
+#             import numpy as np
+#             
+#             feature_matrix = np.array(result['feature_matrix']) if isinstance(result['feature_matrix'], list) else result['feature_matrix']
+#             distance_matrix = np.array(result['distance_matrix']) if isinstance(result['distance_matrix'], list) else result['distance_matrix']
+#             time_matrix = np.array(result['time_matrix']) if isinstance(result['time_matrix'], list) else result['time_matrix']
+#             
+#             # Get QUBO matrix from encoding info or reconstruct it
+#             qubo_matrix = None
+#             if 'qubo_matrix' in result:
+#                 qubo_matrix = np.array(result['qubo_matrix']) if isinstance(result['qubo_matrix'], list) else result['qubo_matrix']
+#             elif 'encoding_info' in result:
+#                 # Try to get from encoding_info if stored
+#                 encoding_info = result['encoding_info']
+#                 if 'qubo_matrix' in encoding_info:
+#                     qubo_matrix = np.array(encoding_info['qubo_matrix']) if isinstance(encoding_info['qubo_matrix'], list) else encoding_info['qubo_matrix']
+#             
+#             # If still no QUBO matrix, we need to recreate it (but this shouldn't happen)
+#             if qubo_matrix is None:
+#                 st.warning("⚠️ QUBO matrix not found. Recreating from feature matrix...")
+#                 try:
+#                     from quantum_optimizer.qubo_encoder import QUBOEncoder
+#                     from app_helpers import calculate_matrices
+#                     
+#                     distance_calc, dist_mat, time_mat, traffic_penalty = calculate_matrices(result['pois'])
+#                     encoder = QUBOEncoder()
+#                     qubo_matrix, encoding_info = encoder.encode_feature_based(
+#                         feature_matrix, dist_mat,
+#                         time_matrix=time_mat,
+#                         traffic_penalty_matrix=traffic_penalty,
+#                         constraint_weights=st.session_state.user_preferences.get('constraint_weights', {}),
+#                         num_qubits=4,
+#                         feature_info=result['feature_info']
+#                     )
+#                 except Exception as e:
+#                     st.error(f"Could not recreate QUBO matrix: {e}")
+#                     st.stop()
+#             
+#             # Render step-by-step workflow
+#             render_step_by_step_workflow(
+#                 pois=result['pois'],
+#                 user_preferences=st.session_state.user_preferences,
+#                 feature_matrix=feature_matrix,
+#                 feature_info=result['feature_info'],
+#                 qubo_matrix=qubo_matrix,
+#                 encoding_info=result['encoding_info'],
+#                 optimization_result=result,
+#                 distance_matrix=distance_matrix,
+#                 time_matrix=time_matrix
+#             )
 
 # Footer
 st.markdown("---")

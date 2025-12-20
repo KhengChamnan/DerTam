@@ -2,55 +2,455 @@
   "city": "Phnom Penh",
   "total_pois": 50,
   "pois": [
-    {"id": "poi_01", "name": "Royal Palace", "category": "Historical", "lat": 11.5625, "lng": 104.9310, "opening_time": 480, "closing_time": 1020, "visit_duration": 90},
-    {"id": "poi_02", "name": "Silver Pagoda", "category": "Temple", "lat": 11.5627, "lng": 104.9312, "opening_time": 480, "closing_time": 1020, "visit_duration": 60},
-    {"id": "poi_03", "name": "National Museum", "category": "Museum", "lat": 11.5640, "lng": 104.9282, "opening_time": 480, "closing_time": 1020, "visit_duration": 90},
-    {"id": "poi_04", "name": "Independence Monument", "category": "Landmark", "lat": 11.5564, "lng": 104.9312, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_05", "name": "Wat Phnom", "category": "Temple", "lat": 11.5764, "lng": 104.9239, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_06", "name": "Central Market", "category": "Market", "lat": 11.5753, "lng": 104.9230, "opening_time": 360, "closing_time": 1020, "visit_duration": 75},
-    {"id": "poi_07", "name": "Russian Market", "category": "Market", "lat": 11.5437, "lng": 104.9237, "opening_time": 420, "closing_time": 1020, "visit_duration": 90},
-    {"id": "poi_08", "name": "Tuol Sleng Museum", "category": "Museum", "lat": 11.5449, "lng": 104.9248, "opening_time": 480, "closing_time": 1020, "visit_duration": 120},
-    {"id": "poi_09", "name": "Aeon Mall Phnom Penh", "category": "Mall", "lat": 11.5447, "lng": 104.9408, "opening_time": 540, "closing_time": 1320, "visit_duration": 120},
-    {"id": "poi_10", "name": "Riverside Park", "category": "Park", "lat": 11.5690, "lng": 104.9290, "opening_time": 0, "closing_time": 1440, "visit_duration": 45},
-    {"id": "poi_11", "name": "Koh Pich", "category": "Island", "lat": 11.5482, "lng": 104.9368, "opening_time": 0, "closing_time": 1440, "visit_duration": 60},
-    {"id": "poi_12", "name": "NagaWorld", "category": "Entertainment", "lat": 11.5602, "lng": 104.9338, "opening_time": 0, "closing_time": 1440, "visit_duration": 180},
-    {"id": "poi_13", "name": "Wat Ounalom", "category": "Temple", "lat": 11.5680, "lng": 104.9300, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_14", "name": "Wat Botum", "category": "Temple", "lat": 11.5600, "lng": 104.9320, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_15", "name": "Olympic Stadium", "category": "Sports", "lat": 11.5588, "lng": 104.9080, "opening_time": 360, "closing_time": 1200, "visit_duration": 60},
-    {"id": "poi_16", "name": "Sothearos Park", "category": "Park", "lat": 11.5572, "lng": 104.9260, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_17", "name": "Vattanac Capital", "category": "Landmark", "lat": 11.5750, "lng": 104.9223, "opening_time": 480, "closing_time": 1260, "visit_duration": 45},
-    {"id": "poi_18", "name": "Exchange Square", "category": "Mall", "lat": 11.5757, "lng": 104.9241, "opening_time": 540, "closing_time": 1320, "visit_duration": 90},
-    {"id": "poi_19", "name": "Phnom Penh Night Market", "category": "Market", "lat": 11.5739, "lng": 104.9296, "opening_time": 1020, "closing_time": 1380, "visit_duration": 60},
-    {"id": "poi_20", "name": "Srah Chak Park", "category": "Park", "lat": 11.5745, "lng": 104.9255, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_21", "name": "Wat Langka", "category": "Temple", "lat": 11.5539, "lng": 104.9281, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_22", "name": "Bassac Lane", "category": "Nightlife", "lat": 11.5535, "lng": 104.9276, "opening_time": 1020, "closing_time": 1440, "visit_duration": 120},
-    {"id": "poi_23", "name": "Factory Phnom Penh", "category": "Art", "lat": 11.5164, "lng": 104.9450, "opening_time": 540, "closing_time": 1260, "visit_duration": 90},
-    {"id": "poi_24", "name": "Chip Mong 271 Mall", "category": "Mall", "lat": 11.5322, "lng": 104.9021, "opening_time": 540, "closing_time": 1320, "visit_duration": 120},
-    {"id": "poi_25", "name": "Wat Koh", "category": "Temple", "lat": 11.5682, "lng": 104.9275, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_26", "name": "Cambodia-Japan Friendship Bridge", "category": "Landmark", "lat": 11.5904, "lng": 104.9330, "opening_time": 0, "closing_time": 1440, "visit_duration": 20},
-    {"id": "poi_27", "name": "Dreamland Amusement Park", "category": "Entertainment", "lat": 11.5789, "lng": 104.9402, "opening_time": 540, "closing_time": 1260, "visit_duration": 180},
-    {"id": "poi_28", "name": "Preah Kossamak Hospital", "category": "Medical", "lat": 11.5849, "lng": 104.9197, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_29", "name": "Wat Moha Montrey", "category": "Temple", "lat": 11.5609, "lng": 104.9142, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_30", "name": "Botum Park", "category": "Park", "lat": 11.5562, "lng": 104.9288, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_31", "name": "Cambodia Post Office", "category": "Historical", "lat": 11.5694, "lng": 104.9266, "opening_time": 420, "closing_time": 1020, "visit_duration": 30},
-    {"id": "poi_32", "name": "Dream Park", "category": "Park", "lat": 11.5802, "lng": 104.9152, "opening_time": 0, "closing_time": 1440, "visit_duration": 45},
-    {"id": "poi_33", "name": "Phsar Thmei Annex", "category": "Market", "lat": 11.5750, "lng": 104.9245, "opening_time": 360, "closing_time": 1020, "visit_duration": 60},
-    {"id": "poi_34", "name": "Wat Saravan", "category": "Temple", "lat": 11.5668, "lng": 104.9292, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_35", "name": "Wat Lanka Park", "category": "Park", "lat": 11.5547, "lng": 104.9278, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_36", "name": "Treellion Park", "category": "Park", "lat": 11.5490, "lng": 104.9390, "opening_time": 0, "closing_time": 1440, "visit_duration": 45},
-    {"id": "poi_37", "name": "Koh Pich Theater", "category": "Entertainment", "lat": 11.5487, "lng": 104.9362, "opening_time": 600, "closing_time": 1380, "visit_duration": 150},
-    {"id": "poi_38", "name": "Chip Mong Noro Mall", "category": "Mall", "lat": 11.5432, "lng": 104.9031, "opening_time": 540, "closing_time": 1320, "visit_duration": 120},
-    {"id": "poi_39", "name": "National Library", "category": "Historical", "lat": 11.5675, "lng": 104.9271, "opening_time": 480, "closing_time": 1020, "visit_duration": 60},
-    {"id": "poi_40", "name": "Wat Phnom Park", "category": "Park", "lat": 11.5769, "lng": 104.9235, "opening_time": 0, "closing_time": 1440, "visit_duration": 45},
-    {"id": "poi_41", "name": "Orussey Market", "category": "Market", "lat": 11.5662, "lng": 104.9146, "opening_time": 360, "closing_time": 1020, "visit_duration": 75},
-    {"id": "poi_42", "name": "Cambodia Railway Station", "category": "Transport", "lat": 11.5790, "lng": 104.9233, "opening_time": 300, "closing_time": 1260, "visit_duration": 20},
-    {"id": "poi_43", "name": "Wat Preah Put Kuk", "category": "Temple", "lat": 11.5780, "lng": 104.9279, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_44", "name": "Phnom Penh Safari", "category": "Zoo", "lat": 11.5290, "lng": 104.8017, "opening_time": 480, "closing_time": 1020, "visit_duration": 180},
-    {"id": "poi_45", "name": "Samdach Hun Sen Park", "category": "Park", "lat": 11.5650, "lng": 104.9309, "opening_time": 0, "closing_time": 1440, "visit_duration": 30},
-    {"id": "poi_46", "name": "Wat Than", "category": "Temple", "lat": 11.5575, "lng": 104.9095, "opening_time": 420, "closing_time": 1080, "visit_duration": 45},
-    {"id": "poi_47", "name": "Phsar Chas", "category": "Market", "lat": 11.5739, "lng": 104.9291, "opening_time": 360, "closing_time": 1020, "visit_duration": 60},
-    {"id": "poi_48", "name": "Wat Phnom Stupa", "category": "Historical", "lat": 11.5766, "lng": 104.9242, "opening_time": 420, "closing_time": 1080, "visit_duration": 30},
-    {"id": "poi_49", "name": "Aeon Mall 2", "category": "Mall", "lat": 11.5670, "lng": 104.8832, "opening_time": 540, "closing_time": 1320, "visit_duration": 120},
-    {"id": "poi_50", "name": "Royal Railway Park", "category": "Park", "lat": 11.5784, "lng": 104.9235, "opening_time": 0, "closing_time": 1440, "visit_duration": 30}
+    {
+      "id": "poi_01",
+      "name": "Royal Palace",
+      "category": "Historical",
+      "lat": 11.5625,
+      "lng": 104.931,
+      "opening_time": 480,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_02",
+      "name": "Silver Pagoda",
+      "category": "Temple",
+      "lat": 11.5627,
+      "lng": 104.9312,
+      "opening_time": 480,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_03",
+      "name": "National Museum",
+      "category": "Museum",
+      "lat": 11.564,
+      "lng": 104.9282,
+      "opening_time": 480,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_04",
+      "name": "Independence Monument",
+      "category": "Landmark",
+      "lat": 11.5564,
+      "lng": 104.9312,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_05",
+      "name": "Wat Phnom",
+      "category": "Temple",
+      "lat": 11.5764,
+      "lng": 104.9239,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_06",
+      "name": "Central Market",
+      "category": "Market",
+      "lat": 11.5753,
+      "lng": 104.923,
+      "opening_time": 360,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_07",
+      "name": "Russian Market",
+      "category": "Market",
+      "lat": 11.5437,
+      "lng": 104.9237,
+      "opening_time": 420,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_08",
+      "name": "Tuol Sleng Museum",
+      "category": "Museum",
+      "lat": 11.5449,
+      "lng": 104.9248,
+      "opening_time": 480,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_09",
+      "name": "Aeon Mall Phnom Penh",
+      "category": "Mall",
+      "lat": 11.5447,
+      "lng": 104.9408,
+      "opening_time": 540,
+      "closing_time": 1320
+    },
+    {
+      "id": "poi_10",
+      "name": "Riverside Park",
+      "category": "Park",
+      "lat": 11.569,
+      "lng": 104.929,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_11",
+      "name": "Koh Pich",
+      "category": "Island",
+      "lat": 11.5482,
+      "lng": 104.9368,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_12",
+      "name": "NagaWorld",
+      "category": "Entertainment",
+      "lat": 11.5602,
+      "lng": 104.9338,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_13",
+      "name": "Wat Ounalom",
+      "category": "Temple",
+      "lat": 11.568,
+      "lng": 104.93,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_14",
+      "name": "Wat Botum",
+      "category": "Temple",
+      "lat": 11.56,
+      "lng": 104.932,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_15",
+      "name": "Olympic Stadium",
+      "category": "Sports",
+      "lat": 11.5588,
+      "lng": 104.908,
+      "opening_time": 360,
+      "closing_time": 1200
+    },
+    {
+      "id": "poi_16",
+      "name": "Sothearos Park",
+      "category": "Park",
+      "lat": 11.5572,
+      "lng": 104.926,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_17",
+      "name": "Vattanac Capital",
+      "category": "Landmark",
+      "lat": 11.575,
+      "lng": 104.9223,
+      "opening_time": 480,
+      "closing_time": 1260
+    },
+    {
+      "id": "poi_18",
+      "name": "Exchange Square",
+      "category": "Mall",
+      "lat": 11.5757,
+      "lng": 104.9241,
+      "opening_time": 540,
+      "closing_time": 1320
+    },
+    {
+      "id": "poi_19",
+      "name": "Phnom Penh Night Market",
+      "category": "Market",
+      "lat": 11.5739,
+      "lng": 104.9296,
+      "opening_time": 1020,
+      "closing_time": 1380
+    },
+    {
+      "id": "poi_20",
+      "name": "Srah Chak Park",
+      "category": "Park",
+      "lat": 11.5745,
+      "lng": 104.9255,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_21",
+      "name": "Wat Langka",
+      "category": "Temple",
+      "lat": 11.5539,
+      "lng": 104.9281,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_22",
+      "name": "Bassac Lane",
+      "category": "Nightlife",
+      "lat": 11.5535,
+      "lng": 104.9276,
+      "opening_time": 1020,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_23",
+      "name": "Factory Phnom Penh",
+      "category": "Art",
+      "lat": 11.5164,
+      "lng": 104.945,
+      "opening_time": 540,
+      "closing_time": 1260
+    },
+    {
+      "id": "poi_24",
+      "name": "Chip Mong 271 Mall",
+      "category": "Mall",
+      "lat": 11.5322,
+      "lng": 104.9021,
+      "opening_time": 540,
+      "closing_time": 1320
+    },
+    {
+      "id": "poi_25",
+      "name": "Wat Koh",
+      "category": "Temple",
+      "lat": 11.5682,
+      "lng": 104.9275,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_26",
+      "name": "Cambodia-Japan Friendship Bridge",
+      "category": "Landmark",
+      "lat": 11.5904,
+      "lng": 104.933,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_27",
+      "name": "Dreamland Amusement Park",
+      "category": "Entertainment",
+      "lat": 11.5789,
+      "lng": 104.9402,
+      "opening_time": 540,
+      "closing_time": 1260
+    },
+    {
+      "id": "poi_28",
+      "name": "Preah Kossamak Hospital",
+      "category": "Medical",
+      "lat": 11.5849,
+      "lng": 104.9197,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_29",
+      "name": "Wat Moha Montrey",
+      "category": "Temple",
+      "lat": 11.5609,
+      "lng": 104.9142,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_30",
+      "name": "Botum Park",
+      "category": "Park",
+      "lat": 11.5562,
+      "lng": 104.9288,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_31",
+      "name": "Cambodia Post Office",
+      "category": "Historical",
+      "lat": 11.5694,
+      "lng": 104.9266,
+      "opening_time": 420,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_32",
+      "name": "Dream Park",
+      "category": "Park",
+      "lat": 11.5802,
+      "lng": 104.9152,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_33",
+      "name": "Phsar Thmei Annex",
+      "category": "Market",
+      "lat": 11.575,
+      "lng": 104.9245,
+      "opening_time": 360,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_34",
+      "name": "Wat Saravan",
+      "category": "Temple",
+      "lat": 11.5668,
+      "lng": 104.9292,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_35",
+      "name": "Wat Lanka Park",
+      "category": "Park",
+      "lat": 11.5547,
+      "lng": 104.9278,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_36",
+      "name": "Treellion Park",
+      "category": "Park",
+      "lat": 11.549,
+      "lng": 104.939,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_37",
+      "name": "Koh Pich Theater",
+      "category": "Entertainment",
+      "lat": 11.5487,
+      "lng": 104.9362,
+      "opening_time": 600,
+      "closing_time": 1380
+    },
+    {
+      "id": "poi_38",
+      "name": "Chip Mong Noro Mall",
+      "category": "Mall",
+      "lat": 11.5432,
+      "lng": 104.9031,
+      "opening_time": 540,
+      "closing_time": 1320
+    },
+    {
+      "id": "poi_39",
+      "name": "National Library",
+      "category": "Historical",
+      "lat": 11.5675,
+      "lng": 104.9271,
+      "opening_time": 480,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_40",
+      "name": "Wat Phnom Park",
+      "category": "Park",
+      "lat": 11.5769,
+      "lng": 104.9235,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_41",
+      "name": "Orussey Market",
+      "category": "Market",
+      "lat": 11.5662,
+      "lng": 104.9146,
+      "opening_time": 360,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_42",
+      "name": "Cambodia Railway Station",
+      "category": "Transport",
+      "lat": 11.579,
+      "lng": 104.9233,
+      "opening_time": 300,
+      "closing_time": 1260
+    },
+    {
+      "id": "poi_43",
+      "name": "Wat Preah Put Kuk",
+      "category": "Temple",
+      "lat": 11.578,
+      "lng": 104.9279,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_44",
+      "name": "Phnom Penh Safari",
+      "category": "Zoo",
+      "lat": 11.529,
+      "lng": 104.8017,
+      "opening_time": 480,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_45",
+      "name": "Samdach Hun Sen Park",
+      "category": "Park",
+      "lat": 11.565,
+      "lng": 104.9309,
+      "opening_time": 0,
+      "closing_time": 1440
+    },
+    {
+      "id": "poi_46",
+      "name": "Wat Than",
+      "category": "Temple",
+      "lat": 11.5575,
+      "lng": 104.9095,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_47",
+      "name": "Phsar Chas",
+      "category": "Market",
+      "lat": 11.5739,
+      "lng": 104.9291,
+      "opening_time": 360,
+      "closing_time": 1020
+    },
+    {
+      "id": "poi_48",
+      "name": "Wat Phnom Stupa",
+      "category": "Historical",
+      "lat": 11.5766,
+      "lng": 104.9242,
+      "opening_time": 420,
+      "closing_time": 1080
+    },
+    {
+      "id": "poi_49",
+      "name": "Aeon Mall 2",
+      "category": "Mall",
+      "lat": 11.567,
+      "lng": 104.8832,
+      "opening_time": 540,
+      "closing_time": 1320
+    },
+    {
+      "id": "poi_50",
+      "name": "Royal Railway Park",
+      "category": "Park",
+      "lat": 11.5784,
+      "lng": 104.9235,
+      "opening_time": 0,
+      "closing_time": 1440
+    }
   ]
 }
