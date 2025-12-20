@@ -582,13 +582,23 @@ with tab5:
     st.subheader("Comparison Settings")
     col1, col2 = st.columns(2)
     with col1:
-        classical_algorithm = st.selectbox(
+        # Create mapping of display names to internal algorithm keys
+        algorithm_options = {
+            "Nearest Neighbor (Greedy)": "nearest_neighbor",
+            "2-Opt (Local Search)": "two_opt",
+            "Simulated Annealing (Probabilistic)": "simulated_annealing"
+        }
+        
+        selected_display_name = st.selectbox(
             "Classical Algorithm",
-            ["nearest_neighbor", "two_opt", "simulated_annealing"],
+            list(algorithm_options.keys()),
             index=0,
-            key="classical_algorithm",
+            key="classical_algorithm_display",
             help="Select a pure classical algorithm (no QAOA) for comparison"
         )
+        
+        # Map display name to internal key
+        classical_algorithm = algorithm_options[selected_display_name]
     with col2:
         qaoa_layers = st.number_input("QAOA Layers (p)", min_value=1, max_value=5, value=2, key="compare_layers")
         qaoa_shots = st.number_input("QAOA Shots", min_value=100, max_value=10000, value=1024, step=100, key="compare_shots")
