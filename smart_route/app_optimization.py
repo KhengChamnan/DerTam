@@ -13,6 +13,9 @@ from app_helpers import (
     calculate_matrices, create_feature_matrix, prepare_data_for_classical
 )
 
+# Import for traffic debugging
+import numpy as np
+
 
 def _map_constraint_weights_for_qubo(constraint_weights: Dict) -> Dict:
     """
@@ -44,28 +47,45 @@ def run_quantum_optimization(
         Dictionary with optimization result and metadata
     """
     # Step 1: Calculate matrices
-    st.write("📐 Step 1: Calculating Distance & Time Matrices")
     distance_calc, distance_matrix, time_matrix, traffic_penalty = calculate_matrices(pois)
-    st.success(f"✅ Calculated matrices for {len(pois)} POIs")
-    
+  
     # Step 2: Create feature matrix
-    st.write("📊 Step 2: Creating Feature Matrix")
     feature_matrix, feature_info = create_feature_matrix(pois, user_preferences, distance_calc)
-    st.success(f"✅ Feature matrix created: {feature_matrix.shape}")
-    st.write(f"**Features:** {', '.join(feature_info['feature_names'])}")
     
-    # Display feature matrix
-    feature_df = pd.DataFrame(
-        feature_matrix,
-        columns=feature_info['feature_names'],
-        index=[poi['name'] for poi in pois]
-    )
-    st.dataframe(feature_df.style.background_gradient(cmap='viridis'), use_container_width=True)
-    
-    # Step 3: QUBO Encoding
-    st.write("🔢 Step 3: Encoding to QUBO (Feature-Based)")
+    # --- Hide Features and QUBO Matrix in an expander ---
+    with st.expander("Show Features and QUBO Matrix"):
+        st.write(f"**Features:** {', '.join(feature_info['feature_names'])}")
+        feature_df = pd.DataFrame(
+            feature_matrix,
+            columns=feature_info['feature_names'],
+            index=[poi['name'] for poi in pois]
+        )
+        st.dataframe(feature_df.style.background_gradient(cmap='viridis'), use_container_width=True)
+
+        # Step 3: QUBO Encoding
+        qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
+        qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
+        qubo_matrix, encoding_info = qubo_encoder.encode_feature_based(
+            feature_matrix, distance_matrix,
+            time_matrix=time_matrix,
+            traffic_penalty_matrix=traffic_penalty,
+            constraint_weights=qubo_constraint_weights,
+            num_qubits=4,
+            feature_info=feature_info
+        )
+
+        st.write("**QUBO Matrix:**")
+        qubo_df = pd.DataFrame(
+            qubo_matrix,
+            index=[f"Q{i}" for i in range(qubo_matrix.shape[0])],
+            columns=[f"Q{j}" for j in range(qubo_matrix.shape[1])]
+        )
+        st.dataframe(qubo_df, use_container_width=True)
+    # --- End expander ---
+
+    # Step 3 (continued): QUBO Encoding (for use outside expander)
+    # (You may want to avoid double encoding; if so, move the encoding outside the expander and only display inside)
     qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
-    # Map 'preferences' to 'category' for QUBO encoder
     qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
     qubo_matrix, encoding_info = qubo_encoder.encode_feature_based(
         feature_matrix, distance_matrix,
@@ -75,25 +95,8 @@ def run_quantum_optimization(
         num_qubits=4,
         feature_info=feature_info
     )
-    
-    st.success(f"✅ QUBO matrix created: {qubo_matrix.shape} (Feature-Based, {encoding_info['num_qubits']} qubits)")
-    
-    # Display qubit mapping
-    st.write("**Qubit Feature Mapping:**")
-    for qubit_idx, feature in encoding_info['qubit_mapping'].items():
-        st.write(f"  Q{qubit_idx}: {feature}")
-    
-    # Display QUBO matrix
-    st.write("**QUBO Matrix:**")
-    qubo_df = pd.DataFrame(
-        qubo_matrix,
-        index=[f"Q{i}" for i in range(qubo_matrix.shape[0])],
-        columns=[f"Q{j}" for j in range(qubo_matrix.shape[1])]
-    )
-    st.dataframe(qubo_df, use_container_width=True)
-    
+
     # Step 4: QAOA Solving
-    st.write("⚛️ Step 4: Solving with QAOA")
     qaoa_solver = QAOASolver(
         num_layers=qaoa_config['num_layers'],
         shots=qaoa_config['shots'],
@@ -108,19 +111,10 @@ def run_quantum_optimization(
         traffic_penalty_matrix=traffic_penalty,
         pois=pois
     )
-    
-    st.success("✅ Optimization complete!")
-    
+       
     # Step 5: Decode and display
-    st.write("🔍 Step 5: Decoding Route")
     route = result['route']
     route_pois = [pois[i] for i in route]
-    
-    # Display decoding info
-    if 'decode_info' in result and 'preferences' in result['decode_info']:
-        st.write("**Decoded Feature Preferences:**")
-        for feature, value in result['decode_info']['preferences'].items():
-            st.write(f"  {feature}: {'|1⟩' if value == 1 else '|0⟩'}")
     
     return {
         'result': result,

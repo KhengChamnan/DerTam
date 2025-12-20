@@ -1,8 +1,8 @@
 {
   "province": "Phnom Penh",
-  "start_lat": 11.5627,
-  "start_lon": 104.9312,
-  "start_time": "14:44:43",
+  "start_lat": 11.5625,
+  "start_lon": 104.931,
+  "start_time": "17:40:30",
   "trip_duration": 8,
   "traffic_sensitivity": 0.5,
   "traffic_avoidance": false,

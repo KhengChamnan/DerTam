@@ -35,6 +35,32 @@ st.set_page_config(
 # Custom CSS
 st.markdown("""
 <style>
+:root {
+  --primary: #01005B;
+  --primary-light: #1a1a7e;
+  --background-light: #fff;
+  --background-dark: #18191A;
+  --text-light: #01005B;
+  --text-dark: #e2e8f0;
+}
+body, .main, .stApp {
+  background: var(--background-light);
+  color: var(--text-light);
+}
+@media (prefers-color-scheme: dark) {
+  body, .main, .stApp {
+    background: var(--background-dark) !important;
+    color: var(--text-dark) !important;
+  }
+  /* Example: override your custom backgrounds */
+  div[data-baseweb="select"] > div {
+    background-color: #23272F !important;
+    color: var(--text-dark) !important;
+    border: 2px solid var(--primary-light) !important;
+  }
+  /* Add more overrides as needed */
+}
+        
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
@@ -51,18 +77,65 @@ st.markdown("""
     .stButton>button {
         width: 100%;
     }
+    
+    /* Enhanced Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
-        background: #f0f2f6;
-        border-radius: 12px 12px 0 0;
-        padding: 0.5rem 0.5rem 0 0.5rem;
-        margin-bottom: 1rem;
+        gap: 8px;
+        background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 16px 16px 0 0;
+        padding: 1rem 1rem 0 1rem;
+        margin-bottom: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-bottom: 2px solid #e0e0e0;
+        display: flex !important;
     }
+    
     .stTabs [data-baseweb="tab"] {
-        font-size: 1.1rem;
+        height: 60px;
+        padding: 0 1.5rem;
+        background-color: transparent;
+        border-radius: 12px 12px 0 0;
+        font-size: 0.95rem;
         font-weight: 600;
-        color: #01005B;
+        color: #5a6c7d;
+        border: none;
+        transition: all 0.3s ease;
+        position: relative;
+        flex: 1 1 0 !important;
+        text-align: center !important;
+        min-width: 0 !important;
     }
-</style>
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: rgba(31, 119, 180, 0.08);
+        color: #1f77b4;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(to bottom, #01005B 0%, #1557a0 100%);
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(31, 119, 180, 0.3);
+    }
+    
+    .stTabs [aria-selected="true"]::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #1f77b4;
+    }
+    
+    /* Tab content area */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding: 2rem 1rem 1rem 1rem;
+        background: white;
+        border-radius: 0 0 16px 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+   </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
@@ -101,47 +174,189 @@ with tab2:
         st.warning(f"⚠️ {error_msg}")
         st.stop()
     
-    # Display selected POIs
-    st.subheader("Selected POIs:")
-    render_poi_table(st.session_state.selected_pois)
     
     # QAOA Settings
     qaoa_config = render_qaoa_settings()
     
-    # Optimize button
-    if st.button("Optimize Route with QAOA", type="primary", use_container_width=True):
-        with st.spinner("Optimizing route..."):
-            try:
-                optimization_result = run_quantum_optimization(
-                    st.session_state.selected_pois,
-                    st.session_state.user_preferences,
-                    qaoa_config
+# Optimize button
+if st.button("🚀 Optimize Route with QAOA", type="primary", use_container_width=True):
+    with st.spinner("🔄 Optimizing your route..."):
+        try:
+            optimization_result = run_quantum_optimization(
+                st.session_state.selected_pois,
+                st.session_state.user_preferences,
+                qaoa_config
+            )
+            
+            st.session_state.optimization_result = optimization_result
+            
+            # Success message
+            st.success("✅ Route optimized successfully!")
+            
+            st.markdown("---")
+            
+            # Display route in a clean, minimal format
+            st.subheader("Your Optimized Route")
+            
+            # Create visual timeline-style route display
+            num_stops = len(optimization_result['route_pois'])
+            max_stops_per_row = 4  # Maximum stops per row before wrapping
+            
+            # Prepare all stops data
+            all_stops = []
+            for i, poi in enumerate(optimization_result['route_pois']):
+                if i == 0:
+                    label = "Start"
+                elif i == num_stops - 1:
+                    label = "End"
+                else:
+                    label = f"Stop {i}"
+                all_stops.append({'label': label, 'name': poi['name'], 'index': i})
+            
+            # Display stops in rows with snake pattern
+            current_idx = 0
+            row_num = 0
+            
+            while current_idx < len(all_stops):
+                # Determine how many stops to show in this row
+                remaining = len(all_stops) - current_idx
+                stops_in_row = min(max_stops_per_row, remaining)
+                
+                # Get stops for this row
+                row_stops = all_stops[current_idx:current_idx + stops_in_row]
+                
+                # Reverse direction for odd rows (2nd, 4th, etc.)
+                is_reversed = row_num % 2 == 1
+                
+                # For reversed rows, we need to display from right to left
+                # So we reverse the order of stops
+                if is_reversed:
+                    row_stops_display = list(reversed(row_stops))
+                else:
+                    row_stops_display = row_stops
+                
+                # Create columns - need to account for empty columns if not full row
+                total_cols_needed = max_stops_per_row * 2 - 1  # 4 stops + 3 arrows = 7
+                col_specs = []
+                
+                # Add empty columns at start for reversed rows with fewer stops
+                if is_reversed and stops_in_row < max_stops_per_row:
+                    empty_cols = (max_stops_per_row - stops_in_row) * 2
+                    for _ in range(empty_cols):
+                        col_specs.append(0.65)
+                
+                # Add actual stop columns
+                for i in range(stops_in_row):
+                    col_specs.append(1)  # Column for stop
+                    if i < stops_in_row - 1:
+                        col_specs.append(0.3)  # Column for arrow
+                
+                # Add empty columns at end for normal rows with fewer stops
+                if not is_reversed and stops_in_row < max_stops_per_row:
+                    empty_cols = (max_stops_per_row - stops_in_row) * 2
+                    for _ in range(empty_cols):
+                        col_specs.append(0.65)
+                
+                cols = st.columns(col_specs)
+                
+                # Fill the columns
+                col_idx = 0
+                
+                # Skip empty columns at start for reversed rows
+                if is_reversed and stops_in_row < max_stops_per_row:
+                    col_idx = (max_stops_per_row - stops_in_row) * 2
+                
+                for i in range(stops_in_row):
+                    stop = row_stops_display[i]
+                    
+                    with cols[col_idx]:
+                        st.markdown(f"**{stop['label']}**")
+                        st.markdown(f"{stop['name']}")
+                    
+                    col_idx += 1
+                    
+                    # Add arrow between stops (not after last stop in row)
+                    if i < stops_in_row - 1:
+                        arrow_direction = "←" if is_reversed else "→"
+                        with cols[col_idx]:
+                            st.markdown(f"<div style='text-align: center; font-size: 24px; color: #01005B; padding-top: 20px;'>{arrow_direction}</div>", unsafe_allow_html=True)
+                        col_idx += 1
+                
+                # Add down arrow if there are more stops (between rows)
+                if current_idx + stops_in_row < len(all_stops):
+                    # Position arrow at the end of current row direction
+                    if is_reversed:
+                        # Arrow on left for reversed rows
+                        st.markdown("<div style='text-align: left; font-size: 24px; color: #01005B; margin: 5px 0 5px 40px;'>↓</div>", unsafe_allow_html=True)
+                    else:
+                        # Arrow on right for normal rows
+                        st.markdown("<div style='text-align: right; font-size: 24px; color: #01005B; margin: 5px 40px 5px 0;'>↓</div>", unsafe_allow_html=True)
+                
+                current_idx += stops_in_row
+                row_num += 1
+            
+            st.markdown("---")
+            
+            # Calculate metrics
+            distance_matrix = np.array(optimization_result['distance_matrix'])
+            total_distance = sum(
+                distance_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
+                for i in range(len(optimization_result['route']) - 1)
+            )
+            
+            time_matrix = np.array(optimization_result['time_matrix'])
+            total_time = sum(
+                time_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
+                for i in range(len(optimization_result['route']) - 1)
+            )
+            
+            energy = optimization_result['result']['energy']
+            
+            # Format time for better readability
+            hours = int(total_time // 60)
+            minutes = int(total_time % 60)
+            if hours > 0:
+                time_display = f"{hours}h {minutes}m"
+            else:
+                time_display = f"{minutes} min"
+            
+            # Display key metrics in a clean row
+            st.subheader("Route Summary")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    label="Total Distance",
+                    value=f"{total_distance:.1f} km"
                 )
-                
-                st.session_state.optimization_result = optimization_result
-                
-                # Display route
-                st.subheader("✅ Optimized Route:")
-                route_text = " → ".join([
-                    f"{i+1}. {poi['name']}" 
-                    for i, poi in enumerate(optimization_result['route_pois'])
-                ])
-                st.markdown(f"**Route:** {route_text}")
-                
-                # Calculate total distance
-                distance_matrix = np.array(optimization_result['distance_matrix'])
-                total_distance = sum(
-                    distance_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
-                    for i in range(len(optimization_result['route']) - 1)
+            
+            with col2:
+                st.metric(
+                    label="Travel Time",
+                    value=time_display
                 )
-                
-                st.metric("Total Distance", f"{total_distance:.2f} km")
-                st.metric("Energy", f"{optimization_result['result']['energy']:.4f}")
-                st.metric("Valid Solution", "✅ Yes" if optimization_result['result']['is_valid'] else "❌ No")
-                
-            except Exception as e:
-                st.error(f"❌ Error during optimization: {str(e)}")
-                st.exception(e)
+            
+            with col3:
+                st.metric(
+                    label="Energy",
+                    value=f"{energy:.3f}"
+                )
+            
+            with col4:
+                st.metric(
+                    label="Stops",
+                    value=len(optimization_result['route_pois'])
+                )
+            
+            st.markdown("---")
+            
+            # Guide user to next steps
+            st.info("Next Steps: View detailed route map in the 'Results' tab, or explore the quantum circuit in the 'Circuit' tab.")
+            
+        except Exception as e:
+            st.error(f"❌ Error during optimization: {str(e)}")
+            st.exception(e)
 
 # Tab 3: Results
 with tab3:

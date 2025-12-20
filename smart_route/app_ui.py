@@ -21,7 +21,17 @@ WARNING = "#f59e0b"
 ERROR = "#ef4444"
 NEUTRAL = "#64748b"
 
- 
+# Set custom CSS for background and text color
+st.markdown("""
+<style>
+body, .main, .stApp {
+  background: #fff !important;
+  color: #01005B !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 def render_header():
     """Render clean, modern header"""
     st.markdown(f"""
@@ -493,7 +503,7 @@ def render_preferences_tab() -> Dict:
                 border-radius: 8px;
                 padding: 1rem;
                 margin: 1rem 0;">
-        <div style="color: {PRIMARY}; font-size: 0.95rem; line-height: 1.6;">
+        <div style="color: {ACCENT}; font-size: 0.95rem; line-height: 1.6;">
             <strong>Smart Weight Calculation:</strong> Adjust traffic sensitivity below. 
             All other weights are automatically balanced.
         </div>
