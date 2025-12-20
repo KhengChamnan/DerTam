@@ -201,7 +201,7 @@ class CircuitVisualizer:
         # Save parameter details
         param_text = "\n".join(param_summary)
         param_file = self.output_dir / f"{filename}_parameters.txt"
-        with open(param_file, 'w') as f:
+        with open(param_file, 'w', encoding='utf-8') as f:  # <-- Add encoding='utf-8'
             f.write(param_text)
         
         # Create circuit visualization

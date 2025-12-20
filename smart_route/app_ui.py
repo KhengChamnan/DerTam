@@ -1,6 +1,7 @@
 """
-UI Components for Streamlit app
-Sidebar, tabs, preferences form, and other UI elements
+UI Components for Streamlit app - Clean, Professional Design
+Primary color: #01005B with lighter variations
+Minimalist approach with reduced emojis
 """
 import streamlit as st
 import pandas as pd
@@ -10,44 +11,55 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from app_helpers import load_pois_data
 
+# Color palette
+PRIMARY = "#01005B"
+PRIMARY_LIGHT = "#1a1a7e"
+PRIMARY_LIGHTER = "#3333a1"
+ACCENT = "#4a90e2"
+SUCCESS = "#10b981"
+WARNING = "#f59e0b"
+ERROR = "#ef4444"
+NEUTRAL = "#64748b"
+
  
 def render_header():
-    """Render page header"""
-    st.markdown('<div class="main-header">🗺️ Quantum Route Optimization</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <p style="font-size: 1.2rem;">Optimize your route using quantum algorithms</p>
+    """Render clean, modern header"""
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_LIGHT} 100%);
+                border-radius: 20px;
+                padding: 2.5rem 2rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 10px 40px rgba(1, 0, 91, 0.2);
+                text-align: center;">
+        <div style="font-size: 2.8rem;
+                    font-weight: 700;
+                    color: white;
+                    margin-bottom: 0.5rem;
+                    letter-spacing: -0.5px;">
+            Quantum Route Optimizer
+        </div>
+        <div style="font-size: 1.1rem;
+                    color: rgba(255, 255, 255, 0.85);
+                    font-weight: 400;">
+            AI-powered route planning for optimal tourist experiences
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
 
 def calculate_weights_from_traffic_sensitivity(traffic_sensitivity: float) -> Dict[str, float]:
-    """
-    Calculate weights with proper distribution that always sums to 1.0
-    
-    Strategy:
-    - Traffic weight: 0% to 30% (more reasonable max)
-    - At low traffic: Preferences matter more
-    - At high traffic: Distance and Time matter more
-    """
+    """Calculate weights with proper distribution that always sums to 1.0"""
     traffic_sensitivity = max(0.0, min(1.0, traffic_sensitivity))
     
-    # Traffic weight: 0% to 30% (reduced from 40% for better balance)
     traffic_weight = traffic_sensitivity * 0.3
     remaining_weight = 1.0 - traffic_weight
     
-    # Distribution of remaining weight based on traffic sensitivity
-    # At traffic=0: preferences=50%, distance=30%, time=20%
-    # At traffic=1: preferences=10%, distance=50%, time=40%
+    preferences_factor = 0.5 - 0.4 * traffic_sensitivity
+    distance_factor = 0.3 + 0.2 * traffic_sensitivity
+    time_factor = 0.2 + 0.2 * traffic_sensitivity
     
-    preferences_factor = 0.5 - 0.4 * traffic_sensitivity  # 50% to 10%
-    distance_factor = 0.3 + 0.2 * traffic_sensitivity      # 30% to 50%
-    time_factor = 0.2 + 0.2 * traffic_sensitivity         # 20% to 40%
-    
-    # These factors should already sum to 1.0, but verify
     factor_sum = preferences_factor + distance_factor + time_factor
-    if abs(factor_sum - 1.0) > 0.001:  # Allow small floating point error
-        # Normalize if needed
+    if abs(factor_sum - 1.0) > 0.001:
         preferences_factor /= factor_sum
         distance_factor /= factor_sum
         time_factor /= factor_sum
@@ -61,9 +73,25 @@ def calculate_weights_from_traffic_sensitivity(traffic_sensitivity: float) -> Di
 
 
 def render_sidebar() -> List[Dict]:
-    """Render sidebar with POI selection"""
+    """Render clean, organized sidebar"""
     with st.sidebar:
-        st.header("📍 Select Points of Interest")
+        # Header
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_LIGHT} 100%);
+                    color: white;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    margin-bottom: 1.5rem;
+                    text-align: center;
+                    box-shadow: 0 4px 12px rgba(1, 0, 91, 0.3);">
+            <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.3rem;">
+                Destinations
+            </div>
+            <div style="font-size: 0.85rem; opacity: 0.9;">
+                Select 2-8 points of interest
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         pois_data = load_pois_data("phnompenh")
         
@@ -71,150 +99,478 @@ def render_sidebar() -> List[Dict]:
             st.error("Could not load POIs. Please check data files.")
             return []
         
-        # POI selector
+        # POI selector with custom styling
+        st.markdown(f"""
+        <style>
+            /* Style the multiselect container */
+            div[data-baseweb="select"] > div {{
+                background-color: white;
+                border: 2px solid {PRIMARY_LIGHT};
+                border-radius: 10px;
+            
+            }}
+            
+            /* Style the multiselect when focused */
+            div[data-baseweb="select"]:focus-within > div {{
+                border-color: {PRIMARY};
+                box-shadow: 0 0 0 3px rgba(1, 0, 91, 0.1);
+            }}
+            
+            /* Style the dropdown menu */
+            div[data-baseweb="popover"] {{
+                border-radius: 10px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            }}
+            
+            /* Style the selected tags */
+            span[data-baseweb="tag"] {{
+                background-color: #e2e8f0 !important;  /* Light grey */
+                color: {PRIMARY} !important;           /* Optional: keep text dark blue */
+                border-radius: 6px !important;
+                font-weight: 500 !important;
+            }}
+            
+            /* Style the label */
+            .stMultiSelect label {{
+                font-weight: 600 !important;
+                color: {PRIMARY} !important;
+                font-size: 0.95rem !important;
+                margin-bottom: 0.5rem !important;
+            }}
+        </style>
+        """, unsafe_allow_html=True)
+        
         poi_options = {f"{poi['name']} ({poi['category']})": poi for poi in pois_data}
+        
         selected_poi_names = st.multiselect(
-            "Choose 2-8 POIs to visit:",
+            "Choose your destinations",
             options=list(poi_options.keys()),
             default=[],
-            max_selections=8
+            max_selections=8,
+            help="Select between 2 and 8 locations for your route",
+            placeholder="Search and select locations..."
         )
         
         selected_pois = [poi_options[name] for name in selected_poi_names]
         st.session_state.selected_pois = selected_pois
         
-        st.info(f"Selected: {len(selected_pois)} POIs")
+        # Selection status - simple version
+        num_selected = len(selected_pois)
+        if num_selected == 0:
+            status_text = "No selections"
+            status_color = NEUTRAL
+        elif num_selected < 2:
+            status_text = "Add more locations"
+            status_color = WARNING
+        elif num_selected <= 8:
+            status_text = "Ready to optimize"
+            status_color = SUCCESS
+        else:
+            status_text = "Too many selections"
+            status_color = ERROR
         
+        # Simple status indicator
+        st.markdown(f"""
+        <div style="display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                padding: 0.05rem 0;
+                margin: 0.05rem 0 0.1rem 0;">
+            <div style="font-size: 0.8rem; 
+                color: {status_color}; 
+                font-weight: 600;">
+            {status_text}
+            </div>
+            <div style="font-size: 1.1rem; 
+                font-weight: 700; 
+                color: {status_color};">
+            {num_selected}/8
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display selected POIs
         if selected_pois:
-            st.subheader("Selected POIs:")
+            st.markdown(f"""
+            <div style="border-top: 1px solid #e2e8f0; 
+                        padding-top: 0.4rem; 
+                        margin-top: 0.4rem;">
+                <div style="font-weight: 600; 
+                            color: {PRIMARY}; 
+                            font-size: 0.95rem; 
+                            margin-bottom: 0.7rem;">
+                    Selected Route
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Category color legend
+            category_colors = {
+                "Temple": "#9333ea",
+                "Museum": ACCENT,
+                "Market": WARNING,
+                "Park": SUCCESS,
+                "Historical": ERROR,
+                "Shopping": "#f59e0b"
+            }
+            
+            st.markdown(f"""
+            <div style="background: rgba(1, 0, 91, 0.05);
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        margin: 0.5rem 0 1rem 0;">
+                <div style="font-size: 0.75rem; color: {NEUTRAL}; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Category Colors
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <div style="width: 12px; height: 12px; background: #9333ea; border-radius: 3px;"></div>
+                        <span style="font-size: 0.75rem; color: {NEUTRAL};">Temple</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <div style="width: 12px; height: 12px; background: {ACCENT}; border-radius: 3px;"></div>
+                        <span style="font-size: 0.75rem; color: {NEUTRAL};">Museum</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <div style="width: 12px; height: 12px; background: {WARNING}; border-radius: 3px;"></div>
+                        <span style="font-size: 0.75rem; color: {NEUTRAL};">Market</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <div style="width: 12px; height: 12px; background: {SUCCESS}; border-radius: 3px;"></div>
+                        <span style="font-size: 0.75rem; color: {NEUTRAL};">Park</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <div style="width: 12px; height: 12px; background: {ERROR}; border-radius: 3px;"></div>
+                        <span style="font-size: 0.75rem; color: {NEUTRAL};">Historical</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <div style="width: 12px; height: 12px; background: #f59e0b; border-radius: 3px;"></div>
+                        <span style="font-size: 0.75rem; color: {NEUTRAL};">Shopping</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             for i, poi in enumerate(selected_pois, 1):
-                st.write(f"{i}. {poi['name']} ({poi['category']})")
+                color = category_colors.get(poi['category'], PRIMARY_LIGHT)
+                
+                st.markdown(f"""
+                <div style="background: white;
+                            border-left: 3px solid {color};
+                            border-radius: 8px;
+                            padding: 0.75rem;
+                            margin: 0.5rem 0;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <div style="background: {color};
+                                    color: white;
+                                    border-radius: 6px;
+                                    min-width: 26px;
+                                    height: 26px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-weight: 700;
+                                    font-size: 0.85rem;">
+                            {i}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">
+                                {poi['name']}
+                            </div>
+                            <div style="font-size: 0.75rem; color: {color}; margin-top: 0.1rem;">
+                                {poi['category']}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
         
         return selected_pois
 
 
 def render_preferences_tab() -> Dict:
-    """Render preferences tab and return user preferences"""
-    st.header("User Preferences & Constraints")
+    """Render clean preferences tab with better organization"""
     
-    # Get selected POIs to auto-update start location
     selected_pois = st.session_state.get('selected_pois', [])
     
-    # Auto-update start location from first POI if available
     if selected_pois and len(selected_pois) > 0:
-        # Always use first POI's coordinates
         start_lat = selected_pois[0].get('lat', 11.5625)
         start_lon = selected_pois[0].get('lng', 104.9310)
-        # Update session state
         st.session_state.start_lat = start_lat
         st.session_state.start_lon = start_lon
     else:
-        # Default values when no POIs selected
         start_lat = st.session_state.get('start_lat', 11.5625)
         start_lon = st.session_state.get('start_lon', 104.9310)
+    
+    # Starting Location Section
+    st.markdown("### Starting Location")
+    
+    if selected_pois and len(selected_pois) > 0:
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_LIGHT} 100%); 
+                    border-radius: 12px; 
+                    padding: 1.5rem; 
+                    color: white; 
+                    margin: 1rem 0;
+                    box-shadow: 0 4px 16px rgba(1, 0, 91, 0.2);">
+            <div style="font-size: 1rem; margin-bottom: 0.8rem; opacity: 0.9; font-weight: 500;">
+                Journey Starts At
+            </div>
+            <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 1.2rem;">
+                {selected_pois[0]['name']}
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="background: rgba(255, 255, 255, 0.12);
+                            border-radius: 8px;
+                            padding: 0.8rem;">
+                    <div style="opacity: 0.85; font-size: 0.8rem; margin-bottom: 0.3rem;">
+                        Latitude
+                    </div>
+                    <div style="font-weight: 700; font-size: 1.2rem;">
+                        {start_lat:.4f}°
+                    </div>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.12);
+                            border-radius: 8px;
+                            padding: 0.8rem;">
+                    <div style="opacity: 0.85; font-size: 0.8rem; margin-bottom: 0.3rem;">
+                        Longitude
+                    </div>
+                    <div style="font-weight: 700; font-size: 1.2rem;">
+                        {start_lon:.4f}°
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.info("Your journey begins at your first selected POI")
+    else:
+        st.markdown(f"""
+        <div style="background: rgba(239, 68, 68, 0.1);
+                    border-left: 3px solid {ERROR};
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin: 1rem 0;">
+            <div style="font-size: 1rem; font-weight: 600; color: {ERROR}; margin-bottom: 0.3rem;">
+                No Starting Location
+            </div>
+            <div style="color: {NEUTRAL}; font-size: 0.9rem;">
+                Please select POIs in the sidebar to set your starting location
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Time Configuration Section
+    st.markdown("### Time Configuration")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📍 Starting Location")
-        if selected_pois and len(selected_pois) > 0:
-            st.info(f"📍 Automatically set to first POI: **{selected_pois[0]['name']}**")
-            # Display read-only coordinates
-            col_lat, col_lon = st.columns(2)
-            with col_lat:
-                st.metric("Latitude", f"{start_lat:.4f}")
-            with col_lon:
-                st.metric("Longitude", f"{start_lon:.4f}")
-        else:
-            st.warning("⚠️ Please select POIs in the sidebar to set start location")
-            # Display NA when no POIs selected
-            col_lat, col_lon = st.columns(2)
-            with col_lat:
-                st.metric("Latitude", "N/A")
-            with col_lon:
-                st.metric("Longitude", "N/A")
-        
-        st.subheader("⏰ Time Settings")
-        # Get start time from saved preferences, session state, or use default
         saved_preferences = st.session_state.get('user_preferences', {})
         start_time_str = saved_preferences.get('start_time') or st.session_state.get('start_time', "N/A")
         
         if isinstance(start_time_str, str):
-            # Already a string in HH:MM:SS format or "N/A"
             if start_time_str.upper() in ["N/A", "NA", ""]:
                 start_time_str = "N/A"
         else:
-            # If it's a time object, convert to string
             start_time_str = start_time_str.strftime("%H:%M:%S") if start_time_str else "N/A"
         
-        # Store in session state for consistency
         st.session_state.start_time = start_time_str
-        
-        # Display departure time as read-only
-        st.metric("Departure Time", start_time_str)
-        
-        # Calculate and display estimated current time (start_time + 10 minutes)
-        if start_time_str and start_time_str.upper() not in ["N/A", "NA", ""]:
+
+        # Calculate and display departure time
+        if start_time_str == "N/A":
+            display_time = "Not Set"
+            time_label = "Please save preferences to set time"
+        else:
             try:
                 time_parts = start_time_str.split(":")
                 hours = int(time_parts[0])
                 minutes = int(time_parts[1])
                 seconds = int(time_parts[2]) if len(time_parts) > 2 else 0
-                
                 start_datetime = datetime(2000, 1, 1, hours, minutes, seconds)
-                estimated_datetime = start_datetime + timedelta(minutes=10)
-                estimated_time_str = estimated_datetime.strftime("%H:%M")
-                
-                st.info(f"🕐 Estimated Current Time: **{estimated_time_str}** (10 minutes after departure)")
+                # Add 10 minutes
+                adjusted_time = start_datetime + timedelta(minutes=10)
+                display_time = adjusted_time.strftime("%I:%M %p")
+                time_label = "Journey starts 10 minutes from save"
             except Exception:
-                st.info("🕐 Estimated Current Time: N/A")
-        else:
-            st.info("🕐 Estimated Current Time: N/A")
+                display_time = start_time_str
+                time_label = "Departure time"
+
+        st.markdown("**Departure Time**")
+        st.markdown(f"""
+        <div style="background: white;
+                    border: 2px solid {ACCENT};
+                    border-radius: 10px;
+                    padding: 1.5rem;
+                    margin: 0.5rem 0;
+                    text-align: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="color: {ACCENT}; font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+                {display_time}
+            </div>
+            <div style="color: {NEUTRAL}; font-size: 0.85rem;">
+                {time_label}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        trip_duration = st.number_input("Total trip duration per day (hours)", min_value=1, max_value=12, value=8, key="trip_duration", 
-                                        help="Maximum duration you want to travel in a day")
+       
     
     with col2:
-        st.subheader("🚦 Traffic Sensitivity")
-        traffic_sensitivity = st.slider(
-            "Traffic Sensitivity", 
-            min_value=0.0, 
-            max_value=1.0, 
-            value=st.session_state.get('traffic_sensitivity', 0.5), 
-            step=0.1,
-            help="Controls how much traffic affects route optimization. 0 = Ignore traffic, 1 = Avoid all traffic. All constraint weights are automatically calculated based on this setting.", 
-            key="traffic_sensitivity"
+        st.markdown("**Trip Duration**")
+        
+        trip_duration = st.slider(
+            "How many hours do you want to spend traveling?",
+            min_value=1,
+            max_value=12,
+            value=8,
+            key="trip_duration",
+            help="Select the total duration of your trip in hours"
         )
         
-        # Calculate all weights automatically based on traffic sensitivity
-        calculated_weights = calculate_weights_from_traffic_sensitivity(traffic_sensitivity)
+        duration_percentage = (trip_duration / 12) * 100
         
-        st.subheader("⚖️ Constraint Weights (Auto-calculated)")
-        st.info("ℹ️ All weights are automatically calculated based on Traffic Sensitivity. When traffic sensitivity is high, distance and time are prioritized more; when low, category diversity gets more weight.")
+        # Calculate end time
+        if start_time_str != "N/A":
+            try:
+                time_parts = start_time_str.split(":")
+                hours = int(time_parts[0])
+                minutes = int(time_parts[1])
+                start_datetime = datetime(2000, 1, 1, hours, minutes)
+                end_datetime = start_datetime + timedelta(hours=trip_duration, minutes=10)
+                end_time_display = end_datetime.strftime("%I:%M %p")
+                time_range = f"Ends at {end_time_display}"
+            except Exception:
+                time_range = f"{trip_duration} hours of travel"
+        else:
+            time_range = f"{trip_duration} hours of travel"
         
-        # Display calculated weights in a read-only format
-        weights_df = pd.DataFrame([
-            {"Constraint": "Distance", "Weight": f"{calculated_weights['distance']:.3f}"},
-            {"Constraint": "Time", "Weight": f"{calculated_weights['time']:.3f}"},
-            {"Constraint": "Category Diversity", "Weight": f"{calculated_weights['preferences']:.3f}"},
-            {"Constraint": "Traffic (from Traffic Sensitivity)", "Weight": f"{calculated_weights['traffic']:.3f}"},
-            {"Constraint": "Total", "Weight": f"{sum(calculated_weights.values()):.3f}"}
-        ])
-        st.dataframe(weights_df, use_container_width=True, hide_index=True)
-        st.caption("💡 **Category Diversity**: Weight for category diversity in quantum optimization. Controls whether to prefer similar categories (grouped) or diverse categories (mixed). Higher weight = more emphasis on category diversity.")
-        
-        # Add clarification note about Category Diversity
-        with st.expander("ℹ️ About Category Diversity (Quantum/QUBO)", expanded=False):
-            st.markdown("""
-            **Category Diversity** (Quantum/QUBO): This weight controls whether the optimizer prefers routes with similar categories grouped together, or routes with diverse categories mixed.
-            
-            **How it works**: Qubit 2 in the QUBO encoding represents category diversity preference:
-            - |0⟩ = prefer similar categories (grouped)
-            - |1⟩ = prefer diverse categories (mixed)
-            
-            **Note**: Quantum optimization does NOT prioritize specific categories (like "Temple"). It only considers whether categories should be similar or diverse.
-            """)
+        st.markdown(f"""
+        <div style="background: white;
+                    border: 2px solid {PRIMARY};
+                    border-radius: 10px;
+                    padding: 1.5rem;
+                    margin: 0.5rem 0;
+                    text-align: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size: 2.5rem; font-weight: 700; color: {PRIMARY}; margin-bottom: 0.5rem;">
+                {trip_duration} hours
+            </div>
+            <div style="color: {NEUTRAL}; font-size: 0.85rem; margin-bottom: 1rem;">
+                {time_range}
+            </div>
+            <div style="margin-top: 1rem;">
+                <div style="background: #e2e8f0; border-radius: 8px; height: 8px; overflow: hidden;">
+                    <div style="background: linear-gradient(90deg, {PRIMARY} 0%, {PRIMARY_LIGHT} 100%); 
+                                height: 100%; 
+                                width: {duration_percentage}%; 
+                                transition: width 0.3s ease;">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; color: {NEUTRAL}; font-size: 0.7rem;">
+                    <span>1h</span>
+                    <span>6h</span>
+                    <span>12h</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Traffic & Optimization Section
+    st.markdown("### Traffic & Optimization")
+    
+    st.markdown(f"""
+    <div style="background: rgba(74, 144, 226, 0.1);
+                border-left: 3px solid {ACCENT};
+                border-radius: 8px;
+                padding: 1rem;
+                margin: 1rem 0;">
+        <div style="color: {PRIMARY}; font-size: 0.95rem; line-height: 1.6;">
+            <strong>Smart Weight Calculation:</strong> Adjust traffic sensitivity below. 
+            All other weights are automatically balanced.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    traffic_sensitivity = st.slider(
+        "Traffic Sensitivity Level",
+        min_value=0.0,
+        max_value=1.0,
+        value=st.session_state.get('traffic_sensitivity', 0.5),
+        step=0.1,
+        help="0 = Ignore traffic | 1 = Avoid all traffic",
+        key="traffic_sensitivity"
+    )
+    
+    # Traffic indicator
+    traffic_labels = ["Low Priority", "Moderate", "High Priority", "Critical"]
+    traffic_idx = min(int(traffic_sensitivity * 4), 3)
+    traffic_colors_list = [SUCCESS, WARNING, "#fb923c", ERROR]
+    current_traffic_color = traffic_colors_list[traffic_idx]
+    
+    st.markdown(f"""
+    <div style="background: white;
+                border: 2px solid {current_traffic_color};
+                border-radius: 10px;
+                padding: 1rem;
+                margin: 1rem 0;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="color: {current_traffic_color}; font-weight: 700; font-size: 1.2rem;">
+            {traffic_labels[traffic_idx]}
+        </div>
+        <div style="color: {NEUTRAL}; font-size: 0.85rem; margin-top: 0.3rem;">
+            Traffic avoidance level
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Calculate weights
+    calculated_weights = calculate_weights_from_traffic_sensitivity(traffic_sensitivity)
+    
+    st.markdown("---")
+    st.markdown("#### Optimization Weights")
+    
+    # Weight cards
+    weight_items = [
+        ("Distance", calculated_weights['distance'], PRIMARY),
+        ("Time", calculated_weights['time'], PRIMARY_LIGHT),
+        ("Diversity", calculated_weights['preferences'], SUCCESS),
+        ("Traffic", calculated_weights['traffic'], WARNING)
+    ]
+    
+    cols = st.columns(4)
+    for col, (label, weight, color) in zip(cols, weight_items):
+        with col:
+            percentage = weight * 100
+            st.markdown(f"""
+            <div style="background: white;
+                        border: 2px solid {color};
+                        border-radius: 10px;
+                        padding: 1rem;
+                        text-align: center;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <div style="font-size: 0.8rem; color: {NEUTRAL}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    {label}
+                </div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: {color}; margin-bottom: 0.5rem;">
+                    {percentage:.1f}%
+                </div>
+                <div style="background: #e2e8f0; border-radius: 6px; height: 6px; overflow: hidden;">
+                    <div style="background: {color}; height: 100%; width: {percentage}%;"></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Build preferences object
     preferences = {
         "province": "Phnom Penh",
         "start_lat": start_lat,
@@ -222,8 +578,8 @@ def render_preferences_tab() -> Dict:
         "start_time": start_time_str,
         "trip_duration": trip_duration,
         "traffic_sensitivity": traffic_sensitivity,
-        "traffic_avoidance": False,  # Always False, kept for backward compatibility
-        "preferred_category": None,  # Not used in quantum optimization
+        "traffic_avoidance": False,
+        "preferred_category": None,
         "constraint_weights": {
             "distance": calculated_weights["distance"],
             "time": calculated_weights["time"],
@@ -233,87 +589,184 @@ def render_preferences_tab() -> Dict:
         }
     }
     
-    # Always update session state for real-time updates
     st.session_state.user_preferences = preferences
     
-    # Save Preferences Button
     st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Custom styled save button
+    st.markdown(f"""
+    <style>
+        div[data-testid="stButton"] button[kind="primary"] {{
+            background: linear-gradient(135deg, {PRIMARY} 0%, {PRIMARY_LIGHT} 100%) !important;
+            border: none !important;
+            padding: 0.75rem 2rem !important;
+            font-weight: 600 !important;
+            font-size: 1.05rem !important;
+            border-radius: 10px !important;
+            box-shadow: 0 4px 12px rgba(1, 0, 91, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }}
+        div[data-testid="stButton"] button[kind="primary"]:hover {{
+            box-shadow: 0 6px 20px rgba(1, 0, 91, 0.4) !important;
+            transform: translateY(-2px) !important;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+  
+    
     if st.button("💾 Save Preferences", type="primary", use_container_width=True, key="save_preferences_btn"):
         try:
-            # Calculate current time + 10 minutes as start_time
             current_time = datetime.now()
             start_time_calculated = current_time + timedelta(minutes=10)
             start_time_str = start_time_calculated.strftime("%H:%M:%S")
             
-            # Update preferences with calculated start_time
             preferences['start_time'] = start_time_str
-            
-            # Update session state
             st.session_state.start_time = start_time_str
             st.session_state.user_preferences = preferences
             
-            # Save to JSON file
             preferences_file = Path("data/users/user_preferences.json")
             preferences_file.parent.mkdir(parents=True, exist_ok=True)
             
             with open(preferences_file, 'w', encoding='utf-8') as f:
                 json.dump(preferences, f, indent=2, ensure_ascii=False)
             
-            # Read back the saved preferences to confirm
             with open(preferences_file, 'r', encoding='utf-8') as f:
                 saved_preferences = json.load(f)
             
-            # Calculate estimated time for display (start_time + 10 minutes)
             estimated_datetime = start_time_calculated + timedelta(minutes=10)
             estimated_time_str = estimated_datetime.strftime("%H:%M")
             
-            st.success(f"✅ Preferences saved successfully!")
-            st.info(f"🕐 Departure Time: **{start_time_str}** (current time + 10 min) | Estimated Current Time: **{estimated_time_str}** (10 minutes after departure)")
+            st.balloons()
+            st.success("Preferences saved successfully!")
             
-            # Display saved preferences
-            st.subheader("📄 Saved Preferences")
-            st.json(saved_preferences)
+            st.markdown(f"""
+            <div style="background: white;
+                        border: 2px solid {SUCCESS};
+                        border-radius: 12px;
+                        padding: 1.5rem;
+                        margin: 1rem 0;
+                        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 0.8rem; color: {NEUTRAL}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Departure Time
+                        </div>
+                        <div style="font-size: 2.2rem; font-weight: 700; color: {SUCCESS}; font-family: 'Courier New', monospace;">
+                            {start_time_str}
+                        </div>
+                        <div style="font-size: 0.75rem; color: {NEUTRAL}; margin-top: 0.3rem;">
+                            Current + 10 min
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 0.8rem; color: {NEUTRAL}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Estimated Current
+                        </div>
+                        <div style="font-size: 2.2rem; font-weight: 700; color: {ACCENT}; font-family: 'Courier New', monospace;">
+                            {estimated_time_str}
+                        </div>
+                        <div style="font-size: 0.75rem; color: {NEUTRAL}; margin-top: 0.3rem;">
+                            Departure + 10 min
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # Force rerun to update UI
+            with st.expander("View Saved Configuration"):
+                st.json(saved_preferences)
+            
             st.rerun()
             
         except Exception as e:
-            st.error(f"❌ Error saving preferences: {str(e)}")
+            st.error(f"Error saving preferences: {str(e)}")
     
     return preferences
 
 
 def render_poi_table(pois: List[Dict]):
-    """Render POI information table"""
+    """Render clean POI information table"""
     poi_df_data = []
     for i, poi in enumerate(pois):
         poi_df_data.append({
-            "Index": i,
+            "No.": i + 1,
             "Name": poi['name'],
             "Category": poi['category'],
-            "Opening": f"{poi.get('opening_time', 0)//60:02d}:{poi.get('opening_time', 0)%60:02d}",
-            "Closing": f"{poi.get('closing_time', 1440)//60:02d}:{poi.get('closing_time', 1440)%60:02d}"
+            "Opens": f"{poi.get('opening_time', 0)//60:02d}:{poi.get('opening_time', 0)%60:02d}",
+            "Closes": f"{poi.get('closing_time', 1440)//60:02d}:{poi.get('closing_time', 1440)%60:02d}"
         })
     
-    st.dataframe(poi_df_data, use_container_width=True)
+    st.dataframe(
+        poi_df_data,
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 def render_qaoa_settings() -> Dict:
-    """Render QAOA settings and return configuration"""
-    st.subheader("⚙️ QAOA Settings")
+    """Render clean QAOA settings panel"""
+    st.markdown(f"""
+    <div style="background: rgba(1, 0, 91, 0.05);
+                border-left: 3px solid {PRIMARY};
+                border-radius: 8px;
+                padding: 1rem;
+                margin: 1rem 0;">
+        <div style="font-size: 1rem; font-weight: 600; color: {PRIMARY}; margin-bottom: 0.3rem;">
+            Quantum Algorithm Configuration
+        </div>
+        <div style="color: {NEUTRAL}; font-size: 0.9rem;">
+            Fine-tune QAOA parameters for optimal performance
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns(3)
+    
     with col1:
-        num_layers = st.number_input("Number of Layers (p)", min_value=1, max_value=5, value=2, key="num_layers")
+        st.markdown("**Circuit Layers**")
+        num_layers = st.number_input(
+            "Number of Layers (p)",
+            min_value=1,
+            max_value=5,
+            value=2,
+            key="num_layers",
+            help="More layers = better optimization but slower",
+            label_visibility="collapsed"
+        )
+        st.caption(f"Using {num_layers} layer{'s' if num_layers > 1 else ''}")
+        
     with col2:
-        shots = st.number_input("Shots", min_value=100, max_value=10000, value=1024, step=100, key="shots")
+        st.markdown("**Measurements**")
+        shots = st.number_input(
+            "Shots",
+            min_value=100,
+            max_value=10000,
+            value=1024,
+            step=100,
+            key="shots",
+            help="Number of quantum measurements",
+            label_visibility="collapsed"
+        )
+        st.caption(f"{shots:,} measurements")
+        
     with col3:
-        optimizer = st.selectbox("Optimizer", ["COBYLA", "SPSA"], index=0, key="optimizer")
+        st.markdown("**Optimizer**")
+        optimizer = st.selectbox(
+            "Optimizer",
+            ["COBYLA", "SPSA"],
+            index=0,
+            key="optimizer",
+            help="Classical optimizer for parameters",
+            label_visibility="collapsed"
+        )
+        st.caption(f"Using {optimizer}")
     
     return {'num_layers': num_layers, 'shots': shots, 'optimizer': optimizer}
 
 
 def initialize_session_state():
-    """Initialize Streamlit session state variables"""
+    """Initialize Streamlit session state variables - Backend unchanged"""
     if 'optimization_result' not in st.session_state:
         st.session_state.optimization_result = None
     if 'selected_pois' not in st.session_state:
@@ -322,4 +775,3 @@ def initialize_session_state():
         st.session_state.user_preferences = {}
     if 'comparison_result' not in st.session_state:
         st.session_state.comparison_result = None
-
