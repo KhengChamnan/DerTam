@@ -47,37 +47,45 @@ def run_quantum_optimization(
         Dictionary with optimization result and metadata
     """
     # Step 1: Calculate matrices
-    distance_calc, distance_matrix, time_matrix, traffic_penalty, time_matrix_without_traffic = calculate_matrices(pois)
-    
-    # Debug: Show traffic penalty matrix statistics
-    if traffic_penalty is not None:
-        traffic_min = np.min(traffic_penalty[traffic_penalty > 0]) if np.any(traffic_penalty > 0) else 0
-        traffic_max = np.max(traffic_penalty) if np.any(traffic_penalty > 0) else 0
-        traffic_mean = np.mean(traffic_penalty[traffic_penalty > 0]) if np.any(traffic_penalty > 0) else 0
-        traffic_std = np.std(traffic_penalty[traffic_penalty > 0]) if np.any(traffic_penalty > 0) else 0
-        
-        st.write(f"**Traffic Penalty Stats:** Min={traffic_min:.4f}, Max={traffic_max:.4f}, Mean={traffic_mean:.4f}, Std={traffic_std:.4f}")
-        if traffic_std < 0.01:
-            st.warning("⚠️ **Warning:** Traffic penalty matrix is nearly uniform (std < 0.01). Routes may not change with traffic sensitivity because all routes have similar traffic penalties.")
-        else:
-            st.info(f"✅ Traffic penalty has variation (std={traffic_std:.4f}), so traffic sensitivity should affect routes.")
-    
+    distance_calc, distance_matrix, time_matrix, traffic_penalty = calculate_matrices(pois)
+  
     # Step 2: Create feature matrix
     feature_matrix, feature_info = create_feature_matrix(pois, user_preferences, distance_calc)
-    st.success(f"✅ Feature matrix created: {feature_matrix.shape}")
-    st.write(f"**Features:** {', '.join(feature_info['feature_names'])}")
     
-    # Display feature matrix
-    feature_df = pd.DataFrame(
-        feature_matrix,
-        columns=feature_info['feature_names'],
-        index=[poi['name'] for poi in pois]
-    )
-    st.dataframe(feature_df.style.background_gradient(cmap='viridis'), use_container_width=True)
-    
-    # Step 3: QUBO Encoding
+    # --- Hide Features and QUBO Matrix in an expander ---
+    with st.expander("Show Features and QUBO Matrix"):
+        st.write(f"**Features:** {', '.join(feature_info['feature_names'])}")
+        feature_df = pd.DataFrame(
+            feature_matrix,
+            columns=feature_info['feature_names'],
+            index=[poi['name'] for poi in pois]
+        )
+        st.dataframe(feature_df.style.background_gradient(cmap='viridis'), use_container_width=True)
+
+        # Step 3: QUBO Encoding
+        qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
+        qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
+        qubo_matrix, encoding_info = qubo_encoder.encode_feature_based(
+            feature_matrix, distance_matrix,
+            time_matrix=time_matrix,
+            traffic_penalty_matrix=traffic_penalty,
+            constraint_weights=qubo_constraint_weights,
+            num_qubits=4,
+            feature_info=feature_info
+        )
+
+        st.write("**QUBO Matrix:**")
+        qubo_df = pd.DataFrame(
+            qubo_matrix,
+            index=[f"Q{i}" for i in range(qubo_matrix.shape[0])],
+            columns=[f"Q{j}" for j in range(qubo_matrix.shape[1])]
+        )
+        st.dataframe(qubo_df, use_container_width=True)
+    # --- End expander ---
+
+    # Step 3 (continued): QUBO Encoding (for use outside expander)
+    # (You may want to avoid double encoding; if so, move the encoding outside the expander and only display inside)
     qubo_encoder = QUBOEncoder(penalty_coefficient=1000.0)
-    # Map 'preferences' to 'category' for QUBO encoder
     qubo_constraint_weights = _map_constraint_weights_for_qubo(user_preferences['constraint_weights'])
     qubo_matrix, encoding_info = qubo_encoder.encode_feature_based(
         feature_matrix, distance_matrix,
@@ -87,23 +95,7 @@ def run_quantum_optimization(
         num_qubits=4,
         feature_info=feature_info
     )
-    
-    st.success(f"✅ QUBO matrix created: {qubo_matrix.shape} (Feature-Based, {encoding_info['num_qubits']} qubits)")
-    
-    # Display qubit mapping
-    st.write("**Qubit Feature Mapping:**")
-    for qubit_idx, feature in encoding_info['qubit_mapping'].items():
-        st.write(f"  Q{qubit_idx}: {feature}")
-    
-    # Display QUBO matrix
-    st.write("**QUBO Matrix:**")
-    qubo_df = pd.DataFrame(
-        qubo_matrix,
-        index=[f"Q{i}" for i in range(qubo_matrix.shape[0])],
-        columns=[f"Q{j}" for j in range(qubo_matrix.shape[1])]
-    )
-    st.dataframe(qubo_df, use_container_width=True)
-    
+
     # Step 4: QAOA Solving
     qaoa_solver = QAOASolver(
         num_layers=qaoa_config['num_layers'],
@@ -120,38 +112,10 @@ def run_quantum_optimization(
         pois=pois,
         time_matrix_without_traffic=time_matrix_without_traffic
     )
-    
-    st.success("✅ Optimization complete!")
-    
+       
     # Step 5: Decode and display
     route = result['route']
     route_pois = [pois[i] for i in route]
-    
-    # Display decoding info with debug information
-    if 'decode_info' in result:
-        decode_info = result['decode_info']
-        if 'preferences' in decode_info:
-            st.write("**Decoded Feature Preferences:**")
-            for feature, value in decode_info['preferences'].items():
-                state_str = "|1⟩ (accept/deprioritize)" if value == 1 else "|0⟩ (minimize/avoid)"
-                st.write(f"  {feature}: {state_str}")
-        
-        # Debug information
-        if 'traffic_qubit_state' in decode_info:
-            traffic_state = decode_info['traffic_qubit_state']
-            traffic_state_str = "|0⟩ (avoid traffic)" if traffic_state == 0 else "|1⟩ (accept traffic)"
-            st.write(f"**Traffic Qubit State:** {traffic_state_str}")
-        
-        if 'traffic_weight_used' in decode_info and decode_info['traffic_weight_used'] is not None:
-            st.write(f"**Traffic Weight Used:** {decode_info['traffic_weight_used']:.4f}")
-        
-        if 'time_matrix_used' in decode_info:
-            time_matrix_type = decode_info['time_matrix_used']
-            st.write(f"**Time Matrix Used:** {time_matrix_type}")
-            if time_matrix_type == 'without_traffic':
-                st.info("ℹ️ Using time matrix WITHOUT traffic - QAOA chose to avoid traffic")
-            else:
-                st.info("ℹ️ Using time matrix WITH traffic - QAOA accepted traffic")
     
     return {
         'result': result,

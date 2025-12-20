@@ -214,9 +214,7 @@ class DistanceCalculator:
                 if i != j:
                     traffic_factor = self.get_traffic_factor(pois[i], pois[j])
                     # Penalty increases with traffic factor and distance
-                    # Amplify penalty: (traffic_factor - 1.0) * distance * 2.0
-                    # This makes traffic differences more significant
-                    penalty = (traffic_factor - 1.0) * distance_matrix[i][j] * 2.0
+                    penalty = (traffic_factor - 1.0) * distance_matrix[i][j]
                     penalty_matrix[i][j] = penalty
         
         return penalty_matrix

@@ -163,7 +163,7 @@ class RouteDecoder:
             effective_time_matrix,
             traffic_penalty_matrix,
             preferences,
-            constraint_weights
+            encoding_info.get('constraint_weights', {})
         )
         
         # Apply weighted nearest neighbor
@@ -250,7 +250,11 @@ class RouteDecoder:
                     if time_matrix is not None and max_time > 0:
                         cost += constraint_weights.get('time', 0.3) * time_weight * (time_matrix[i][j] / max_time)
                     
+<<<<<<< HEAD
                     # Traffic component - QAOA traffic preference strongly affects weight
+=======
+                    # Traffic component
+>>>>>>> origin/route_ui
                     if traffic_penalty_matrix is not None and max_traffic > 0:
                         cost += constraint_weights.get('traffic', 0.1) * traffic_weight * (traffic_penalty_matrix[i][j] / max_traffic)
                     

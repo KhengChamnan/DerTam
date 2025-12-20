@@ -609,14 +609,8 @@ class TSPWeightedNearestNeighborSolver:
                         cost += constraint_weights.get('preferences', 0.2) * category_penalty
                     
                     # Traffic component (always minimize with full weight)
-                    # Scale traffic weight to amplify effect based on constraint_weights['traffic']
-                    # Higher traffic sensitivity = stronger traffic avoidance
-                    traffic_constraint_weight = constraint_weights.get('traffic', 0.1)
-                    # Amplify effect more: multiply by (1 + traffic_constraint_weight * 5)
-                    # This ensures traffic sensitivity has a strong impact on route selection
-                    traffic_weight = 1.0 * (1.0 + traffic_constraint_weight * 5.0)
                     if traffic_penalty_matrix is not None and max_traffic > 0:
-                        cost += traffic_constraint_weight * traffic_weight * (traffic_penalty_matrix[i][j] / max_traffic)
+                        cost += constraint_weights.get('traffic', 0.2) * 1.0 * (traffic_penalty_matrix[i][j] / max_traffic)
                     
                     weighted_matrix[i][j] = cost
         

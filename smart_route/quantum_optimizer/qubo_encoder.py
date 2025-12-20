@@ -174,15 +174,12 @@ class QUBOEncoder:
             scaling_factor = 10.0 + (traffic_weight * 5.0)  # 10.0 to 15.0 range
             qubo_matrix[3, 3] = -traffic_weight * scaling_factor * traffic_factor
             
-            # Interaction: traffic affects time (stronger when traffic_weight is high)
-            # When traffic is high, avoiding traffic (|0⟩) should reduce time
-            qubo_matrix[1, 3] = traffic_weight * 0.5  # Increased for stronger coupling
+            # Interaction: traffic affects time
+            qubo_matrix[1, 3] = constraint_weights.get('traffic', 0.1) * 0.15
             qubo_matrix[3, 1] = qubo_matrix[1, 3]
             
             # Interaction: traffic affects distance preference
-            # When avoiding traffic (|0⟩), may need longer routes (|0⟩ for distance too)
-            # This creates a trade-off: longer distance to avoid traffic
-            qubo_matrix[0, 3] = traffic_weight * 0.4  # Increased for stronger coupling
+            qubo_matrix[0, 3] = constraint_weights.get('traffic', 0.1) * 0.1
             qubo_matrix[3, 0] = qubo_matrix[0, 3]
         
         # Store encoding information
