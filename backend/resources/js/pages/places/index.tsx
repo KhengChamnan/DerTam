@@ -695,8 +695,11 @@ export default function PlacesIndex({
                                                     </div>
                                                 </div>
                                             )}
-                                            <div>
-                                                <div className="font-medium truncate">
+                                            <div className="min-w-0">
+                                                <div
+                                                    className="font-medium truncate"
+                                                    title={place.name}
+                                                >
                                                     {place.name}
                                                 </div>
                                             </div>
