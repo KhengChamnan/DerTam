@@ -121,45 +121,87 @@ with tab1:
     
     col1, col2 = st.columns(2)
     
+    col1, col2 = st.columns(2)
+
     with col1:
         st.subheader("📍 Starting Location")
         start_lat = st.number_input("Latitude", value=11.5625, format="%.4f", key="start_lat")
         start_lon = st.number_input("Longitude", value=104.9310, format="%.4f", key="start_lon")
-        
-        st.subheader("⏰ Time Settings")
-        start_time_str = st.time_input("Start Time", value=None, key="start_time")
+
+        st.subheader("⏰ Departure Time")
+        start_time_str = st.time_input("Departure Time", value=None, key="start_time")
         if start_time_str:
             start_time_str = start_time_str.strftime("%H:%M:%S")
         else:
             start_time_str = "08:00:00"
-        
-        trip_duration = st.number_input("Trip Duration (hours)", min_value=1, max_value=12, value=8, key="trip_duration")
-        
-        st.subheader("📏 Distance Constraints")
-        max_distance = st.slider("Max distance from start (km)", 1.0, 20.0, 10.0, step=0.5, key="max_distance")
-    
+
+        trip_duration = st.number_input("Total Trip Duration per Day (hours)", min_value=1, max_value=12, value=8, key="trip_duration")
+
+        st.subheader("📏 Max Distance Constraint")
+        max_distance = st.slider(
+            "Max distance from start (km)",
+            1.0, 20.0, 10.0, step=0.5, key="max_distance",
+            help="If the optimal route exceeds this distance, the algorithm will try to keep within this limit, but may not always be possible if POIs are far apart."
+        )
+
     with col2:
         st.subheader("🚦 Traffic Settings")
-        traffic_sensitivity = st.slider(
-            "Traffic Sensitivity",
-            min_value=0.0,
-            max_value=1.0,
-            value=0.5,
-            step=0.1,
-            help="Higher values prioritize routes with less traffic",
-            key="traffic_sensitivity"
-        )
-        
-        traffic_avoidance = st.checkbox("Avoid high-traffic routes", value=False, key="traffic_avoidance")
-        
+        st.markdown("""
+        <span style='font-size:0.95em;'>
+        <b>Traffic Sensitivity:</b> 0 = Ignore traffic, 1 = Strongly avoid traffic.<br>
+        If you check <b>'Avoid high-traffic routes'</b>, traffic sensitivity will be set to 1 and constraints will be auto-adjusted.
+        </span>
+        """, unsafe_allow_html=True)
+
+        traffic_avoidance = st.checkbox("Avoid high-traffic routes (auto constraint)", value=False, key="traffic_avoidance")
+
+        if traffic_avoidance:
+            traffic_sensitivity = 1.0
+        else:
+            traffic_sensitivity = st.slider(
+                "Traffic Sensitivity",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.5,
+                step=0.1,
+                help="0 = Ignore traffic, 1 = Strongly avoid traffic",
+                key="traffic_sensitivity"
+            )
+
         st.subheader("⚖️ Constraint Weights")
         st.markdown("Balance between different objectives:")
-        
-        weight_distance = st.slider("Distance", 0.0, 1.0, 0.4, step=0.1, key="weight_distance")
-        weight_time = st.slider("Time", 0.0, 1.0, 0.3, step=0.1, key="weight_time")
-        weight_preferences = st.slider("Preferences", 0.0, 1.0, 0.2, step=0.1, key="weight_preferences")
-        weight_traffic = st.slider("Traffic", 0.0, 1.0, 0.1, step=0.1, key="weight_traffic")
-        
+
+        # Preference focus radio
+        preference_focus = st.radio(
+            "Preference Focus",
+            ["Shortest Distance", "Least Time", "Most Attractions", "Least Traffic"],
+            index=0,
+            key="preference_focus",
+            help="Choose what you care about most. This will auto-adjust weights, but you can fine-tune manually."
+        )
+
+        # Default weights based on preference
+        default_weights = {
+            "Shortest Distance": (0.7, 0.1, 0.1, 0.1),
+            "Least Time": (0.2, 0.7, 0.05, 0.05),
+            "Most Attractions": (0.2, 0.2, 0.5, 0.1),
+            "Least Traffic": (0.1, 0.1, 0.1, 0.7)
+        }
+        d_w, t_w, p_w, tr_w = default_weights[preference_focus]
+
+        # If auto constraint, override weights
+        if traffic_avoidance:
+            weight_distance = 0.1
+            weight_time = 0.1
+            weight_preferences = 0.1
+            weight_traffic = 0.7
+            st.info("Auto constraint enabled: Traffic prioritized, other constraints reduced.")
+        else:
+            weight_distance = st.slider("Distance", 0.0, 1.0, d_w, step=0.1, key="weight_distance")
+            weight_time = st.slider("Time", 0.0, 1.0, t_w, step=0.1, key="weight_time")
+            weight_preferences = st.slider("Preferences", 0.0, 1.0, p_w, step=0.1, key="weight_preferences")
+            weight_traffic = st.slider("Traffic", 0.0, 1.0, tr_w, step=0.1, key="weight_traffic")
+
         # Normalize weights
         total_weight = weight_distance + weight_time + weight_preferences + weight_traffic
         if total_weight > 0:
@@ -167,7 +209,7 @@ with tab1:
             weight_time /= total_weight
             weight_preferences /= total_weight
             weight_traffic /= total_weight
-    
+
     # Save preferences
     st.session_state.user_preferences = {
         "province": "Phnom Penh",
@@ -178,6 +220,7 @@ with tab1:
         "max_distance": max_distance,
         "traffic_sensitivity": traffic_sensitivity,
         "traffic_avoidance": traffic_avoidance,
+        "preference_focus": preference_focus,
         "constraint_weights": {
             "distance": weight_distance,
             "time": weight_time,
@@ -186,9 +229,8 @@ with tab1:
             "constraints": 0.2  # Weight for constraint violations
         }
     }
-    
-    st.success("✅ Preferences saved!")
 
+    st.success("✅ Preferences saved!")
 # Tab 2: Optimize
 with tab2:
     st.header("🚀 Route Optimization")
@@ -838,7 +880,6 @@ with tab5:
             st.metric("Fastest", winner_time)
         with summary_col3:
             st.metric("Feasible", winner_feasible)
-        
         # Detailed comparison expander
         with st.expander("🔍 Detailed Comparison"):
             col_det1, col_det2 = st.columns(2)

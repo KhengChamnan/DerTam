@@ -36,6 +36,7 @@ try:
     from classical_optimizer.nearest_neighbor import NearestNeighborSolver
     from classical_optimizer.two_opt import TwoOptSolver
     from classical_optimizer.ortools_solver import ORToolsSolver
+
 except ImportError:
     # These modules may not exist yet, create placeholders
     POIRecommender = None
@@ -52,7 +53,6 @@ from utils.distance_calculator import DistanceCalculator
 from classical_optimizer.feature_engineer import FeatureEngineer
 from utils.json_data_manager import JSONDataManager
 
-
 # Request/Response models
 class POIModel(BaseModel):
     id: int
@@ -65,7 +65,6 @@ class POIModel(BaseModel):
     closing_time: Optional[int] = 1440
     visit_duration: Optional[int] = 60
 
-
 class OptimizeRequest(BaseModel):
     pois: List[POIModel]
     user_id: int
@@ -73,11 +72,9 @@ class OptimizeRequest(BaseModel):
     start_time: Optional[int] = 540  # 9 AM
     algorithm: Optional[str] = "ortools"  # ortools, nearest_neighbor, quantum
 
-
 class CompareRequest(BaseModel):
     pois: List[POIModel]
     algorithms: Optional[List[str]] = ["nearest_neighbor", "two_opt", "ortools", "quantum"]
-
 
 class QuantumAutoRequest(BaseModel):
     """Request model for quantum-auto endpoint with CF filtering"""
@@ -102,7 +99,6 @@ class QuantumAutoResponse(BaseModel):
     recommendation_details: Dict
     visualization_data: Dict
     cost: str = "FREE (simulation only)"
-
 
 # Global instances
 poi_recommender = POIRecommender()
@@ -327,7 +323,6 @@ async def compare_algorithms(request: CompareRequest):
                 "error": "Cannot include quantum with >4 POIs",
                 "solution": "Remove quantum or reduce POIs to 4"
             }
-        
         distance_matrix = distance_calc.calculate_distance_matrix(pois)
         time_matrix = distance_calc.calculate_time_matrix(distance_matrix)
         
@@ -391,14 +386,12 @@ async def run_benchmark(scenario_name: Optional[str] = None):
     
     Args:
         scenario_name: 'preference_heavy', 'tight_constraints', 'asymmetric_distances', or None for all
-        
     Returns:
         Detailed comparison showing where QAOA excels vs classical algorithms
     """
     try:
         import json
         from utils.brute_force_solver import BruteForceSolver
-        
         # Load test scenarios
         scenario_dir = "data/test_scenarios"
         
