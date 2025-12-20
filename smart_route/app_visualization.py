@@ -73,39 +73,97 @@ def render_route_details(route: List[int], route_pois: List[Dict],
 
 
 def render_measurement_results(counts: Dict, encoding_info: Dict):
-    """Render measurement results histogram"""
+    """Render measurement results histogram with quantum notation"""
     clean_counts = {}
     for key, value in counts.items():
         clean_counts[key] = float(value.real) if isinstance(value, complex) else float(value)
     
     sorted_counts = sorted(clean_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    total_counts = sum(clean_counts.values())
     
-    # Show qubit interpretation for top result
+    # Helper function to format bitstring in ket notation
+    def to_ket_notation(bitstring: str) -> str:
+        """Convert bitstring to quantum ket notation |...⟩"""
+        return f"|{bitstring}⟩"
+    
+    # Show qubit interpretation for top result with quantum notation
     if sorted_counts and encoding_info.get('encoding') == 'feature_based':
         best_bitstring = sorted_counts[0][0]
-        st.write(f"**Most Probable State: {best_bitstring}**")
+        
+        # Qubit state interpretation
         qubit_mapping = encoding_info.get('qubit_mapping', {})
-        st.write("**Interpretation:**")
+        st.markdown("**Qubit State Interpretation:**")
+        
+        qubit_states = []
         for i, (qubit_idx, feature) in enumerate(qubit_mapping.items()):
             if i < len(best_bitstring):
-                state = '|1⟩' if best_bitstring[i] == '1' else '|0⟩'
-                st.write(f"  Q{qubit_idx} ({feature}): {state}")
+                bit_value = best_bitstring[i]
+                state_ket = f"|{bit_value}⟩"
+                meaning = _get_qubit_meaning(feature, bit_value)
+                qubit_states.append({
+                    'Qubit': f'Q{qubit_idx}',
+                    'Feature': feature,
+                    'State': state_ket,
+                    'Interpretation': meaning
+                })
+        
+        if qubit_states:
+            import pandas as pd
+            qubit_df = pd.DataFrame(qubit_states)
+            st.dataframe(qubit_df, use_container_width=True, hide_index=True)
+    
+    # Create histogram with ket notation labels
+    ket_labels = [to_ket_notation(bitstring[:8] + "..." if len(bitstring) > 8 else bitstring) 
+                  for bitstring, _ in sorted_counts]
+    probabilities = [count / total_counts * 100 if total_counts > 0 else 0 for _, count in sorted_counts]
     
     fig = go.Figure(data=[
         go.Bar(
-            x=[bitstring[:20] + "..." if len(bitstring) > 20 else bitstring for bitstring, _ in sorted_counts],
+            x=ket_labels,
             y=[float(count) for _, count in sorted_counts],
-            text=[int(count) for _, count in sorted_counts],
-            textposition='auto'
+            text=[f"{int(count)} ({prob:.1f}%)" for (_, count), prob in zip(sorted_counts, probabilities)],
+            textposition='auto',
+            marker_color='#4fc3f7',
+            hovertemplate="<b>%{x}</b><br>Count: %{y}<br>Probability: %{text}<extra></extra>"
         )
     ])
     fig.update_layout(
-        title="Top 10 Measurement Results",
-        xaxis_title="Bitstring (Qubit States)",
-        yaxis_title="Count",
-        height=400
+        title="Top 10 Quantum Measurement Results (Ket Notation)",
+        xaxis_title="Quantum State |ψ⟩",
+        yaxis_title="Measurement Count",
+        height=400,
+        xaxis_tickangle=-45,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
     )
     st.plotly_chart(fig, use_container_width=True)
+
+
+def _get_qubit_meaning(feature: str, bit_value: str) -> str:
+    """Get human-readable meaning for qubit state based on feature"""
+    meanings = {
+        'distance': {
+            '0': 'Prefer shorter routes',
+            '1': 'Accept longer routes'
+        },
+        'time': {
+            '0': 'Minimize travel time',
+            '1': 'Accept longer travel times'
+        },
+        'category': {
+            '0': 'Similar categories preferred',
+            '1': 'Diverse categories preferred'
+        },
+        'traffic': {
+            '0': 'Avoid high-traffic routes',
+            '1': 'Accept traffic congestion'
+        }
+    }
+    
+    feature_lower = feature.lower()
+    if feature_lower in meanings:
+        return meanings[feature_lower].get(bit_value, 'Unknown state')
+    return f"State |{bit_value}⟩ for {feature}"
 
 
 def render_comparison_maps(classical_route_pois: List[Dict], quantum_route_pois: List[Dict], 

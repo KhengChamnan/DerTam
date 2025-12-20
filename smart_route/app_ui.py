@@ -685,25 +685,6 @@ def render_preferences_tab() -> Dict:
     return preferences
 
 
-def render_poi_table(pois: List[Dict]):
-    """Render clean POI information table"""
-    poi_df_data = []
-    for i, poi in enumerate(pois):
-        poi_df_data.append({
-            "No.": i + 1,
-            "Name": poi['name'],
-            "Category": poi['category'],
-            "Opens": f"{poi.get('opening_time', 0)//60:02d}:{poi.get('opening_time', 0)%60:02d}",
-            "Closes": f"{poi.get('closing_time', 1440)//60:02d}:{poi.get('closing_time', 1440)%60:02d}"
-        })
-    
-    st.dataframe(
-        poi_df_data,
-        use_container_width=True,
-        hide_index=True
-    )
-
-
 def render_qaoa_settings() -> Dict:
     """Render clean QAOA settings panel"""
     st.markdown(f"""
@@ -763,6 +744,110 @@ def render_qaoa_settings() -> Dict:
         st.caption(f"Using {optimizer}")
     
     return {'num_layers': num_layers, 'shots': shots, 'optimizer': optimizer}
+
+
+def render_optimized_route_summary(optimization_result: Dict):
+    """Render the optimized route summary in a clean, dark-themed card"""
+    import numpy as np
+    
+    route_pois = optimization_result['route_pois']
+    result = optimization_result['result']
+    
+    # Calculate total distance
+    distance_matrix = np.array(optimization_result['distance_matrix'])
+    total_distance = sum(
+        distance_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
+        for i in range(len(optimization_result['route']) - 1)
+    )
+    
+    # Calculate total time
+    time_matrix = np.array(optimization_result['time_matrix'])
+    total_time = sum(
+        time_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
+        for i in range(len(optimization_result['route']) - 1)
+    )
+    
+    # Get energy value
+    energy = result.get('energy', 0)
+    if isinstance(energy, complex):
+        energy = float(energy.real)
+    else:
+        energy = float(energy)
+    
+    # Build route text
+    route_text = " → ".join([
+        f"{i+1}. {poi['name']}" 
+        for i, poi in enumerate(route_pois)
+    ])
+    
+    # Valid solution status
+    is_valid = result.get('is_valid', False)
+    valid_text = "Yes" if is_valid else "No"
+    
+    # Render the summary card
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+                border-radius: 20px;
+                padding: 2.5rem;
+                margin: 2rem 0;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                color: white;">
+        <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2rem;">
+            <div style="font-size: 1.5rem;">✅</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: white;">
+                Optimized Route:
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem;">
+                <div style="font-size: 1.2rem;">✅</div>
+                <div style="font-size: 1.1rem; font-weight: 600; color: white;">
+                    Valid Solution
+                </div>
+                <div style="font-size: 1.1rem; color: #a0a0a0; margin-left: 0.5rem;">
+                    {valid_text}
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-size: 1rem; font-weight: 600; color: #a0a0a0; margin-bottom: 0.8rem;">
+                Route
+            </div>
+            <div style="font-size: 1.2rem; color: white; line-height: 1.8;">
+                {route_text}
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 2rem;">
+            <div>
+                <div style="font-size: 0.9rem; color: #a0a0a0; margin-bottom: 0.5rem; font-weight: 600;">
+                    Total Distance
+                </div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: white;">
+                    {total_distance:.2f} km
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.9rem; color: #a0a0a0; margin-bottom: 0.5rem; font-weight: 600;">
+                    Total Travel Time
+                </div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: white;">
+                    {total_time:.1f} min
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.9rem; color: #a0a0a0; margin-bottom: 0.5rem; font-weight: 600;">
+                    Energy
+                </div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: white;">
+                    {energy:.4f}
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def initialize_session_state():

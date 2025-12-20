@@ -12,7 +12,7 @@ from PIL import Image
 # Import modular components
 from app_ui import (
     render_header, render_sidebar, render_preferences_tab,
-    render_poi_table, render_qaoa_settings, initialize_session_state
+    render_qaoa_settings, initialize_session_state, render_optimized_route_summary
 )
 from app_optimization import run_quantum_optimization, run_comparison
 from app_visualization import (
@@ -92,63 +92,40 @@ with tab1:
 
 # Tab 2: Optimize
 with tab2:
-    st.markdown("## Route Optimization")
-    st.caption("Run the quantum optimizer and view your optimized route.")
-    
-    # Validate POI selection
-    is_valid, error_msg = validate_poi_selection(st.session_state.selected_pois)
-    if not is_valid:
-        st.warning(f"⚠️ {error_msg}")
-        st.stop()
-    
-    # Display selected POIs
-    st.subheader("Selected POIs:")
-    render_poi_table(st.session_state.selected_pois)
-    
-    # QAOA Settings
-    qaoa_config = render_qaoa_settings()
-    
-    # Optimize button
-    if st.button("Optimize Route with QAOA", type="primary", use_container_width=True):
-        with st.spinner("Optimizing route..."):
-            try:
-                optimization_result = run_quantum_optimization(
-                    st.session_state.selected_pois,
-                    st.session_state.user_preferences,
-                    qaoa_config
-                )
-                
-                st.session_state.optimization_result = optimization_result
-                
-                # Display route
-                st.subheader("✅ Optimized Route:")
-                route_text = " → ".join([
-                    f"{i+1}. {poi['name']}" 
-                    for i, poi in enumerate(optimization_result['route_pois'])
-                ])
-                st.markdown(f"**Route:** {route_text}")
-                
-                # Calculate total distance
-                distance_matrix = np.array(optimization_result['distance_matrix'])
-                total_distance = sum(
-                    distance_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
-                    for i in range(len(optimization_result['route']) - 1)
-                )
-                
-                st.metric("Total Distance", f"{total_distance:.2f} km")
-                # Calculate total time
-                time_matrix = np.array(optimization_result['time_matrix'])
-                total_time = sum(
-                    time_matrix[optimization_result['route'][i]][optimization_result['route'][i+1]]
-                    for i in range(len(optimization_result['route']) - 1)
-                )
-                st.metric("Total Travel Time", f"{total_time:.1f} min")
-                st.metric("Energy", f"{optimization_result['result']['energy']:.4f}")
-                st.metric("Valid Solution", "✅ Yes" if optimization_result['result']['is_valid'] else "❌ No")
-                
-            except Exception as e:
-                st.error(f"❌ Error during optimization: {str(e)}")
-                st.exception(e)
+    # Display optimized route summary if available
+    if st.session_state.optimization_result:
+        render_optimized_route_summary(st.session_state.optimization_result)
+        
+        # Add reset button to optimize again
+        if st.button("🔄 Optimize Again", type="secondary", use_container_width=True):
+            st.session_state.optimization_result = None
+            st.rerun()
+    else:
+        # Validate POI selection
+        is_valid, error_msg = validate_poi_selection(st.session_state.selected_pois)
+        if not is_valid:
+            st.warning(f"⚠️ {error_msg}")
+            st.stop()
+        
+        # QAOA Settings
+        qaoa_config = render_qaoa_settings()
+        
+        # Optimize button
+        if st.button("Optimize Route with QAOA", type="primary", use_container_width=True):
+            with st.spinner("Optimizing route..."):
+                try:
+                    optimization_result = run_quantum_optimization(
+                        st.session_state.selected_pois,
+                        st.session_state.user_preferences,
+                        qaoa_config
+                    )
+                    
+                    st.session_state.optimization_result = optimization_result
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"❌ Error during optimization: {str(e)}")
+                    st.exception(e)
 
 # Tab 3: Results
 with tab3:
@@ -185,10 +162,6 @@ with tab3:
             st.metric("QAOA Energy", f"{energy:.4f}")
         with col4:
             st.metric("Valid Solution", "✅" if result['result']['is_valid'] else "❌")
-        
-        # Decoding info
-        with st.expander("🔍 Decoding Information"):
-            st.json(result['result']['decode_info'])
 
 # Tab 4: Circuit
 with tab4:
@@ -203,10 +176,14 @@ with tab4:
         
         # Circuit visualization
         if 'circuit' in result and result['circuit'] is not None:
-            st.subheader("QAOA Circuit Diagram")
             visualizer = CircuitVisualizer()
+            # Pass num_layers explicitly for proper layer display
+            num_layers = result.get('num_layers', 1)
             circuit_details = visualizer.create_detailed_circuit_visualization(
-                result['circuit'], result.get('parameters', {}), encoding_info
+                result['circuit'], 
+                result.get('parameters', {}), 
+                encoding_info,
+                num_layers=num_layers
             )
             
             # Display circuit image
@@ -220,11 +197,6 @@ with tab4:
                             st.image(img, use_container_width=True)
                     except Exception as e:
                         st.warning(f"Could not display circuit image: {str(e)}")
-            
-            # Circuit parameters
-            st.subheader("📐 Circuit Parameters & Rotation Angles")
-            if 'summary' in circuit_details:
-                st.text(circuit_details['summary'])
             
             # Qubit mapping
             if 'qubit_mapping' in circuit_details:
@@ -257,34 +229,6 @@ with tab4:
         if 'counts' in result:
             render_measurement_results(result['counts'], encoding_info)
         
-        # QAOA Parameters
-        st.subheader("QAOA Parameters")
-        if 'parameters' in result and result['parameters']:
-            clean_params = {}
-            for key, value in result['parameters'].items():
-                if isinstance(value, complex):
-                    clean_params[key] = float(value.real)
-                elif isinstance(value, (list, tuple)):
-                    clean_params[key] = [float(v.real) if isinstance(v, complex) else float(v) for v in value]
-                else:
-                    clean_params[key] = float(value) if isinstance(value, (int, float, np.number)) else value
-            
-            params_df_data = []
-            for key, value in clean_params.items():
-                if isinstance(value, (int, float)):
-                    params_df_data.append({
-                        'Parameter': key,
-                        'Value': f"{value:.6f}",
-                        'Angle (rad)': f"{value:.6f}",
-                        'Angle (deg)': f"{math.degrees(value):.2f}°",
-                        'In π units': f"{value/math.pi:.3f}π" if value != 0 else "0"
-                    })
-            
-            if params_df_data:
-                params_df = pd.DataFrame(params_df_data)
-                st.dataframe(params_df, use_container_width=True, hide_index=True)
-            else:
-                st.json(clean_params)
         
         # Circuit info
         st.subheader("🔧 Circuit Information")
@@ -294,18 +238,24 @@ with tab4:
         with col2:
             st.metric("Number of Layers (p)", result.get('num_layers', 'N/A'))
         with col3:
-            st.metric("Iterations", result.get('iterations', 'N/A'))
+            # Show iterations with more detail
+            iterations = result.get('iterations', 'N/A')
+            max_iter = result.get('max_iterations', 'N/A')
+            st.metric("Iterations", f"{iterations}" if iterations != 'N/A' else 'N/A', 
+                     delta=f"max: {max_iter}" if max_iter != 'N/A' else None,
+                     delta_color="off")
         with col4:
-            st.metric("Energy", f"{result.get('energy', 0):.4f}")
+            energy = result.get('energy', 0)
+            energy = float(energy.real) if isinstance(energy, complex) else float(energy)
+            st.metric("Energy", f"{energy:.4f}")
         
-        # Encoding info
-        with st.expander("📝 Encoding Information"):
-            st.json(encoding_info)
+        # Show optimization method and additional details
+        method = result.get('method', 'unknown')
+        optimizer_evals = result.get('optimizer_evals', None)
         
-        # Decoding info
-        if 'decode_info' in result:
-            with st.expander("🔍 Decoding Information"):
-                st.json(result['decode_info'])
+        if method == 'classical_fallback':
+            st.warning("⚠️ **Note:** Classical fallback solver was used (QAOA initialization failed)")
+        
 
 # Tab 5: Compare
 with tab5:
@@ -324,10 +274,10 @@ with tab5:
     with col1:
         classical_algorithm = st.selectbox(
             "Classical Algorithm",
-            ["nearest_neighbor", "two_opt", "simulated_annealing", "weighted_nearest_neighbor"],
+            ["nearest_neighbor", "two_opt", "simulated_annealing"],
             index=0,
             key="classical_algorithm",
-            help="weighted_nearest_neighbor: Uses constraint_weights directly (Scenario A - no QAOA)"
+            help="Select a pure classical algorithm (no QAOA) for comparison"
         )
     with col2:
         qaoa_layers = st.number_input("QAOA Layers (p)", min_value=1, max_value=5, value=2, key="compare_layers")
@@ -367,11 +317,34 @@ with tab5:
         # Check if routes are different
         routes_are_different = classical_route != quantum_route
         
+        # Show comparison method explanation
+        with st.expander("ℹ️ How Classical vs QAOA Comparison Works", expanded=False):
+            st.markdown("""
+            **Classical Algorithm (Raw Distance):**
+            - Uses ONLY the distance matrix
+            - No preference weights, traffic, or time considerations
+            - Greedily selects nearest unvisited POI
+            
+            **QAOA Algorithm (Quantum-Weighted):**
+            - Uses quantum circuit to optimize preference qubits
+            - Qubit measurements determine feature preferences:
+              - `|0⟩` = minimize/avoid (weight = 1.0)
+              - `|1⟩` = accept/deprioritize (weight = 0.2)
+            - Creates weighted cost matrix including distance, time, traffic, and category
+            - Applies weighted nearest neighbor with QAOA-derived preferences
+            
+            **When routes are identical:**
+            - The shortest distance path is also optimal for QAOA preferences
+            - Small POI sets have limited routing alternatives
+            - Traffic/time data may not vary enough to affect routes
+            """)
+        
         if not routes_are_different:
-            st.warning("⚠️ **Warning:** Classical and Quantum routes are identical! This may indicate:")
-            st.write("- Quantum solver is using classical fallback")
-            st.write("- Quantum measurement results don't affect route selection")
-            st.write("- Both algorithms converged to the same solution")
+            st.warning("⚠️ **Warning:** Classical and Quantum routes are identical!")
+            st.write("This may happen when:")
+            st.write("- The shortest distance path is also optimal considering all QAOA preferences")
+            st.write("- Traffic and time differences don't create alternative optimal paths")
+            st.write("- The POI set is small with limited routing options")
         
         # Display route indices
         col_route1, col_route2 = st.columns(2)
@@ -389,6 +362,13 @@ with tab5:
             route_text_q = " → ".join([f"{i+1}. {poi['name']}" for i, poi in enumerate(quantum['route_pois'])])
             st.write(route_text_q)
         
+        # Show QAOA preferences and method info
+        method = quantum['result'].get('method', 'unknown')
+        if method == 'qaoa':
+            st.success("✅ **QAOA Optimization** - Quantum measurements determined route preferences")
+        elif method == 'classical_fallback':
+            st.warning("⚠️ **Classical Fallback** - QAOA used NumPyMinimumEigensolver (Sampler unavailable)")
+        
         # Show quantum measurement info if available
         if 'decode_info' in quantum['result']:
             decode_info = quantum['result']['decode_info']
@@ -396,8 +376,18 @@ with tab5:
                 if 'bitstring' in decode_info:
                     st.write(f"**Measured Bitstring:** `{decode_info['bitstring']}`")
                 if 'preferences' in decode_info:
-                    st.write("**Decoded Preferences:**")
-                    st.json(decode_info['preferences'])
+                    st.write("**QAOA-Decoded Preferences (from qubit states):**")
+                    prefs = decode_info['preferences']
+                    pref_display = []
+                    for feature, value in prefs.items():
+                        state = "|0⟩" if value == 0 else "|1⟩"
+                        meaning = "minimize/avoid" if value == 0 else "accept/deprioritize"
+                        pref_display.append({
+                            "Feature": feature.capitalize(),
+                            "Qubit State": state,
+                            "Effect": meaning
+                        })
+                    st.dataframe(pref_display, use_container_width=True, hide_index=True)
                 if 'counts' in quantum['result']:
                     counts = quantum['result']['counts']
                     if isinstance(counts, dict):

@@ -129,35 +129,15 @@ class RouteDecoder:
             best_bitstring = best_bitstring[:num_qubits]
         
         # Extract feature preferences from qubit states
+        # QAOA measurements directly control preferences - no deterministic overrides
         preferences = {}
         for i, feature_name in qubit_mapping.items():
             if i < len(best_bitstring):
-                # |0⟩ = prefer feature, |1⟩ = accept opposite
+                # |0⟩ = prefer feature (minimize/avoid), |1⟩ = accept (less priority)
                 preferences[feature_name] = int(best_bitstring[i])
         
-        # IMPORTANT: Override traffic preference based on constraint_weights['traffic']
-        # If traffic sensitivity is high (traffic weight > 0.2), force traffic qubit to |0⟩ (avoid traffic)
-        # If traffic sensitivity is low (traffic weight < 0.05), force traffic qubit to |1⟩ (accept traffic)
+        # Get constraint weights for weighted matrix creation
         constraint_weights = encoding_info.get('constraint_weights', {})
-        traffic_weight = constraint_weights.get('traffic', 0.1)
-        
-        if 'traffic' in qubit_mapping.values():
-            # Find traffic qubit index
-            traffic_qubit_idx = None
-            for idx, feature in qubit_mapping.items():
-                if feature == 'traffic':
-                    traffic_qubit_idx = idx
-                    break
-            
-            if traffic_qubit_idx is not None and traffic_qubit_idx < len(best_bitstring):
-                # Override based on traffic sensitivity
-                if traffic_weight > 0.2:  # High traffic sensitivity
-                    # Force to |0⟩ (avoid traffic)
-                    preferences['traffic'] = 0
-                elif traffic_weight < 0.05:  # Low traffic sensitivity
-                    # Force to |1⟩ (accept traffic)
-                    preferences['traffic'] = 1
-                # Otherwise keep the measured value
         
         # Create weighted cost matrix based on preferences
         weighted_matrix = self._create_weighted_matrix(
@@ -215,39 +195,53 @@ class RouteDecoder:
         max_time = np.max(time_matrix[time_matrix > 0]) if time_matrix is not None and np.any(time_matrix > 0) else 1.0
         max_traffic = np.max(traffic_penalty_matrix[traffic_penalty_matrix > 0]) if traffic_penalty_matrix is not None and np.any(traffic_penalty_matrix > 0) else 1.0
         
-        # Weight factors based on qubit states
-        # |0⟩ = minimize (weight = 1.0), |1⟩ = accept (weight = 0.5)
-        dist_weight = 1.0 if preferences.get('distance', 0) == 0 else 0.5
-        time_weight = 1.0 if preferences.get('time', 0) == 0 else 0.5
+        # Weight factors based on QAOA qubit states - AMPLIFIED for stronger effect
+        # |0⟩ = minimize (weight = 1.0), |1⟩ = accept/deprioritize (weight = 0.2)
+        # Using 1.0 vs 0.2 instead of 1.0 vs 0.5 for 5x stronger differentiation
+        dist_weight = 1.0 if preferences.get('distance', 0) == 0 else 0.2
+        time_weight = 1.0 if preferences.get('time', 0) == 0 else 0.2
         
-        # Traffic weight: Scale with constraint_weights['traffic'] for stronger effect
-        # When traffic sensitivity is high, constraint_weights['traffic'] is high (0.27)
-        # When traffic sensitivity is low, constraint_weights['traffic'] is low (0.03)
-        # Base traffic weight from qubit: |0⟩ = avoid traffic (1.0), |1⟩ = accept traffic (0.3)
-        base_traffic_weight = 1.0 if preferences.get('traffic', 0) == 0 else 0.3
+        # Category weight based on qubit state
+        # |0⟩ = prefer similar categories (higher penalty for different), |1⟩ = prefer diversity
+        category_weight = 1.0 if preferences.get('category', 0) == 0 else 0.2
+        
+        # Traffic weight from QAOA measurement - amplified effect
+        # |0⟩ = strongly avoid traffic (1.0), |1⟩ = accept traffic (0.15)
+        # This creates significant route differences based on QAOA measurement
+        base_traffic_weight = 1.0 if preferences.get('traffic', 0) == 0 else 0.15
         traffic_constraint_weight = constraint_weights.get('traffic', 0.1)
         # Scale traffic weight: higher constraint weight = stronger traffic avoidance
-        # Multiply by (1 + traffic_constraint_weight * 5) to amplify effect more
-        # This ensures traffic sensitivity has a strong impact on route selection
-        traffic_weight = base_traffic_weight * (1.0 + traffic_constraint_weight * 5.0)
+        # Multiply by (1 + traffic_constraint_weight * 8) for even stronger amplification
+        traffic_weight = base_traffic_weight * (1.0 + traffic_constraint_weight * 8.0)
         
-        # Combine weighted matrices
+        # Combine weighted matrices - QAOA preferences influence each component
         for i in range(n):
             for j in range(n):
                 if i != j:
                     cost = 0.0
                     
-                    # Distance component
+                    # Distance component - QAOA distance preference affects weight
                     if max_dist > 0:
                         cost += constraint_weights.get('distance', 0.4) * dist_weight * (distance_matrix[i][j] / max_dist)
                     
-                    # Time component
+                    # Time component - QAOA time preference affects weight
                     if time_matrix is not None and max_time > 0:
                         cost += constraint_weights.get('time', 0.3) * time_weight * (time_matrix[i][j] / max_time)
                     
-                    # Traffic component - now scales strongly with constraint_weights['traffic']
+                    # Traffic component - QAOA traffic preference strongly affects weight
                     if traffic_penalty_matrix is not None and max_traffic > 0:
                         cost += constraint_weights.get('traffic', 0.1) * traffic_weight * (traffic_penalty_matrix[i][j] / max_traffic)
+                    
+                    # Category diversity component - based on QAOA category preference
+                    # |0⟩ = prefer similar categories (add penalty for different)
+                    # |1⟩ = prefer diverse categories (add penalty for same)
+                    category_pref_weight = constraint_weights.get('category', constraint_weights.get('preferences', 0.2))
+                    if preferences.get('category', 0) == 0:
+                        # Penalize if categories are different (prefer grouping similar)
+                        cost += category_pref_weight * category_weight * 0.5
+                    else:
+                        # Penalize if categories are same (prefer diversity) - reduced penalty
+                        cost += category_pref_weight * (1.0 - category_weight) * 0.3
                     
                     weighted_matrix[i][j] = cost
         

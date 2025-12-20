@@ -205,10 +205,12 @@ def run_comparison(
     
     # Display classical route for debugging
     with st.expander("🔍 Classical Route Details"):
+        st.write(f"**Algorithm:** {classical_algorithm} (Raw Distance Only)")
         st.write(f"**Route Indices:** {classical_result['route']}")
         st.write(f"**Route Names:** {' → '.join([poi['name'] for poi in classical_route_pois])}")
         st.write(f"**Total Distance:** {classical_result.get('total_distance', 0):.2f} km")
         st.write(f"**Execution Time:** {classical_result.get('execution_time', 0):.4f} s")
+        st.info("ℹ️ Classical algorithm uses ONLY raw distance matrix - no traffic, time, or preference weights")
     
     # Step 3: Create Feature Matrix
     st.write("📊 Step 3: Creating Feature Matrix")
@@ -254,24 +256,41 @@ def run_comparison(
         st.write(f"**Energy:** {quantum_result.get('energy', 0):.4f}")
         st.write(f"**Success:** {quantum_result.get('success', False)}")
         
-        # Show if using fallback
-        if not quantum_result.get('success', True):
-            st.warning("⚠️ Quantum solver may have used classical fallback")
+        # Show optimization method used
+        method = quantum_result.get('method', 'unknown')
+        if method == 'qaoa':
+            st.success("✅ **QAOA Optimization Used** - Quantum measurements determined preferences")
+        elif method == 'classical_fallback':
+            st.warning("⚠️ **Classical Fallback Used** - QAOA initialization failed, used NumPyMinimumEigensolver")
+        else:
+            st.info(f"**Method:** {method}")
         
-        # Show measurement results
+        # Show measurement results and decoded preferences
         if 'decode_info' in quantum_result:
             decode_info = quantum_result['decode_info']
             if 'bitstring' in decode_info:
                 st.write(f"**Measured Bitstring:** `{decode_info['bitstring']}`")
             if 'preferences' in decode_info:
-                st.write("**Decoded Preferences:**")
-                st.json(decode_info['preferences'])
+                st.write("**QAOA Decoded Preferences (from qubit measurements):**")
+                prefs = decode_info['preferences']
+                for feature, value in prefs.items():
+                    state_str = "|0⟩ (minimize/avoid)" if value == 0 else "|1⟩ (accept/deprioritize)"
+                    st.write(f"  - **{feature.capitalize()}**: {state_str}")
+        
+        # Show comparison summary
+        st.markdown("---")
+        st.markdown("**Comparison Method:**")
+        st.write("- **Classical**: Uses ONLY raw distance (no preferences, no weights)")
+        st.write("- **QAOA**: Uses weighted matrix based on quantum measurements")
         
         # Show if routes are the same
         if classical_result['route'] == quantum_result['route']:
-            st.warning("⚠️ **Routes are identical!** Quantum and Classical produced the same route.")
+            st.warning("⚠️ **Routes are identical!** This may happen when:")
+            st.write("  - The shortest distance path is also optimal for QAOA preferences")
+            st.write("  - POI set is small with limited routing options")
+            st.write("  - Traffic/time differences don't create alternative optimal paths")
         else:
-            st.success("✅ **Routes are different!** Quantum found a different solution.")
+            st.success("✅ **Routes are different!** QAOA found a different solution based on quantum preferences.")
     
     # Step 5: Calculate metrics
     st.write("📈 Step 5: Calculating Comparison Metrics")
