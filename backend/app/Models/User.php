@@ -160,6 +160,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's preference
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function preference()
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
+    /**
      * Get user's role names as array
      *
      * @return array
