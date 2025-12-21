@@ -33,6 +33,7 @@ use App\Http\Controllers\API\Bus\BusScheduleController;
 use App\Http\Controllers\API\Restaurant\MenuItemController;
 use App\Http\Controllers\API\Restaurant\RestaurantPropertyController;
 use App\Http\Controllers\API\Restaurant\MenuCategoryController;
+use App\Http\Controllers\API\OnboardingController;
 
 
 
@@ -114,6 +115,9 @@ Route::get('bus/upcoming-journeys', [BusScheduleController::class, 'getUpcomingJ
 
 Route::get('expense-categories', [ExpenseController::class, 'getExpenseCategories']); // Get all expense categories
 
+// Public questionnaire endpoint
+Route::get('onboarding/questions', [OnboardingController::class, 'getQuestions']);
+
 // Restaurant Menu Categories routes (public)
 Route::get('menu-categories', [MenuCategoryController::class, 'index']);           // Get all menu categories
 Route::get('menu-categories/{id}', [MenuCategoryController::class, 'show']);       // Get single menu category
@@ -152,6 +156,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('profile/{id}', 'show');                    // Get specific user's profile by ID
     });
     
+    // Onboarding routes (authenticated)
+    Route::prefix('onboarding')->group(function () {
+        // Note: 'questions' route is defined publicly above (line 119)
+        Route::get('preferences', [OnboardingController::class, 'show']); // Get current user preferences
+        Route::post('preferences', [OnboardingController::class, 'store']); // Save user preferences
+        Route::put('preferences', [OnboardingController::class, 'update']); // Update user preferences
+        Route::delete('preferences', [OnboardingController::class, 'destroy']); // Delete user preferences
+    });
    
 
     // Trip management routes
