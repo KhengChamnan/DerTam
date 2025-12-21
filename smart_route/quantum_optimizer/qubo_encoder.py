@@ -1,6 +1,6 @@
 """
 QUBO Encoder for Route Optimization
-Encodes TSP problem with constraints into QUBO format
+Encodes route optimization problem using feature-based QUBO format (2-4 qubits)
 """
 import numpy as np
 from typing import List, Dict, Tuple, Optional
@@ -8,8 +8,8 @@ from typing import List, Dict, Tuple, Optional
 
 class QUBOEncoder:
     """
-    Encode route optimization problem to QUBO format
-    Supports constraints: opening hours, distance limits, traffic penalties
+    Encode route optimization problem to QUBO format using feature-based encoding
+    Uses 2-4 qubits to encode route preferences based on feature matrix from FeatureEngineer
     """
     
     def __init__(self, penalty_coefficient: float = 1000.0):
@@ -22,277 +22,199 @@ class QUBOEncoder:
         self.penalty_coefficient = penalty_coefficient
         self.encoding_info = {}
     
-    def encode_tsp(
+    def encode_feature_based(
         self,
-        pois: List[Dict],
+        feature_matrix: np.ndarray,
         distance_matrix: np.ndarray,
         time_matrix: Optional[np.ndarray] = None,
-        start_time_minutes: int = 480,
-        max_distance: Optional[float] = None,
         traffic_penalty_matrix: Optional[np.ndarray] = None,
-        constraint_weights: Optional[Dict] = None
+        constraint_weights: Optional[Dict] = None,
+        num_qubits: int = 4,
+        feature_info: Optional[Dict] = None
     ) -> Tuple[np.ndarray, Dict]:
         """
-        Encode TSP problem to QUBO format
+        Encode route optimization using feature-based QUBO (2-4 qubits)
+        
+        Qubit Mapping (for 4 qubits):
+        - Qubit 0: Distance preference (0=short routes, 1=long routes)
+        - Qubit 1: Time preference (0=fast routes, 1=slow routes)
+        - Qubit 2: Category diversity (0=same category, 1=mixed categories)
+        - Qubit 3: Traffic avoidance (0=avoid traffic, 1=accept traffic)
         
         Args:
-            pois: List of POI dictionaries
+            feature_matrix: Feature matrix (n_pois x n_features) from classical preprocessing
             distance_matrix: Distance matrix (n x n)
             time_matrix: Time matrix (n x n), optional
-            start_time_minutes: Start time in minutes since midnight
-            max_distance: Maximum distance constraint, optional
             traffic_penalty_matrix: Traffic penalty matrix, optional
             constraint_weights: Weights for different objectives
+            num_qubits: Number of qubits (2, 3, or 4)
+            feature_info: Dictionary with feature names and metadata from FeatureEngineer
             
         Returns:
             (QUBO_matrix, encoding_info)
         """
-        n = len(pois)
+        if num_qubits < 2 or num_qubits > 4:
+            raise ValueError("Number of qubits must be between 2 and 4")
         
-        if n < 2:
-            raise ValueError("Need at least 2 POIs for TSP")
+        n_pois = feature_matrix.shape[0]
+        n_features = feature_matrix.shape[1]
         
         if constraint_weights is None:
             constraint_weights = {
                 'distance': 0.4,
                 'time': 0.3,
                 'traffic': 0.1,
-                'constraints': 0.2
+                'category': 0.2
             }
-        else:
-            # Ensure 'constraints' key exists with default value if not provided
-            if 'constraints' not in constraint_weights:
-                constraint_weights['constraints'] = 0.2
         
-        # Number of qubits: n * n (n POIs, n positions)
-        num_qubits = n * n
+        # QUBO matrix: num_qubits x num_qubits
         qubo_matrix = np.zeros((num_qubits, num_qubits))
         
-        # Encoding: x[i][t] = 1 if POI i is visited at position t
-        # QUBO index: i * n + t
+        # Extract features from feature matrix based on structure from FeatureEngineer
+        # Structure: [category_one_hot..., distance_from_start, opening_compatibility, avg_traffic]
+        if feature_info is not None and 'feature_names' in feature_info:
+            feature_names = feature_info['feature_names']
+            n_categories = len(feature_info.get('categories', []))
+            
+            # Find indices of specific features
+            try:
+                distance_from_start_idx = feature_names.index('distance_from_start')
+                opening_compatibility_idx = feature_names.index('opening_compatibility')
+                avg_traffic_idx = feature_names.index('avg_traffic')
+            except ValueError:
+                # Fallback: assume standard structure
+                n_categories = n_features - 3
+                distance_from_start_idx = n_categories
+                opening_compatibility_idx = n_categories + 1
+                avg_traffic_idx = n_categories + 2
+        else:
+            # Fallback: infer structure (assume last 3 columns are the standard features)
+            n_categories = n_features - 3
+            distance_from_start_idx = n_categories
+            opening_compatibility_idx = n_categories + 1
+            avg_traffic_idx = n_categories + 2
         
-        # 1. Objective: Minimize total distance
-        self._add_distance_objective(qubo_matrix, distance_matrix, n, constraint_weights['distance'])
+        # Extract feature values from feature matrix
+        # 1. Distance from start (normalized 0-1)
+        distances_from_start = feature_matrix[:, distance_from_start_idx]
+        avg_distance_from_start = np.mean(distances_from_start)
+        max_distance_from_start = np.max(distances_from_start) if np.max(distances_from_start) > 0 else 1.0
         
-        # 2. Objective: Minimize total time (if provided)
+        # 2. Opening hours compatibility (0-1 score)
+        opening_compatibilities = feature_matrix[:, opening_compatibility_idx]
+        avg_opening_compatibility = np.mean(opening_compatibilities)
+        
+        # 3. Average traffic factor (normalized 0-1)
+        avg_traffic_features = feature_matrix[:, avg_traffic_idx]
+        avg_traffic_value = np.mean(avg_traffic_features)
+        max_traffic_value = np.max(avg_traffic_features) if np.max(avg_traffic_features) > 0 else 1.0
+        
+        # 4. Category features (one-hot encoded in first n_categories columns)
+        category_features = feature_matrix[:, :n_categories] if n_categories > 0 else np.zeros((n_pois, 1))
+        # Calculate category diversity: variance across POIs (how different are categories)
+        # For each POI, sum of category features = 1 (one-hot), so diversity = std across POIs
+        category_diversity = np.std(np.sum(category_features, axis=0)) if n_categories > 0 else 0.5
+        # Normalize to 0-1 range
+        category_diversity = min(category_diversity / max(n_categories, 1), 1.0) if n_categories > 0 else 0.5
+        
+        # Use distance matrix for route distance (between POIs)
+        avg_route_distance = np.mean(distance_matrix[distance_matrix > 0]) if np.any(distance_matrix > 0) else 1.0
+        max_route_distance = np.max(distance_matrix) if np.max(distance_matrix) > 0 else 1.0
+        
+        # Use time matrix for route time (between POIs)
         if time_matrix is not None:
-            self._add_time_objective(qubo_matrix, time_matrix, n, constraint_weights['time'])
+            avg_route_time = np.mean(time_matrix[time_matrix > 0]) if np.any(time_matrix > 0) else 1.0
+            max_route_time = np.max(time_matrix) if np.max(time_matrix) > 0 else 1.0
+        else:
+            # Estimate from distance if time matrix not available
+            avg_route_time = avg_route_distance * 2.0  # Rough estimate: 2 min per km
+            max_route_time = max_route_distance * 2.0
         
-        # 3. Objective: Minimize traffic penalties (if provided)
-        if traffic_penalty_matrix is not None:
-            self._add_traffic_penalty(qubo_matrix, traffic_penalty_matrix, n, constraint_weights['traffic'])
+        # Qubit 0: Distance preference
+        # |0⟩ = prefer short distances, |1⟩ = accept longer distances
+        # Combine distance from start and route distances
+        if num_qubits >= 1:
+            distance_factor = 0.5 * (avg_distance_from_start / max_distance_from_start) + \
+                            0.5 * (avg_route_distance / max_route_distance)
+            # Diagonal: preference for short distances (negative = prefer |0⟩)
+            qubo_matrix[0, 0] = -constraint_weights.get('distance', 0.4) * distance_factor
         
-        # 4. Constraints: Each POI visited exactly once
-        self._add_poi_constraint(qubo_matrix, n, self.penalty_coefficient)
+        # Qubit 1: Time preference
+        # |0⟩ = minimize time, |1⟩ = accept longer times
+        # Consider route time only
+        if num_qubits >= 2:
+            time_factor = avg_route_time / max_route_time if max_route_time > 0 else 1.0
+            qubo_matrix[1, 1] = -constraint_weights.get('time', 0.3) * time_factor
+            
+            # Interaction: distance and time are correlated
+            qubo_matrix[0, 1] = constraint_weights.get('distance', 0.4) * 0.1
+            qubo_matrix[1, 0] = qubo_matrix[0, 1]
         
-        # 5. Constraints: Each position has exactly one POI
-        self._add_position_constraint(qubo_matrix, n, self.penalty_coefficient)
+        # Qubit 2: Category diversity
+        # |0⟩ = prefer similar categories, |1⟩ = prefer diverse categories
+        if num_qubits >= 3:
+            qubo_matrix[2, 2] = constraint_weights.get('category', 0.2) * category_diversity
+            
+            # Interaction with distance: diverse categories might require longer routes
+            qubo_matrix[0, 2] = -constraint_weights.get('category', 0.2) * 0.05
+            qubo_matrix[2, 0] = qubo_matrix[0, 2]
+            
+            # Interaction with opening compatibility: diverse categories might have scheduling issues
+            qubo_matrix[1, 2] = -constraint_weights.get('category', 0.2) * (1.0 - avg_opening_compatibility) * 0.1
+            qubo_matrix[2, 1] = qubo_matrix[1, 2]
         
-        # 6. Constraints: Opening hours violations (penalty)
-        if time_matrix is not None:
-            self._add_opening_hours_penalty(
-                qubo_matrix, pois, time_matrix, n, start_time_minutes, 
-                self.penalty_coefficient * constraint_weights['constraints']
-            )
-        
-        # 7. Constraints: Distance limit violations (penalty)
-        if max_distance is not None:
-            self._add_distance_limit_penalty(
-                qubo_matrix, distance_matrix, n, max_distance,
-                self.penalty_coefficient * constraint_weights['constraints']
-            )
+        # Qubit 3: Traffic avoidance
+        # |0⟩ = avoid high-traffic routes, |1⟩ = accept high-traffic routes
+        if num_qubits >= 4:
+            traffic_factor = avg_traffic_value / max_traffic_value if max_traffic_value > 0 else 1.0
+            traffic_weight = constraint_weights.get('traffic', 0.1)
+            # Stronger diagonal term: prefer |0⟩ (avoid traffic) when traffic_weight is high
+            # Scale by traffic_weight * 10.0 to amplify the effect more aggressively
+            # Adaptive scaling: higher traffic_weight gets even stronger encoding
+            scaling_factor = 10.0 + (traffic_weight * 5.0)  # 10.0 to 15.0 range
+            qubo_matrix[3, 3] = -traffic_weight * scaling_factor * traffic_factor
+            
+            # Interaction: traffic affects time
+            qubo_matrix[1, 3] = constraint_weights.get('traffic', 0.1) * 0.15
+            qubo_matrix[3, 1] = qubo_matrix[1, 3]
+            
+            # Interaction: traffic affects distance preference
+            qubo_matrix[0, 3] = constraint_weights.get('traffic', 0.1) * 0.1
+            qubo_matrix[3, 0] = qubo_matrix[0, 3]
         
         # Store encoding information
+        qubit_features = ['distance', 'time', 'category', 'traffic'][:num_qubits]
         self.encoding_info = {
-            'num_pois': n,
+            'num_pois': n_pois,
             'num_qubits': num_qubits,
-            'encoding': 'x[i*n + t] = 1 if POI i at position t',
-            'penalty_coefficient': self.penalty_coefficient,
-            'constraint_weights': constraint_weights
+            'encoding': 'feature_based',
+            'qubit_features': qubit_features,
+            'qubit_mapping': {
+                i: feature for i, feature in enumerate(qubit_features)
+            },
+            'constraint_weights': constraint_weights,
+            'feature_matrix_shape': feature_matrix.shape,
+            'extracted_features': {
+                'avg_distance_from_start': float(avg_distance_from_start),
+                'avg_opening_compatibility': float(avg_opening_compatibility),
+                'avg_traffic_value': float(avg_traffic_value),
+                'category_diversity': float(category_diversity)
+            }
         }
         
         return qubo_matrix, self.encoding_info
-    
-    def _add_distance_objective(
-        self, 
-        qubo_matrix: np.ndarray, 
-        distance_matrix: np.ndarray, 
-        n: int,
-        weight: float
-    ):
-        """Add distance minimization objective to QUBO"""
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    # For each consecutive position pair (t, t+1)
-                    for t in range(n - 1):
-                        # x[i][t] * x[j][t+1] contributes distance[i][j]
-                        idx_i_t = i * n + t
-                        idx_j_t1 = j * n + (t + 1)
-                        qubo_matrix[idx_i_t][idx_j_t1] += weight * distance_matrix[i][j]
-                        qubo_matrix[idx_j_t1][idx_i_t] += weight * distance_matrix[i][j]
-    
-    def _add_time_objective(
-        self,
-        qubo_matrix: np.ndarray,
-        time_matrix: np.ndarray,
-        n: int,
-        weight: float
-    ):
-        """Add time minimization objective to QUBO"""
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    for t in range(n - 1):
-                        idx_i_t = i * n + t
-                        idx_j_t1 = j * n + (t + 1)
-                        qubo_matrix[idx_i_t][idx_j_t1] += weight * time_matrix[i][j]
-                        qubo_matrix[idx_j_t1][idx_i_t] += weight * time_matrix[i][j]
-    
-    def _add_traffic_penalty(
-        self,
-        qubo_matrix: np.ndarray,
-        traffic_penalty_matrix: np.ndarray,
-        n: int,
-        weight: float
-    ):
-        """Add traffic penalty objective to QUBO"""
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    for t in range(n - 1):
-                        idx_i_t = i * n + t
-                        idx_j_t1 = j * n + (t + 1)
-                        penalty = traffic_penalty_matrix[i][j]
-                        qubo_matrix[idx_i_t][idx_j_t1] += weight * penalty
-                        qubo_matrix[idx_j_t1][idx_i_t] += weight * penalty
-    
-    def _add_poi_constraint(self, qubo_matrix: np.ndarray, n: int, penalty: float):
-        """
-        Constraint: Each POI visited exactly once
-        Sum over positions: (sum_t x[i][t] - 1)^2
-        """
-        for i in range(n):
-            # Linear terms: -2 * sum_t x[i][t]
-            for t in range(n):
-                idx = i * n + t
-                qubo_matrix[idx][idx] -= 2 * penalty
-            
-            # Quadratic terms: sum_{t1,t2} x[i][t1] * x[i][t2]
-            for t1 in range(n):
-                for t2 in range(n):
-                    idx1 = i * n + t1
-                    idx2 = i * n + t2
-                    qubo_matrix[idx1][idx2] += penalty
-            
-            # Constant term: +1 (handled in offset, not in QUBO matrix)
-    
-    def _add_position_constraint(self, qubo_matrix: np.ndarray, n: int, penalty: float):
-        """
-        Constraint: Each position has exactly one POI
-        Sum over POIs: (sum_i x[i][t] - 1)^2
-        """
-        for t in range(n):
-            # Linear terms: -2 * sum_i x[i][t]
-            for i in range(n):
-                idx = i * n + t
-                qubo_matrix[idx][idx] -= 2 * penalty
-            
-            # Quadratic terms: sum_{i1,i2} x[i1][t] * x[i2][t]
-            for i1 in range(n):
-                for i2 in range(n):
-                    idx1 = i1 * n + t
-                    idx2 = i2 * n + t
-                    qubo_matrix[idx1][idx2] += penalty
-    
-    def _add_opening_hours_penalty(
-        self,
-        qubo_matrix: np.ndarray,
-        pois: List[Dict],
-        time_matrix: np.ndarray,
-        n: int,
-        start_time_minutes: int,
-        penalty_weight: float
-    ):
-        """
-        Add penalty for opening hours violations
-        Penalizes routes that arrive too early or too late
-        """
-        for i in range(n):
-            poi = pois[i]
-            opening_time = poi.get('opening_time', 0)
-            closing_time = poi.get('closing_time', 1440)
-            visit_duration = poi.get('visit_duration', 60)
-            
-            for t in range(n):
-                idx = i * n + t
-                
-                # Estimate arrival time at position t
-                # Simplified: assume average travel time
-                avg_travel_time = np.mean(time_matrix[time_matrix > 0])
-                estimated_arrival = start_time_minutes + t * avg_travel_time
-                
-                # Penalty if arrives before opening
-                if estimated_arrival < opening_time:
-                    wait_penalty = (opening_time - estimated_arrival) * penalty_weight * 0.1
-                    qubo_matrix[idx][idx] += wait_penalty
-                
-                # Penalty if cannot complete visit before closing
-                if estimated_arrival + visit_duration > closing_time:
-                    violation_penalty = (estimated_arrival + visit_duration - closing_time) * penalty_weight
-                    qubo_matrix[idx][idx] += violation_penalty
-    
-    def _add_distance_limit_penalty(
-        self,
-        qubo_matrix: np.ndarray,
-        distance_matrix: np.ndarray,
-        n: int,
-        max_distance: float,
-        penalty_weight: float
-    ):
-        """
-        Add penalty for exceeding maximum distance constraint
-        """
-        # Calculate cumulative distance for each possible route segment
-        for i in range(n):
-            for j in range(n):
-                if i != j and distance_matrix[i][j] > max_distance:
-                    # Penalize transitions that exceed max distance
-                    for t in range(n - 1):
-                        idx_i_t = i * n + t
-                        idx_j_t1 = j * n + (t + 1)
-                        excess = distance_matrix[i][j] - max_distance
-                        penalty = excess * penalty_weight
-                        qubo_matrix[idx_i_t][idx_j_t1] += penalty
-                        qubo_matrix[idx_j_t1][idx_i_t] += penalty
-    
-    def get_qubit_to_poi_mapping(self, n: int) -> Dict[int, Tuple[int, int]]:
-        """
-        Get mapping from qubit index to (POI_index, position)
-        
-        Args:
-            n: Number of POIs
-            
-        Returns:
-            Dictionary mapping qubit_index -> (poi_index, position)
-        """
-        mapping = {}
-        for i in range(n):
-            for t in range(n):
-                qubit_idx = i * n + t
-                mapping[qubit_idx] = (i, t)
-        return mapping
 
 
 # Example usage
 if __name__ == "__main__":
-    # Sample data
-    sample_pois = [
-        {"id": "poi_01", "name": "Royal Palace", "opening_time": 480, "closing_time": 1020, "visit_duration": 90},
-        {"id": "poi_02", "name": "Silver Pagoda", "opening_time": 480, "closing_time": 1020, "visit_duration": 60},
-        {"id": "poi_03", "name": "National Museum", "opening_time": 480, "closing_time": 1020, "visit_duration": 90},
-        {"id": "poi_04", "name": "Independence Monument", "opening_time": 0, "closing_time": 1440, "visit_duration": 30}
-    ]
+    # Sample feature matrix (4 POIs, 5 features: 2 categories + 3 standard features)
+    # Features: [Historical, Temple, distance_from_start, opening_compatibility, avg_traffic]
+    sample_feature_matrix = np.array([
+        [1.0, 0.0, 0.2, 1.0, 0.3],  # POI 1: Historical, close, compatible, low traffic
+        [0.0, 1.0, 0.3, 1.0, 0.2],  # POI 2: Temple, medium, compatible, low traffic
+        [1.0, 0.0, 0.4, 1.0, 0.4],  # POI 3: Historical, far, compatible, medium traffic
+        [0.0, 0.0, 0.5, 0.8, 0.5]   # POI 4: Other, far, less compatible, high traffic
+    ])
     
     # Sample distance matrix
     distance_matrix = np.array([
@@ -302,17 +224,35 @@ if __name__ == "__main__":
         [0.6, 0.5, 0.4, 0.0]
     ])
     
-    # Encode to QUBO
+    # Sample time matrix
+    time_matrix = np.array([
+        [0.0, 5.0, 8.0, 15.0],
+        [5.0, 0.0, 5.0, 12.0],
+        [8.0, 5.0, 0.0, 10.0],
+        [15.0, 12.0, 10.0, 0.0]
+    ])
+    
+    # Sample feature info
+    feature_info = {
+        'feature_names': ['Historical', 'Temple', 'distance_from_start', 
+                         'opening_compatibility', 'avg_traffic'],
+        'categories': ['Historical', 'Temple'],
+        'n_features': 5,
+        'n_pois': 4
+    }
+    
+    # Encode to QUBO using feature-based encoding
     encoder = QUBOEncoder(penalty_coefficient=1000.0)
-    qubo_matrix, encoding_info = encoder.encode_tsp(
-        sample_pois,
+    qubo_matrix, encoding_info = encoder.encode_feature_based(
+        sample_feature_matrix,
         distance_matrix,
-        start_time_minutes=480,
-        max_distance=1.0
+        time_matrix=time_matrix,
+        num_qubits=4,
+        feature_info=feature_info
     )
     
     print(f"QUBO Matrix Shape: {qubo_matrix.shape}")
     print(f"Encoding Info: {encoding_info}")
-    print(f"\nQUBO Matrix (first 4x4):")
-    print(qubo_matrix[:4, :4])
+    print(f"\nQUBO Matrix:")
+    print(qubo_matrix)
 

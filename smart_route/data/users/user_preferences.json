@@ -2,18 +2,16 @@
   "province": "Phnom Penh",
   "start_lat": 11.5625,
   "start_lon": 104.931,
-  "start_time": "08:00:00",
+  "start_time": "23:47:39",
   "trip_duration": 8,
-  "max_distance": 10.0,
-  "num_pois": 4,
   "traffic_sensitivity": 0.5,
-  "constraint_weights": {
-    "distance": 0.4,
-    "time": 0.3,
-    "preferences": 0.2,
-    "traffic": 0.1
-  },
   "traffic_avoidance": false,
-  "preferred_categories": [],
-  "avoid_categories": []
+  "preferred_category": null,
+  "constraint_weights": {
+    "distance": 0.34,
+    "time": 0.255,
+    "preferences": 0.255,
+    "traffic": 0.15,
+    "constraints": 0.2
+  }
 }
