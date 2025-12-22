@@ -715,7 +715,7 @@ def render_qaoa_settings() -> Dict:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("**Circuit Layers**")
+        st.markdown("**Number Of Layers**")
         num_layers = st.number_input(
             "Number of Layers (p)",
             min_value=1,

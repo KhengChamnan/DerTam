@@ -4,8 +4,9 @@ Visualizes quantum circuits and optimization progress
 """
 import numpy as np
 from typing import Dict, List, Optional, Tuple
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.visualization import plot_histogram
+from qiskit_aer import AerSimulator
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
@@ -96,7 +97,9 @@ class CircuitVisualizer:
         parameters: Dict,
         encoding_info: Optional[Dict] = None,
         filename: Optional[str] = None,
-        num_layers: Optional[int] = None
+        num_layers: Optional[int] = None,
+        shots: int = 1024,
+        simulate: bool = False
     ) -> Dict[str, str]:
         """
         Create detailed circuit visualization with parameters, angles, and qubit labels
@@ -107,6 +110,8 @@ class CircuitVisualizer:
             encoding_info: Encoding information with qubit mapping
             filename: Base filename (optional)
             num_layers: Number of QAOA layers (p parameter) - explicitly passed
+            shots: Number of measurement shots for simulation (if simulate=True)
+            simulate: Whether to simulate the circuit to get measurement counts
             
         Returns:
             Dictionary with visualization file paths and parameter details
@@ -312,41 +317,130 @@ class CircuitVisualizer:
         if circuit_file is not None:
             result_dict['circuit_image'] = circuit_file
         
+        # Optionally simulate circuit to get measurement counts
+        if simulate:
+            try:
+                simulated_counts = self.simulate_circuit(circuit, shots)
+                result_dict['simulated_counts'] = simulated_counts
+                
+                # Create visualization of simulated results
+                meas_file = self.visualize_measurement_results(
+                    counts=simulated_counts,
+                    title=f"Simulated Measurement Results ({shots} shots)",
+                    filename=f"{filename}_simulated_measurements.png",
+                    top_k=None  # Show all results
+                )
+                if meas_file:
+                    result_dict['simulated_measurements_image'] = meas_file
+            except Exception as e:
+                print(f"Error simulating circuit: {e}")
+        
         return result_dict
+    
+    def simulate_circuit(
+        self,
+        circuit: QuantumCircuit,
+        shots: int = 1024
+    ) -> Dict[str, int]:
+        """
+        Simulate quantum circuit using AerSimulator
+        
+        Args:
+            circuit: QuantumCircuit object to simulate
+            shots: Number of measurement shots
+            
+        Returns:
+            Dictionary mapping bitstrings to counts
+        """
+        try:
+            # Create simulator
+            sim = AerSimulator()
+            
+            # Transpile circuit for simulator
+            compiled = transpile(circuit, sim)
+            
+            # Run simulation
+            job = sim.run(compiled, shots=shots)
+            result = job.result()
+            counts = result.get_counts()
+            
+            return counts
+        except Exception as e:
+            print(f"Error simulating circuit: {e}")
+            return {}
     
     def visualize_measurement_results(
         self,
-        counts: Dict[str, int],
+        counts: Optional[Dict[str, int]] = None,
+        circuit: Optional[QuantumCircuit] = None,
+        shots: int = 1024,
         title: str = "Measurement Results",
         filename: Optional[str] = None,
-        top_k: int = 10
+        top_k: Optional[int] = None
     ) -> str:
         """
         Visualize measurement results as histogram
         
         Args:
-            counts: Dictionary mapping bitstrings to counts
+            counts: Dictionary mapping bitstrings to counts (optional if circuit provided)
+            circuit: QuantumCircuit object to simulate (optional if counts provided)
+            shots: Number of measurement shots (used if circuit is provided)
             title: Plot title
             filename: Output filename (optional)
-            top_k: Number of top results to show
+            top_k: Number of top results to show (None = show all)
             
         Returns:
             Path to saved visualization
         """
+        # If circuit is provided but no counts, simulate the circuit
+        if circuit is not None and counts is None:
+            counts = self.simulate_circuit(circuit, shots)
+        
+        if counts is None or len(counts) == 0:
+            print("Warning: No counts provided and circuit simulation failed")
+            return ""
+        
         if filename is None:
             filename = f"measurements_{hash(str(counts))}.png"
         
         filepath = self.output_dir / filename
         
         try:
-            # Sort by count and take top K
-            sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:top_k]
-            top_counts = dict(sorted_counts)
+            # Sort by count (highest to lowest) and optionally take top K
+            sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+            if top_k is not None:
+                sorted_counts = sorted_counts[:top_k]
             
-            # Plot histogram
-            fig, ax = plt.subplots(figsize=(12, 6))
-            plot_histogram(top_counts, ax=ax, title=title)
-            plt.xticks(rotation=45, ha='right')
+            # Extract labels and values in sorted order
+            labels = [bitstring for bitstring, _ in sorted_counts]
+            values = [count for _, count in sorted_counts]
+            
+            # Create custom sorted bar plot
+            fig, ax = plt.subplots(figsize=(14, 8))
+            bars = ax.bar(range(len(labels)), values, color='#4fc3f7', edgecolor='#0288d1', linewidth=0.5)
+            
+            # Set labels
+            ax.set_xlabel('Quantum State', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Measurement Count', fontsize=12, fontweight='bold')
+            ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+            
+            # Set x-axis labels with rotation
+            ax.set_xticks(range(len(labels)))
+            ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+            
+            # Add value labels on top of bars
+            total_shots = sum(values)
+            for i, (bar, count) in enumerate(zip(bars, values)):
+                height = bar.get_height()
+                percentage = (count / total_shots * 100) if total_shots > 0 else 0
+                ax.text(bar.get_x() + bar.get_width()/2., height,
+                       f'{int(count)}\n({percentage:.1f}%)',
+                       ha='center', va='bottom', fontsize=8, fontweight='bold')
+            
+            # Add grid for better readability
+            ax.grid(True, alpha=0.3, axis='y', linestyle='--')
+            ax.set_axisbelow(True)
+            
             plt.tight_layout()
             fig.savefig(filepath, dpi=150, bbox_inches='tight')
             plt.close(fig)

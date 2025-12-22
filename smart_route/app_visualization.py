@@ -100,7 +100,7 @@ def render_measurement_results(counts: Dict, encoding_info: Dict):
     for key, value in counts.items():
         clean_counts[key] = float(value.real) if isinstance(value, complex) else float(value)
     
-    sorted_counts = sorted(clean_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    sorted_counts = sorted(clean_counts.items(), key=lambda x: x[1], reverse=True)
     total_counts = sum(clean_counts.values())
     
     # Helper function to format bitstring in ket notation
@@ -133,32 +133,6 @@ def render_measurement_results(counts: Dict, encoding_info: Dict):
             import pandas as pd
             qubit_df = pd.DataFrame(qubit_states)
             st.dataframe(qubit_df, use_container_width=True, hide_index=True)
-    
-    # Create histogram with ket notation labels
-    ket_labels = [to_ket_notation(bitstring[:8] + "..." if len(bitstring) > 8 else bitstring) 
-                  for bitstring, _ in sorted_counts]
-    probabilities = [count / total_counts * 100 if total_counts > 0 else 0 for _, count in sorted_counts]
-    
-    fig = go.Figure(data=[
-        go.Bar(
-            x=ket_labels,
-            y=[float(count) for _, count in sorted_counts],
-            text=[f"{int(count)} ({prob:.1f}%)" for (_, count), prob in zip(sorted_counts, probabilities)],
-            textposition='auto',
-            marker_color='#4fc3f7',
-            hovertemplate="<b>%{x}</b><br>Count: %{y}<br>Probability: %{text}<extra></extra>"
-        )
-    ])
-    fig.update_layout(
-        title="Top 10 Quantum Measurement Results (Ket Notation)",
-        xaxis_title="Quantum State |ψ⟩",
-        yaxis_title="Measurement Count",
-        height=400,
-        xaxis_tickangle=-45,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)'
-    )
-    st.plotly_chart(fig, use_container_width=True)
 
 
 def _get_qubit_meaning(feature: str, bit_value: str) -> str:
@@ -211,7 +185,7 @@ def render_comparison_maps(classical_route_pois: List[Dict], quantum_route_pois:
         
         fig_classical.update_layout(
             mapbox=dict(style="open-street-map", center=dict(lat=float(np.mean(lats_c)), lon=float(np.mean(lngs_c))), zoom=12),
-            height=400, title=f"Classical ({classical_algorithm})"
+            height=400,
         )
         st.plotly_chart(fig_classical, use_container_width=True)
         route_text_c = " → ".join([f"{i+1}. {poi['name']}" for i, poi in enumerate(classical_route_pois)])
@@ -235,7 +209,7 @@ def render_comparison_maps(classical_route_pois: List[Dict], quantum_route_pois:
         
         fig_quantum.update_layout(
             mapbox=dict(style="open-street-map", center=dict(lat=float(np.mean(lats_q)), lon=float(np.mean(lngs_q))), zoom=12),
-            height=400, title="Quantum (QAOA)"
+            height=400
         )
         st.plotly_chart(fig_quantum, use_container_width=True)
         route_text_q = " → ".join([f"{i+1}. {poi['name']}" for i, poi in enumerate(quantum_route_pois)])

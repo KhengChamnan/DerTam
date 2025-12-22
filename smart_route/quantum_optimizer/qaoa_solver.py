@@ -389,6 +389,7 @@ class QAOASolver:
                 'optimization_history': self._optimization_history,
                 'num_qubits': num_qubits,
                 'num_layers': self.num_layers,
+                'shots': self.shots,  # Store shots for visualization
                 'counts': counts,
                 'decode_info': decode_info,
                 'is_valid': decode_info['validation']['is_valid'],

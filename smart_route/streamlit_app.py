@@ -446,11 +446,15 @@ with tab4:
             visualizer = CircuitVisualizer()
             # Pass num_layers explicitly for proper layer display
             num_layers = result.get('num_layers', 1)
+            # Get shots from result or use default
+            shots = result.get('shots', 1024)
             circuit_details = visualizer.create_detailed_circuit_visualization(
                 result['circuit'], 
                 result.get('parameters', {}), 
                 encoding_info,
-                num_layers=num_layers
+                num_layers=num_layers,
+                shots=shots,
+                simulate=True  # Enable circuit simulation
             )
             
             # Display circuit image
@@ -490,11 +494,28 @@ with tab4:
                             st.write(f"β = {gate['beta']:.6f}")
                             st.write(f"Rotation Angle: {gate['rx_angle']:.6f} rad")
                             st.write(f"In π units: {gate['rx_angle_pi']}")
+            
+            # Display simulated measurement results if available
+            if 'simulated_counts' in circuit_details:
+                st.subheader("Simulated Circuit Results")
+                render_measurement_results(circuit_details['simulated_counts'], encoding_info)
+                
+                # Display simulated measurements image if available
+                if 'simulated_measurements_image' in circuit_details:
+                    image_path = Path(circuit_details['simulated_measurements_image'])
+                    if image_path.exists() and image_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                        try:
+                            with open(image_path, 'rb') as f:
+                                img = Image.open(f)
+                                img.load()
+                                st.image(img, use_container_width=True, caption="Simulated Measurement Histogram")
+                        except Exception as e:
+                            st.warning(f"Could not display simulated measurements image: {str(e)}")
         
-        # Measurement results
-        st.subheader("Measurement Results")
-        if 'counts' in result:
-            render_measurement_results(result['counts'], encoding_info)
+        # # Measurement results (from optimization)
+        # st.subheader("Measurement Results")
+        # if 'counts' in result:
+        #     render_measurement_results(result['counts'], encoding_info)
         
         
         # Circuit info
@@ -525,10 +546,7 @@ with tab4:
         
 
 # Tab 5: Compare
-with tab5:
-    st.markdown("## Classical vs Quantum Comparison")
-    st.caption("Compare classical and quantum optimization results side by side.")
-    
+with tab5:    
     # Validate POI selection
     is_valid, error_msg = validate_poi_selection(st.session_state.selected_pois)
     if not is_valid:
@@ -536,8 +554,8 @@ with tab5:
         st.stop()
     
     # Algorithm selection - using Simulated Annealing only
-    st.subheader("Comparison Settings")
-    st.info("Comparing **Simulated Annealing** (Classical) vs **QAOA** (Quantum)")
+    st.markdown("## Comparison Settings")
+    st.caption("Simulated Annealing (TSP) vs Quantum (QAOA)")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -591,48 +609,48 @@ with tab5:
             classical['result'].get('algorithm', 'unknown')
         )
         
-        # Metrics comparison table
-        st.subheader(" Metrics Comparison")
+        # Metrics comparison table - HIDDEN
+        # st.subheader(" Metrics Comparison")
         
         # Get traffic impact metrics if available
         classical_traffic = classical.get('traffic_impact', {})
         quantum_traffic = quantum.get('traffic_impact', {})
         
         # Build comparison data with only the specified metrics
-        comparison_data = {
-            "Metric": [
-                "Total Distance (km)",
-                "Total Time (min)"
-            ],
-            "Classical": [
-                f"{classical['quality']['total_distance']:.2f}",
-                f"{classical['quality']['total_time']:.1f}" if classical['quality']['total_time'] > 0 else "N/A"
-            ],
-            "Quantum": [
-                f"{quantum['quality']['total_distance']:.2f}",
-                f"{quantum['quality']['total_time']:.1f}" if quantum['quality']['total_time'] > 0 else "N/A"
-            ]
-        }
+        # comparison_data = {
+        #     "Metric": [
+        #         "Total Distance (km)",
+        #         "Total Time (min)"
+        #     ],
+        #     "Classical": [
+        #         f"{classical['quality']['total_distance']:.2f}",
+        #         f"{classical['quality']['total_time']:.1f}" if classical['quality']['total_time'] > 0 else "N/A"
+        #     ],
+        #     "Quantum": [
+        #         f"{quantum['quality']['total_distance']:.2f}",
+        #         f"{quantum['quality']['total_time']:.1f}" if quantum['quality']['total_time'] > 0 else "N/A"
+        #     ]
+        # }
         
         # Add traffic metrics if available
-        if classical_traffic and quantum_traffic:
-            comparison_data["Metric"].extend([
-                "Traffic Impact Score",
-                "High-Traffic Segments",
-                "Time Efficiency (min/km)"
-            ])
-            comparison_data["Classical"].extend([
-                f"{classical_traffic.get('traffic_impact_score', 0):.2f}",
-                str(classical_traffic.get('high_traffic_segments', 0)),
-                f"{classical_traffic.get('time_efficiency', 0):.2f}"
-            ])
-            comparison_data["Quantum"].extend([
-                f"{quantum_traffic.get('traffic_impact_score', 0):.2f}",
-                str(quantum_traffic.get('high_traffic_segments', 0)),
-                f"{quantum_traffic.get('time_efficiency', 0):.2f}"
-            ])
+        # if classical_traffic and quantum_traffic:
+        #     comparison_data["Metric"].extend([
+        #         "Traffic Impact Score",
+        #         "High-Traffic Segments",
+        #         "Time Efficiency (min/km)"
+        #     ])
+        #     comparison_data["Classical"].extend([
+        #         f"{classical_traffic.get('traffic_impact_score', 0):.2f}",
+        #         str(classical_traffic.get('high_traffic_segments', 0)),
+        #         f"{classical_traffic.get('time_efficiency', 0):.2f}"
+        #     ])
+        #     comparison_data["Quantum"].extend([
+        #         f"{quantum_traffic.get('traffic_impact_score', 0):.2f}",
+        #         str(quantum_traffic.get('high_traffic_segments', 0)),
+        #         f"{quantum_traffic.get('time_efficiency', 0):.2f}"
+        #     ])
         
-        st.dataframe(comparison_data, use_container_width=True)
+        # st.dataframe(comparison_data, use_container_width=True)
         
         # Traffic comparison visualization if available
         if classical_traffic and quantum_traffic:
@@ -662,7 +680,7 @@ with tab5:
             )
         
         # Performance charts
-        st.subheader(" Performance Visualization")
+        st.subheader(" Metric Comparison")
         render_comparison_charts(
             classical['quality'],
             quantum['quality'],
