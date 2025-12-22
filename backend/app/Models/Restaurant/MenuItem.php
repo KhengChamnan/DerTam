@@ -59,7 +59,6 @@ class MenuItem extends Model
      * @var array<int, string>
      */
     protected $hidden = [
-        'images_url',
         'image_public_ids',
         'created_at',
         'updated_at',
@@ -73,7 +72,7 @@ class MenuItem extends Model
      *
      * @var array
      */
-    protected $appends = ['image_url', 'menu_category_name'];
+    protected $appends = ['menu_category_name'];
 
     /**
      * Get the first image URL as a string.
