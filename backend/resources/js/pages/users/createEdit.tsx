@@ -17,14 +17,22 @@ import { Separator } from "@/components/ui/separator";
 import { type BreadcrumbItem, type User } from "@/types";
 import { ArrowLeft, EyeIcon, EyeOffIcon, Save } from "lucide-react";
 
+interface Role {
+    id: number;
+    name: string;
+    display_name: string;
+}
+
 interface CreateEditUserProps {
     user?: User;
     isEdit?: boolean;
+    roles: Role[];
 }
 
 export default function CreateEditUser({
     user,
     isEdit = false,
+    roles,
 }: CreateEditUserProps) {
     const [formData, setFormData] = useState({
         name: user?.name || "",
@@ -97,6 +105,18 @@ export default function CreateEditUser({
 
     const handleCancel = () => {
         router.visit("/users");
+    };
+
+    const getRoleColor = (roleName: string) => {
+        const colors: Record<string, string> = {
+            "Super Admin": "bg-red-500",
+            Admin: "bg-purple-500",
+            "Hotel Owner": "bg-orange-500",
+            "Transportation Owner": "bg-green-500",
+            "Restaurant Owner": "bg-yellow-500",
+            User: "bg-blue-500",
+        };
+        return colors[roleName] || "bg-gray-500";
     };
 
     return (
@@ -272,42 +292,23 @@ export default function CreateEditUser({
                                                 <SelectValue placeholder="Select a role" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="Super Admin">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-2 rounded-full bg-red-500"></div>
-                                                        Super Admin
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="Admin">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-2 rounded-full bg-purple-500"></div>
-                                                        Admin
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="Hotel Owner">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-2 rounded-full bg-orange-500"></div>
-                                                        Hotel Owner
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="Transportation Owner">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-2 rounded-full bg-green-500"></div>
-                                                        Transportation Owner
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="Restaurant Owner">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-2 rounded-full bg-yellow-500"></div>
-                                                        Restaurant Owner
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="User">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-2 rounded-full bg-blue-500"></div>
-                                                        User
-                                                    </div>
-                                                </SelectItem>
+                                                {roles.map((role) => (
+                                                    <SelectItem
+                                                        key={role.id}
+                                                        value={
+                                                            role.display_name
+                                                        }
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <div
+                                                                className={`size-2 rounded-full ${getRoleColor(
+                                                                    role.display_name
+                                                                )}`}
+                                                            ></div>
+                                                            {role.display_name}
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         {errors.role && (

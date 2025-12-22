@@ -89,9 +89,35 @@ class UserController extends Controller
      */
     public function create()
     {
+        $roles = Role::where('guard_name', 'web')->get();
+        
         return Inertia::render('users/createEdit', [
             'isEdit' => false,
+            'roles' => $roles->map(function($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'display_name' => $this->getDisplayName($role->name)
+                ];
+            })
         ]);
+    }
+    
+    /**
+     * Get display name for a role
+     */
+    private function getDisplayName($roleName)
+    {
+        $roleDisplayNames = [
+            'user' => 'User',
+            'admin' => 'Admin',
+            'hotel owner' => 'Hotel Owner',
+            'transportation owner' => 'Transportation Owner',
+            'restaurant owner' => 'Restaurant Owner',
+            'superadmin' => 'Super Admin'
+        ];
+        
+        return $roleDisplayNames[$roleName] ?? ucwords(str_replace('-', ' ', $roleName));
     }
 
     /**
@@ -99,25 +125,20 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Get all valid role display names
+        $validRoles = Role::where('guard_name', 'web')->get()->map(function($role) {
+            return $this->getDisplayName($role->name);
+        })->toArray();
+        
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'username' => 'nullable|string|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,Transportation Owner,Restaurant Owner,User',
+            'role' => ['required', 'string', 'in:' . implode(',', $validRoles)],
             'status' => 'nullable|string|in:Active,Inactive,Invited,Suspended',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
-
-        // Map display names to database role names
-        $roleMapping = [
-            'Super Admin' => 'superadmin',
-            'Admin' => 'admin',
-            'Hotel Owner' => 'hotel owner',
-            'Transportation Owner' => 'transportation owner',
-            'Restaurant Owner' => 'restaurant owner',
-            'User' => 'user'
-        ];
 
         $user = User::create([
             'name' => $request->name,
@@ -128,9 +149,14 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // Assign role using Spatie Permission
-        $databaseRoleName = $roleMapping[$request->role];
-        $user->assignRole($databaseRoleName);
+        // Find the role by display name and assign it
+        $role = Role::where('guard_name', 'web')->get()->first(function($r) use ($request) {
+            return $this->getDisplayName($r->name) === $request->role;
+        });
+        
+        if ($role) {
+            $user->assignRole($role->name);
+        }
 
         return redirect()->route('users.index')
                         ->with('success', 'User created successfully.');
@@ -151,18 +177,8 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        // Map database role names to display names for the form
-        $roleDisplayNames = [
-            'user' => 'User',
-            'admin' => 'Admin', 
-            'hotel owner' => 'Hotel Owner',
-            'transportation owner' => 'Transportation Owner',
-            'restaurant owner' => 'Restaurant Owner',
-            'superadmin' => 'Super Admin'
-        ];
-
         $userRoles = $user->roles->pluck('name')->toArray();
-        $displayRole = !empty($userRoles) ? $roleDisplayNames[$userRoles[0]] ?? 'User' : 'User';
+        $displayRole = !empty($userRoles) ? $this->getDisplayName($userRoles[0]) : 'User';
 
         // Transform user data for the form
         $userData = [
@@ -177,10 +193,19 @@ class UserController extends Controller
             'updated_at' => $user->updated_at,
             'profile_photo_url' => $user->profile_image_url ?? $user->profile_photo_url,
         ];
+        
+        $roles = Role::where('guard_name', 'web')->get();
 
         return Inertia::render('users/createEdit', [
             'user' => $userData,
             'isEdit' => true,
+            'roles' => $roles->map(function($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'display_name' => $this->getDisplayName($role->name)
+                ];
+            })
         ]);
     }
 
@@ -189,12 +214,17 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Get all valid role display names
+        $validRoles = Role::where('guard_name', 'web')->get()->map(function($role) {
+            return $this->getDisplayName($role->name);
+        })->toArray();
+        
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'username' => 'nullable|string|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,Transportation Owner,Restaurant Owner,User',
+            'role' => ['required', 'string', 'in:' . implode(',', $validRoles)],
             'status' => 'nullable|string|in:Active,Inactive,Invited,Suspended',
         ];
 
@@ -204,16 +234,6 @@ class UserController extends Controller
         }
 
         $request->validate($rules);
-
-        // Map display names to database role names
-        $roleMapping = [
-            'Super Admin' => 'superadmin',
-            'Admin' => 'admin',
-            'Hotel Owner' => 'hotel owner',
-            'Transportation Owner' => 'transportation owner',
-            'Restaurant Owner' => 'restaurant owner',
-            'User' => 'user'
-        ];
 
         $updateData = [
             'name' => $request->name,
@@ -230,9 +250,14 @@ class UserController extends Controller
 
         $user->update($updateData);
 
-        // Update role using Spatie Permission
-        $databaseRoleName = $roleMapping[$request->role];
-        $user->syncRoles([$databaseRoleName]); // syncRoles removes old roles and assigns new one
+        // Find the role by display name and sync it
+        $role = Role::where('guard_name', 'web')->get()->first(function($r) use ($request) {
+            return $this->getDisplayName($r->name) === $request->role;
+        });
+        
+        if ($role) {
+            $user->syncRoles([$role->name]);
+        }
 
         return redirect()->route('users.index')
                         ->with('success', 'User updated successfully.');

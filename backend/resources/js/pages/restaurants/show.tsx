@@ -48,7 +48,8 @@ interface MenuItem {
     description?: string;
     price: number;
     is_available: boolean;
-    images_url?: string[];
+    image?: string;
+    images_url?: string | string[];
     category: MenuCategory;
     created_at: string;
 }
@@ -322,22 +323,67 @@ export default function RestaurantShow({ property }: Props) {
                                                                             )}
                                                                         </p>
                                                                     </div>
-                                                                    {item.images_url &&
-                                                                        item
-                                                                            .images_url
-                                                                            .length >
-                                                                            0 && (
+                                                                    {(() => {
+                                                                        // Get image URL - handle both string and array formats
+                                                                        let imageUrl =
+                                                                            "";
+
+                                                                        if (
+                                                                            item.images_url
+                                                                        ) {
+                                                                            if (
+                                                                                typeof item.images_url ===
+                                                                                "string"
+                                                                            ) {
+                                                                                imageUrl =
+                                                                                    item.images_url;
+                                                                            } else if (
+                                                                                Array.isArray(
+                                                                                    item.images_url
+                                                                                ) &&
+                                                                                item
+                                                                                    .images_url
+                                                                                    .length >
+                                                                                    0
+                                                                            ) {
+                                                                                imageUrl =
+                                                                                    item
+                                                                                        .images_url[0];
+                                                                            }
+                                                                        } else if (
+                                                                            item.image
+                                                                        ) {
+                                                                            imageUrl =
+                                                                                item.image;
+                                                                        }
+
+                                                                        // Only render if we have a valid URL
+                                                                        if (
+                                                                            !imageUrl ||
+                                                                            imageUrl.length <
+                                                                                10
+                                                                        ) {
+                                                                            return null;
+                                                                        }
+
+                                                                        return (
                                                                             <img
                                                                                 src={
-                                                                                    item
-                                                                                        .images_url[0]
+                                                                                    imageUrl
                                                                                 }
                                                                                 alt={
                                                                                     item.name
                                                                                 }
                                                                                 className="h-20 w-20 rounded-lg object-cover"
+                                                                                onError={(
+                                                                                    e
+                                                                                ) => {
+                                                                                    e.currentTarget.style.display =
+                                                                                        "none";
+                                                                                }}
                                                                             />
-                                                                        )}
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         ))}
