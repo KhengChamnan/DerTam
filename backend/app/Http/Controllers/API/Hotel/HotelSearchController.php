@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Place;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class HotelSearchController extends Controller
@@ -21,10 +22,19 @@ class HotelSearchController extends Controller
     {
         // Validate input
         $validator = Validator::make($request->all(), [
-            'province_id' => 'required|exists:province_categories,province_categoryID',
+            'province_id' => 'required|integer',
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
         ]);
+
+        // Custom validation: if province_id is not 0, it must exist in province_categories
+        if ($request->province_id != 0) {
+            $validator->after(function ($validator) use ($request) {
+                if (!DB::table('province_categories')->where('province_categoryID', $request->province_id)->exists()) {
+                    $validator->errors()->add('province_id', 'The selected province_id is invalid.');
+                }
+            });
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -40,12 +50,16 @@ class HotelSearchController extends Controller
         $nights = $checkIn->diffInDays($checkOut);
 
         try {
-            // Get hotels (category_id = 3) in the specified province
-            $hotels = Place::with(['category', 'province'])
-                ->where('category_id', 3) // Hotel category
-                ->where('province_id', $provinceId)
-                ->orderBy('ratings', 'desc')
-                ->get();
+            // Get hotels (category_id = 3)
+            $query = Place::with(['category', 'province'])
+                ->where('category_id', 3); // Hotel category
+
+            // Filter by province only if province_id is not 0
+            if ($provinceId != 0) {
+                $query->where('province_id', $provinceId);
+            }
+
+            $hotels = $query->orderBy('ratings', 'desc')->get();
 
             // Transform the results to match the expected format
             $results = $hotels->map(function($place) use ($nights) {
@@ -72,7 +86,7 @@ class HotelSearchController extends Controller
                 'data' => [
                     'search_params' => [
                         'province_id' => $provinceId,
-                        'province_name' => $hotels->first()?->province?->province_categoryName,
+                        'province_name' => $provinceId == 0 ? 'All Provinces' : $hotels->first()?->province?->province_categoryName,
                         'check_in' => $checkIn->toDateString(),
                         'check_out' => $checkOut->toDateString(),
                         'nights' => $nights,
