@@ -65,6 +65,16 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteTrip(String tripId) async {
+    try {
+      await tripRepository.deleteTrip(tripId);
+      await fetchAllTrip();
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<ConfirmTripResponse> fetchTripDetail(String tripId) async {
     _getTripDetail = AsyncValue.loading();
     notifyListeners();

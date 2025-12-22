@@ -14,6 +14,7 @@ import 'package:mobile_frontend/ui/screen/splash/widgets/splash_body.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_booking_screen.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import '../../theme/dertam_apptheme.dart';
 
@@ -144,12 +145,9 @@ class _UserProfileState extends State<UserProfile> {
                           iconColor: DertamColors.primaryBlue,
                           title: 'Update Profile',
                           subtitle: 'You can update your info',
-                          onTap: () => Navigator.push(
+                          onTap: () => Navigator.of(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => DertamEditProfile(),
-                            ),
-                          ),
+                          ).push(AnimationUtils.fade(DertamEditProfile())),
                         ),
                         const SizedBox(height: 11),
 
@@ -161,10 +159,7 @@ class _UserProfileState extends State<UserProfile> {
                           onTap: () {
                             // Navigate to My Booking
                             Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const DertamBookingScreen(),
-                              ),
+                              AnimationUtils.fade(const DertamBookingScreen()),
                             );
                           },
                         ),
@@ -174,12 +169,9 @@ class _UserProfileState extends State<UserProfile> {
                           iconColor: DertamColors.primaryBlue,
                           title: 'Favorite',
                           subtitle: 'You can view your favorite info',
-                          onTap: () => Navigator.push(
+                          onTap: () => Navigator.of(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => FavoriteScreen(),
-                            ),
-                          ),
+                          ).push(AnimationUtils.fade(FavoriteScreen())),
                         ),
 
                         const SizedBox(height: 11),
@@ -200,7 +192,6 @@ class _UserProfileState extends State<UserProfile> {
                         // Log out button
                         DertamButton(
                           text: 'Log out',
-
                           onPressed: () => showDialog(
                             context: context,
                             builder: (BuildContext context) {

@@ -43,8 +43,7 @@ class _SplashBodyState extends State<SplashBody> {
         await authProvider.initializeAuth();
         await authProvider.checkPreferencesCompleted();
         final preferencesCompleted = authProvider.hasCompletedPreferences;
-        if (preferencesCompleted.state == AsyncValueState.success &&
-            preferencesCompleted.data == false) {
+        if (preferencesCompleted.state == AsyncValueState.success ) {
           nextScreen = const DertamUserPreferrence();
         } else {
           nextScreen = HomePage();

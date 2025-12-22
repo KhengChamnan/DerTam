@@ -5,6 +5,7 @@ import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_bus_qr_code_
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../theme/dertam_apptheme.dart';
@@ -143,10 +144,9 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
         print('QR Image available: ${qrImage != null && qrImage.isNotEmpty}');
         // Navigate to QR code screen and wait for user to complete payment
         if (mounted) {
-          final result = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DertamBusQrCodeScreen(
+          final result = await Navigator.of(context).push<bool>(
+            AnimationUtils.fade(
+              DertamBusQrCodeScreen(
                 qrData: qrString,
                 qrImage: qrImage,
                 bookingId: bookingId.toString(),
@@ -426,11 +426,15 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                                   color: DertamColors.primaryBlue,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  'Seats: ${widget.displaySeat}',
-                                  style: DertamTextStyles.labelSmall.copyWith(
-                                    color: DertamColors.black,
-                                    fontFamily: 'Inter',
+                                Flexible(
+                                  child: Text(
+                                    'Seats: ${widget.displaySeat}',
+                                    style: DertamTextStyles.labelSmall.copyWith(
+                                      color: DertamColors.black,
+                                      fontFamily: 'Inter',
+                                    ),
+                                    overflow: TextOverflow
+                                        .ellipsis, // Adds ... if text is too long
                                   ),
                                 ),
                               ],
@@ -438,7 +442,7 @@ class _DertamBookingCheckoutState extends State<DertamBookingCheckout> {
                           ],
                         ),
                       ),
-                      // Price
+                      
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

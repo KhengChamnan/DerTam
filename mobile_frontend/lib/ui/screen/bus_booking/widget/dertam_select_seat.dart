@@ -9,6 +9,7 @@ import 'package:mobile_frontend/ui/screen/bus_booking/widget/bus_seat_grid_build
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_booking_checkout.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class DertamSelectSeat extends StatefulWidget {
@@ -36,6 +37,7 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
       _loadBusDetails();
     });
   }
+
   Future<void> _loadBusDetails() async {
     if (!mounted) return;
 
@@ -620,11 +622,9 @@ class _DertamSelectSeatState extends State<DertamSelectSeat> {
                             );
                           }
                         : () {
-                            // Handle booking
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DertamBookingCheckout(
+                            Navigator.of(context).push(
+                              AnimationUtils.fade(
+                                DertamBookingCheckout(
                                   scheduleId: schedule?.id ?? '',
                                   fromLocation: schedule?.fromLocation ?? '',
                                   toLocation: schedule?.toLocation ?? '',

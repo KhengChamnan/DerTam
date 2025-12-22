@@ -17,4 +17,5 @@ abstract class TripRepository {
   Future<List<Trip>> getAllTrips();
   Future<TripShareResponse> generateShareableLink(String tripId);
   Future<ConfirmTripResponse> joinTripViaShareLink(String shareToken);
+  Future<void> deleteTrip(String tripId);
 }

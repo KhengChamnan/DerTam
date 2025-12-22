@@ -170,7 +170,7 @@ class _HomePageState extends State<HomePage> {
                                 iconSize: 28,
                                 onPressed: () {
                                   Navigator.of(context).push(
-                                    AnimationUtils.createBottomToTopRoute(
+                                    AnimationUtils.bottomToTop(
                                       DertamSearchPlaceScreen(),
                                     ),
                                   );
@@ -294,11 +294,10 @@ class _HomePageState extends State<HomePage> {
                                   .map(
                                     (place) => RecommendationPlaceCard(
                                       place: place,
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => DetailEachPlace(
-                                            placeId: place.placeId,
+                                      onTap: () => Navigator.of(context).push(
+                                        AnimationUtils.bottomToTop(
+                                          DetailEachPlace(
+                                            placeId: place.placeId.toString(),
                                           ),
                                         ),
                                       ),

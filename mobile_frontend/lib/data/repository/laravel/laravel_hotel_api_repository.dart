@@ -344,9 +344,15 @@ class LaravelHotelApiRepository extends HotelRepository {
         body,
         _baseHeaders,
       );
+
       print('Search Hotel Data : ${searchHotelResponse.body}');
       if (searchHotelResponse.statusCode == 200) {
         final jsonData = json.decode(searchHotelResponse.body);
+        // Debug prints
+        print('Total Results: ${jsonData['data']['total_results']}');
+        print(
+          'Hotels List Length: ${(jsonData['data']['hotels'] as List).length}',
+        );
         final searchHotel = HotelListResponseData.fromJson(jsonData);
         return searchHotel;
       } else {

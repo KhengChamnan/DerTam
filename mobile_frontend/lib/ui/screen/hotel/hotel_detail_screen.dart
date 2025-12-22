@@ -9,6 +9,7 @@ import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_search_room_result
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_select_date.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_hotel_facility.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class HotelDetailScreen extends StatefulWidget {
@@ -454,10 +455,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                   final room = hotel.roomProperties[index];
                   return DertamRoomCard(
                     room: room,
-                    onCheckAvailability: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DertamBookingRoomScreen(
+                    onCheckAvailability: () => Navigator.of(context)
+                            .push(
+                              AnimationUtils.fade(DertamBookingRoomScreen(
                           roomId: room.roomPropertiesId,
                         ),
                       ),
@@ -515,12 +515,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                   widget.hotelId,
                 );
                 if (mounted && searchResults.rooms.isNotEmpty) {
-                  Navigator.push(
+                  Navigator.of(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const DertamSearchRoomResult(),
-                    ),
-                  );
+                  ).push(AnimationUtils.fade(const DertamSearchRoomResult()));
                 } else if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

@@ -62,7 +62,7 @@ class MenuItem {
           : (json['price'] ?? 0.0),
       description: json['description'],
       menuCategoryId: json['menu_category_id'] ?? 0,
-      imageUrl: json['image_url'],
+      imageUrl: json['images_url'],
       menuCategoryName: json['menu_category_name'] ?? '',
     );
   }

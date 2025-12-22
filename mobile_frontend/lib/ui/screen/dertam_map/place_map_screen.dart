@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -131,16 +130,6 @@ class _PlaceMapScreenState extends State<PlaceMapScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.home, color: DertamColors.primaryBlue),
-            onPressed: () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-            ),
-            tooltip: 'Open in Google Maps',
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -156,7 +145,8 @@ class _PlaceMapScreenState extends State<PlaceMapScreen> {
             children: [
               // OpenStreetMap Tile Layer
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                 userAgentPackageName: 'com.dertam.mobile_frontend',
                 maxZoom: 19,
               ),

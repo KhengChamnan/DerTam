@@ -6,6 +6,7 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_scre
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_join_trip_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -324,6 +325,35 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                             itemCount: upcomingTrips.length,
                             itemBuilder: (context, index) {
                               return TripCard(
+                                onDeleteTrip: () => showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text('Delete Trip'),
+                                    content: Text(
+                                      'Are you sure you want to delete the trip "${upcomingTrips[index].tripName}"? This action cannot be undone.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          Navigator.pop(context);
+                                          await tripProvider.deleteTrip(
+                                            upcomingTrips[index].tripId
+                                                .toString(),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              DertamColors.primaryBlue,
+                                        ),
+                                        child: Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 trip: upcomingTrips[index],
                                 status: _getTripStatus(upcomingTrips[index]),
                                 statusColor: _getStatusColor(
@@ -331,10 +361,9 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                                 ),
                                 daysInfo:
                                     '${_getDaysLeft(upcomingTrips[index])} days left',
-                                onDetailTrip: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TripDetailScreen(
+                                onDetailTrip: () => Navigator.of(context).push(
+                                  AnimationUtils.fade(
+                                    TripDetailScreen(
                                       tripId: upcomingTrips[index].tripId
                                           .toString(),
                                     ),
@@ -382,15 +411,43 @@ class _DertamTripScreenState extends State<DertamTripScreen>
                             itemCount: pastTrips.length,
                             itemBuilder: (context, index) {
                               return TripCard(
+                                onDeleteTrip: () => showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text('Delete Trip'),
+                                    content: Text(
+                                      'Are you sure you want to delete the trip "${upcomingTrips[index].tripName}"? This action cannot be undone.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          Navigator.pop(context);
+                                          await tripProvider.deleteTrip(
+                                            upcomingTrips[index].tripId
+                                                .toString(),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              DertamColors.primaryBlue,
+                                        ),
+                                        child: Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 trip: pastTrips[index],
                                 status: 'Completed',
                                 statusColor: Colors.green.shade600,
                                 daysInfo:
                                     'Ended ${_getDaysEnded(pastTrips[index])} days ago',
-                                onDetailTrip: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TripDetailScreen(
+                                onDetailTrip: () => Navigator.of(context).push(
+                                  AnimationUtils.fade(
+                                    TripDetailScreen(
                                       tripId: pastTrips[index].tripId
                                           .toString(),
                                     ),
@@ -412,22 +469,12 @@ class _DertamTripScreenState extends State<DertamTripScreen>
           FloatingActionButton(
             heroTag: 'create_trip',
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => TripPlanning()),
-              );
+              Navigator.of(context).push(AnimationUtils.fade(TripPlanning()));
             },
             backgroundColor: DertamColors.white,
             shape: const CircleBorder(),
             elevation: 4,
-            child: Text(
-              'Add',
-              style: TextStyle(
-                color: DertamColors.primaryDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
+            child: Icon(Icons.add, color: DertamColors.primaryDark, size: 24),
           ),
           SizedBox(height: 12),
 
@@ -459,6 +506,7 @@ class TripCard extends StatelessWidget {
   final Color statusColor;
   final String daysInfo;
   final VoidCallback? onDetailTrip;
+  final VoidCallback? onDeleteTrip;
 
   const TripCard({
     super.key,
@@ -466,6 +514,7 @@ class TripCard extends StatelessWidget {
     required this.status,
     required this.statusColor,
     required this.daysInfo,
+    this.onDeleteTrip,
     this.onDetailTrip,
   });
 
@@ -477,6 +526,7 @@ class TripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onDetailTrip,
+      onLongPress: onDeleteTrip,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(

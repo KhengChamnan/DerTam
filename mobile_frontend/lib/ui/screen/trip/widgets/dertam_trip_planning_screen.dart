@@ -4,6 +4,7 @@ import 'package:mobile_frontend/ui/widgets/actions/dertam_button.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_text_field.dart';
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_select_date.dart';
 import 'package:mobile_frontend/ui/widgets/navigation/navigation_bar.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 
 class TripPlanning extends StatefulWidget {
   const TripPlanning({super.key});
@@ -32,11 +33,9 @@ class _TripPlanningState extends State<TripPlanning> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            TripDateScreen(tripName: _tripNameController.text.trim()),
+    Navigator.of(context).push(
+      AnimationUtils.rightToLeft(
+        TripDateScreen(tripName: _tripNameController.text.trim()),
       ),
     );
   }
@@ -47,7 +46,33 @@ class _TripPlanningState extends State<TripPlanning> {
       backgroundColor: DertamColors.white,
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 0,
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: DertamColors.primaryDark,
+                    size: 20,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.all(DertamSpacings.l),

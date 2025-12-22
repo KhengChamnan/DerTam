@@ -28,22 +28,10 @@ class _DertamUserPreferrenceState extends State<DertamUserPreferrence> {
     final questions = [
     
       TripPlanningQuestion(
-        id: 'destination',
-        question: 'Where do you want to go?',
-        type: 'text',
-        placeholder: 'Enter destination',
-      ),
-      TripPlanningQuestion(
         id: 'trip_type',
         question: 'What type of trip is this?',
         type: 'single',
         options: ['Adventure', 'Relaxation', 'Cultural', 'Business', 'Family'],
-      ),
-      TripPlanningQuestion(
-        id: 'duration',
-        question: 'How long will your trip be?',
-        type: 'single',
-        options: ['1-3 days', '4-7 days', '1-2 weeks', '2+ weeks'],
       ),
       TripPlanningQuestion(
         id: 'budget',
@@ -141,7 +129,7 @@ class _DertamUserPreferrenceState extends State<DertamUserPreferrence> {
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
-          'Plan Your Trip',
+          'User Preferences',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

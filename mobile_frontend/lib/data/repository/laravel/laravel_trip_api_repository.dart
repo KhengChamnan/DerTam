@@ -20,6 +20,35 @@ class LaravelTripApiRepository implements TripRepository {
     ..._baseHeaders,
     'Authorization': 'Bearer $token',
   };
+  @override
+  Future<void> deleteTrip(String tripId) async {
+    try {
+      final token = await repository.getToken();
+      if (token == null) {
+        throw Exception('Token have not found!');
+      }
+      final header = _getAuthHeaders(token);
+      final deleteTripResponse = await FetchingData.deleteData(
+        '${ApiEndpoint.deleteTrip}/$tripId',
+        header,
+      );
+      if (deleteTripResponse.statusCode == 200 ||
+          deleteTripResponse.statusCode == 204) {
+        print('✅ [DEBUG] Trip deleted successfully: $tripId');
+        return;
+      } else {
+        print(
+          '❌ [DEBUG] Failed with status: ${deleteTripResponse.statusCode}',
+        );
+        print('❌ [DEBUG] Error response body: ${deleteTripResponse.body}');
+        throw Exception(
+          'Failed to delete trip: ${deleteTripResponse.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   @override
   Future<TripResponse> createTrip(

@@ -5,6 +5,7 @@ import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_hotel_qr_code_screen.dart';
 import 'package:mobile_frontend/ui/widgets/display/dertam_booking_succes_screen.dart';
 import 'package:mobile_frontend/ui/widgets/inputs/dertam_playment_method.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../theme/dertam_apptheme.dart';
@@ -87,7 +88,7 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
       print(
         'ABA Deeplink: ${bookingResponse.data?.abaResponse.abapayDeeplink}',
       );
-        // Handle payment based on selected display mode
+      // Handle payment based on selected display mode
       if (_selectedPaymentDisplay == 'deeplink') {
         // ABA PayWay - Open ABA app via deeplink
         final deeplink = bookingResponse.data?.abaResponse.abapayDeeplink;
@@ -136,10 +137,9 @@ class _DertamConfirmBookingState extends State<DertamConfirmBooking> {
         print('QR Image available: ${qrImage != null && qrImage.isNotEmpty}');
 
         if (mounted) {
-          final result = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DertamQrCodeScreen(
+          final result = await Navigator.of(context).push<bool>(
+            AnimationUtils.fade(
+              DertamQrCodeScreen(
                 qrData: qrString,
                 qrImage: qrImage,
                 bookingId: bookingId.toString(),

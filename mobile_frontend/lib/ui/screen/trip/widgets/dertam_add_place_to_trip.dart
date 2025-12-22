@@ -27,7 +27,7 @@ class DertamAddPlaceToTrip extends StatefulWidget {
 class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
   final TextEditingController _searchController = TextEditingController();
 
-  int? _selectedCategoryId; // null means 'All'
+  int? _selectedCategoryId = 0; // 0 means 'All'
   bool _isLoading = false;
 
   @override
@@ -53,6 +53,7 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
       placeProvider.fetchPlaceCategories();
       placeProvider.fetchRecommendedPlaces(); // Load initial places
       tripProvider.fetchTripDetail(widget.tripId!);
+      placeProvider.getPlacesByCategory(0);
     });
   }
 
@@ -72,7 +73,6 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
     } else {
       await placeProvider.fetchRecommendedPlaces();
     }
-
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -163,7 +163,6 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
     final endDate =
         tripDetail?.endDate ?? createTripData?.endDate ?? DateTime.now();
 
-    // Navigate to itinerary review screen
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -227,38 +226,17 @@ class _DertamAddPlaceToTripState extends State<DertamAddPlaceToTrip> {
 
       body: Column(
         children: [
-          // Search and Filter Section
           Padding(
             padding: EdgeInsets.all(DertamSpacings.m),
             child: Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => _filterPlaces(),
-                    decoration: InputDecoration(
-                      hintText: 'Search places for your plan...',
-                      prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: DertamSpacings.l,
-                        vertical: DertamSpacings.m,
-                      ),
-                    ),
-                  ),
-                ),
-
                 SizedBox(height: DertamSpacings.m),
                 // Category Filter
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildCategoryChip('All', null),
+                      _buildCategoryChip('All', 0),
                       SizedBox(width: DertamSpacings.s),
                       ...categories.map(
                         (category) => Padding(

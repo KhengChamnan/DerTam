@@ -42,6 +42,7 @@ class ApiEndpoint {
       '/api/add-places'; // Have to put trip ID
   static const String getTripDetail = '/api/trips';
   static const String getAllTrips = '/api/trips';
+  static const String deleteTrip = '/api/trips';
 
   // Social sharing Endpoints
   static const String generateShareableLink =

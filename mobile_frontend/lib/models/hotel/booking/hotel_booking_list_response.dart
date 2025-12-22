@@ -297,21 +297,29 @@ class RoomProperty {
 
   factory RoomProperty.fromJson(Map<String, dynamic> json) {
     return RoomProperty(
-      roomPropertiesId: json['room_properties_id'] as int,
-      propertyId: json['property_id'] as int,
-      roomType: json['room_type'] as String,
-      roomDescription: json['room_description'] as String,
-      maxGuests: json['max_guests'] as int,
-      numberOfBed: json['number_of_bed'] as int,
-      roomSize: json['room_size'] as String,
-      pricePerNight: json['price_per_night'] as int,
-      imagesUrl: List<String>.from(json['images_url'] as List),
-      imagePublicIds: List<String>.from(json['image_public_ids'] as List),
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
-      availableRoomsCount: json['available_rooms_count'] as int,
-      totalRoomsCount: json['total_rooms_count'] as int,
-      property: Property.fromJson(json['property'] as Map<String, dynamic>),
+      roomPropertiesId: json['room_properties_id'] as int? ?? 0,
+      propertyId: json['property_id'] as int? ?? 0,
+      roomType: json['room_type'] as String? ?? '',
+      roomDescription: json['room_description'] as String? ?? '',
+      maxGuests: json['max_guests'] as int? ?? 0,
+      numberOfBed: json['number_of_bed'] as int? ?? 0,
+      roomSize: json['room_size'] as String? ?? '',
+      pricePerNight: json['price_per_night'] as int? ?? 0,
+      imagesUrl:
+          (json['images_url'] as List?)?.map((e) => e.toString()).toList() ??
+          [],
+      imagePublicIds:
+          (json['image_public_ids'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      createdAt: json['created_at'] as String? ?? '',
+      updatedAt: json['updated_at'] as String? ?? '',
+      availableRoomsCount: json['available_rooms_count'] as int? ?? 0,
+      totalRoomsCount: json['total_rooms_count'] as int? ?? 0,
+      property: Property.fromJson(
+        json['property'] as Map<String, dynamic>? ?? {},
+      ),
     );
   }
 

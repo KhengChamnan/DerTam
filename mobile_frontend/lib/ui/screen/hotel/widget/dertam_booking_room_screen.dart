@@ -8,6 +8,7 @@ import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_confirm_booking.dart';
 import 'package:mobile_frontend/ui/screen/hotel/widget/dertam_room_amenity.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class DertamBookingRoomScreen extends StatefulWidget {
@@ -748,17 +749,16 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DertamConfirmBooking(
+                onPressed: () => Navigator.of(context).push(
+                  AnimationUtils.bottomToTop(
+                    DertamConfirmBooking(
                       roomType: roomData.roomType,
                       pricePerNight: roomData.pricePerNight,
                       roomImage: roomData.imagesUrl,
                       maxGuests: roomData.maxGuests,
                       checkIn: widget.checkIn,
                       checkOut: widget.checkOut,
-                      room: roomData, 
+                      room: roomData,
                     ),
                   ),
                 ),

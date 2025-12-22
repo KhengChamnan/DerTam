@@ -346,6 +346,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
+  // First, add this helper method to get the appropriate icon for each category
+  IconData _getCategoryIcon(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'transportation':
+        return Icons.directions_car;
+      case 'accommodation':
+        return Icons.hotel;
+      case 'food & drinks':
+        return Icons.restaurant;
+      case 'activities':
+        return Icons.local_activity;
+      case 'souvenirs':
+        return Icons.card_giftcard;
+      case 'emergency':
+        return Icons.emergency;
+      case 'miscellaneous':
+        return Icons.more_horiz;
+      default:
+        return Icons.category;
+    }
+  }
+  
   void _selectCategory() {
     if (_isLoadingCategories) {
       ScaffoldMessenger.of(
@@ -353,7 +375,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ).showSnackBar(const SnackBar(content: Text('Loading categories...')));
       return;
     }
-
+    
     if (_categories.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -367,61 +389,66 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Category',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: DertamColors.black,
+        return SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select Category',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: DertamColors.black,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              ..._categories.map((category) {
-                final isSelected = _selectedCategory?.id == category.id;
-                return ListTile(
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? DertamColors.primaryDark
-                          : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 20),
+
+                ..._categories.map((category) {
+                  final isSelected = _selectedCategory?.id == category.id;
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? DertamColors.primaryDark
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _getCategoryIcon(
+                          category.name,
+                        ), // Changed from Icons.category
+                        color: isSelected ? Colors.white : Colors.grey[600],
+                      ),
                     ),
-                    child: Icon(
-                      Icons.category,
-                      color: isSelected ? Colors.white : Colors.grey[600],
+                    title: Text(
+                      category.name,
+                      style: TextStyle(
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? DertamColors.primaryDark
+                            : DertamColors.black,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    category.name,
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                      color: isSelected
-                          ? DertamColors.primaryDark
-                          : DertamColors.black,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? Icon(Icons.check, color: DertamColors.primaryDark)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      _selectedCategory = category;
-                    });
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-            ],
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: DertamColors.primaryDark)
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+              ],
+            ),
           ),
         );
       },
@@ -952,7 +979,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
-                          Icons.category,
+                          _selectedCategory != null
+                              ? _getCategoryIcon(
+                                  _selectedCategory!.name,
+                                ) // Changed
+                              : Icons.category,
                           color: _selectedCategory != null
                               ? Colors.white
                               : Colors.grey[600],

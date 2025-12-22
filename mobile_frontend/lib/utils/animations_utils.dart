@@ -1,89 +1,164 @@
 import 'package:flutter/material.dart';
 
 class AnimationUtils {
-  static const int transitionSpeed = 500; //ms
+  AnimationUtils._(); // Prevent instantiation
 
-  ////
-  /// Slide given screen from bottom to top
-  ///
-  static Route<T> createBottomToTopRoute<T>(Widget screen) {
-    const begin = Offset(0.0, 1.0);
-    const end = Offset(0.0, 0.0);
-    return _createAnimatedRoute(screen, begin, end);
-  }
+  /// Default animation duration
+  static const int _defaultSpeed = 400;
 
-  ////
-  /// Slide given screen from top to bottom
-  ///
-  static Route<T> createTopToBottomRoute<T>(Widget screen) {
-    const begin = Offset(0.0, -1.0); // Start from top
-    const end = Offset(0.0, 0.0); // Move to normal position
-    return _createAnimatedRoute(screen, begin, end);
-  }
-
-  static Route<T> _createAnimatedRoute<T>(
-    Widget screen,
-    Offset begin,
-    Offset end,
-  ) {
+  /// Helper for slide transitions
+  static Route<T> slideRoute<T>({
+    required Widget screen,
+    required Offset begin,
+    Curve curve = Curves.easeInOut,
+    int speed = _defaultSpeed,
+    bool isOpaque = true,
+    Color? barrierColor,
+  }) {
     return PageRouteBuilder<T>(
-      transitionDuration: const Duration(
-        milliseconds: transitionSpeed,
-      ), // Animation speed
-      pageBuilder: (context, animation, secondaryAnimation) => screen,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        var tween = Tween(
+      opaque: isOpaque,
+      barrierColor: barrierColor,
+      transitionDuration: Duration(milliseconds: speed),
+      pageBuilder: (_, __, ___) => screen,
+      transitionsBuilder: (_, animation, __, child) {
+        final tween = Tween(
           begin: begin,
-          end: end,
-        ).chain(CurveTween(curve: Curves.easeInOut));
+          end: Offset.zero,
+        ).chain(CurveTween(curve: curve));
 
         return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
 
-  ////
-  /// Slide given screen from top to a fixed height (not fullscreen)
-  ///
-  static Route<T> createTopSheetRoute<T>(
+  //////////////////////////////////////////////////////////////////////////////
+  /// Slide Animations
+  //////////////////////////////////////////////////////////////////////////////
+
+  static Route<T> bottomToTop<T>(Widget screen) =>
+      slideRoute(screen: screen, begin: const Offset(0, 1));
+
+  static Route<T> topToBottom<T>(Widget screen) =>
+      slideRoute(screen: screen, begin: const Offset(0, -1));
+
+  static Route<T> rightToLeft<T>(Widget screen) =>
+      slideRoute(screen: screen, begin: const Offset(1, 0));
+
+  static Route<T> leftToRight<T>(Widget screen) =>
+      slideRoute(screen: screen, begin: const Offset(-1, 0));
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Fade Transition
+  //////////////////////////////////////////////////////////////////////////////
+
+  static Route<T> fade<T>(Widget screen, {int speed = _defaultSpeed}) {
+    return PageRouteBuilder<T>(
+      transitionDuration: Duration(milliseconds: speed),
+      pageBuilder: (_, __, ___) => screen,
+      transitionsBuilder: (_, animation, __, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Popup Scale with Fade Transition
+  //////////////////////////////////////////////////////////////////////////////
+
+  static Route<T> popup<T>(Widget screen, {int speed = _defaultSpeed}) {
+    return PageRouteBuilder<T>(
+      opaque: false,
+      barrierColor: Colors.black54,
+      transitionDuration: Duration(milliseconds: speed),
+      pageBuilder: (_, __, ___) => screen,
+      transitionsBuilder: (_, animation, __, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: curved, child: child),
+        );
+      },
+    );
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Navigation Bar Transition (Tab switch)
+  /// Slide slightly + fade = smooth UX for bottom navbar tabs
+  //////////////////////////////////////////////////////////////////////////////
+
+  static Widget navAnimation({
+    required Widget child,
+    required int index,
+    Duration duration = const Duration(milliseconds: _defaultSpeed),
+  }) {
+    return AnimatedSwitcher(
+      duration: duration,
+      switchOutCurve: Curves.easeIn,
+      switchInCurve: Curves.easeOut,
+
+      transitionBuilder: (widget, animation) {
+        final slide = Tween<Offset>(
+          begin: const Offset(0.05, 0),
+          end: Offset.zero,
+        ).animate(animation);
+
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: slide, child: widget),
+        );
+      },
+
+      child: KeyedSubtree(key: ValueKey(index), child: child),
+    );
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Top Sheet (Fixed Height Popup)
+  //////////////////////////////////////////////////////////////////////////////
+
+  static Route<T> c<T>(
     Widget screen, {
     double maxHeightFactor = 0.5,
+    int speed = _defaultSpeed,
   }) {
     return PageRouteBuilder<T>(
-      opaque: false, // Allows previous screen to be visible
-      transitionDuration: const Duration(milliseconds: transitionSpeed),
-      pageBuilder: (context, animation, secondaryAnimation) {
+      opaque: false,
+      barrierColor: Colors.black54,
+      transitionDuration: Duration(milliseconds: speed),
+      pageBuilder: (context, _, __) {
         return GestureDetector(
-          onTap: () => Navigator.pop(context), // Close when tapping outside
+          onTap: () => Navigator.pop(context),
           child: Scaffold(
-            // ignore: deprecated_member_use
-            backgroundColor: Colors.black.withOpacity(
-              0.5,
-            ), // Semi-transparent overlay
+            backgroundColor: Colors.black45,
             body: Align(
               alignment: Alignment.topCenter,
               child: FractionallySizedBox(
-                widthFactor: 1, // Full width
-                heightFactor: maxHeightFactor, // Customizable height
+                widthFactor: 1,
+                heightFactor: maxHeightFactor,
                 child: Material(
                   color: Colors.white,
                   borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(20),
                   ),
-                  child: screen, // Embed your custom content
+                  child: screen,
                 ),
               ),
             ),
           ),
         );
       },
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        var tween = Tween(
-          begin: const Offset(0, -1),
-          end: Offset.zero,
-        ).chain(CurveTween(curve: Curves.easeInOut));
-
-        return SlideTransition(position: animation.drive(tween), child: child);
+      transitionsBuilder: (_, animation, __, child) {
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(0, -1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          child: child,
+        );
       },
     );
   }

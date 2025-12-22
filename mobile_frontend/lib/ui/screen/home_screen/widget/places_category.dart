@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/place_detailed.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/providers/place_provider.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
@@ -65,6 +66,7 @@ class _PlacesCategoryState extends State<PlacesCategory> {
             ),
           );
         }
+
         final categories = categoriesAsync.data ?? [];
         if (categories.isEmpty) {
           return const Center(
@@ -74,13 +76,14 @@ class _PlacesCategoryState extends State<PlacesCategory> {
             ),
           );
         }
+
         // Set default category and load places if not selected
         if (selectedCategoryId == null && categories.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() {
-              selectedCategoryId = categories.first.categoryId;
+              selectedCategoryId = 0; // Default to "All"
             });
-            placeProvider.getPlacesByCategory(categories.first.categoryId);
+            placeProvider.getPlacesByCategory(0);
           });
         }
 
@@ -92,14 +95,60 @@ class _PlacesCategoryState extends State<PlacesCategory> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
+                itemCount: categories.length + 1, // +1 for "All" category
                 itemBuilder: (context, index) {
-                  final category = categories[index];
+                  // First item is "All" category
+                  if (index == 0) {
+                    final isSelected = selectedCategoryId == 0;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          side: BorderSide(
+                            color: isSelected
+                                ? DertamColors.primaryDark
+                                : Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        showCheckmark: false,
+                        selected: isSelected,
+                        label: const Text('All'),
+                        selectedColor: isSelected
+                            ? DertamColors.primaryDark
+                            : DertamColors.white,
+                        onSelected: (selected) {
+                          setState(() {
+                            selectedCategoryId = 0;
+                          });
+                          // Fetch all places
+                          placeProvider.getPlacesByCategory(0);
+                        },
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Regular categories (index - 1 because of "All" at index 0)
+                  final category = categories[index - 1];
                   final isSelected = category.categoryId == selectedCategoryId;
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        side: BorderSide(
+                          color: isSelected
+                              ? DertamColors.primaryDark
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      showCheckmark: false,
                       selected: isSelected,
                       label: Text(category.categoryName),
                       selectedColor: isSelected
@@ -109,7 +158,6 @@ class _PlacesCategoryState extends State<PlacesCategory> {
                         setState(() {
                           selectedCategoryId = category.categoryId;
                         });
-                        // Fetch places for the selected category
                         placeProvider.getPlacesByCategory(category.categoryId);
                       },
                       labelStyle: TextStyle(
@@ -121,7 +169,6 @@ class _PlacesCategoryState extends State<PlacesCategory> {
               ),
             ),
             const SizedBox(height: 16),
-            // Places List
             _buildPlacesList(placesAsync),
           ],
         );
@@ -136,7 +183,6 @@ class _PlacesCategoryState extends State<PlacesCategory> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
-
     if (placesAsync.state == AsyncValueState.error) {
       return SizedBox(
         height: 260,
@@ -172,17 +218,11 @@ class _PlacesCategoryState extends State<PlacesCategory> {
             margin: const EdgeInsets.only(right: 16),
             child: CategoryPlaceCard(
               name: place.name,
-              location: place
-                  .locationName, // You may want to map this to actual province name
+              location: place.locationName,
               rating: place.ratings,
-              imageUrl: place.imagesUrl.isNotEmpty
-                  ? place.imagesUrl
-                  : '', // Empty string for no image
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DetailEachPlace(placeId: place.placeId),
-                ),
+              imageUrl: place.imagesUrl.isNotEmpty ? place.imagesUrl : '',
+              onTap: () => Navigator.of(context).push(
+                AnimationUtils.fade(DetailEachPlace(placeId: place.placeId)),
               ),
             ),
           );

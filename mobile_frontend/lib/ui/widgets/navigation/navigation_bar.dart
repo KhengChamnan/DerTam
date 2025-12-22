@@ -6,12 +6,11 @@ import 'package:mobile_frontend/ui/screen/hotel/dertam_hotel_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/user_profile_screen.dart';
 import 'package:mobile_frontend/ui/screen/trip/dertam_trip_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 
 class Navigationbar extends StatelessWidget {
   const Navigationbar({super.key, this.currentIndex = 0});
-
   final int currentIndex;
-
   void _navigateToScreen(BuildContext context, int index) {
     if (index == currentIndex) return;
 
@@ -36,9 +35,10 @@ class Navigationbar extends StatelessWidget {
         return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
+    Navigator.of(context).pushReplacement(
+      index > currentIndex
+          ? AnimationUtils.fade(screen, speed: 100)
+          : AnimationUtils.fade(screen, speed: 100),
     );
   }
 
@@ -48,7 +48,6 @@ class Navigationbar extends StatelessWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
       children: [
-        /// Main Navigation Bar
         Material(
           elevation: 10,
           shadowColor: Colors.black.withOpacity(0.2),
@@ -75,7 +74,6 @@ class Navigationbar extends StatelessWidget {
                   ),
                   label: 'Home',
                 ),
-
                 NavigationDestination(
                   icon: Icon(
                     Iconsax.bus,

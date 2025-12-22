@@ -5,6 +5,7 @@ import 'package:mobile_frontend/ui/providers/auth_provider.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_change_password_screen.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_edit_user_info.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class DertamEditProfile extends StatefulWidget {
@@ -338,12 +339,9 @@ class _DertamEditProfileState extends State<DertamEditProfile> {
                       icon: Icons.person_outline,
                       iconBackgroundColor: const Color(0xFFF5F5F5),
                       title: 'Edit Profile',
-                      onTap: () => Navigator.push(
+                      onTap: () => Navigator.of(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => DertamEditUserInfo(),
-                        ),
-                      ),
+                      ).push(AnimationUtils.rightToLeft(DertamEditUserInfo())),
                     ),
                     // Divider
                     Padding(
@@ -359,10 +357,9 @@ class _DertamEditProfileState extends State<DertamEditProfile> {
                       icon: Icons.lock_outline,
                       iconBackgroundColor: const Color(0xFFF5F5F5),
                       title: 'Change Password',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DertamChangePasswordScreen(),
+                      onTap: () => Navigator.of(context).push(
+                        AnimationUtils.rightToLeft(
+                          DertamChangePasswordScreen(),
                         ),
                       ),
                     ),

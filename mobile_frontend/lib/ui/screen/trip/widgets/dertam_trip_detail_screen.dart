@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_frontend/ui/screen/place_datail/place_detailed.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:location/location.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
@@ -58,10 +59,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           budgetState.data!.totalBudget! > 0) {
         // Budget exists - navigate to budget detail screen
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BudgetScreen(
+          Navigator.of(context).push(
+            AnimationUtils.fade(
+              BudgetScreen(
                 tripId: tripId,
                 tripStartDate:
                     tripProvider.data?.data.startDate ?? DateTime.now(),
@@ -73,10 +73,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       } else {
         // Budget doesn't exist - navigate to set budget screen
         if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SetBudgetScreen(
+          Navigator.of(context).push(
+            AnimationUtils.fade(
+              SetBudgetScreen(
                 tripId: tripId,
                 tripName: tripProvider.data?.data.tripName ?? 'Trip not found',
                 startDate: tripProvider.data?.data.startDate ?? DateTime.now(),
@@ -160,48 +159,47 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     // Show day selection dialog
     if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Select Day to View Route'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: totalDays,
-              itemBuilder: (context, index) {
-                final dayNumber = index + 1;
-                return ListTile(
-                  leading: Icon(
-                    Icons.calendar_today,
-                    color: DertamColors.primaryDark,
-                  ),
-                  title: Text('Day $dayNumber'),
-                  onTap: () {
-                    Navigator.pop(context); // Close dialog
-                    // Navigate to map with selected day and user location
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RouteMapPage(
-                          tripId: int.parse(tripId),
-                          dayNumber: dayNumber,
-                          startLatitude: userLat,
-                          startLongitude: userLng,
+      Navigator.of(context).push(
+        AnimationUtils.popup(
+          AlertDialog(
+            title: Text('Select Day to View Route'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: totalDays,
+                itemBuilder: (context, index) {
+                  final dayNumber = index + 1;
+                  return ListTile(
+                    leading: Icon(
+                      Icons.calendar_today,
+                      color: DertamColors.primaryDark,
+                    ),
+                    title: Text('Day $dayNumber'),
+                    onTap: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.of(context).push(
+                        AnimationUtils.fade(
+                          RouteMapPage(
+                            tripId: int.parse(tripId),
+                            dayNumber: dayNumber,
+                            startLatitude: userLat,
+                            startLongitude: userLng,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-          ],
         ),
       );
     }
@@ -827,31 +825,29 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             });
                           }
                         }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ReviewTripScreen(
-                              tripId: tripId.toString(),
-                              tripName: tripName,
-                              startDate: startDate,
-                              endDate: endDate,
-                              addedPlaces: existingPlaces,
-                            ),
-                          ),
-                        ).then((result) {
-                          if (result != null) {
-                            tripProvider.fetchTripDetail(widget.tripId);
-                          }
-                        });
+                        Navigator.of(context)
+                            .push(
+                              AnimationUtils.fade(
+                                ReviewTripScreen(
+                                  tripId: tripId.toString(),
+                                  tripName: tripName,
+                                  startDate: startDate,
+                                  endDate: endDate,
+                                  addedPlaces: existingPlaces,
+                                ),
+                              ),
+                            )
+                            .then((result) {
+                              if (result != null) {
+                                tripProvider.fetchTripDetail(widget.tripId);
+                              }
+                            });
                       },
                       backgroundColor: DertamColors.white,
-                      child: Text(
-                        'Edit',
-                        style: TextStyle(
-                          color: DertamColors.primaryDark,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      child: Icon(
+                        Icons.add,
+                        color: DertamColors.primaryDark,
+                        size: 24,
                       ),
                     ),
                     SizedBox(height: 10),

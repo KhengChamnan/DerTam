@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/login/dertam_login_screen.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/widgets/login_illustration.dart';
 import 'package:mobile_frontend/ui/providers/auth_provider.dart';
@@ -127,10 +128,9 @@ class _DertamRegisterScreenState extends State<DertamRegisterScreen> {
 
   /// Handle navigation back to login screen
   void _handleAccountExist() {
-    Navigator.pushReplacement(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => DertamLoginScreen()),
-    );
+    ).pushReplacement(AnimationUtils.leftToRight(const DertamLoginScreen()));
   }
 
   @override

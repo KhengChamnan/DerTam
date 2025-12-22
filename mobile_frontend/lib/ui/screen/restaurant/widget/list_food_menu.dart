@@ -33,7 +33,7 @@ class ListFoodMenu extends StatelessWidget {
                 child: Stack(
                   children: [
                     Image.network(
-                      menuItem.imageUrl!,
+                      menuItem.imageUrl ?? 'https://via.placeholder.com/150',
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,

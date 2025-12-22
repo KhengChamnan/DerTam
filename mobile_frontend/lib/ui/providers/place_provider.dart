@@ -112,17 +112,33 @@ class PlaceProvider extends ChangeNotifier {
 
   Future<List<Place>> searchAllPlace(String query) async {
     _searchPlaceResult = AsyncValue.empty();
+    _places = AsyncValue.loading();
     notifyListeners();
     try {
       final searchPlace = await repository.searchPlaces(query);
       _searchPlaceResult = AsyncValue.success(searchPlace);
+      _places = AsyncValue.success(searchPlace); // Also store in places for UI consistency
       notifyListeners();
       return searchPlace;
     } catch (e) {
       _searchPlaceResult = AsyncValue.error(e);
+      _places = AsyncValue.error(e);
       notifyListeners();
       rethrow;
     }
+  }
+
+  Future<void> fetchAllPlaces() async {
+    _places = AsyncValue.loading();
+    notifyListeners();
+    try {
+      // Use search with empty query or wildcard to get all places
+      final places = await repository.searchPlaces('');
+      _places = AsyncValue.success(places);
+    } catch (e) {
+      _places = AsyncValue.error(e);
+    }
+    notifyListeners();
   }
 
   Future<List<UpcomingEventPlace>> fetchSlideShow() async {

@@ -21,6 +21,7 @@ import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_review_trip_screen
 import 'package:mobile_frontend/ui/screen/trip/widgets/dertam_trip_planning_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/ui/providers/trip_provider.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class DetailEachPlace extends StatefulWidget {
@@ -307,11 +308,9 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     imageUrl: hotel?.imagesUrl.isNotEmpty ?? false
                         ? (hotel?.imagesUrl.first ?? '')
                         : '',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            HotelDetailScreen(hotelId: hotel?.placeID ?? ''),
+                    onTap: () => Navigator.of(context).push(
+                      AnimationUtils.fade(
+                        HotelDetailScreen(hotelId: hotel?.placeID ?? ''),
                       ),
                     ),
                   ),
@@ -399,10 +398,9 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     imageUrl: place?.imagesUrl.isNotEmpty ?? false
                         ? (place?.imagesUrl.first ?? '')
                         : '',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailEachPlace(
+                    onTap: () => Navigator.of(context).push(
+                      AnimationUtils.fade(
+                        DetailEachPlace(
                           placeId: place?.placeID.toString() ?? '',
                         ),
                       ),
@@ -492,11 +490,9 @@ class _DetailEachPlaceState extends State<DetailEachPlace> {
                     imageUrl: restaurant?.imagesUrl.isNotEmpty ?? false
                         ? (restaurant?.imagesUrl.first ?? '')
                         : '',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            RestaurantDetailScreen(restaurant: restaurant!),
+                    onTap: () => Navigator.of(context).push(
+                      AnimationUtils.fade(
+                        RestaurantDetailScreen(restaurant: restaurant!),
                       ),
                     ),
                   ),

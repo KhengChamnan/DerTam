@@ -7,6 +7,7 @@ import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_buses_card.d
 import 'package:mobile_frontend/ui/screen/bus_booking/widget/dertam_select_seat.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class DertamAvailableBusesScreen extends StatefulWidget {
@@ -371,10 +372,9 @@ class _DertamAvailableBusesScreenState
                           departureDate: schedules?.departureDate,
                           arrivalDate: schedules?.arrivalDate,
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DertamSelectSeat(
+                            Navigator.of(context).push(
+                              AnimationUtils.leftToRight(
+                                DertamSelectSeat(
                                   scheduleId: schedules?.id ?? '',
                                 ),
                               ),

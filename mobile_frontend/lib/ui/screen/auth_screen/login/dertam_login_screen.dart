@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/forgot_password/forgot_password_screen.dart';
 import 'package:mobile_frontend/ui/screen/auth_screen/register/dertam_register_screen.dart';
@@ -69,25 +70,20 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
 
   /// Handles forgot password
   void _handleForgotPassword() {
-    Navigator.push(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-    );
+    ).push(AnimationUtils.fade(const ForgotPasswordScreen()));
   }
 
   /// Handles Google sign in
   Future<void> _handleGoogleSignIn() async {
     // Get auth provider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
     // Call Google sign in method
     await authProvider.googleSignIn();
-
     // Check result after Google sign in
     if (!mounted) return;
-
     final googleSignInValue = authProvider.googleSignInValue;
-
     if (googleSignInValue?.state == AsyncValueState.success) {
       Navigator.pushReplacement(
         context,
@@ -109,10 +105,9 @@ class _DertamLoginScreenState extends State<DertamLoginScreen> {
 
   /// Handles navigation to register screen
   void _handleRegister() {
-    Navigator.pushReplacement(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => const DertamRegisterScreen()),
-    );
+    ).pushReplacement(AnimationUtils.rightToLeft(const DertamRegisterScreen()));
   }
 
   @override

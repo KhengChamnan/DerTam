@@ -43,7 +43,7 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
   Future<void> _selectFromLocation() async {
     final ProvinceCategoryDetail? selectedLocation = await Navigator.of(context)
         .push<ProvinceCategoryDetail?>(
-          AnimationUtils.createBottomToTopRoute(
+          AnimationUtils.bottomToTop(
             DertamLocationPicker(initLocation: fromLocation),
           ),
         );
@@ -59,7 +59,7 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
   Future<void> _selectToLocation() async {
     final ProvinceCategoryDetail? selectedLocation = await Navigator.of(context)
         .push<ProvinceCategoryDetail?>(
-          AnimationUtils.createBottomToTopRoute(
+          AnimationUtils.bottomToTop(
             DertamLocationPicker(initLocation: toLocation),
           ),
         );
@@ -146,9 +146,7 @@ class _DertamBusBookingScreenState extends State<DertamBusBookingScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               // Greeting text
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
