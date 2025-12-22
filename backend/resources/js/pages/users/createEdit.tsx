@@ -296,6 +296,12 @@ export default function CreateEditUser({
                                                         Transportation Owner
                                                     </div>
                                                 </SelectItem>
+                                                <SelectItem value="Restaurant Owner">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="size-2 rounded-full bg-yellow-500"></div>
+                                                        Restaurant Owner
+                                                    </div>
+                                                </SelectItem>
                                                 <SelectItem value="User">
                                                     <div className="flex items-center gap-2">
                                                         <div className="size-2 rounded-full bg-blue-500"></div>

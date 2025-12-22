@@ -41,6 +41,7 @@ class UserController extends Controller
                 'admin' => 'Admin', 
                 'hotel owner' => 'Hotel Owner',
                 'transportation owner' => 'Transportation Owner',
+                'restaurant owner' => 'Restaurant Owner',
                 'superadmin' => 'Super Admin'
             ];
 
@@ -103,7 +104,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'username' => 'nullable|string|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,Transportation Owner,User',
+            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,Transportation Owner,Restaurant Owner,User',
             'status' => 'nullable|string|in:Active,Inactive,Invited,Suspended',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -114,6 +115,7 @@ class UserController extends Controller
             'Admin' => 'admin',
             'Hotel Owner' => 'hotel owner',
             'Transportation Owner' => 'transportation owner',
+            'Restaurant Owner' => 'restaurant owner',
             'User' => 'user'
         ];
 
@@ -155,6 +157,7 @@ class UserController extends Controller
             'admin' => 'Admin', 
             'hotel owner' => 'Hotel Owner',
             'transportation owner' => 'Transportation Owner',
+            'restaurant owner' => 'Restaurant Owner',
             'superadmin' => 'Super Admin'
         ];
 
@@ -191,7 +194,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'username' => 'nullable|string|max:255',
             'phone_number' => 'nullable|string|max:20',
-            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,Transportation Owner,User',
+            'role' => 'required|string|in:Super Admin,Admin,Hotel Owner,Transportation Owner,Restaurant Owner,User',
             'status' => 'nullable|string|in:Active,Inactive,Invited,Suspended',
         ];
 
@@ -208,6 +211,7 @@ class UserController extends Controller
             'Admin' => 'admin',
             'Hotel Owner' => 'hotel owner',
             'Transportation Owner' => 'transportation owner',
+            'Restaurant Owner' => 'restaurant owner',
             'User' => 'user'
         ];
 

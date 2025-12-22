@@ -115,8 +115,20 @@ export default function RestaurantCreateEdit({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Validate owner is selected
+        if (!data.owner_user_id || data.owner_user_id === 0) {
+            alert("Please select a restaurant owner");
+            return;
+        }
         if (isEditing) {
-            put(`/restaurants/${property.restaurant_property_id}`);
+            // Use POST with _method spoofing for file uploads
+            post(
+                `/restaurants/${property.restaurant_property_id}?_method=PUT`,
+                {
+                    preserveScroll: true,
+                    forceFormData: true,
+                }
+            );
         } else {
             post("/restaurants");
         }
@@ -276,23 +288,33 @@ export default function RestaurantCreateEdit({
 
                             <div>
                                 <Label htmlFor="owner_user_id">
-                                    Restaurant Owner
+                                    Restaurant Owner *
                                 </Label>
                                 <Select
                                     value={
-                                        data.owner_user_id > 0
+                                        data.owner_user_id
                                             ? data.owner_user_id.toString()
                                             : ""
                                     }
-                                    onValueChange={(value) =>
-                                        setData(
-                                            "owner_user_id",
-                                            parseInt(value) || 0
-                                        )
-                                    }
+                                    onValueChange={(value) => {
+                                        const parsedValue = parseInt(value, 10);
+                                        if (!isNaN(parsedValue)) {
+                                            setData(
+                                                "owner_user_id",
+                                                parsedValue
+                                            );
+                                        }
+                                    }}
+                                    required
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select restaurant owner" />
+                                    <SelectTrigger
+                                        className={
+                                            errors.owner_user_id
+                                                ? "border-red-500"
+                                                : ""
+                                        }
+                                    >
+                                        <SelectValue placeholder="Select restaurant owner *" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {owners.map((owner) => (

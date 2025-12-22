@@ -157,6 +157,9 @@ Route::middleware([
                 ->where('id', '[0-9]+')
                 ->middleware('permission:edit restaurants')
                 ->name('update');
+            Route::post('/{id}', [RestaurantController::class, 'update'])
+                ->where('id', '[0-9]+')
+                ->middleware('permission:edit restaurants');
             Route::delete('/{id}', [RestaurantController::class, 'destroy'])
                 ->where('id', '[0-9]+')
                 ->middleware('permission:delete restaurants')
