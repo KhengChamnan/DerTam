@@ -3,6 +3,7 @@ QAOA Solver for Route Optimization
 Implements Quantum Approximate Optimization Algorithm for feature-based QUBO (2-4 qubits)
 """
 import numpy as np
+import time
 from typing import Dict, List, Optional
 from qiskit import QuantumCircuit
 from qiskit_algorithms import QAOA, NumPyMinimumEigensolver
@@ -244,6 +245,9 @@ class QAOASolver:
         Returns:
             Solution dictionary with route and metadata
         """
+        # Start execution time measurement
+        start_time = time.time()
+        
         # Reset iteration tracking for new optimization run
         self._reset_iteration_tracking()
         
@@ -254,10 +258,13 @@ class QAOASolver:
         
         # Create QAOA instance
         if self.sampler is None:
-            return self._classical_fallback(
+            result = self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
                 distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
+            # Add execution time to fallback result
+            result['execution_time'] = time.time() - start_time
+            return result
         
         try:
             qaoa = QAOA(
@@ -268,16 +275,22 @@ class QAOASolver:
             )
         except TypeError as e:
             print(f"Warning: QAOA initialization failed (TypeError - likely sampler API mismatch): {e}")
-            return self._classical_fallback(
+            result = self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
                 distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
+            # Add execution time to fallback result
+            result['execution_time'] = time.time() - start_time
+            return result
         except Exception as e:
             print(f"Warning: QAOA initialization failed: {e}")
-            return self._classical_fallback(
+            result = self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
                 distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
+            # Add execution time to fallback result
+            result['execution_time'] = time.time() - start_time
+            return result
         
         # Solve
         try:
@@ -362,6 +375,9 @@ class QAOASolver:
             for i, beta in enumerate(beta_values):
                 param_dict[f'beta_{i}'] = beta
             
+            # Calculate execution time
+            execution_time = time.time() - start_time
+            
             return {
                 'success': True,
                 'route': route,
@@ -377,15 +393,19 @@ class QAOASolver:
                 'decode_info': decode_info,
                 'is_valid': decode_info['validation']['is_valid'],
                 'circuit': circuit,
-                'method': 'qaoa'  # Indicate QAOA was used (not fallback)
+                'method': 'qaoa',  # Indicate QAOA was used (not fallback)
+                'execution_time': execution_time
             }
             
         except Exception as e:
             print(f"QAOA optimization failed: {e}")
-            return self._classical_fallback(
+            result = self._classical_fallback(
                 qubo_matrix, num_pois, encoding_info,
                 distance_matrix, time_matrix, traffic_penalty_matrix, pois, time_matrix_without_traffic
             )
+            # Add execution time to fallback result
+            result['execution_time'] = time.time() - start_time
+            return result
     
     def _qubo_to_ising(self, qubo_matrix: np.ndarray) -> SparsePauliOp:
         """
@@ -530,6 +550,7 @@ class QAOASolver:
         time_matrix_without_traffic: Optional[np.ndarray] = None
     ) -> Dict:
         """Fallback to classical solver if QAOA fails"""
+        # Note: execution_time is measured in the calling solve() method
         ising_hamiltonian = self._qubo_to_ising(qubo_matrix)
         solver = NumPyMinimumEigensolver()
         result = solver.compute_minimum_eigenvalue(ising_hamiltonian)
@@ -556,6 +577,7 @@ class QAOASolver:
         circuit = self._create_circuit(ising_hamiltonian, {}, qubo_matrix.shape[0])
         
         # Classical fallback uses 1 iteration (exact solver)
+        # Note: execution_time will be added by the calling solve() method
         return {
             'success': True,
             'route': route,

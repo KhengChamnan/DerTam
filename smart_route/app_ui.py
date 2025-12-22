@@ -95,7 +95,7 @@ def render_sidebar() -> List[Dict]:
                     text-align: center;
                     box-shadow: 0 4px 12px rgba(1, 0, 91, 0.3);">
             <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.3rem;">
-                Destinations
+                Smart Route Optimization
             </div>
             <div style="font-size: 0.85rem; opacity: 0.9;">
                 Select 2-8 points of interest

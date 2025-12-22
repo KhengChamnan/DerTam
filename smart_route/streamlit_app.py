@@ -168,7 +168,7 @@ with tab2:
     # Validate POI selection
     is_valid, error_msg = validate_poi_selection(st.session_state.selected_pois)
     if not is_valid:
-        st.warning(f"⚠️ {error_msg}")
+        st.warning(f" {error_msg}")
         st.stop()
     
     
@@ -176,8 +176,8 @@ with tab2:
     qaoa_config = render_qaoa_settings()
     
     # Optimize button
-    if st.button("🚀 Optimize Route with QAOA", type="primary", use_container_width=True):
-        with st.spinner("🔄 Optimizing your route..."):
+    if st.button(" Optimize Route with QAOA", type="primary", use_container_width=True):
+        with st.spinner(" Optimizing your route..."):
             try:
                 optimization_result = run_quantum_optimization(
                     st.session_state.selected_pois,
@@ -413,49 +413,6 @@ with tab3:
                     delta_color="inverse"
                 )
         
-        # Second row of insights
-        insight_col4, insight_col5, insight_col6 = st.columns(3)
-        
-        with insight_col4:
-            st.metric(
-                label="Planned Duration",
-                value=f"{planned_hours:.0f} hours"
-            )
-        
-        with insight_col5:
-            st.metric(
-                label="Actual Route Time",
-                value=f"{total_time:.1f} min ({travel_time_hours:.2f} hours)"
-            )
-        
-        with insight_col6:
-            # Calculate average speed
-            avg_speed = (total_distance / (total_time / 60)) if total_time > 0 else 0  # km/h
-            st.metric(
-                label="Average Speed",
-                value=f"{avg_speed:.1f} km/h"
-            )
-        
-        # Third row - Standard vs Optimized (aligned with 3 columns)
-        insight_col7, insight_col8, insight_col9 = st.columns(3)
-        
-        with insight_col7:
-            st.metric(
-                label="Standard Route Time (with traffic)",
-                value=f"{total_time:.1f} min"
-            )
-        
-        with insight_col8:
-            st.metric(
-                label="Optimized Route Time (with traffic)",
-                value=f"{total_time:.1f} min",
-                delta="0.0 min longer",
-                delta_color="off"
-            )
-        
-        with insight_col9:
-            pass  # Empty column for alignment
-        
         # Route summary text
         route_names = " → ".join([poi['name'] for poi in route_pois])
         st.caption(f"**Route:** {route_names}")
@@ -541,7 +498,7 @@ with tab4:
         
         
         # Circuit info
-        st.subheader("🔧 Circuit Information")
+        st.subheader(" Circuit Information")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Number of Qubits", result.get('num_qubits', 'N/A'))
@@ -578,30 +535,18 @@ with tab5:
         st.warning(f" {error_msg}")
         st.stop()
     
-    # Algorithm selection
+    # Algorithm selection - using Simulated Annealing only
     st.subheader("Comparison Settings")
+    st.info("Comparing **Simulated Annealing** (Classical) vs **QAOA** (Quantum)")
+    
     col1, col2 = st.columns(2)
     with col1:
-        # Create mapping of display names to internal algorithm keys
-        algorithm_options = {
-            "Nearest Neighbor (Greedy)": "nearest_neighbor",
-            "2-Opt (Local Search)": "two_opt",
-            "Simulated Annealing (Probabilistic)": "simulated_annealing"
-        }
-        
-        selected_display_name = st.selectbox(
-            "Classical Algorithm",
-            list(algorithm_options.keys()),
-            index=0,
-            key="classical_algorithm_display",
-            help="Select a pure classical algorithm (no QAOA) for comparison"
-        )
-        
-        # Map display name to internal key
-        classical_algorithm = algorithm_options[selected_display_name]
-    with col2:
         qaoa_layers = st.number_input("QAOA Layers (p)", min_value=1, max_value=5, value=2, key="compare_layers")
+    with col2:
         qaoa_shots = st.number_input("QAOA Shots", min_value=100, max_value=10000, value=1024, step=100, key="compare_shots")
+    
+    # Hardcode to Simulated Annealing
+    classical_algorithm = "simulated_annealing"
     
     # Run comparison
     if st.button(" Run Comparison", type="primary", use_container_width=True):
@@ -729,9 +674,11 @@ with tab5:
         st.subheader(" Summary")
         winner_distance = "Classical" if classical['quality']['total_distance'] < quantum['quality']['total_distance'] else "Quantum"
         winner_time = "Classical" if classical['result']['execution_time'] < quantum['result'].get('execution_time', 0) else "Quantum"
-        winner_feasible = "Classical" if classical['constraints']['is_feasible'] and not quantum['constraints']['is_feasible'] else \
-                          "Quantum" if quantum['constraints']['is_feasible'] and not classical['constraints']['is_feasible'] else \
-                          "Both" if classical['constraints']['is_feasible'] and quantum['constraints']['is_feasible'] else "Neither"
+        
+        # Travel time comparison (shorter is better)
+        classical_travel_time = classical['quality'].get('total_time', 0)
+        quantum_travel_time = quantum['quality'].get('total_time', 0)
+        winner_travel_time = "Classical" if classical_travel_time < quantum_travel_time else "Quantum"
         
         summary_col1, summary_col2, summary_col3 = st.columns(3)
         with summary_col1:
@@ -739,7 +686,7 @@ with tab5:
         with summary_col2:
             st.metric("Fastest", winner_time)
         with summary_col3:
-            st.metric("Feasible", winner_feasible)
+            st.metric("Travel Time", winner_travel_time)
         
         # Warning if routes are identical
         if not routes_are_different:
@@ -844,4 +791,4 @@ with tab5:
     #                 quantum_details['decode_info'] = quantum['result']['decode_info']
     #             st.json(quantum_details)
     else:
-        st.info("👈 Click 'Run Comparison' to compare classical and quantum optimization results")
+        st.info("Click 'Run Comparison' to compare classical and quantum optimization results")

@@ -325,50 +325,50 @@ def render_traffic_comparison(
     
     
     
-    # Traffic heatmap for route segments
-    st.markdown("###  Traffic by Route Segment")
-    
-    # Prepare data for heatmap
-    classical_segments = []
-    quantum_segments = []
-    
-    for i, segment in enumerate(classical_traffic_impact['traffic_segments']):
-        classical_segments.append({
-            'Segment': f"{segment['from_poi']} → {segment['to_poi']}",
-            'Traffic Factor': segment['traffic_factor'],
-            'Distance (km)': segment['distance_km'],
-            'Time (min)': segment['time_with_traffic_min']
-        })
-    
-    for i, segment in enumerate(quantum_traffic_impact['traffic_segments']):
-        quantum_segments.append({
-            'Segment': f"{segment['from_poi']} → {segment['to_poi']}",
-            'Traffic Factor': segment['traffic_factor'],
-            'Distance (km)': segment['distance_km'],
-            'Time (min)': segment['time_with_traffic_min']
-        })
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### Classical Route Segments")
-        classical_df = pd.DataFrame(classical_segments)
-        st.dataframe(classical_df.style.background_gradient(
-            subset=['Traffic Factor'], 
-            cmap='Reds', 
-            vmin=1.0, 
-            vmax=2.0
-        ), use_container_width=True, hide_index=True)
-    
-    with col2:
-        st.markdown("#### Quantum Route Segments")
-        quantum_df = pd.DataFrame(quantum_segments)
-        st.dataframe(quantum_df.style.background_gradient(
-            subset=['Traffic Factor'], 
-            cmap='Greens', 
-            vmin=1.0, 
-            vmax=2.0
-        ), use_container_width=True, hide_index=True)
+    # Traffic heatmap for route segments - HIDDEN
+    # st.markdown("###  Traffic by Route Segment")
+    # 
+    # # Prepare data for heatmap
+    # classical_segments = []
+    # quantum_segments = []
+    # 
+    # for i, segment in enumerate(classical_traffic_impact['traffic_segments']):
+    #     classical_segments.append({
+    #         'Segment': f"{segment['from_poi']} → {segment['to_poi']}",
+    #         'Traffic Factor': segment['traffic_factor'],
+    #         'Distance (km)': segment['distance_km'],
+    #         'Time (min)': segment['time_with_traffic_min']
+    #     })
+    # 
+    # for i, segment in enumerate(quantum_traffic_impact['traffic_segments']):
+    #     quantum_segments.append({
+    #         'Segment': f"{segment['from_poi']} → {segment['to_poi']}",
+    #         'Traffic Factor': segment['traffic_factor'],
+    #         'Distance (km)': segment['distance_km'],
+    #         'Time (min)': segment['time_with_traffic_min']
+    #     })
+    # 
+    # col1, col2 = st.columns(2)
+    # 
+    # with col1:
+    #     st.markdown("#### Classical Route Segments")
+    #     classical_df = pd.DataFrame(classical_segments)
+    #     st.dataframe(classical_df.style.background_gradient(
+    #         subset=['Traffic Factor'], 
+    #         cmap='Reds', 
+    #         vmin=1.0, 
+    #         vmax=2.0
+    #     ), use_container_width=True, hide_index=True)
+    # 
+    # with col2:
+    #     st.markdown("#### Quantum Route Segments")
+    #     quantum_df = pd.DataFrame(quantum_segments)
+    #     st.dataframe(quantum_df.style.background_gradient(
+    #         subset=['Traffic Factor'], 
+    #         cmap='Greens', 
+    #         vmin=1.0, 
+    #         vmax=2.0
+    #     ), use_container_width=True, hide_index=True)
     
    
 
