@@ -102,22 +102,13 @@ export default function PlaceDetailPage() {
       {/* Header with Back Button */}
       <header className=" backdrop-blur-sm shadow-sm sticky top-0 z-50 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <button
-            onClick={() => {
-              // Always use browser back for natural navigation through history
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                // Fallback to home if no history
-                navigate('/');
-              }
-            }}
-            className="group inline-flex items-center gap-2.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-[#01005B] hover:to-[#000047] text-gray-700 hover:text-white rounded-xl border border-gray-200 hover:border-[#01005B] transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-95"
+         
+           <button
+            onClick={() =>  window.history.back()}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 text-base font-medium"
           >
-            <div className="w-6 h-6 rounded-full bg-white/50 group-hover:bg-white/20 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            </div>
-            <span className="font-semibold text-sm sm:text-base tracking-wide">Back</span>
+            <ArrowLeft size={22} />
+            Back
           </button>
         </div>
       </header>

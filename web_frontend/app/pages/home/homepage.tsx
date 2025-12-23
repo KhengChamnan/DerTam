@@ -246,7 +246,7 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
               {selectedCategory 
                 ? `${categories.find(c => c.id === selectedCategory)?.name || 'Filtered'} Destinations` 
-                : 'Popular Destinations'}
+                : 'Personalized Recommended'}
             </h2>
             {selectedCategory && (
               <button

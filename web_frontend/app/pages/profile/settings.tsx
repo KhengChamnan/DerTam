@@ -85,7 +85,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Notifications Section */}
-        <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
+        {/* <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
           </div>
@@ -158,10 +158,10 @@ export default function SettingsPage() {
               </label>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Preferences Section */}
-        <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
+        {/* <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">Preferences</h2>
           </div>
@@ -204,10 +204,10 @@ export default function SettingsPage() {
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
-        </div>
+        </div> */}
 
         {/* Support Section */}
-        <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
+        {/* <div className="bg-white rounded-2xl shadow-lg mb-6 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">Support</h2>
           </div>
@@ -259,7 +259,7 @@ export default function SettingsPage() {
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
