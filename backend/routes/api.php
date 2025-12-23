@@ -174,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('trips/{tripId}/days/{dayNumber}', 'getDayPlaces'); // Get places for a specific day
         Route::post('/add-places/{trip_id}', 'addPlaces');
         Route::delete('trips/{tripId}', 'destroy'); // Delete a trip
+        Route::delete('trip-places/{tripPlaceId}', 'deletePlace'); // Delete a place from a trip day
     });
 
     // Trip place selection routes (for adding places to trips)

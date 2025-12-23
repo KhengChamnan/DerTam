@@ -595,6 +595,60 @@ class TripController extends Controller
     }
 
     /**
+     * Delete a place from a trip day (Simplified)
+     * DELETE /api/trip-places/{tripPlaceId}
+     *
+     * @param int $tripPlaceId
+     * @return JsonResponse
+     */
+    public function deletePlace(int $tripPlaceId): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Get the trip place with trip ownership verification in one query
+            $tripPlace = DB::table('trip_places')
+                ->join('trip_days', 'trip_places.trip_day_id', '=', 'trip_days.trip_day_id')
+                ->join('trips', 'trip_days.trip_id', '=', 'trips.trip_id')
+                ->where('trip_places.trip_place_id', $tripPlaceId)
+                ->where('trips.user_id', $userId)
+                ->select('trip_places.trip_place_id')
+                ->first();
+
+            if (!$tripPlace) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Place not found or you do not have permission to delete it'
+                ], 404);
+            }
+
+            // Delete the place from the trip day
+            DB::table('trip_places')
+                ->where('trip_place_id', $tripPlaceId)
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Place deleted successfully from the trip day'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete place from trip day',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Delete a trip and all its associated data
      *
      * @param int $tripId
