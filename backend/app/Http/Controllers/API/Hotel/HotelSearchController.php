@@ -23,8 +23,6 @@ class HotelSearchController extends Controller
         // Validate input
         $validator = Validator::make($request->all(), [
             'province_id' => 'required|integer',
-            'check_in' => 'required|date|after_or_equal:today',
-            'check_out' => 'required|date|after:check_in',
         ]);
 
         // Custom validation: if province_id is not 0, it must exist in province_categories
@@ -45,9 +43,6 @@ class HotelSearchController extends Controller
         }
 
         $provinceId = $request->province_id;
-        $checkIn = Carbon::parse($request->check_in)->startOfDay();
-        $checkOut = Carbon::parse($request->check_out)->startOfDay();
-        $nights = $checkIn->diffInDays($checkOut);
 
         try {
             // Get hotels (category_id = 3)
@@ -62,7 +57,7 @@ class HotelSearchController extends Controller
             $hotels = $query->orderBy('ratings', 'desc')->get();
 
             // Transform the results to match the expected format
-            $results = $hotels->map(function($place) use ($nights) {
+            $results = $hotels->map(function($place) {
                 return [
                     'placeID' => $place->placeID,
                     'name' => $place->name,
@@ -87,9 +82,6 @@ class HotelSearchController extends Controller
                     'search_params' => [
                         'province_id' => $provinceId,
                         'province_name' => $provinceId == 0 ? 'All Provinces' : $hotels->first()?->province?->province_categoryName,
-                        'check_in' => $checkIn->toDateString(),
-                        'check_out' => $checkOut->toDateString(),
-                        'nights' => $nights,
                     ],
                     'total_results' => $results->count(),
                     'hotels' => $results,
