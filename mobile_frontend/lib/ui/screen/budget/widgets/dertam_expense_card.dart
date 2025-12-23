@@ -113,6 +113,7 @@ class ExpenseItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
+                        maxLines: 1,
                         expense.description,
                         style: TextStyle(
                           fontSize: 18,

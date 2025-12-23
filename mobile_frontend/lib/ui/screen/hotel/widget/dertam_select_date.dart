@@ -21,7 +21,7 @@ class _DertamSelectDateDialogState extends State<_DertamSelectDateDialog> {
   DateTime? checkInDate;
   DateTime? checkOutDate;
   DateTime currentMonth = DateTime.now();
-  int guestCount = 2;
+  int guestCount = 1;
 
   int get numberOfNights => (checkInDate != null && checkOutDate != null)
       ? checkOutDate!.difference(checkInDate!).inDays

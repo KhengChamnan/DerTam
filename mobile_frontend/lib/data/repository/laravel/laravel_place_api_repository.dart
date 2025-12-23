@@ -38,11 +38,9 @@ class LaravelPlaceApiRepository implements PlaceRepository {
   @override
   Future<List<Place>> getRecommendedPlaces() async {
     try {
-
-
       final response = await FetchingData.getDataPar(
         ApiEndpoint.recommendedPlaces,
-        {'limit': '20'},
+        {'limit': '10'},
         _baseHeaders,
       );
       if (response.statusCode == 200) {

@@ -150,7 +150,6 @@ class _PlaceMapScreenState extends State<PlaceMapScreen> {
                 userAgentPackageName: 'com.dertam.mobile_frontend',
                 maxZoom: 19,
               ),
-              // Marker Layer
               MarkerLayer(
                 markers: [
                   Marker(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_frontend/ui/screen/home_screen/home_page.dart';
+import 'package:mobile_frontend/ui/screen/profile/widget/dertam_booking_screen.dart';
 
 class DertamBookingSuccessDialog extends StatefulWidget {
   const DertamBookingSuccessDialog({super.key});
@@ -27,7 +27,7 @@ class _DertamBookingSuccessDialogState
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomePage()),
+          MaterialPageRoute(builder: (context) => const DertamBookingScreen()),
           (route) => false,
         );
       }

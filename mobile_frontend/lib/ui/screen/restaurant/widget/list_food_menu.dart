@@ -79,12 +79,12 @@ class ListFoodMenu extends StatelessWidget {
               padding: const EdgeInsets.all(DertamSpacings.s),
               child: Text(
                 menuItem.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: DertamTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: DertamColors.primaryDark,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

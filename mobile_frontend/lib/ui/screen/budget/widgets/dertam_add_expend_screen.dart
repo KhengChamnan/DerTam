@@ -367,7 +367,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return Icons.category;
     }
   }
-  
+
   void _selectCategory() {
     if (_isLoadingCategories) {
       ScaffoldMessenger.of(
@@ -375,7 +375,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ).showSnackBar(const SnackBar(content: Text('Loading categories...')));
       return;
     }
-    
+
     if (_categories.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -1083,6 +1083,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 4,
+                maxLength: 50,
                 decoration: InputDecoration(
                   labelText: 'Description',
                   border: OutlineInputBorder(

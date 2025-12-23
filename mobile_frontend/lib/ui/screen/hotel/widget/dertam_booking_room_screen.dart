@@ -30,7 +30,6 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
   int _currentImageIndex = 0;
   late PageController _pageController;
   Timer? _autoPlayTimer;
-  int _numberOfRooms = 1;
 
   @override
   void initState() {
@@ -681,72 +680,6 @@ class _DertamBookingHotelScreenState extends State<DertamBookingRoomScreen> {
         child: Row(
           children: [
             // Room counter controls
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: DertamColors.primaryBlue.withOpacity(0.3),
-                  width: 1.5,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  // Decrease button
-                  IconButton(
-                    onPressed: _numberOfRooms > 1
-                        ? () {
-                            setState(() {
-                              _numberOfRooms--;
-                            });
-                          }
-                        : null,
-                    icon: Icon(
-                      Icons.remove,
-                      color: _numberOfRooms > 1
-                          ? DertamColors.primaryBlue
-                          : Colors.grey,
-                      size: 20,
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                  ),
-                  // Room count display
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      '$_numberOfRooms',
-                      style: DertamTextStyles.title.copyWith(
-                        color: DertamColors.primaryDark,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  // Increase button
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _numberOfRooms++;
-                      });
-                    },
-                    icon: Icon(
-                      Icons.add,
-                      color: DertamColors.primaryBlue,
-                      size: 20,
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push(

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_frontend/ui/providers/bus_booking_provider.dart';
 import 'package:mobile_frontend/ui/providers/hotel_provider.dart';
+import 'package:mobile_frontend/ui/screen/profile/user_profile_screen.dart';
 import 'package:mobile_frontend/ui/theme/dertam_apptheme.dart';
 import 'package:mobile_frontend/models/hotel/booking/hotel_booking_list_response.dart';
 import 'package:mobile_frontend/models/bus/bus_booking_api_response.dart';
 import 'package:mobile_frontend/ui/providers/asyncvalue.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_hotel_booking_detail.dart';
 import 'package:mobile_frontend/ui/screen/profile/widget/dertam_bus_booking_detail.dart';
+import 'package:mobile_frontend/utils/animations_utils.dart';
 import 'package:provider/provider.dart';
 
 class DertamBookingScreen extends StatefulWidget {
@@ -83,7 +85,9 @@ class _DertamBookingScreenState extends State<DertamBookingScreen>
                 color: DertamColors.primaryDark,
                 size: 20,
               ),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(AnimationUtils.leftToRight(const UserProfile())),
             ),
           ),
         ),

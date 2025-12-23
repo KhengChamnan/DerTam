@@ -60,21 +60,29 @@ class _HomeSlideShowState extends State<HomeSlideShow> {
 
   Widget _buildError(Object error) {
     return SizedBox(
-      height: 220,
+      height: 200,
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red),
-            SizedBox(height: 8),
-            Text('Failed to load slides', style: TextStyle(color: Colors.red)),
-            TextButton(
-              onPressed: () {
-                context.read<PlaceProvider>().fetchSlideShow();
-              },
-              child: Text('Retry'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Lost connection. Failed to load slideshow! Please check your connection!',
+                style: TextStyle(color: Colors.grey[600]),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<PlaceProvider>().fetchSlideShow();
+                },
+                child: Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -84,7 +92,6 @@ class _HomeSlideShowState extends State<HomeSlideShow> {
     if (slides.isEmpty) {
       return _buildPlaceholder();
     }
-
     return Column(
       children: [
         CarouselSlider(

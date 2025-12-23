@@ -82,31 +82,39 @@ class _HomePageState extends State<HomePage> {
                           // Handle error state
                           if (userInfo.state == AsyncValueState.error) {
                             return SizedBox(
-                              height: 280,
+                              height: 200,
                               child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'Lost connection. Failed to load user infomation',
-                                      style: TextStyle(color: Colors.grey[600]),
-                                    ),
-                                    SizedBox(height: 8),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        context
-                                            .read<AuthProvider>()
-                                            .getUserInfo();
-                                      },
-                                      child: Text('Retry'),
-                                    ),
-                                  ],
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.wifi_off_rounded,
+                                        size: 48,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Lost connection. Failed to load user information! Please check your connection!',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          context
+                                              .read<AuthProvider>()
+                                              .getUserInfo();
+                                        },
+                                        child: Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -240,31 +248,39 @@ class _HomePageState extends State<HomePage> {
                           if (recommendedPlaces.state ==
                               AsyncValueState.error) {
                             return SizedBox(
-                              height: 280,
+                              height: 200,
                               child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'Lost connection. Failed to load recommendations',
-                                      style: TextStyle(color: Colors.grey[600]),
-                                    ),
-                                    SizedBox(height: 8),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        context
-                                            .read<PlaceProvider>()
-                                            .fetchRecommendedPlaces();
-                                      },
-                                      child: Text('Retry'),
-                                    ),
-                                  ],
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.wifi_off_rounded,
+                                        size: 48,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Lost connection. Failed to load recommended places! Please check your connection!',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          context
+                                              .read<PlaceProvider>()
+                                              .fetchRecommendedPlaces();
+                                        },
+                                        child: Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -340,31 +356,39 @@ class _HomePageState extends State<HomePage> {
                           // Handle error state
                           if (upcomingEvents.state == AsyncValueState.error) {
                             return SizedBox(
-                              height: 260,
+                              height: 200,
                               child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      size: 48,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'Lost connection. Failed to load upcoming events',
-                                      style: TextStyle(color: Colors.grey[600]),
-                                    ),
-                                    SizedBox(height: 8),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        context
-                                            .read<PlaceProvider>()
-                                            .fetchUpcomingEvents();
-                                      },
-                                      child: Text('Retry'),
-                                    ),
-                                  ],
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.wifi_off_rounded,
+                                        size: 48,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Lost connection. Failed to load upcoming events! Please check your connection!',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          context
+                                              .read<PlaceProvider>()
+                                              .fetchUpcomingEvents();
+                                        },
+                                        child: Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );

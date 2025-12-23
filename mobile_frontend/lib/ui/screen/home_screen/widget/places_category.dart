@@ -9,7 +9,6 @@ import 'package:mobile_frontend/models/place/place.dart';
 
 class PlacesCategory extends StatefulWidget {
   const PlacesCategory({super.key});
-
   @override
   State<PlacesCategory> createState() => _PlacesCategoryState();
 }
@@ -24,6 +23,7 @@ class _PlacesCategoryState extends State<PlacesCategory> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final placeProvider = context.read<PlaceProvider>();
       placeProvider.fetchPlaceCategories();
+      placeProvider.getPlacesByCategory(0);
     });
   }
 
@@ -33,7 +33,6 @@ class _PlacesCategoryState extends State<PlacesCategory> {
       builder: (context, placeProvider, child) {
         final categoriesAsync = placeProvider.placeCategory;
         final placesAsync = placeProvider.places;
-
         // Handle categories loading and error states
         if (categoriesAsync.state == AsyncValueState.loading) {
           return const Center(
@@ -43,26 +42,32 @@ class _PlacesCategoryState extends State<PlacesCategory> {
             ),
           );
         }
-
         if (categoriesAsync.state == AsyncValueState.error) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 48, color: Colors.red),
-                SizedBox(height: 16),
-                Text(
-                  'Lost connection failed to place category!',
-                  style: TextStyle(color: Colors.grey[600]),
+          return SizedBox(
+            height: 200,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text(
+                      'Lost connection. Failed to load categories! Please check your connection!',
+                      style: TextStyle(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<PlaceProvider>().fetchPlaceCategories();
+                      },
+                      child: Text('Retry'),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    context.read<PlaceProvider>().fetchPlaceCategories();
-                  },
-                  child: Text('Retry'),
-                ),
-              ],
+              ),
             ),
           );
         }
