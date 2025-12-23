@@ -27,8 +27,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-# copy build output (Vite uses dist)
-COPY --from=build /app/dist ./dist
+# copy build output (React Router uses build)
+COPY --from=build /app/build ./build
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]
