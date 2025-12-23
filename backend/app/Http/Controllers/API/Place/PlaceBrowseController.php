@@ -57,19 +57,14 @@ class PlaceBrowseController extends Controller
 			'category' => 'nullable|string|in:popular',
 			'category_id' => 'nullable|integer',
 			'province_id' => 'nullable|integer',
-			'page' => 'nullable|integer|min:1',
-			'per_page' => 'nullable|integer|min:1|max:20',
 		]);
 
 		$category = $request->input('category');
 		$categoryId = $request->has('category_id') ? $request->integer('category_id') : null;
 		$provinceId = $request->integer('province_id') ?: null;
-		$page = max(1, (int)($request->integer('page') ?: 1));
-		$perPage = (int)($request->integer('per_page') ?: 10);
-		$offset = ($page - 1) * $perPage;
 
-		$cacheKey = 'places:byCategory:'.md5(json_encode([$category, $categoryId, $provinceId, $page, $perPage]));
-		return Cache::remember($cacheKey, 60, function () use ($category, $categoryId, $provinceId, $offset, $perPage) {
+		$cacheKey = 'places:byCategory:'.md5(json_encode([$category, $categoryId, $provinceId]));
+		return Cache::remember($cacheKey, 60, function () use ($category, $categoryId, $provinceId) {
 			$query = DB::table('places')
 				->leftJoin('province_categories', 'places.province_id', '=', 'province_categories.province_categoryID')
 				->leftJoin('place_categories', 'places.category_id', '=', 'place_categories.placeCategoryID')
@@ -101,7 +96,7 @@ class PlaceBrowseController extends Controller
 				$query->where('places.province_id', $provinceId);
 			}
 
-			return $query->offset($offset)->limit($perPage)->get();
+			return $query->get();
 		});
 	}
 }
