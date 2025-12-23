@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: web-frontend
+    runtime: docker
+    plan: free
+    buildCommand: docker build -t web-frontend .
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000

@@ -13,8 +13,16 @@ RUN npm ci
 FROM node:20-alpine AS build
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
-COPY . .
+
+# Copy package files first for better caching
+COPY package.json package-lock.json ./
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Set memory limit and run build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # ----------------------------
@@ -27,8 +35,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-# copy build output (Vite uses dist)
-COPY --from=build /app/dist ./dist
+# copy build output (React Router uses build)
+COPY --from=build /app/build ./build
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]
