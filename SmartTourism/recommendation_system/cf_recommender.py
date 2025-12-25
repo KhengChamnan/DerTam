@@ -294,8 +294,8 @@ class CFRecommender:
         """
         os.makedirs(filepath, exist_ok=True)
         
-        # Save Keras model
-        self.model.save(os.path.join(filepath, 'model.h5'))
+        # Save Keras model (using modern .keras format)
+        self.model.save(os.path.join(filepath, 'model.keras'))
         
         # Save mappings
         mappings = {
@@ -316,20 +316,76 @@ class CFRecommender:
         
         Args:
             filepath: Directory path to load the model from
+            
+        Raises:
+            ValueError: If model file is corrupted or missing
+            FileNotFoundError: If model files don't exist
         """
-        # Load Keras model
-        self.model = keras.models.load_model(os.path.join(filepath, 'model.h5'))
+        mappings_path = os.path.join(filepath, 'mappings.pkl')
+        
+        # Try to find model file - prefer .keras format, fallback to .h5
+        model_keras_path = os.path.join(filepath, 'model.keras')
+        model_h5_path = os.path.join(filepath, 'model.h5')
+        
+        model_path = None
+        if os.path.exists(model_keras_path):
+            model_path = model_keras_path
+        elif os.path.exists(model_h5_path):
+            model_path = model_h5_path
+        else:
+            raise FileNotFoundError(
+                f"Model file not found. Expected either {model_keras_path} or {model_h5_path}"
+            )
+        
+        if not os.path.exists(mappings_path):
+            raise FileNotFoundError(f"Mappings file not found: {mappings_path}")
+        
+        # Check file size (model should be reasonably large)
+        file_size = os.path.getsize(model_path)
+        if file_size < 1000:  # Less than 1KB is suspicious
+            raise ValueError(
+                f"Model file appears corrupted (too small: {file_size} bytes). "
+                f"Please retrain the model."
+            )
+        
+        try:
+            # Load Keras model with custom objects to ensure RecommenderNet is available
+            # This is required because RecommenderNet is a custom class
+            self.model = keras.models.load_model(
+                model_path,
+                custom_objects={'RecommenderNet': RecommenderNet}
+            )
+        except Exception as e:
+            raise ValueError(
+                f"Failed to load model from {model_path}: {str(e)}. "
+                f"The model file may be corrupted. Please retrain the model."
+            )
         
         # Load mappings
-        with open(os.path.join(filepath, 'mappings.pkl'), 'rb') as f:
-            mappings = pickle.load(f)
+        try:
+            with open(mappings_path, 'rb') as f:
+                mappings = pickle.load(f)
+        except Exception as e:
+            raise ValueError(f"Failed to load mappings from {mappings_path}: {str(e)}")
         
         self.user_to_index = mappings['user_to_index']
         self.place_to_index = mappings['place_to_index']
-        self.index_to_user = mappings['index_to_user']
-        self.index_to_place = mappings['index_to_place']
         self.num_users = mappings['num_users']
         self.num_places = mappings['num_places']
+        
+        # Create reverse mappings if they don't exist (for backward compatibility)
+        # Old models might not have saved these
+        if 'index_to_user' in mappings:
+            self.index_to_user = mappings['index_to_user']
+        else:
+            # Generate reverse mapping from forward mapping
+            self.index_to_user = {idx: user for user, idx in self.user_to_index.items()}
+        
+        if 'index_to_place' in mappings:
+            self.index_to_place = mappings['index_to_place']
+        else:
+            # Generate reverse mapping from forward mapping
+            self.index_to_place = {idx: place for place, idx in self.place_to_index.items()}
 
 
 if __name__ == "__main__":
@@ -352,6 +408,7 @@ if __name__ == "__main__":
     print("Model trained successfully!")
     print(f"Number of users: {cf.num_users}")
     print(f"Number of places: {cf.num_places}")
+
 
 
 

@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+recommendation_system/__pycache__/__init__.cpython-312.pyc
 *$py.class
 *.so
 .Python
@@ -73,3 +74,8 @@ desktop.ini
 
 # Cursor
 .cursorignore
+.cursor
+
+
+# example
+example/

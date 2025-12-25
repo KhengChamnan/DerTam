@@ -88,26 +88,38 @@ def filter_places_by_preferences(df, preferences: Dict):
     if min_rating > 0:
         filtered_df = filtered_df[filtered_df['ratings'] >= min_rating]
     
-    # Filter by subcategories (if category_name matches)
+    # Filter by subcategories
     subcategories = preferences.get('subcategories', [])
     if subcategories:
-        # Map subcategories to category patterns
-        # This is a simplified mapping - you may need to adjust based on your data
-        category_mapping = {
-            'temples': 'Temple',
-            'museums': 'Museum',
-            'parks': 'Park',
-            'monuments': 'Monument',
-            'palaces': 'Palace',
-            'markets': 'Market',
-            'water_attractions': 'Water',
-            'other_attractions': 'Other'
+        # First, filter to only Tourist Attraction category
+        filtered_df = filtered_df[filtered_df['category_name'] == 'Tourist Attraction']
+        
+        # Map subcategories to search patterns in name and description
+        subcategory_patterns = {
+            'temples': r'Temple|Wat|Pagoda|Pagodas',
+            'museums': r'Museum|Museums',
+            'parks': r'Park|Parks|Garden|Gardens',
+            'monuments': r'Monument|Monuments|Memorial|Statue|Statues',
+            'palaces': r'Palace|Palaces|Royal',
+            'markets': r'Market|Markets',
+            'water_attractions': r'Water|Waterfall|Waterfalls|Beach|Beaches|Lake|River',
+            'other_attractions': r'.'  # Match anything if other_attractions is selected
         }
         
-        # Filter by category name patterns
-        category_patterns = [category_mapping.get(subcat, '') for subcat in subcategories]
-        if any(category_patterns):
-            mask = filtered_df['category_name'].str.contains('|'.join(category_patterns), case=False, na=False)
+        # Build combined pattern for all selected subcategories
+        patterns = []
+        for subcat in subcategories:
+            if subcat in subcategory_patterns:
+                patterns.append(subcategory_patterns[subcat])
+        
+        if patterns:
+            # Combine patterns with OR
+            combined_pattern = '|'.join(patterns)
+            # Search in both name and description
+            name_mask = filtered_df['name'].str.contains(combined_pattern, case=False, na=False, regex=True)
+            desc_mask = filtered_df['description'].str.contains(combined_pattern, case=False, na=False, regex=True)
+            # Match if either name or description contains the pattern
+            mask = name_mask | desc_mask
             filtered_df = filtered_df[mask]
     
     # Filter by provinces
@@ -119,12 +131,14 @@ def filter_places_by_preferences(df, preferences: Dict):
     popularity_pref = preferences.get('popularity_preference', 'balanced')
     if popularity_pref == 'popular':
         # Top 50% by reviews_count
-        threshold = filtered_df['reviews_count'].quantile(0.5)
-        filtered_df = filtered_df[filtered_df['reviews_count'] >= threshold]
+        if len(filtered_df) > 0:
+            threshold = filtered_df['reviews_count'].quantile(0.5)
+            filtered_df = filtered_df[filtered_df['reviews_count'] >= threshold]
     elif popularity_pref == 'hidden_gems':
         # Bottom 50% by reviews_count
-        threshold = filtered_df['reviews_count'].quantile(0.5)
-        filtered_df = filtered_df[filtered_df['reviews_count'] <= threshold]
+        if len(filtered_df) > 0:
+            threshold = filtered_df['reviews_count'].quantile(0.5)
+            filtered_df = filtered_df[filtered_df['reviews_count'] <= threshold]
     # 'balanced' means no filtering
     
     return filtered_df

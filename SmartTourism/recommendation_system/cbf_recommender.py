@@ -125,7 +125,9 @@ class CBFRecommender:
         filtered_places = filter_places_by_preferences(self.places_df, preferences)
         
         if len(filtered_places) == 0:
-            return pd.DataFrame()
+            # Return empty DataFrame with expected columns
+            expected_columns = self.places_df.columns.tolist() + ['similarity_score']
+            return pd.DataFrame(columns=expected_columns)
         
         # If user has selected subcategories, find similar places
         # Otherwise, return top-rated places
@@ -135,8 +137,18 @@ class CBFRecommender:
                 reference_place = filtered_places.iloc[0]['placeID']
                 recommendations = self.recommend_places(reference_place, k=k*2, exclude_place=True)
                 
+                # Ensure recommendations has all required columns
+                if len(recommendations) == 0:
+                    expected_columns = self.places_df.columns.tolist() + ['similarity_score']
+                    return pd.DataFrame(columns=expected_columns)
+                
                 # Filter recommendations by preferences again
                 recommendations = filter_places_by_preferences(recommendations, preferences)
+                
+                # Ensure filtered recommendations still has all columns
+                if len(recommendations) == 0:
+                    expected_columns = self.places_df.columns.tolist() + ['similarity_score']
+                    return pd.DataFrame(columns=expected_columns)
                 
                 return recommendations.head(k)
         
@@ -249,6 +261,7 @@ if __name__ == "__main__":
         recommendations = cbf.recommend_places(test_place_id, k=5)
         print(f"\nTop 5 recommendations:")
         print(recommendations[['name', 'ratings', 'similarity_score']].head())
+
 
 
 
