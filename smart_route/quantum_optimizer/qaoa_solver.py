@@ -1,3 +1,21 @@
+# Copyright 2025 Kheng Chamnan, for contributions he owns or is authorised to license.
+#
+# Scope: this notice licenses only those contributions. It does not relicense
+# third-party material or establish its provenance. See:
+# ../../docs/licensing/qaoa_solver.md
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use the covered contributions except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """
 QAOA Solver for Route Optimization
 Implements Quantum Approximate Optimization Algorithm for feature-based QUBO (2-4 qubits)
