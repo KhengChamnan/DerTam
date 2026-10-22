@@ -1,27 +1,43 @@
-# QAOA solver: licensing and provenance review
+# QAOA solver: licence, credit and provenance
 
-Status: pending rights-holder and upstream-source confirmation.
-This document and the proposed files in this directory do not grant a licence
-to qaoa_solver.py or any other existing project material.
+## Licence grant and historical coverage
 
-## Scope
+At the maintainer's direction, Kheng Chamnan grants Apache-2.0 permissions for
+all contributions in smart_route/quantum_optimizer/qaoa_solver.py that he owns
+or is authorised to license. This expressly includes the covered code and
+explanatory comments in the recorded Git blob
+62881893890fab23280cf8d752db384ded6be55f and subsequent covered contributions.
 
-Issue: https://github.com/KhengChamnan/DerTam/issues/58
-File: smart_route/quantum_optimizer/qaoa_solver.py
-Recorded Git blob: 62881893890fab23280cf8d752db384ded6be55f
+The full licence text is in ../../LICENSES/Apache-2.0.txt.
+This statement supersedes the earlier proposed-only status for the covered
+contributions. The files under proposed/ are historical preparation materials,
+not the operative licence notice.
 
-The enquiry covers code and comments for QUBO-to-Ising conversion, QAOA,
-sampler and optimiser orchestration, circuit-display construction, and result
-handling. It concerns 24 derived PQID entries described by the requester.
+This grant covers only rights the grantor owns or is authorised to grant.
+It neither relicenses third-party material nor establishes ownership of
+unverified portions. It does not assert copyright in material that is not
+eligible for copyright. It is not a repository-wide licence.
+
+## Scope and exclusions
+
+Related enquiry: https://github.com/KhengChamnan/DerTam/issues/58
+
+The enquiry concerns QUBO-to-Ising conversion, QAOA/sampler and optimiser
+orchestration, circuit-display construction, and result handling, including
+comments, in the file above.
+
 The separate route decoder, tourism/customer data, route results, application
-services, and imported libraries are outside this enquiry.
+services, and imported libraries are outside this grant. Third-party material
+remains subject to its own terms. No rights in such material are granted here.
 
-## Evidence and credit
+## Credit and source
 
-The current file matches the recorded blob. No licence, copyright notice,
-author credit, or upstream adaptation references were found in the file.
-The current repository tree contains no licence or attribution files, and the
-root and smart_route READMEs do not supply licensing terms.
+Project contributor credit: Kheng Chamnan (@KhengChamnan).
+Project source: https://github.com/KhengChamnan/DerTam
+
+The maintainer reports using Cursor for development assistance. That identifies
+a development tool, not an upstream source or assurance of independent
+authorship. Specific prompts, models, and generation records were not supplied.
 
 The file's path history records five commits under the GitHub account
 KhengChamnan. The initial commit records the author name Kheng Chamnan:
@@ -38,51 +54,31 @@ Credit supported by this evidence: Kheng Chamnan (@KhengChamnan), recorded
 contributor. Commit attribution does not establish sole copyright ownership,
 authority to license, or independence from third-party sources.
 
-## Proposed licence
-
-Apache-2.0 is proposed for contributions whose rights holders authorise it.
-The complete standard text is in proposed/Apache-2.0.txt, with a proposed
-file notice in proposed/qaoa_solver-header.txt.
-
-These are review materials only. They do not apply Apache-2.0 to the file,
-the historical blob, or the repository. No copyright holder has been invented.
-
-## Third-party provenance
+## Third-party provenance: still unverified
 
 Qiskit, qiskit-algorithms, qiskit-aer and NumPy are used as dependencies.
-Dependency imports do not establish that their implementations or tutorials
-were copied. The reviewed file history does not identify original sources for
-adapted code or comments. Independent authorship and adaptations remain
-unconfirmed; neither should be asserted without evidence.
+Importing a library does not establish copying from its implementation,
+examples, or tutorials. The reviewed file history did not identify sources for
+adapted implementations or comments. No claim is made that all material is
+original, or that there are no third-party adaptations.
 
-For each confirmed adaptation, record:
-- Original source URL and exact version or commit.
-- Affected functions, code blocks, or comments.
-- Original author/copyright credit and licence.
-- Modifications made here and all applicable retained notices.
+For each identified adaptation, record the upstream URL and version/commit,
+affected functions or comments, original author and copyright credit, licence,
+modifications, and applicable retained notices. Do not invent upstream sources.
 
-If a source is Apache-2.0, retain its applicable copyright/attribution notices,
-include its licence, mark modified files, and preserve relevant upstream NOTICE
-content when supplied. Check the actual source's terms; do not assume all
-Qiskit tutorials or third-party material share one licence.
+For Apache-2.0 adaptations, include the licence, retain relevant copyright and
+attribution notices, mark modifications, and reproduce applicable upstream
+NOTICE content where supplied. Verify the actual source terms.
 
-## Completion steps
+The recorded version's ownership and upstream provenance have not been fully
+verified. This scoped grant does not by itself clear the entire file for
+redistribution. PQID must review its relevant excerpts and may need further
+permissions or exclusions before including any of the 24 derived entries.
 
-1. Establish the actual rights holders and their authority to license the
-   relevant contributions; obtain consent where needed.
-2. Complete the source inventory above. Where provenance cannot be established,
-   keep the affected material outside any grant or replace it with an
-   independently implemented contribution whose rights are established.
-3. If Apache-2.0 is accepted, apply the completed notice to the authorised
-   portions and put the full licence in LICENSES/Apache-2.0.txt. Document any
-   portions under different terms instead of relicensing them.
-4. Add an express scope statement covering authorised code and comments in
-   smart_route/quantum_optimizer/qaoa_solver.py at Git blob
-   62881893890fab23280cf8d752db384ded6be55f, and identify all exclusions.
-5. Respond to issue 58 with links to the licensing commit, confirmed credits,
-   original sources and retained notices. Do not claim PQID inclusion is
-   approved: its entries remain subject to the requester's integration review.
+## Remaining review
 
-Keep the existing classical_fallback identification. Licensing review does not
-validate quantum performance. Do not close issue 58 until the licence grant
-and provenance questions have actually been resolved.
+Identify any upstream adaptations and any additional rights holders, retain
+their terms, and document permissions or exclusions for the affected portions.
+Keep issue 58 open until the requester has the necessary source and licensing
+information. Licensing does not validate quantum performance; preserve the
+existing classical_fallback identification.
